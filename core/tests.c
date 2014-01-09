@@ -7,6 +7,89 @@
 #include "lowl_hash.h"
 #include "lowl_math.h"
 
+void run_chi2( double* scores, int numtrials, lowl_key_hash* lkh,
+		unsigned int* bins, int numbins,
+		lowl_key* keys, int numkeys ) {
+  /* run a chi2 test using the given hash structure.
+	double* scores will hold int numtrials scores.
+	Each score is obtained by hashing int numkeys lowl_keys,
+		given in lowl_key*, into unsigned int* bins, where we
+		will accumulate counts. */ 
+  int n,j;
+  lowl_key current_key;
+  lowl_hashoutput current_hash;
+  /* for calculating chi2 scores. */
+  double expected = ((double)numkeys) / ((double)numbins);
+  double observed, diff;
+  for( n=0; n<numtrials; n++ ) {
+    /* reset the counts. */
+    memset( bins, 0, numbins*sizeof(unsigned int) );
+
+    /* choose parameters a and b */
+    /* a must be an odd positive integer. */
+    lkh->a = (unsigned long) random();
+    if ( lkh->a % 2 == 0 ) { 
+      lkh->a +=1;
+    }
+    /* a,b the parameters of the hash function, must both be less than 2^w */
+    if ( 8*sizeof(lkh->a) > lkh->w ||
+		8*sizeof(lkh->b) > lkh->w ) {
+      unsigned long long ab_upperbound
+        = (unsigned long long) lowlmath_powposint(2, lkh->w);
+      lkh->a = lkh->a % ab_upperbound;
+      lkh->b = (unsigned long) random() % ab_upperbound;
+    }
+    /* hash the keys. */
+    for( j=0; j<numkeys; j++ ) {
+      current_key = keys[j];
+      current_hash = multip_add_shift(current_key, lkh);
+      bins[current_hash] += 1;
+    }
+
+    /* calculate chi2 statistic. */
+    scores[n] = 0.0;
+    for( j=0; j<numbins; j++) {
+      observed = (double) bins[j];
+      diff = observed - expected;
+      scores[n] += pow(diff, 2.0)/expected;
+    }
+  }
+  return;
+}
+
+void interp_chi2( double *chi2scores, int numtrials ) {
+  /* critical values retrieved from
+        http://www.itl.nist.gov/div898/handbook/eda/section3/eda3674.htm */
+  double cval_upper = 82.529; // critical value for 63 df at alpha=0.95
+  double cval_lower = 45.741; // critical value for 63 df at alpha=0.95
+  double cval_twotailed_upper = 86.830;
+  double cval_twotailed_lower = 42.950;
+
+  int failed_upper,failed_lower,failed_twotailed;
+  failed_upper=failed_lower=failed_twotailed=0;
+
+  int n;
+  for( n=0; n<numtrials; n++ ) {
+    if( chi2scores[n] >= cval_upper ) {
+      failed_upper++;
+    }
+    if( chi2scores[n] <= cval_lower ) {
+      failed_lower++;
+    }
+    if( chi2scores[n] >= cval_twotailed_upper
+                || chi2scores[n] <= cval_twotailed_lower ) {
+      failed_twotailed++;
+    }
+  }
+  printf("%d of %d trials failed the upper-tailed chi2 test at alpha=0.05.\n",
+                failed_upper, numtrials );
+  printf("%d of %d trials failed the lower-tailed chi2 test at alpha=0.05.\n",
+                failed_lower, numtrials );
+  printf("%d of %d trials failed the two-tailed chi2 test at alpha=0.05.\n",
+                failed_twotailed, numtrials );
+  printf("\n"); 
+}
+
 int main( int argc, char **argv ) {
 
   /**************************************************************
@@ -19,7 +102,6 @@ int main( int argc, char **argv ) {
   assert( lowlmath_powposint(2, 10) == 1024);
   assert( lowlmath_powposint(2, 11) == 2048);
   assert( lowlmath_powposint(2, 31) == 2147483648);
-
 
   /**************************************************************
    *								*
@@ -35,105 +117,76 @@ int main( int argc, char **argv ) {
   	to a set of 64 possible bins. */
   
   int numbins = 64;
-  unsigned int *bins = malloc( numbins*sizeof(unsigned int) );
-  
-  if ( bins == NULL ) {
-    fprintf(stderr, "Memory allocation failed while setting up bins for chi2 test for hash functions.\n");
-    exit( EXIT_FAILURE );
-  }
-  
   int numtrials = 100; /* number of hash function trials */
-  int numints = 4096;
+  int numkeys = 4096;
+
+  /* we store all keys to be hashed during a trial in a signle array. */
+  lowl_key* keys = malloc( numkeys*sizeof(lowl_key) );
   
-  /* allocate a Lowl_Int_Hash and set its w and M parameters, which do
+  /* allocate a lowl_key_hash and set its w and M parameters, which do
   	not change from trial to trial. */
-  Lowl_Int_Hash* lihash = malloc(sizeof( Lowl_Int_Hash) );
+  lowl_key_hash* lkhash = malloc(sizeof( lowl_key_hash) );
   
-  lihash->M = (unsigned int) log2(numbins); // e.g., 2^6=64, the # of bins.
+  lkhash->M = (unsigned int) log2(numbins); // e.g., 2^6=64, the # of bins.
   /* we're hashing unsigned ints.
   	the w parameter to the multiply-add-shift is the number of bits
   	needed to represent the objects that we are hashing, so
   	we need w to be the number of bits in an unsigned int. */
-  lihash->w = (unsigned int) 8*sizeof(unsigned int);
+  lkhash->w = (unsigned int) 8*sizeof(unsigned int);
 
   /* we will tabulate chi^2 statistics for the trials. */
   double* chi2scores = malloc(numtrials*sizeof(double));
-  if ( chi2scores == NULL ) {
-    fprintf(stderr, "Memory allocation failed while setting up score array for chi2 test for hash functions.\n");
+  /* we accumulate counts in unsigned int* bins. */
+  unsigned int *bins = malloc( numbins*sizeof(unsigned int) );
+
+  if ( keys==NULL || lkhash==NULL || chi2scores==NULL || bins==NULL ) {
+    fprintf(stderr, "Memory allocation failed while setting up chi2 test.\n");
     exit( EXIT_FAILURE );
   }
   
   /* seed and begin trials. We reset the a and b parameters of the hash function
   	with each trial. */
   srandom(3355);
-  int n,j;
-  unsigned int current_int;
-  unsigned int current_hash;
-  /* for calculating chi2 scores. */
-  double expected = ((double)numints) / ((double)numbins);
-  double observed, diff;
-  for( n=0; n<numtrials; n++ ) {
-    /* reset the counts. */
-    memset( bins, 0, numbins*sizeof(unsigned int) );
 
-    /* choose parameters a and b */
-    /* a must be an odd positive integer. */
-    lihash->a = (unsigned long) random();
-    if ( lihash->a % 2 == 0 ) { 
-      lihash->a +=1;
-    }
-    /* a,b the parameters of the hash function, must both be less than 2^w */
-    if ( 8*sizeof(lihash->a) > lihash->w ||
-		8*sizeof(lihash->b) > lihash->w ) {
-      unsigned long long ab_upperbound
-        = (unsigned long long) lowlmath_powposint(2, lihash->w);
-      lihash->a = lihash->a % ab_upperbound;
-      lihash->b = (unsigned long) random() % ab_upperbound;
-    }
-    for( j=0; j<numints; j++ ) {
-      current_int = (unsigned int) random();
-      current_hash = multip_add_shift(current_int, lihash);
-      bins[current_hash] += 1;
-    }
+  /* first test will just be hashing a random set of integers. */
+  // populate the integer list.
+  int i;
+  for( i=0; i < numkeys; i++) {
+    keys[i] = (lowl_key) random();
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are randomly-drawn unsigned ints:\n");
+  run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
 
-    /* calculate chi2 statistic. */
-    chi2scores[n] = 0.0;
-    for( j=0; j<numbins; j++) {
-      observed = (double) bins[j];
-      diff = observed - expected;
-      chi2scores[n] += pow(diff, 2.0)/expected;
-    }
+  /* Now, we will hash sequential keys and test again. */
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (lowl_key) i;
   }
-  /* "interpret" the chi2 scores. */
-  /* critical values retrieved from
-	http://www.itl.nist.gov/div898/handbook/eda/section3/eda3674.htm */
-  double cval_upper = 82.529; // critical value for 63 df at alpha=0.95
-  double cval_lower = 45.741; // critical value for 63 df at alpha=0.95
-  double cval_twotailed_upper = 86.830;
-  double cval_twotailed_lower = 42.950;
-  int numfailed_upper = 0;
-  int numfailed_lower = 0;
-  int numfailed_twotailed = 0;
-  printf("Chi2 test of uniformity of hash function output:\n");
-  for( n=0; n<numtrials; n++ ) {
-    if( chi2scores[n] >= cval_upper ) {
-      numfailed_upper++;
-    }
-    if( chi2scores[n] <= cval_lower ) {
-      numfailed_lower++;
-    }
-    if( chi2scores[n] >= cval_twotailed_upper
-		|| chi2scores[n] <= cval_twotailed_lower ) {
-      numfailed_twotailed++;
-    }
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential keys starting at 0:\n");
+  run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  /* Now, we will hash sequential keys starting from a non-zero number. */
+  int offset = 49327;
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (lowl_key) i + offset; 
   }
-  printf("%d of %d trials failed the upper-tailed chi2 test at alpha=0.05.\n",
-		numfailed_upper, numtrials );
-  printf("%d of %d trials failed the lower-tailed chi2 test at alpha=0.05.\n",
-		numfailed_lower, numtrials );
-  printf("%d of %d trials failed the two-tailed chi2 test at alpha=0.05.\n",
-		numfailed_twotailed, numtrials );
-  printf("\n");
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential keys starting at %d:\n", offset);
+  run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  /* Keys that are sequential by 2s. */
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (lowl_key) 2*i; 
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential by 2s, starting at 0:\n");
+  run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+
+
+
+
 
   printf("All tests completed.\n");
   return 0;
