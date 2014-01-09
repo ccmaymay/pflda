@@ -183,8 +183,86 @@ int main( int argc, char **argv ) {
   run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
   interp_chi2( chi2scores, numtrials );
 
+  /* free the memory that we no longer need. */
+  free( chi2scores );
+  free( bins );
+  free( keys );
+  free( lkhash );
+
+  /******************************************************
+   *							*
+   *	Tests for resizable arrays.			*
+   *							*
+   ******************************************************/
+
+  printf("Tests for resizable arrays.\n");
+
+  lowl_rarr *lr;
+  lr = malloc( sizeof(lowl_rarr) );
+  if( lr == NULL ) {
+    printf( "Memory allocation failed in testing resizable array.\n");
+  }
+  unsigned int orig_cap = 16;
+  /* initialize a resizable array with 16 slots. */
+  lowl_rarr_init(lr, orig_cap);
+  assert( lr->capacity == orig_cap );
+  /* verify that entries of lr are zero, as they ought to be */
+  lowl_count contents;
+  int succ;
+  for( i=0; i < lr->capacity; i++ ) {
+    succ = lowl_rarr_get(lr, (unsigned int) i, &contents);
+    assert( contents==0 ); 
+    assert( succ==0 );
+  }
+  /* set some entries to be non-zero and verify that this works correctly. */
+  lowl_count testcount1 = 1969;
+  lowl_count testcount2 = 42;
+  succ = lowl_rarr_set(lr, 5, testcount1);
+  assert( succ == 0 );
+  succ = lowl_rarr_set(lr, 10, testcount2);
+  assert( succ == 0 );
+  succ = lowl_rarr_get(lr, 5, &contents);
+  assert( succ==0 );
+  assert( contents == testcount1 );
+  succ = lowl_rarr_get(lr, 10, &contents);
+  assert( succ==0 );  
+  assert( contents == testcount2 );
+  /* try setting an element that is currently out of range. */
+  lowl_count testcount3 = 123456;
+  succ = lowl_rarr_set(lr, 16, testcount3);
+  assert( succ != 0 );
+
+  /* upsize the array. */
+  lowl_rarr_upsize( lr );
+  assert( lr->capacity == 2*orig_cap );
+  /* check that newly created memory is zero'd */
+  for( i=orig_cap; i < lr->capacity; i++ ) {
+    succ = lowl_rarr_get(lr, (unsigned int) i, &contents);
+    assert( contents==0 );
+    assert( succ==0 );
+  }
+  /* now try inserting the same element. */
+  succ = lowl_rarr_set(lr, 16, testcount3);
+  assert( succ == 0 );
+  succ = lowl_rarr_get(lr, 16, &contents);
+  assert( succ==0 );
+  assert( contents == testcount3 );
+  /* verify that previous elements were preserved correctly. */
+  succ = lowl_rarr_get(lr, 5, &contents);
+  assert( succ==0 );
+  assert( contents == testcount1 );
+  succ = lowl_rarr_get(lr, 10, &contents);
+  assert( succ==0 );
+  assert( contents == testcount2 );
 
 
+  /* downsize the array. */
+  succ = lowl_rarr_downsize( lr );
+  assert( lr->capacity == orig_cap );
+
+  lowl_rarr_destroy( lr );
+  free( lr );
+ 
 
 
 
