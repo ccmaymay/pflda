@@ -26,19 +26,8 @@ void run_chi2( double* scores, int numtrials, lowl_key_hash* lkh,
     memset( bins, 0, numbins*sizeof(unsigned int) );
 
     /* choose parameters a and b */
-    /* a must be an odd positive integer. */
-    lkh->a = (unsigned long) random();
-    if ( lkh->a % 2 == 0 ) { 
-      lkh->a +=1;
-    }
-    /* a,b the parameters of the hash function, must both be less than 2^w */
-    if ( 8*sizeof(lkh->a) > lkh->w ||
-		8*sizeof(lkh->b) > lkh->w ) {
-      unsigned long long ab_upperbound
-        = (unsigned long long) lowlmath_powposint(2, lkh->w);
-      lkh->a = lkh->a % ab_upperbound;
-      lkh->b = (unsigned long) random() % ab_upperbound;
-    }
+    lowl_key_hash_arm( lkh );
+
     /* hash the keys. */
     for( j=0; j<numkeys; j++ ) {
       current_key = keys[j];
@@ -127,12 +116,14 @@ int main( int argc, char **argv ) {
   	not change from trial to trial. */
   lowl_key_hash* lkhash = malloc(sizeof( lowl_key_hash) );
   
-  lkhash->M = (unsigned int) log2(numbins); // e.g., 2^6=64, the # of bins.
+  unsigned int M = (unsigned int) log2(numbins); // e.g., 2^6=64, the # of bins
   /* we're hashing unsigned ints.
-  	the w parameter to the multiply-add-shift is the number of bits
-  	needed to represent the objects that we are hashing, so
-  	we need w to be the number of bits in an unsigned int. */
-  lkhash->w = (unsigned int) 8*sizeof(unsigned int);
+        the w parameter to the multiply-add-shift is the number of bits
+        needed to represent the objects that we are hashing, so
+        we need w to be the number of bits in a lowl_key. */
+  unsigned int w = (unsigned int) 8*sizeof(lowl_key);
+
+  lowl_key_hash_init( lkhash, w, M);
 
   /* we will tabulate chi^2 statistics for the trials. */
   double* chi2scores = malloc(numtrials*sizeof(double));
@@ -180,6 +171,14 @@ int main( int argc, char **argv ) {
     keys[i] = (lowl_key) 2*i; 
   }
   printf("Chi2 test of uniformity of hash function output when inputs are sequential by 2s, starting at 0:\n");
+  run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  /* Keys that are sequential by 2s. */
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (lowl_key) 3*i; 
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential by 103s, starting at 0:\n");
   run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
   interp_chi2( chi2scores, numtrials );
 

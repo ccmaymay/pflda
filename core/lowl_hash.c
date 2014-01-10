@@ -1,33 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "lowl_types.h"
+#include "lowl_math.h"
 #include "lowl_hash.h"
-
-/********************************************************
- *                                                      *
- *      Begin temporarily-deprecated code.              *
- *                                                      *
- ********************************************************/
-
-/* might want to change this to, say, 8*sizeof(long long), or something,
-	depending on just how large we expect our hash tables to be. */
-//LOWLHASHES_GLOB_w = 8*sizeof(int);
-
-/* this is kind of silly, since the number of bins into which we are hashing
-	will be different between different instances... */
-//LOWLHASHES_GLOB_M = 8*sizeof(int);
-
-/*
-unsigned int multip_shift(int x) {
-  return (unsigned int) (LOWLHASHES_MULTIPSHIFT_a*x)
-	>> (LOWLHASHES_GLOB_w - LOWLHAHES_GLOB_M);
-}
-
-unsigned int multip_add_shift(int x) {
-  return (unsigned int) (LOWLHASHES_MULTIPADDSHIFT_a*x
-			+ LOWLHASHES_MULTIPADDSHIFT_b)
-	>> (LOWLHASHES_GLOB_w - LOWLHAHES_GLOB_M);
-} */
 
 /********************************************************
  *                                                      *
@@ -44,8 +19,69 @@ unsigned int multip_add_shift(int x) {
 
 /* multiply-add-shift hash function. */
 lowl_hashoutput multip_add_shift(lowl_key x, lowl_key_hash* h) {
-  return (lowl_hashoutput) ((h->a)*x + (h->b)) >> (h->w - h->M);
+  return ((lowl_hashoutput)
+	 ((h->a)*((unsigned int)x) + (h->b))) >> (h->w - h->M) ;
 }
+
+int lowl_key_hash_init( lowl_key_hash* lkh, unsigned int w, unsigned int M) {
+  if( w==0 || M==0 ) return -1; /* must be non-negative numbers */
+  lkh->w = w;
+  lkh->M = M;
+  return 0;
+}
+
+/* choose parameters a and b for the hash function, set them accordingly. */
+void lowl_key_hash_arm( lowl_key_hash* lkh ) { 
+  /* choose parameters a and b */
+
+  /* a must be an odd positive integer with a < 2^w. */
+  lkh->a = (unsigned long) random();
+  if ( lkh->a % 2 == 0 ) {
+    lkh->a +=1;
+  }
+  if( lkh->a == 0 ) { /* make sure a isn't 0 */
+    lkh->a = 1;
+  }
+  if ( 8*sizeof(lkh->a) > lkh->w ) {
+    unsigned long long a_upperbound
+      = (unsigned long long) lowlmath_powposint(2, lkh->w);
+    lkh->a = (unsigned long) (lkh->a % a_upperbound);
+  } 
+  /* b must be a non-negative integer with b < 2^(w-M) */
+  lkh->b = (unsigned long) (random() % lowlmath_powposint(2,lkh->w - lkh->M));
+}
+
+/* Motwani-Raghavan hash function. */
+
+int lowl_motrag_hash_init( lowl_motrag_hash* lmh,
+				unsigned int m, unsigned int n ) {
+  unsigned int bigprime = (unsigned int) LOWLMATH_BIGPRIME;
+  if( m > bigprime ) {
+    return -1; // can't deal with an input universe this big.
+  }
+  lmh->m = m;
+  lmh->n = n;
+  /* select an appropriate prime p >= m. */
+  // first figure out the smallest power powof2 such that m <= 2^powof2.
+  unsigned int pow = 0;
+  unsigned int testme = 1; // invariant: = 2^pow.
+  while( m < testme ) {
+    pow++;
+    testme *= 2;
+  }
+  
+}
+
+unsigned int lowl_motrag_map( unsigned int input ) {
+
+}
+
+void lowl_motrag_hash_arm( lowl_motrag_hash* lmh ) {
+
+}
+
+
+
 
 
 /********************************************************
@@ -59,7 +95,6 @@ int lowl_rarr_init(lowl_rarr* lr, unsigned int cap) {
         Return 0 if successful.
         Return -1 if there was a failure (namely, failure to allocate mem.) */
   lr->capacity = cap;
-  lr->size = 0; /* initially empty */
   lr->array = malloc( cap*sizeof(lowl_count) );
   if( lr->array == NULL ) {
     return -1;
@@ -69,7 +104,7 @@ int lowl_rarr_init(lowl_rarr* lr, unsigned int cap) {
   return 0;
 }
 
-int lowl_rarr_insert(lowl_rarr* lr, unsigned int loc, lowl_count elmt) {
+int lowl_rarr_set(lowl_rarr* lr, unsigned int loc, lowl_count elmt) {
   /* insert the given element into the resizable array at the given location.
         Return 0 if successful.
         Return -1 if location is out of range.  */
@@ -86,6 +121,18 @@ int lowl_rarr_insert(lowl_rarr* lr, unsigned int loc, lowl_count elmt) {
     (lr->array)[loc] = elmt;
   }
   return 0;
+}
+
+/* retrieve the element at the given location and copy its contents to
+	the given address.	*/
+int lowl_rarr_get(lowl_rarr* lr, unsigned int loc, lowl_count* elmt) {
+  if( loc >= lr->capacity ) {
+    return -1;
+  } else {
+    /* again, making the same contiguous memory assumption we made above. */
+    *elmt = (lr->array)[loc];
+    return 0;
+  }
 }
 
 int lowl_rarr_upsize(lowl_rarr* lr) {
@@ -144,7 +191,6 @@ int lowl_rarr_destroy(lowl_rarr* lr) {
   /* deal with the various freeing of memory that needs to be done
         internal to the resizable array. */
   free( lr->array );
-  lr->size = 0;
   lr->capacity = 0;
   return 0;
 }
