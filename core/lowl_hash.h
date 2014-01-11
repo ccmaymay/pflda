@@ -1,6 +1,8 @@
 #ifndef LOWLHASH_H
 #define LOWLHASH_H
 
+#include "lowl_types.h"
+
 /* data structures and functions related to hash tables.
 	This includes:
 		hash functions
