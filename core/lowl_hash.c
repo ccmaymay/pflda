@@ -6,13 +6,6 @@
 
 /********************************************************
  *                                                      *
- *      End temporarily-deprecated code.                *
- *                                                      *
- ********************************************************/
-
-
-/********************************************************
- *                                                      *
  *      Hash functions.					*
  *                                                      *
  ********************************************************/
@@ -65,24 +58,31 @@ int lowl_motrag_hash_init( lowl_motrag_hash* lmh,
   // first figure out the smallest power powof2 such that m <= 2^powof2.
   unsigned int pow = 0;
   unsigned int testme = 1; // invariant: = 2^pow.
-  while( m < testme ) {
+  while( testme < m ) {
     pow++;
     testme *= 2;
   }
-  
+  if( pow >= 32 ) { // m is extremely big. Really, we never want m this big.
+    lmh->p = bigprime;
+  } else {
+    //lmh->p = lowlmath_usefulprimes[pow];
+    lmh->p = get_useful_prime(pow);
+  }
+  return 0;
 }
 
-unsigned int lowl_motrag_map( unsigned int input ) {
-
+unsigned int lowl_motrag_map( unsigned int input, lowl_motrag_hash* lmh ) {
+  unsigned int f = (lmh->a*input + lmh->b) % lmh->p;
+  return f % lmh->n;
 }
 
 void lowl_motrag_hash_arm( lowl_motrag_hash* lmh ) {
-
+  /* choose the parameters a and b for the hash function. */
+  unsigned int r1 = (unsigned int) random();
+  unsigned int r2 = (unsigned int) random();
+  lmh->a = r1 % lmh->p;
+  lmh->b = r2 % lmh->p;
 }
-
-
-
-
 
 /********************************************************
  *                                                      *

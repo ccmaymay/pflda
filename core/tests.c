@@ -7,7 +7,9 @@
 #include "lowl_hash.h"
 #include "lowl_math.h"
 
-void run_chi2( double* scores, int numtrials, lowl_key_hash* lkh,
+void interp_chi2( double* scores, int numtrials);
+
+void run_chi2_lkh( double* scores, int numtrials, lowl_key_hash* lkh,
 		unsigned int* bins, int numbins,
 		lowl_key* keys, int numkeys ) {
   /* run a chi2 test using the given hash structure.
@@ -32,6 +34,258 @@ void run_chi2( double* scores, int numtrials, lowl_key_hash* lkh,
     for( j=0; j<numkeys; j++ ) {
       current_key = keys[j];
       current_hash = multip_add_shift(current_key, lkh);
+      bins[current_hash] += 1;
+    }
+
+    /* calculate chi2 statistic. */
+    scores[n] = 0.0;
+    for( j=0; j<numbins; j++) {
+      observed = (double) bins[j];
+      diff = observed - expected;
+      scores[n] += pow(diff, 2.0)/expected;
+    }
+  }
+  return;
+}
+
+void run_chi2_motrag( double* scores, int numtrials, lowl_motrag_hash* motwani,
+                unsigned int* bins, int numbins,
+                unsigned int* keys, int numkeys ) {
+  /* run a chi2 test using the given hash structure.
+        double* scores will hold int numtrials scores.
+        Each score is obtained by hashing int numkeys unsigned ints,
+                into unsigned int* bins, where we will accumulate counts. */
+  int n,j;
+  unsigned int current_key;
+  unsigned int current_hash;
+  /* for calculating chi2 scores. */
+  double expected = ((double)numkeys) / ((double)numbins);
+  double observed, diff;
+  for( n=0; n<numtrials; n++ ) {
+    /* reset the counts. */
+    memset( bins, 0, numbins*sizeof(unsigned int) );
+
+    /* choose parameters a and b */
+    lowl_motrag_hash_arm( motwani );
+
+    /* hash the keys. */
+    for( j=0; j<numkeys; j++ ) {
+      current_key = keys[j];
+      current_hash = lowl_motrag_map(current_key, motwani);
+      bins[current_hash] += 1;
+    }
+
+    /* calculate chi2 statistic. */
+    scores[n] = 0.0;
+    for( j=0; j<numbins; j++) {
+      observed = (double) bins[j];
+      diff = observed - expected;
+      scores[n] += pow(diff, 2.0)/expected;
+    }
+  }
+  return;
+}
+
+void run_multip_add_shift_tests( void ) {
+  printf("=== Chi2 tests of multiply-add-shift hash function. ===\n");  
+
+  /* allocate the necessary memory for running tests. */
+  int numbins = 64;
+  int numtrials = 100; /* number of hash function trials */
+  int numkeys = 4096;
+
+  /* we store all keys to be hashed during a trial in a signle array. */
+  lowl_key* keys = malloc( numkeys*sizeof(lowl_key) );  
+
+  /* allocate a lowl_key_hash and set its w and M parameters, which do
+        not change from trial to trial. */
+  lowl_key_hash* lkhash = malloc(sizeof( lowl_key_hash) );
+
+  unsigned int M = (unsigned int) log2(numbins); // e.g., 2^6=64, the # of bins
+  /* we're hashing unsigned ints.
+        the w parameter to the multiply-add-shift is the number of bits
+        needed to represent the objects that we are hashing, so
+        we need w to be the number of bits in a lowl_key. */
+  unsigned int w = (unsigned int) 8*sizeof(lowl_key);
+
+  lowl_key_hash_init( lkhash, w, M);
+
+  /* we will tabulate chi^2 statistics for the trials. */
+  double* chi2scores = malloc(numtrials*sizeof(double));
+  /* we accumulate counts in unsigned int* bins. */
+  unsigned int *bins = malloc( numbins*sizeof(unsigned int) );
+
+  if ( keys==NULL || lkhash==NULL || chi2scores==NULL || bins==NULL ) {
+    fprintf(stderr, "Memory allocation failed while setting up multiply-add-shift chi2 tests.\n");
+    exit( EXIT_FAILURE );
+  }
+
+  /* first test will just be hashing a random set of integers. */
+  // populate the integer list.
+  int i;
+  for( i=0; i < numkeys; i++) {
+    keys[i] = (lowl_key) random();
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are randomly-drawn unsigned ints:\n");
+  run_chi2_lkh( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  /* Now, we will hash sequential keys and test again. */
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (lowl_key) i;
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential keys starting at 0:\n");
+  run_chi2_lkh( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  /* Now, we will hash sequential keys starting from a non-zero number. */
+  int offset = 49327;
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (lowl_key) i + offset; 
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential keys starting at %d:\n", offset);
+  run_chi2_lkh( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  /* Keys that are sequential by 2s. */
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (lowl_key) 2*i; 
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential by 2s, starting at 0:\n");
+  run_chi2_lkh( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  /* Keys that are sequential by 2s. */
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (lowl_key) 3*i; 
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential by 103s, starting at 0:\n");
+  run_chi2_lkh( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  free( chi2scores );
+  free( lkhash );
+  free( bins );
+  free( keys);
+
+  return;
+}
+
+void run_motwani_tests( void ) {
+  printf("=== Running chi2 tests for Motwani-Raghavan hash function. ===\n");
+
+  /* allocate the necessary memory for running tests. */
+  int numbins = 64;
+  int numtrials = 100; /* number of hash function trials */
+  int numkeys = 4096;
+  int m = 65536; /* size of the input universe that we're going to hash. */
+
+  /* we store all keys to be hashed during a trial in a signle array. */
+  unsigned int* keys = malloc( numkeys*sizeof(unsigned int) );
+
+  /* allocate a lowl_key_hash and set its w and M parameters, which do
+        not change from trial to trial. */
+  lowl_motrag_hash* motwani = malloc(sizeof( lowl_motrag_hash) );
+
+  lowl_motrag_hash_init( motwani, m, numbins );
+
+  /* we will tabulate chi^2 statistics for the trials. */
+  double* chi2scores = malloc(numtrials*sizeof(double));
+  /* we accumulate counts in unsigned int* bins. */
+  unsigned int *bins = malloc( numbins*sizeof(unsigned int) );
+
+  if ( keys==NULL || motwani==NULL || chi2scores==NULL || bins==NULL ) {
+    fprintf(stderr, "Memory allocation failed while setting up Motwani-Raghavan chi2 tests.\n");
+    exit( EXIT_FAILURE );
+  }
+
+  /* first test will just be hashing a random set of integers. */
+  // populate the integer list.
+  int i;
+  for( i=0; i < numkeys; i++) {
+    keys[i] = (unsigned int) random();
+    keys[i] = keys[i] % m;
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are randomly-drawn unsigned ints:\n");
+  run_chi2_motrag(chi2scores, numtrials, motwani,
+			bins, numbins, keys, numkeys);
+  interp_chi2( chi2scores, numtrials );
+
+  /* Now, we will hash sequential keys and test again. */
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (unsigned int) i;
+    keys[i] = keys[i] % m;
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential keys starting at 0:\n");
+  run_chi2_motrag(chi2scores, numtrials, motwani,
+			bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  /* Now, we will hash sequential keys starting from a non-zero number. */
+  int offset = 49327;
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (unsigned int) i + offset; 
+    keys[i] = keys[i] % m;
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential keys starting at %d:\n", offset);
+  run_chi2_motrag(chi2scores, numtrials, motwani,
+			bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  /* Keys that are sequential by 2s. */
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (unsigned int) 2*i; 
+    keys[i] = keys[i] % m;
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential by 2s, starting at 0:\n");
+  run_chi2_motrag(chi2scores, numtrials, motwani,
+			bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  /* Keys that are sequential by 2s. */
+  for( i=0; i<numkeys; i++) {
+    keys[i] = (unsigned int) 3*i; 
+    keys[i] = keys[i] % m;
+  }
+  printf("Chi2 test of uniformity of hash function output when inputs are sequential by 103s, starting at 0:\n");
+  run_chi2_motrag(chi2scores, numtrials, motwani,
+			bins, numbins, keys, numkeys );
+  interp_chi2( chi2scores, numtrials );
+
+  free( chi2scores );
+  free( bins );
+  free( keys );
+  free( motwani );
+
+  return;
+}
+
+
+void run_chi2_lmh( double* scores, int numtrials, lowl_motrag_hash* lmh,
+		unsigned int* bins, int numbins,
+		unsigned int* keys, int numkeys ) {
+  /* run a chi2 test using the given hash structure.
+	double* scores will hold int numtrials scores.
+	Each score is obtained by hashing int numkeys lowl_keys,
+		given in lowl_key*, into unsigned int* bins, where we
+		will accumulate counts. */ 
+  int n,j;
+  unsigned int current_key;
+  unsigned int current_hash;
+  /* for calculating chi2 scores. */
+  double expected = ((double)numkeys) / ((double)numbins);
+  double observed, diff;
+  for( n=0; n<numtrials; n++ ) {
+    /* reset the counts. */
+    memset( bins, 0, numbins*sizeof(unsigned int) );
+
+    /* choose parameters a and b */
+    lowl_motrag_hash_arm( lmh );
+
+    /* hash the keys. */
+    for( j=0; j<numkeys; j++ ) {
+      current_key = keys[j];
+      current_hash = lowl_motrag_map( current_key, lmh );
       bins[current_hash] += 1;
     }
 
@@ -80,6 +334,7 @@ void interp_chi2( double *chi2scores, int numtrials ) {
 }
 
 int main( int argc, char **argv ) {
+  srandom(1970);
 
   /**************************************************************
    *								*
@@ -98,95 +353,74 @@ int main( int argc, char **argv ) {
    *								*
    **************************************************************/
 
-  /* We would like to verify that the multiply-add-shift hash function
-  	results in reasonably well-distribute behavior when hashing over
-  	a large array of possible outcomes.
-  
-     We will hash unsigned ints (>=32 bits, platform-dependent)
-  	to a set of 64 possible bins. */
-  
-  int numbins = 64;
-  int numtrials = 100; /* number of hash function trials */
-  int numkeys = 4096;
+  run_multip_add_shift_tests();
 
-  /* we store all keys to be hashed during a trial in a signle array. */
-  lowl_key* keys = malloc( numkeys*sizeof(lowl_key) );
-  
-  /* allocate a lowl_key_hash and set its w and M parameters, which do
-  	not change from trial to trial. */
-  lowl_key_hash* lkhash = malloc(sizeof( lowl_key_hash) );
-  
-  unsigned int M = (unsigned int) log2(numbins); // e.g., 2^6=64, the # of bins
-  /* we're hashing unsigned ints.
-        the w parameter to the multiply-add-shift is the number of bits
-        needed to represent the objects that we are hashing, so
-        we need w to be the number of bits in a lowl_key. */
-  unsigned int w = (unsigned int) 8*sizeof(lowl_key);
+  run_motwani_tests();
 
-  lowl_key_hash_init( lkhash, w, M);
-
-  /* we will tabulate chi^2 statistics for the trials. */
-  double* chi2scores = malloc(numtrials*sizeof(double));
-  /* we accumulate counts in unsigned int* bins. */
-  unsigned int *bins = malloc( numbins*sizeof(unsigned int) );
-
-  if ( keys==NULL || lkhash==NULL || chi2scores==NULL || bins==NULL ) {
-    fprintf(stderr, "Memory allocation failed while setting up chi2 test.\n");
-    exit( EXIT_FAILURE );
-  }
-  
-  /* seed and begin trials. We reset the a and b parameters of the hash function
-  	with each trial. */
-  srandom(3355);
-
-  /* first test will just be hashing a random set of integers. */
-  // populate the integer list.
-  int i;
-  for( i=0; i < numkeys; i++) {
-    keys[i] = (lowl_key) random();
-  }
-  printf("Chi2 test of uniformity of hash function output when inputs are randomly-drawn unsigned ints:\n");
-  run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
-  interp_chi2( chi2scores, numtrials );
-
-  /* Now, we will hash sequential keys and test again. */
-  for( i=0; i<numkeys; i++) {
-    keys[i] = (lowl_key) i;
-  }
-  printf("Chi2 test of uniformity of hash function output when inputs are sequential keys starting at 0:\n");
-  run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
-  interp_chi2( chi2scores, numtrials );
-
-  /* Now, we will hash sequential keys starting from a non-zero number. */
-  int offset = 49327;
-  for( i=0; i<numkeys; i++) {
-    keys[i] = (lowl_key) i + offset; 
-  }
-  printf("Chi2 test of uniformity of hash function output when inputs are sequential keys starting at %d:\n", offset);
-  run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
-  interp_chi2( chi2scores, numtrials );
-
-  /* Keys that are sequential by 2s. */
-  for( i=0; i<numkeys; i++) {
-    keys[i] = (lowl_key) 2*i; 
-  }
-  printf("Chi2 test of uniformity of hash function output when inputs are sequential by 2s, starting at 0:\n");
-  run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
-  interp_chi2( chi2scores, numtrials );
-
-  /* Keys that are sequential by 2s. */
-  for( i=0; i<numkeys; i++) {
-    keys[i] = (lowl_key) 3*i; 
-  }
-  printf("Chi2 test of uniformity of hash function output when inputs are sequential by 103s, starting at 0:\n");
-  run_chi2( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
-  interp_chi2( chi2scores, numtrials );
-
-  /* free the memory that we no longer need. */
-  free( chi2scores );
-  free( bins );
-  free( keys );
-  free( lkhash );
+//  /* We would like to verify that the multiply-add-shift hash function
+//  	results in reasonably well-distribute behavior when hashing over
+//  	a large array of possible outcomes.
+//  
+//     We will hash unsigned ints (>=32 bits, platform-dependent)
+//  	to a set of 64 possible bins. */
+//  
+//  int numbins = 64;
+//  int numtrials = 100; /* number of hash function trials */
+//  int numkeys = 4096;
+//
+//  /* we store all keys to be hashed during a trial in a signle array. */
+//  lowl_key* keys = malloc( numkeys*sizeof(lowl_key) );
+//  unsigned int* motrag_keys = malloc( numkeys*sizeof(unsigned int) );
+//  
+//  /* allocate a lowl_key_hash and set its w and M parameters, which do
+//  	not change from trial to trial. */
+//  lowl_key_hash* lkhash = malloc(sizeof( lowl_key_hash) );
+//  
+//  unsigned int M = (unsigned int) log2(numbins); // e.g., 2^6=64, the # of bins
+//  /* we're hashing unsigned ints.
+//        the w parameter to the multiply-add-shift is the number of bits
+//        needed to represent the objects that we are hashing, so
+//        we need w to be the number of bits in a lowl_key. */
+//  unsigned int w = (unsigned int) 8*sizeof(lowl_key);
+//
+//  lowl_key_hash_init( lkhash, w, M);
+//
+//  /* allocate a lowl_rotmag_hash and set its parameters. */
+//  lowl_motrag_hash* motwani = malloc(sizeof( lowl_motrag_hash ));
+//  lowl_motrag_hash_init( motwani, 65536, numbins );
+//
+//  /* we will tabulate chi^2 statistics for the trials. */
+//  double* chi2scores = malloc(numtrials*sizeof(double));
+//  /* we accumulate counts in unsigned int* bins. */
+//  unsigned int *bins = malloc( numbins*sizeof(unsigned int) );
+//
+//  if ( keys==NULL || motrag_keys==NULL || lkhash==NULL || motwani==NULL
+//	|| chi2scores==NULL || bins==NULL ) {
+//    fprintf(stderr, "Memory allocation failed while setting up chi2 test.\n");
+//    exit( EXIT_FAILURE );
+//  }
+//  
+//  /* seed and begin trials. We reset the a and b parameters of the hash function
+//  	with each trial. */
+//  srandom(3356);
+//
+//  printf("=== Chi2 tests of multiply-add-shift hash function. ===\n");
+//  run_multip_add_shift_tests( chi2scores, numtrials,
+//				bins, numbins,
+//				keys, numkeys );
+//  /* free the memory that we no longer need. */
+//  free( keys );
+//  free( lkhash );
+//
+//  /* new array of keys is needed. */
+//  if( 
+//  printf("=== Chi2 tests of motwani-raghavan hash function. ===\n");
+//  run_motwani_tests( chi2scores, numtrials, bins, numbins,
+//			keys, numkeys );
+//
+//  free( chi2scores );
+//  free( bins );
+//  free( lmhash );
 
   /******************************************************
    *							*
@@ -207,7 +441,7 @@ int main( int argc, char **argv ) {
   assert( lr->capacity == orig_cap );
   /* verify that entries of lr are zero, as they ought to be */
   lowl_count contents;
-  int succ;
+  int succ,i;
   for( i=0; i < lr->capacity; i++ ) {
     succ = lowl_rarr_get(lr, (unsigned int) i, &contents);
     assert( contents==0 ); 

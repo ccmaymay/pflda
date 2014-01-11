@@ -53,12 +53,14 @@ typedef struct lowl_motrag_hash{
   unsigned int m; // cardinality of the input universe
   unsigned int n; // cardinality of the output universe
   unsigned int p; // prime, p >= m.
-}
+  unsigned int a; // a \in {0,1,...,p-1}
+  unsigned int b; // b \in {0,1,...,p-1}
+}lowl_motrag_hash;
 
 int lowl_motrag_hash_init( lowl_motrag_hash* lmh,
 				unsigned int m, unsigned int n );
 
-unsigned int lowl_motrag_map( unsigned int input );
+unsigned int lowl_motrag_map( unsigned int input, lowl_motrag_hash* lmh);
 
 void lowl_motrag_hash_arm( lowl_motrag_hash* lmh );
 

@@ -6,9 +6,7 @@
 
 /* mathematical tables and functions required by lowl. */
 
-/* table of useful primes. */
-unsigned int* lowlmath_usefulprimes;
-
+unsigned int get_useful_prime( unsigned int i );
 
 /* raise an integer to a non-negative integer power. */
 unsigned long lowlmath_powposint(unsigned long base, unsigned int pow);
