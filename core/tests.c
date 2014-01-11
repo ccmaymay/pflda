@@ -333,102 +333,8 @@ void interp_chi2( double *chi2scores, int numtrials ) {
   printf("\n"); 
 }
 
-int main( int argc, char **argv ) {
-  srandom(1970);
-
-  /**************************************************************
-   *								*
-   *	 Tests for lowl_math.c 					*
-   *								*
-   **************************************************************/
-  assert( lowlmath_powposint(2, 0) == 1);
-  assert( lowlmath_powposint(2, 1) == 2);
-  assert( lowlmath_powposint(2, 10) == 1024);
-  assert( lowlmath_powposint(2, 11) == 2048);
-  assert( lowlmath_powposint(2, 31) == 2147483648);
-
-  /**************************************************************
-   *								*
-   *	 Tests for lowl_hash.c 					*
-   *								*
-   **************************************************************/
-
-  run_multip_add_shift_tests();
-
-  run_motwani_tests();
-
-//  /* We would like to verify that the multiply-add-shift hash function
-//  	results in reasonably well-distribute behavior when hashing over
-//  	a large array of possible outcomes.
-//  
-//     We will hash unsigned ints (>=32 bits, platform-dependent)
-//  	to a set of 64 possible bins. */
-//  
-//  int numbins = 64;
-//  int numtrials = 100; /* number of hash function trials */
-//  int numkeys = 4096;
-//
-//  /* we store all keys to be hashed during a trial in a signle array. */
-//  lowl_key* keys = malloc( numkeys*sizeof(lowl_key) );
-//  unsigned int* motrag_keys = malloc( numkeys*sizeof(unsigned int) );
-//  
-//  /* allocate a lowl_key_hash and set its w and M parameters, which do
-//  	not change from trial to trial. */
-//  lowl_key_hash* lkhash = malloc(sizeof( lowl_key_hash) );
-//  
-//  unsigned int M = (unsigned int) log2(numbins); // e.g., 2^6=64, the # of bins
-//  /* we're hashing unsigned ints.
-//        the w parameter to the multiply-add-shift is the number of bits
-//        needed to represent the objects that we are hashing, so
-//        we need w to be the number of bits in a lowl_key. */
-//  unsigned int w = (unsigned int) 8*sizeof(lowl_key);
-//
-//  lowl_key_hash_init( lkhash, w, M);
-//
-//  /* allocate a lowl_rotmag_hash and set its parameters. */
-//  lowl_motrag_hash* motwani = malloc(sizeof( lowl_motrag_hash ));
-//  lowl_motrag_hash_init( motwani, 65536, numbins );
-//
-//  /* we will tabulate chi^2 statistics for the trials. */
-//  double* chi2scores = malloc(numtrials*sizeof(double));
-//  /* we accumulate counts in unsigned int* bins. */
-//  unsigned int *bins = malloc( numbins*sizeof(unsigned int) );
-//
-//  if ( keys==NULL || motrag_keys==NULL || lkhash==NULL || motwani==NULL
-//	|| chi2scores==NULL || bins==NULL ) {
-//    fprintf(stderr, "Memory allocation failed while setting up chi2 test.\n");
-//    exit( EXIT_FAILURE );
-//  }
-//  
-//  /* seed and begin trials. We reset the a and b parameters of the hash function
-//  	with each trial. */
-//  srandom(3356);
-//
-//  printf("=== Chi2 tests of multiply-add-shift hash function. ===\n");
-//  run_multip_add_shift_tests( chi2scores, numtrials,
-//				bins, numbins,
-//				keys, numkeys );
-//  /* free the memory that we no longer need. */
-//  free( keys );
-//  free( lkhash );
-//
-//  /* new array of keys is needed. */
-//  if( 
-//  printf("=== Chi2 tests of motwani-raghavan hash function. ===\n");
-//  run_motwani_tests( chi2scores, numtrials, bins, numbins,
-//			keys, numkeys );
-//
-//  free( chi2scores );
-//  free( bins );
-//  free( lmhash );
-
-  /******************************************************
-   *							*
-   *	Tests for resizable arrays.			*
-   *							*
-   ******************************************************/
-
-  printf("Tests for resizable arrays.\n");
+void run_resizablearray_tests() {
+  printf("=== Running tests for resizable arrays. ===\n");
 
   lowl_rarr *lr;
   lr = malloc( sizeof(lowl_rarr) );
@@ -495,9 +401,48 @@ int main( int argc, char **argv ) {
 
   lowl_rarr_destroy( lr );
   free( lr );
- 
 
+  printf("Success.\n\n");
 
+  return;
+}
+
+int main( int argc, char **argv ) {
+  srandom(1970);
+
+  /**************************************************************
+   *								*
+   *	 Tests for lowl_math.c 					*
+   *								*
+   **************************************************************/
+  assert( lowlmath_powposint(2, 0) == 1);
+  assert( lowlmath_powposint(2, 1) == 2);
+  assert( lowlmath_powposint(2, 10) == 1024);
+  assert( lowlmath_powposint(2, 11) == 2048);
+  assert( lowlmath_powposint(2, 31) == 2147483648);
+
+  /* To do:
+	Write code to verify that the code to retrieve primes is working.
+	Verify that all such numbers are indeed prime (probably best done
+		by just checking online).	*/
+
+  /**************************************************************
+   *								*
+   *	 Tests for lowl_hash.c 					*
+   *								*
+   **************************************************************/
+
+  run_multip_add_shift_tests();
+
+  run_motwani_tests();
+
+  /******************************************************
+   *							*
+   *	Tests for resizable arrays.			*
+   *							*
+   ******************************************************/
+
+  run_resizablearray_tests();
 
   printf("All tests completed.\n");
   return 0;
