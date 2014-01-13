@@ -409,8 +409,17 @@ void run_resizablearray_tests() {
 }
 
 void run_bloomfilter_tests() {
+
+  printf("=== Running Bloom filter tests. ===\n");
+
   bloomfilter* bf = malloc(sizeof(bloomfilter));
-  bloomfilter_init(bf, 32, 64);
+  /* make a big bloom filter. */
+  bloomfilter_init(bf, 1024, 32);
+
+  bloomfilter_insertKey(bf, 42);
+  assert( bloomfilter_queryKey(bf, 42) == 1 );
+  assert( bloomfilter_queryKey(bf, 35) == 0 );
+
   bloomfilter_destroy(bf);
   free(bf);
 }
