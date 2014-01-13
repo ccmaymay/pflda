@@ -1,2 +1,6 @@
 tests
 *.o
+.*.swp
+.*.swo
+*.so
+pylowl.c
