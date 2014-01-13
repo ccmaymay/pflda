@@ -9,10 +9,9 @@ cdef extern from "lowl_bloom.h":
 
     void lowl_bloomfilter_init(lowl_bloomfilter* f, int size, int k)
     void lowl_bloomfilter_insertKey(lowl_bloomfilter* f, lowl_key k)
-    #void lowl_bloomfilter_insertString(lowl_bloomfilter* f, char* x, int length)
     int  lowl_bloomfilter_queryKey(lowl_bloomfilter* f, lowl_key k)
-    #int  lowl_bloomfilter_queryString(lowl_bloomfilter* f, char* x, int length)
     void lowl_bloomfilter_print(lowl_bloomfilter* f)
+    void lowl_bloomfilter_destroy(lowl_bloomfilter* f)
+
     #void lowl_bloomfilter_write(lowl_bloomfilter* f, FILE* fp)
     #void lowl_bloomfilter_read(lowl_bloomfilter* f, FILE* fp)
-    void lowl_bloomfilter_destroy(lowl_bloomfilter* f)
