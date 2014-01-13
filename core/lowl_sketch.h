@@ -2,6 +2,7 @@
 #define LOWLSKETCH_H
 
 #include <stdint.h>
+#include "lowl_types.h"
 
 /* functions and structures related to counting and sketching algorithms. */
 

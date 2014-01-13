@@ -4,7 +4,6 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
-
 #include "lowl_hash.h"
 #include "lowl_sketch.h"
 
