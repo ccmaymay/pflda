@@ -11,10 +11,10 @@ void lowl_bloomfilter_init( lowl_bloomfilter* f,
   // a uint32_t counter (for i=1...32)
   f->mask = (uint32_t*)malloc( 32*sizeof(uint32_t) );
   for(i = 0; i < 8; ++i) { 
-    f->mask[4 * i + 0] = (1 << 4 * i + 0);
-    f->mask[4 * i + 1] = (1 << 4 * i + 1);
-    f->mask[4 * i + 2] = (1 << 4 * i + 2);
-    f->mask[4 * i + 3] = (1 << 4 * i + 3);
+    f->mask[4 * i + 0] = (1 << (4 * i + 0));
+    f->mask[4 * i + 1] = (1 << (4 * i + 1));
+    f->mask[4 * i + 2] = (1 << (4 * i + 2));
+    f->mask[4 * i + 3] = (1 << (4 * i + 3));
   }
 
   // we need size/sizeof(f->b) since each contributes sizeof(f->b) bytes
@@ -59,8 +59,8 @@ int lowl_bloomfilter_queryKey(lowl_bloomfilter* f, lowl_key key ) {
   lowl_hashoutput word,bit;
 
   for(i = 0; i < f->k; ++i) {
-    word = multip_add_shift( f->hash_key_to_word + i, key );
-    bit = multip_add_shift( f->hash_key_to_bit + i, key );
+    word = multip_add_shift( key, f->hash_key_to_word + i );
+    bit = multip_add_shift( key, f->hash_key_to_bit + i );
     if ( (f->b[word] & f->mask[bit]) == 0)
       return 0;
   }
@@ -129,10 +129,10 @@ void lowl_bloomfilter_read(lowl_bloomfilter* f, FILE* fp) {
   f->mask = (uint32_t*) malloc(32 * sizeof(uint32_t));
   for(i = 0; i < 8; ++i)
     {
-      f->mask[4 * i + 0] = (1 << 4 * i + 0);
-      f->mask[4 * i + 1] = (1 << 4 * i + 1);
-      f->mask[4 * i + 2] = (1 << 4 * i + 2);
-      f->mask[4 * i + 3] = (1 << 4 * i + 3);
+      f->mask[4 * i + 0] = (1 << (4 * i + 0));
+      f->mask[4 * i + 1] = (1 << (4 * i + 1));
+      f->mask[4 * i + 2] = (1 << (4 * i + 2));
+      f->mask[4 * i + 3] = (1 << (4 * i + 3));
     }
 
   fread(&(f->size), sizeof(int), 1, fp);
