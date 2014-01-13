@@ -1,8 +1,9 @@
-// FSD for Twitter.  Uses LSH for fast NN search.  There is also a bound
-// on space used.
+// C++ of Paul McNamee's cross-doc Coref Java code.
+
+// Miles Osborne
+
 #include<string>
 #include<iostream>
-#include<time.h>
 #include<boost/algorithm/string.hpp>
 #include<gflags/gflags.h>
 
