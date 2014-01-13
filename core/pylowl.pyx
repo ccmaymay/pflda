@@ -18,14 +18,14 @@ cdef class BloomFilter:
     def query(self, k):
         lowl.lowl_bloomfilter_queryKey(self._bf, k)
 
-    def print(self):
+    def cPrint(self):
         lowl.lowl_bloomfilter_print(self._bf)
 
-    def read(self, fp):
-        lowl.lowl_bloomfilter_read(self._bf, fp)
+    #def read(self, fp):
+    #    lowl.lowl_bloomfilter_read(self._bf, fp)
 
-    def write(self, fp):
-        lowl.lowl_bloomfilter_write(self._bf, fp)
+    #def write(self, fp):
+    #    lowl.lowl_bloomfilter_write(self._bf, fp)
 
     def __dealloc__(self):
         if self._bf is not NULL:

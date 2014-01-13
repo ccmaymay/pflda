@@ -1,4 +1,5 @@
 from libc.stdio cimport FILE
+from libc.stddef cimport size_t
 
 cdef extern from "lowl_types.h":
     ctypedef unsigned long lowl_key
@@ -9,7 +10,7 @@ cdef extern from "lowl_bloom.h":
     ctypedef struct lowl_bloomfilter:
         pass
 
-    void lowl_bloomfilter_init(lowl_bloomfilter* f, int size, int k)
+    void lowl_bloomfilter_init(lowl_bloomfilter* f, size_t size, unsigned int k)
     void lowl_bloomfilter_insertKey(lowl_bloomfilter* f, lowl_key k)
     int  lowl_bloomfilter_queryKey(lowl_bloomfilter* f, lowl_key k)
     void lowl_bloomfilter_print(lowl_bloomfilter* f)

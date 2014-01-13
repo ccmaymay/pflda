@@ -1,5 +1,14 @@
 import pylowl
 
-bf = pylowl.BloomFilter()
-bf.init(42, 7)
-bf.print()
+def main():
+    print('Constructing bloom filter...')
+    bf = pylowl.BloomFilter()
+    print('Initializing bloom filter...')
+    bf.init(42, 7)
+    print('Printing bloom filter...')
+    bf.cPrint()
+    print('Leaving scope...')
+
+if __name__ == '__main__':
+    import sys
+    main(*sys.argv[1:])
