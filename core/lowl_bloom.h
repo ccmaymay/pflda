@@ -11,8 +11,8 @@ typedef struct lowl_bloomfilter {
   unsigned int size;
   unsigned int k; /* number of hash functions to use. */
   uint32_t* b;
-  lowl_key_hash** hash_key_to_word;
-  lowl_key_hash** hash_key_to_bit;
+  lowl_key_hash* hash_key_to_word;
+  lowl_key_hash* hash_key_to_bit;
   uint32_t* mask;
 }lowl_bloomfilter;
 

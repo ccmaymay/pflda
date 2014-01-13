@@ -2,7 +2,7 @@
 /* Author: Ashwin Lall                  */
 #include <math.h>
 #include <stdint.h>
-#include "lowl_bloomfilter.h"
+#include "lowl_bloom.h"
 
 void lowl_bloomfilter_init( lowl_bloomfilter* f,
 			size_t size, unsigned int k  ) { 
@@ -25,11 +25,9 @@ void lowl_bloomfilter_init( lowl_bloomfilter* f,
 
   memset(f->b, 0, f->size * sizeof(uint32_t));
 
-  f->hash_key_to_word = (lowl_key_hash**)malloc( f->k*sizeof(lowl_key_hash*) );
-  f->hash_key_to_bit = (lowl_key_hash**)malloc( f->k*sizeof(lowl_key_hash*) );
+  f->hash_key_to_word = (lowl_key_hash*)malloc( f->k*sizeof(lowl_key_hash) );
+  f->hash_key_to_bit = (lowl_key_hash*)malloc( f->k*sizeof(lowl_key_hash) );
   for( i=0; i<f->k; i++ ) {
-    (f->hash_key_to_word)[i] = malloc( sizeof(lowl_key_hash) );
-    (f->hash_key_to_bit)[i] = malloc( sizeof(lowl_key_hash) );
     lowl_key_hash_init( f->hash_key_to_word + i,
                         (unsigned int) 8*sizeof(lowl_key),
                         (unsigned int) 8*f->size );
@@ -104,7 +102,6 @@ int lowl_bloomfilter_queryKey(lowl_bloomfilter* f, lowl_key key ) {
 //}
 /* End. */
 
-
 void lowl_bloomfilter_print(lowl_bloomfilter* f) {
   int i, j;
   for(i = 0; i < f->size; ++i)
@@ -117,10 +114,12 @@ void lowl_bloomfilter_print(lowl_bloomfilter* f) {
 }
 
 void lowl_bloomfilter_write(lowl_bloomfilter* f, FILE* fp) {
-  fwrite(&(f->size), sizeof(int), 1, fp);
-  fwrite(&(f->k), sizeof(int), 1, fp);
-  fwrite(f->b, sizeof(uint32_t), f->size, fp);
-  writeHashFunction(&(f->h), fp);
+  /* serialize the filter to the given file. */
+  fwrite( &(f->size), sizeof(unsigned int), 1, fp);
+  fwrite( &(f->k), sizeof(unsigned int), 1, fp);
+  fwrite( f->b, sizeof( *(f->b) ), f->size, fp);
+  fwrite( f->hash_key_to_word, sizeof( lowl_key_hash ), f->k, fp);
+  fwrite( f->hash_key_to_bit, sizeof( lowl_key_hash ), f->k, fp); 
 }
 
 void lowl_bloomfilter_read(lowl_bloomfilter* f, FILE* fp) {
@@ -138,9 +137,10 @@ void lowl_bloomfilter_read(lowl_bloomfilter* f, FILE* fp) {
 
   fread(&(f->size), sizeof(int), 1, fp);
   fread(&(f->k), sizeof(int), 1, fp);
-  f->b = (uint32_t*)malloc(f->size * sizeof(uint32_t));
+  f->b = (uint32_t*)malloc( f->size*sizeof(uint32_t));
   fread(f->b, sizeof(uint32_t), f->size, fp);
-  readHashFunction(&(f->h), fp);
+  fread(f->hash_key_to_word, sizeof( lowl_key_hash), f->k, fp);
+  fread(f->hash_key_to_bit, sizeof( lowl_key_hash), f->k, fp);
 }
 
 void lowl_bloomfilter_destroy(lowl_bloomfilter* f) {
