@@ -51,20 +51,20 @@ void lowl_key_hash_arm( lowl_key_hash* lkh );
 	h_{a,b}(x) = g_{a,b}(f_{a,b}(x)).
 	This is a 2-universal hash function, meaning that hash functions
 	are pair-wise independent.	*/
-typedef struct lowl_motrag_hash{
+typedef struct motrag_hash{
   unsigned int m; // cardinality of the input universe
   unsigned int n; // cardinality of the output universe
   unsigned int p; // prime, p >= m.
   unsigned int a; // a \in {0,1,...,p-1}
   unsigned int b; // b \in {0,1,...,p-1}
-}lowl_motrag_hash;
+}motrag_hash;
 
-int lowl_motrag_hash_init( lowl_motrag_hash* lmh,
+int motrag_hash_init( motrag_hash* lmh,
 				unsigned int m, unsigned int n );
 
-unsigned int lowl_motrag_map( unsigned int input, lowl_motrag_hash* lmh);
+unsigned int motrag_map( unsigned int input, motrag_hash* lmh);
 
-void lowl_motrag_hash_arm( lowl_motrag_hash* lmh );
+void motrag_hash_arm( motrag_hash* lmh );
 
 
 
@@ -75,22 +75,22 @@ void lowl_motrag_hash_arm( lowl_motrag_hash* lmh );
  ********************************************************/
 
 /* resizable array of lowl_keys, for use in hash tables. */
-typedef struct lowl_rarr{
+typedef struct rarr{
   unsigned int capacity; /* total number of slots available */
   lowl_count* array;
-}lowl_rarr;
+}rarr;
 
-int lowl_rarr_init(lowl_rarr* lr, unsigned int cap);
+int rarr_init(rarr* lr, unsigned int cap);
 
-int lowl_rarr_set(lowl_rarr* lr, unsigned int loc, lowl_count elmt);
+int rarr_set(rarr* lr, unsigned int loc, lowl_count elmt);
 
-int lowl_rarr_get(lowl_rarr* lr, unsigned int loc, lowl_count* elmt);
+int rarr_get(rarr* lr, unsigned int loc, lowl_count* elmt);
 
-int lowl_rarr_upsize(lowl_rarr* lr);
+int rarr_upsize(rarr* lr);
 
-int lowl_rarr_downsize(lowl_rarr* lr);
+int rarr_downsize(rarr* lr);
 
-int lowl_rarr_destroy(lowl_rarr* lr);
+int rarr_destroy(rarr* lr);
 
 /********************************************************
  *							*

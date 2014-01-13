@@ -48,7 +48,7 @@ void run_chi2_lkh( double* scores, int numtrials, lowl_key_hash* lkh,
   return;
 }
 
-void run_chi2_motrag( double* scores, int numtrials, lowl_motrag_hash* motwani,
+void run_chi2_motrag( double* scores, int numtrials, motrag_hash* motwani,
                 unsigned int* bins, int numbins,
                 unsigned int* keys, int numkeys ) {
   /* run a chi2 test using the given hash structure.
@@ -66,12 +66,12 @@ void run_chi2_motrag( double* scores, int numtrials, lowl_motrag_hash* motwani,
     memset( bins, 0, numbins*sizeof(unsigned int) );
 
     /* choose parameters a and b */
-    lowl_motrag_hash_arm( motwani );
+    motrag_hash_arm( motwani );
 
     /* hash the keys. */
     for( j=0; j<numkeys; j++ ) {
       current_key = keys[j];
-      current_hash = lowl_motrag_map(current_key, motwani);
+      current_hash = motrag_map(current_key, motwani);
       bins[current_hash] += 1;
     }
 
@@ -185,9 +185,9 @@ void run_motwani_tests( void ) {
 
   /* allocate a lowl_key_hash and set its w and M parameters, which do
         not change from trial to trial. */
-  lowl_motrag_hash* motwani = malloc(sizeof( lowl_motrag_hash) );
+  motrag_hash* motwani = malloc(sizeof( motrag_hash) );
 
-  lowl_motrag_hash_init( motwani, m, numbins );
+  motrag_hash_init( motwani, m, numbins );
 
   /* we will tabulate chi^2 statistics for the trials. */
   double* chi2scores = malloc(numtrials*sizeof(double));
@@ -261,7 +261,7 @@ void run_motwani_tests( void ) {
 }
 
 
-void run_chi2_lmh( double* scores, int numtrials, lowl_motrag_hash* lmh,
+void run_chi2_lmh( double* scores, int numtrials, motrag_hash* lmh,
 		unsigned int* bins, int numbins,
 		unsigned int* keys, int numkeys ) {
   /* run a chi2 test using the given hash structure.
@@ -280,12 +280,12 @@ void run_chi2_lmh( double* scores, int numtrials, lowl_motrag_hash* lmh,
     memset( bins, 0, numbins*sizeof(unsigned int) );
 
     /* choose parameters a and b */
-    lowl_motrag_hash_arm( lmh );
+    motrag_hash_arm( lmh );
 
     /* hash the keys. */
     for( j=0; j<numkeys; j++ ) {
       current_key = keys[j];
-      current_hash = lowl_motrag_map( current_key, lmh );
+      current_hash = motrag_map( current_key, lmh );
       bins[current_hash] += 1;
     }
 
@@ -336,70 +336,70 @@ void interp_chi2( double *chi2scores, int numtrials ) {
 void run_resizablearray_tests() {
   printf("=== Running tests for resizable arrays. ===\n");
 
-  lowl_rarr *lr;
-  lr = malloc( sizeof(lowl_rarr) );
+  rarr *lr;
+  lr = malloc( sizeof(rarr) );
   if( lr == NULL ) {
     printf( "Memory allocation failed in testing resizable array.\n");
   }
   unsigned int orig_cap = 16;
   /* initialize a resizable array with 16 slots. */
-  lowl_rarr_init(lr, orig_cap);
+  rarr_init(lr, orig_cap);
   assert( lr->capacity == orig_cap );
   /* verify that entries of lr are zero, as they ought to be */
   lowl_count contents;
   int succ,i;
   for( i=0; i < lr->capacity; i++ ) {
-    succ = lowl_rarr_get(lr, (unsigned int) i, &contents);
+    succ = rarr_get(lr, (unsigned int) i, &contents);
     assert( contents==0 ); 
     assert( succ==0 );
   }
   /* set some entries to be non-zero and verify that this works correctly. */
   lowl_count testcount1 = 1969;
   lowl_count testcount2 = 42;
-  succ = lowl_rarr_set(lr, 5, testcount1);
+  succ = rarr_set(lr, 5, testcount1);
   assert( succ == 0 );
-  succ = lowl_rarr_set(lr, 10, testcount2);
+  succ = rarr_set(lr, 10, testcount2);
   assert( succ == 0 );
-  succ = lowl_rarr_get(lr, 5, &contents);
+  succ = rarr_get(lr, 5, &contents);
   assert( succ==0 );
   assert( contents == testcount1 );
-  succ = lowl_rarr_get(lr, 10, &contents);
+  succ = rarr_get(lr, 10, &contents);
   assert( succ==0 );  
   assert( contents == testcount2 );
   /* try setting an element that is currently out of range. */
   lowl_count testcount3 = 123456;
-  succ = lowl_rarr_set(lr, 16, testcount3);
+  succ = rarr_set(lr, 16, testcount3);
   assert( succ != 0 );
 
   /* upsize the array. */
-  lowl_rarr_upsize( lr );
+  rarr_upsize( lr );
   assert( lr->capacity == 2*orig_cap );
   /* check that newly created memory is zero'd */
   for( i=orig_cap; i < lr->capacity; i++ ) {
-    succ = lowl_rarr_get(lr, (unsigned int) i, &contents);
+    succ = rarr_get(lr, (unsigned int) i, &contents);
     assert( contents==0 );
     assert( succ==0 );
   }
   /* now try inserting the same element. */
-  succ = lowl_rarr_set(lr, 16, testcount3);
+  succ = rarr_set(lr, 16, testcount3);
   assert( succ == 0 );
-  succ = lowl_rarr_get(lr, 16, &contents);
+  succ = rarr_get(lr, 16, &contents);
   assert( succ==0 );
   assert( contents == testcount3 );
   /* verify that previous elements were preserved correctly. */
-  succ = lowl_rarr_get(lr, 5, &contents);
+  succ = rarr_get(lr, 5, &contents);
   assert( succ==0 );
   assert( contents == testcount1 );
-  succ = lowl_rarr_get(lr, 10, &contents);
+  succ = rarr_get(lr, 10, &contents);
   assert( succ==0 );
   assert( contents == testcount2 );
 
 
   /* downsize the array. */
-  succ = lowl_rarr_downsize( lr );
+  succ = rarr_downsize( lr );
   assert( lr->capacity == orig_cap );
 
-  lowl_rarr_destroy( lr );
+  rarr_destroy( lr );
   free( lr );
 
   printf("Success.\n\n");
@@ -415,11 +415,11 @@ int main( int argc, char **argv ) {
    *	 Tests for lowl_math.c 					*
    *								*
    **************************************************************/
-  assert( lowlmath_powposint(2, 0) == 1);
-  assert( lowlmath_powposint(2, 1) == 2);
-  assert( lowlmath_powposint(2, 10) == 1024);
-  assert( lowlmath_powposint(2, 11) == 2048);
-  assert( lowlmath_powposint(2, 31) == 2147483648);
+  assert( powposint(2, 0) == 1);
+  assert( powposint(2, 1) == 2);
+  assert( powposint(2, 10) == 1024);
+  assert( powposint(2, 11) == 2048);
+  assert( powposint(2, 31) == 2147483648);
 
   /* To do:
 	Write code to verify that the code to retrieve primes is working.

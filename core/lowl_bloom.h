@@ -8,22 +8,22 @@
 #include "lowl_hash.h"
 //#include "GeneralHashFunction.c"
 
-typedef struct lowl_bloomfilter { 
+typedef struct bloomfilter { 
   unsigned int size;
   unsigned int k; /* number of hash functions to use. */
   uint32_t* b;
   lowl_key_hash* hash_key_to_word;
   lowl_key_hash* hash_key_to_bit;
   uint32_t* mask;
-}lowl_bloomfilter;
+}bloomfilter;
 
 // Self-explanatory functions
-void lowl_bloomfilter_init(lowl_bloomfilter* f, size_t size, unsigned int k);
-void lowl_bloomfilter_insertKey(lowl_bloomfilter* f, lowl_key k);
-void lowl_bloomfilter_insertString(lowl_bloomfilter* f, char* x, int len);
-int  lowl_bloomfilter_queryKey(lowl_bloomfilter* f, lowl_key k);
-int  lowl_bloomfilter_queryString(lowl_bloomfilter* f, char* x, int len);
-void lowl_bloomfilter_print(lowl_bloomfilter* f);
-void lowl_bloomfilter_write(lowl_bloomfilter* f, FILE* fp);
-void lowl_bloomfilter_read(lowl_bloomfilter* f, FILE* fp);
-void lowl_bloomfilter_destroy(lowl_bloomfilter* f);
+void bloomfilter_init(bloomfilter* f, size_t size, unsigned int k);
+void bloomfilter_insertKey(bloomfilter* f, lowl_key k);
+void bloomfilter_insertString(bloomfilter* f, char* x, int len);
+int  bloomfilter_queryKey(bloomfilter* f, lowl_key k);
+int  bloomfilter_queryString(bloomfilter* f, char* x, int len);
+void bloomfilter_print(bloomfilter* f);
+void bloomfilter_write(bloomfilter* f, FILE* fp);
+void bloomfilter_read(bloomfilter* f, FILE* fp);
+void bloomfilter_destroy(bloomfilter* f);

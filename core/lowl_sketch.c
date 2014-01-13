@@ -4,7 +4,7 @@
 #include "lowl_sketch.h"
 
 /* initial setup of cmsketch. */
-int lowl_cmsketch_init( lowl_cmsketch* cm, unsigned int m,
+int cmsketch_init( cmsketch* cm, unsigned int m,
 			unsigned int w, unsigned int d) {
   /* unsigned int m is the cardinality of the input universe.
 	unsigned int w is the desired width of the sketch
@@ -18,10 +18,10 @@ int lowl_cmsketch_init( lowl_cmsketch* cm, unsigned int m,
   for( i=0; i < d; i++ ) {
     (cm->counters)[i] = malloc( w*sizeof(unsigned int) );
   }
-  cm->hashes = malloc( d*sizeof( lowl_motrag_hash ) );
+  cm->hashes = malloc( d*sizeof( motrag_hash ) );
   int succ;
   for( i=0; i<d; i++ ) {
-    succ = lowl_motrag_hash_init( cm->hashes+i, m, w );
+    succ = motrag_hash_init( cm->hashes+i, m, w );
     if( succ != 0 ) {
       return -1;
     }
@@ -29,16 +29,16 @@ int lowl_cmsketch_init( lowl_cmsketch* cm, unsigned int m,
   return 0;
 }
 
-void lowl_cmsketch_arm( lowl_cmsketch* cm ) {
+void cmsketch_arm( cmsketch* cm ) {
   /* seed all the hashes.	*/
   int i;
   for( i=0; i< cm->depth; i++ ) {
-    lowl_motrag_hash_arm( cm->hashes+i );
+    motrag_hash_arm( cm->hashes+i );
   }
   return;
 }
 
-int lowl_cmsketch_update(lowl_cmsketch* cm, unsigned int elmt,
+int cmsketch_update(cmsketch* cm, unsigned int elmt,
 				unsigned int c) {
   if( elmt > ( cm->hashes )->m ) { /* element is out of range. */
     return -1;
@@ -48,18 +48,18 @@ int lowl_cmsketch_update(lowl_cmsketch* cm, unsigned int elmt,
   for( i=0; i<cm->depth; i++ ) {
     /* the i-th hash function, evaluated on the input element, determines
 	which counter in the i-th array gets added to.	*/
-    hashoutput = lowl_motrag_map( elmt, cm->hashes+i );
+    hashoutput = motrag_map( elmt, cm->hashes+i );
     (cm->counters+i)[hashoutput] += c;
   }
   return 0;
 }
 
-int lowl_cmsketch_count( lowl_cmsketch* cm, unsigned int elmt ) {
+int cmsketch_count( cmsketch* cm, unsigned int elmt ) {
   /* count the given element as having occurred once.	*/
-  return lowl_cmsketch_update( cm, elmt, 1);
+  return cmsketch_update( cm, elmt, 1);
 }
 
-void lowl_cmsketch_clear( lowl_cmsketch* cm ) {
+void cmsketch_clear( cmsketch* cm ) {
   /* zero all counters. */
   int i;
   for( i=0; i < cm->depth; i++ ) {
@@ -67,7 +67,7 @@ void lowl_cmsketch_clear( lowl_cmsketch* cm ) {
   }
 }
 
-void lowl_cmsketch_destroy( lowl_cmsketch* cm ) {
+void cmsketch_destroy( cmsketch* cm ) {
   free( cm->hashes );
   int i;
   for( i=0; i<cm->depth; i++ ) {
