@@ -1,36 +1,22 @@
 cimport lowl
+from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
-cdef class Table:
-    cdef lowl.Table* _table
+cdef class BloomFilter:
+    cdef lowl.lowl_bloomfilter* _bf
 
-    def __str__(self):
-        lines = []
-        for i in range(len(self)):
-            lines.append('%d: %s' % (i, self[i]))
-        return '\n'.join(lines)
-
-    def __len__(self):
-        return lowl.tableSize(self._table)
-
-    def __getitem__(self, i):
-        cdef char *s
-        cStr = lowl.tableGet(self._table, i)
-        if cStr is NULL:
-            raise Exception("Illegal index %d" % i)
-        pyStr = cStr
-        return pyStr
-
-    def insert(self, s):
-        i = lowl.tableInsert(self._table, s)
-        if i > 1e6:
-            raise Exception("Insert may or may not have failed")
-        return i
-
-    def __cinit__(self):
-        self._table = lowl.tableNew()
-        if self._table is NULL:
+    def __cinit__(self, size, k):
+        self._bf = <lowl.lowl_bloomfilter *>PyMem_Malloc(sizeof(lowl.lowl_bloomfilter))
+        if self._bf is NULL:
             raise MemoryError()
+        lowl.lowl_bloomfilter_init(self._bf, size, k)
+
+    def insert(self, k):
+        lowl.lowl_bloomfilter_insertKey(self._bf, k)
+
+    def query(self, k):
+        lowl.lowl_bloomfilter_queryKey(self._bf, k)
 
     def __dealloc__(self):
-        if self._table is not NULL:
-            lowl.tableDel(self._table)
+        if self._bf is not NULL:
+            lowl.lowl_bloomfilter_destroy(self._bf)
+            PyMem_Free(self._bf)

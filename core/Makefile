@@ -9,7 +9,7 @@ LIB_NAME = lowl
 LIB_SONAME = lib$(LIB_NAME).so
 PY_LIB_NAME = py$(LIB_NAME)
 PY_LIB_FILENAME = $(PY_LIB_NAME).so
-OBJECTS = lowl_hash.o lowl_math.o lowl_sketch.o lowl_table.o
+OBJECTS = lowl_hash.o lowl_math.o lowl_sketch.o
 
 #######################################
 
