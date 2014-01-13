@@ -2,26 +2,29 @@
 
 CC = gcc
 
-OPT = -O4 -g -std=gnu99 -Wall
+CC_FLAGS = -O0 -g -std=gnu99 -Wall -fPIC
+LD_FLAGS = -shared
+
+LIB_NAME = liblowl.so
+OBJECTS = lowl_hash.o lowl_math.o lowl_sketch.o
 
 #######################################
 
-all : lowl_hash.o lowl_math.o lowl_sketch.o tests
+.PHONY: all
+all : ${OBJECTS} tests
 
-lowl_hash.o : lowl_hash.c lowl_hash.h Makefile
-	${CC} ${OPT} -c lowl_hash.c -lm
+%.o: %.c %.h
+	$(CC) $(CC_FLAGS) -c $<
 
-lowl_math.o : lowl_math.c lowl_math.h Makefile
-	gcc ${OPT} -c lowl_math.c
-
-lowl_sketch.o : lowl_sketch.c lowl_sketch.h Makefile
-	gcc ${OPT} -c lowl_sketch.c
-
-tests : tests.o lowl_math.o lowl_hash.o
-	gcc ${OPT} -o tests tests.o lowl_math.o lowl_hash.o -lm
+tests : tests.o $(LIB_NAME)
+	${CC} ${CC_FLAGS} ${LD_FLAGS} -o tests $< $(LIB_NAME)
 
 tests.o : tests.c lowl_math.h lowl_hash.h
-	gcc ${OPT} -c tests.c -lm
+	${CC} ${CC_FLAGS} -c $<
 
+$(LIB_NAME): $(OBJECTS)
+	$(CC) $(CC_FLAGS) $(LD_FLAGS) -o $(LIB_NAME) $(OBJECTS) -lm
+
+.PHONY: clean
 clean:
-	rm -rf *.o tests
+	rm -rf $(LIB_NAME) *.o tests
