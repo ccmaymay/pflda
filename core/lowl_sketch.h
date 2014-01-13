@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "lowl_types.h"
+#include "lowl_hash.h"
 
 /* functions and structures related to counting and sketching algorithms. */
 

@@ -10,7 +10,7 @@ cdef extern from "lowl_types.h":
     ctypedef unsigned int lowl_hashoutput
     ctypedef unsigned int lowl_count
 
-cdef extern from "lowl_bloom.h":
+cdef extern from "lowl_sketch.h":
     ctypedef struct bloomfilter:
         pass
 
