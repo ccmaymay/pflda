@@ -18,6 +18,7 @@ PY_LIB_NAME = py$(LIB_NAME)
 PY_LIB_FILENAME = $(PY_LIB_NAME).so
 OBJECTS = lowl_hash.o lowl_math.o lowl_sketch.o lowl_bloom.o
 APPS_DIR = ../apps
+CYTHON_VERSION = Cython-0.19.2
 
 #######################################
 
@@ -39,6 +40,12 @@ $(LIB_FILENAME): $(OBJECTS)
 
 $(PY_LIB_FILENAME): setup.py $(PY_LIB_NAME).pyx $(LIB_NAME).pxd $(LIB_FILENAME)
 	CFLAGS="-I." LDFLAGS="-L. -Wl,-rpath -Wl,." python setup.py build_ext --inplace
+
+.PHONY: cython
+cython:
+	wget http://cython.org/release/$(CYTHON_VERSION).tar.gz
+	cd $(CYTHON_VERSION)
+	python setup.py install --user
 
 .PHONY: clean
 clean:
