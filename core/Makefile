@@ -10,11 +10,16 @@ LIB_SONAME = lib$(LIB_NAME).so
 PY_LIB_NAME = py$(LIB_NAME)
 PY_LIB_FILENAME = $(PY_LIB_NAME).so
 OBJECTS = lowl_hash.o lowl_math.o lowl_sketch.o lowl_bloom.o
+APPS_DIR = ../apps
 
 #######################################
 
 .PHONY: all
 all: $(OBJECTS) $(PY_LIB_FILENAME) $(LIB_SONAME) tests
+
+.PHONY: install
+install: $(LIB_SONAME) $(PY_LIB_FILENAME)
+	install -m 0755 $^ $(APPS_DIR)
 
 %.o: %.c %.h
 	$(CC) $(CC_FLAGS) -fPIC -c $<

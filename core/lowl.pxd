@@ -1,17 +1,19 @@
+from libc.stdio cimport FILE
+from libc.stddef cimport size_t
+
 cdef extern from "lowl_types.h":
     ctypedef unsigned long lowl_key
     ctypedef unsigned int lowl_hashoutput
     ctypedef unsigned int lowl_count
 
 cdef extern from "lowl_bloom.h":
-    ctypedef struct lowl_bloomfilter:
+    ctypedef struct bloomfilter:
         pass
 
-    void lowl_bloomfilter_init(lowl_bloomfilter* f, int size, int k)
-    void lowl_bloomfilter_insertKey(lowl_bloomfilter* f, lowl_key k)
-    int  lowl_bloomfilter_queryKey(lowl_bloomfilter* f, lowl_key k)
-    void lowl_bloomfilter_print(lowl_bloomfilter* f)
-    void lowl_bloomfilter_destroy(lowl_bloomfilter* f)
-
-    #void lowl_bloomfilter_write(lowl_bloomfilter* f, FILE* fp)
-    #void lowl_bloomfilter_read(lowl_bloomfilter* f, FILE* fp)
+    void bloomfilter_init(bloomfilter* f, size_t size, unsigned int k)
+    void bloomfilter_insertKey(bloomfilter* f, lowl_key k)
+    int  bloomfilter_queryKey(bloomfilter* f, lowl_key k)
+    void bloomfilter_print(bloomfilter* f)
+    void bloomfilter_write(bloomfilter* f, FILE* fp)
+    void bloomfilter_read(bloomfilter* f, FILE* fp)
+    void bloomfilter_destroy(bloomfilter* f)
