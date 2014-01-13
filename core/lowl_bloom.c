@@ -6,6 +6,9 @@
 
 void bloomfilter_init( bloomfilter* f,
 			size_t size, unsigned int k  ) { 
+
+  // Need to add code that ensures that size is a power of 2.
+
   int i;
   // These masks help us to access the i-th bit in
   // a uint32_t counter (for i=1...32)
@@ -30,7 +33,7 @@ void bloomfilter_init( bloomfilter* f,
   for( i=0; i<f->k; i++ ) {
     lowl_key_hash_init( f->hash_key_to_word + i,
                         (unsigned int) 8*sizeof(lowl_key),
-                        (unsigned int) 8*f->size );
+                        (unsigned int) log2( f->size ) );
     /* this hash function maps a lowl_key to a specific bit within a word. */
     lowl_key_hash_init( f->hash_key_to_bit + i,
                         (unsigned int) 8*sizeof(lowl_key),
