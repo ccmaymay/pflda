@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include "lowl_hash.h"
 //#include "GeneralHashFunction.c"
 
@@ -17,7 +18,7 @@ typedef struct lowl_bloomfilter {
 }lowl_bloomfilter;
 
 // Self-explanatory functions
-void lowl_bloomfilter_init(lowl_bloomfilter* f, int size, int k);
+void lowl_bloomfilter_init(lowl_bloomfilter* f, size_t size, unsigned int k);
 void lowl_bloomfilter_insertKey(lowl_bloomfilter* f, lowl_key k);
 void lowl_bloomfilter_insertString(lowl_bloomfilter* f, char* x, int len);
 int  lowl_bloomfilter_queryKey(lowl_bloomfilter* f, lowl_key k);
