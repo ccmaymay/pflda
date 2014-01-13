@@ -24,8 +24,8 @@ def main(cmd, *args):
                 bf.insert(ngrams[ngram])
         print('Writing bloom filter...')
         bf.write(bf_filename)
-    print('Printing bloom filter...')
-    bf.cPrint()
+    #print('Printing bloom filter...')
+    #bf.cPrint()
     print('Leaving scope...')
 
 if __name__ == '__main__':
