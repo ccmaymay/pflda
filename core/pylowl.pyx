@@ -16,16 +16,20 @@ cdef class BloomFilter:
         lowl.bloomfilter_insertKey(self._bf, k)
 
     def query(self, k):
-        lowl.bloomfilter_queryKey(self._bf, k)
+        return lowl.bloomfilter_queryKey(self._bf, k)
 
     def cPrint(self):
         lowl.bloomfilter_print(self._bf)
 
-    #def read(self, fp):
-    #    lowl.bloomfilter_read(self._bf, fp)
+    def read(self, filename):
+        f = lowl.fopen(filename, 'rb')
+        lowl.bloomfilter_read(self._bf, f)
+        lowl.fclose(f)
 
-    #def write(self, fp):
-    #    lowl.bloomfilter_write(self._bf, fp)
+    def write(self, filename):
+        f = lowl.fopen(filename, 'wb')
+        lowl.bloomfilter_write(self._bf, f)
+        lowl.fclose(f)
 
     def __dealloc__(self):
         if self._bf is not NULL:
