@@ -5,7 +5,9 @@
 #include "lowl_bloom.h"
 
 void bloomfilter_init( bloomfilter* f,
-			size_t size, unsigned int k  ) { 
+			size_t numbytes, unsigned int k  ) { 
+  /* numbytes is the number of bytes to use in the bloom filter.
+	k is the number of hash functions. */
 
   // Need to add code that ensures that size is a power of 2.
 
@@ -21,7 +23,8 @@ void bloomfilter_init( bloomfilter* f,
   }
 
   // we need size/sizeof(f->b) since each contributes sizeof(f->b) bytes
-  f->size = size/sizeof(*(f->b)) + 1;
+  f->size = numbytes/sizeof(*(f->b));
+  if( f->size == 0 ) f->size = 1; /* if size was too small to be useful. */
 
   f->k = k;
   f->b = (uint32_t*)malloc(f->size * sizeof(uint32_t));
@@ -108,7 +111,7 @@ int bloomfilter_queryKey(bloomfilter* f, lowl_key key ) {
 void bloomfilter_print(bloomfilter* f) {
   int i, j;
   for(i = 0; i < f->size; ++i)
-    for(j = 0; j < 32; ++j)
+    for(j = 0; j < 8*sizeof(*(f->b)); ++j)
       if ((f->b[i] & f->mask[j]) == 0)
         printf("0");
       else
