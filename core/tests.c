@@ -6,7 +6,7 @@
 #include "lowl_types.h"
 #include "lowl_hash.h"
 #include "lowl_math.h"
-#include "lowl_bloom.h"
+#include "lowl_sketch.h"
 
 void interp_chi2( double* scores, int numtrials);
 
@@ -412,16 +412,27 @@ void run_bloomfilter_tests() {
 
   printf("=== Running Bloom filter tests. ===\n");
 
-  bloomfilter* bf = malloc(sizeof(bloomfilter));
+  bloomfilter* bf = malloc( sizeof(bloomfilter) );
   /* make a big bloom filter. */
-  bloomfilter_init(bf, 1024, 32);
+  int succ = bloomfilter_init(bf, 1024, 32);
+
+  if( succ==-1 || bf==NULL ) {
+    printf("Memory allocation failed in Bloom filter test.\n\n");
+    return;
+  }
 
   bloomfilter_insertKey(bf, 42);
   assert( bloomfilter_queryKey(bf, 42) == 1 );
   assert( bloomfilter_queryKey(bf, 35) == 0 );
 
+  /* test that we can serialize to files correctly. */
+  
+
   bloomfilter_destroy(bf);
   free(bf);
+
+  printf("Success.\n\n");
+  return;
 }
 
 int main( int argc, char **argv ) {

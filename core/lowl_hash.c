@@ -12,12 +12,18 @@
 
 /* multiply-add-shift hash function. */
 lowl_hashoutput multip_add_shift(lowl_key x, lowl_key_hash* h) {
-  return ((lowl_hashoutput)
-	 ((h->a)*((unsigned int)x) + (h->b))) >> (h->w - h->M) ;
+  if( h->w < h->M ) {
+    return (lowl_hashoutput) (h->a)*((unsigned int)x) + (h->b);
+  } else {
+    return ((lowl_hashoutput)
+  	 ((h->a)*((unsigned int)x) + (h->b))) >> (h->w - h->M) ;
+  }
 }
 
 int lowl_key_hash_init( lowl_key_hash* lkh, unsigned int w, unsigned int M) {
-  if( w==0 || M==0 ) return -1; /* must be non-negative numbers */
+  if( w==0 || M==0 ) {
+    return -1; /* must be non-negative numbers */
+  }
   lkh->w = w;
   lkh->M = M;
   return 0;
