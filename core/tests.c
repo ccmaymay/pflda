@@ -6,6 +6,7 @@
 #include "lowl_types.h"
 #include "lowl_hash.h"
 #include "lowl_math.h"
+#include "lowl_bloom.h"
 
 void interp_chi2( double* scores, int numtrials);
 
@@ -407,6 +408,13 @@ void run_resizablearray_tests() {
   return;
 }
 
+void run_bloomfilter_tests() {
+  bloomfilter* bf = malloc(sizeof(bloomfilter));
+  bloomfilter_init(bf, 32, 64);
+  bloomfilter_destroy(bf);
+  free(bf);
+}
+
 int main( int argc, char **argv ) {
   srandom(1970);
 
@@ -435,6 +443,14 @@ int main( int argc, char **argv ) {
   run_multip_add_shift_tests();
 
   run_motwani_tests();
+
+  /**************************************************************
+   *								*
+   *	 Tests for lowl_bloom.c 					*
+   *								*
+   **************************************************************/
+
+  run_bloomfilter_tests();
 
   /******************************************************
    *							*
