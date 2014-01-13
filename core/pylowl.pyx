@@ -16,7 +16,7 @@ cdef class BloomFilter:
         lowl.bloomfilter_insertKey(self._bf, k)
 
     def query(self, k):
-        lowl.bloomfilter_queryKey(self._bf, k)
+        return lowl.bloomfilter_queryKey(self._bf, k)
 
     def cPrint(self):
         lowl.bloomfilter_print(self._bf)
