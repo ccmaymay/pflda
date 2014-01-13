@@ -30,4 +30,4 @@ $(PY_LIB_FILENAME): setup.py $(PY_LIB_NAME).pyx $(LIB_NAME).pxd $(LIB_SONAME)
 
 .PHONY: clean
 clean:
-	rm -rf $(LIB_NAME) *.o tests $(PY_LIB_NAME).c
+	rm -rf $(LIB_NAME) *.o tests $(PY_LIB_NAME).c build
