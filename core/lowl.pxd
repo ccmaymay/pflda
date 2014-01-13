@@ -1,6 +1,10 @@
 from libc.stdio cimport FILE
 from libc.stddef cimport size_t
 
+cdef extern from "stdio.h":
+    FILE *fopen(const char *filename, const char *mode)
+    int fclose(FILE *f)
+
 cdef extern from "lowl_types.h":
     ctypedef unsigned long lowl_key
     ctypedef unsigned int lowl_hashoutput
