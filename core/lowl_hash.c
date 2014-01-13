@@ -37,16 +37,16 @@ void lowl_key_hash_arm( lowl_key_hash* lkh ) {
   }
   if ( 8*sizeof(lkh->a) > lkh->w ) {
     unsigned long long a_upperbound
-      = (unsigned long long) lowlmath_powposint(2, lkh->w);
+      = (unsigned long long) powposint(2, lkh->w);
     lkh->a = (unsigned long) (lkh->a % a_upperbound);
   } 
   /* b must be a non-negative integer with b < 2^(w-M) */
-  lkh->b = (unsigned long) (random() % lowlmath_powposint(2,lkh->w - lkh->M));
+  lkh->b = (unsigned long) (random() % powposint(2,lkh->w - lkh->M));
 }
 
 /* Motwani-Raghavan hash function. */
 
-int lowl_motrag_hash_init( lowl_motrag_hash* lmh,
+int motrag_hash_init( motrag_hash* lmh,
 				unsigned int m, unsigned int n ) {
   unsigned int bigprime = (unsigned int) LOWLMATH_BIGPRIME;
   if( m > bigprime ) {
@@ -71,12 +71,12 @@ int lowl_motrag_hash_init( lowl_motrag_hash* lmh,
   return 0;
 }
 
-unsigned int lowl_motrag_map( unsigned int input, lowl_motrag_hash* lmh ) {
+unsigned int motrag_map( unsigned int input, motrag_hash* lmh ) {
   unsigned int f = (lmh->a*input + lmh->b) % lmh->p;
   return f % lmh->n;
 }
 
-void lowl_motrag_hash_arm( lowl_motrag_hash* lmh ) {
+void motrag_hash_arm( motrag_hash* lmh ) {
   /* choose the parameters a and b for the hash function. */
   unsigned int r1 = (unsigned int) random();
   unsigned int r2 = (unsigned int) random();
@@ -90,7 +90,7 @@ void lowl_motrag_hash_arm( lowl_motrag_hash* lmh ) {
  *                                                      *
  ********************************************************/
 
-int lowl_rarr_init(lowl_rarr* lr, unsigned int cap) {
+int rarr_init(rarr* lr, unsigned int cap) {
   /* initialize a new resizable array, with given capacity.
         Return 0 if successful.
         Return -1 if there was a failure (namely, failure to allocate mem.) */
@@ -104,7 +104,7 @@ int lowl_rarr_init(lowl_rarr* lr, unsigned int cap) {
   return 0;
 }
 
-int lowl_rarr_set(lowl_rarr* lr, unsigned int loc, lowl_count elmt) {
+int rarr_set(rarr* lr, unsigned int loc, lowl_count elmt) {
   /* insert the given element into the resizable array at the given location.
         Return 0 if successful.
         Return -1 if location is out of range.  */
@@ -125,7 +125,7 @@ int lowl_rarr_set(lowl_rarr* lr, unsigned int loc, lowl_count elmt) {
 
 /* retrieve the element at the given location and copy its contents to
 	the given address.	*/
-int lowl_rarr_get(lowl_rarr* lr, unsigned int loc, lowl_count* elmt) {
+int rarr_get(rarr* lr, unsigned int loc, lowl_count* elmt) {
   if( loc >= lr->capacity ) {
     return -1;
   } else {
@@ -135,7 +135,7 @@ int lowl_rarr_get(lowl_rarr* lr, unsigned int loc, lowl_count* elmt) {
   }
 }
 
-int lowl_rarr_upsize(lowl_rarr* lr) {
+int rarr_upsize(rarr* lr) {
   /* embiggen the array. */
 
   unsigned int oldCap = lr->capacity;
@@ -161,7 +161,7 @@ int lowl_rarr_upsize(lowl_rarr* lr) {
   return 0;
 }
 
-int lowl_rarr_downsize(lowl_rarr* lr) {
+int rarr_downsize(rarr* lr) {
   /* disembiggen the array. */
 
   unsigned int oldCap = lr->capacity;
@@ -187,7 +187,7 @@ int lowl_rarr_downsize(lowl_rarr* lr) {
   return 0;
 }
 
-int lowl_rarr_destroy(lowl_rarr* lr) {
+int rarr_destroy(rarr* lr) {
   /* deal with the various freeing of memory that needs to be done
         internal to the resizable array. */
   free( lr->array );

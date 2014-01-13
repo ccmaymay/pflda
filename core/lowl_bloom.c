@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "lowl_bloom.h"
 
-void lowl_bloomfilter_init( lowl_bloomfilter* f,
+void bloomfilter_init( bloomfilter* f,
 			size_t size, unsigned int k  ) { 
   int i;
   // These masks help us to access the i-th bit in
@@ -41,7 +41,7 @@ void lowl_bloomfilter_init( lowl_bloomfilter* f,
   }
 }
 
-void lowl_bloomfilter_insertKey(lowl_bloomfilter* f, lowl_key key) { 
+void bloomfilter_insertKey(bloomfilter* f, lowl_key key) { 
   int i;
   lowl_hashoutput word,bit;
 
@@ -54,7 +54,7 @@ void lowl_bloomfilter_insertKey(lowl_bloomfilter* f, lowl_key key) {
   }
 }
 
-int lowl_bloomfilter_queryKey(lowl_bloomfilter* f, lowl_key key ) {
+int bloomfilter_queryKey(bloomfilter* f, lowl_key key ) {
   int i;
   lowl_hashoutput word,bit;
 
@@ -102,7 +102,7 @@ int lowl_bloomfilter_queryKey(lowl_bloomfilter* f, lowl_key key ) {
 //}
 /* End. */
 
-void lowl_bloomfilter_print(lowl_bloomfilter* f) {
+void bloomfilter_print(bloomfilter* f) {
   int i, j;
   for(i = 0; i < f->size; ++i)
     for(j = 0; j < 32; ++j)
@@ -113,7 +113,7 @@ void lowl_bloomfilter_print(lowl_bloomfilter* f) {
   printf("\n");
 }
 
-void lowl_bloomfilter_write(lowl_bloomfilter* f, FILE* fp) {
+void bloomfilter_write(bloomfilter* f, FILE* fp) {
   /* serialize the filter to the given file. */
   fwrite( &(f->size), sizeof(unsigned int), 1, fp);
   fwrite( &(f->k), sizeof(unsigned int), 1, fp);
@@ -122,7 +122,7 @@ void lowl_bloomfilter_write(lowl_bloomfilter* f, FILE* fp) {
   fwrite( f->hash_key_to_bit, sizeof( lowl_key_hash ), f->k, fp); 
 }
 
-void lowl_bloomfilter_read(lowl_bloomfilter* f, FILE* fp) {
+void bloomfilter_read(bloomfilter* f, FILE* fp) {
 
   int i;
 
@@ -143,7 +143,7 @@ void lowl_bloomfilter_read(lowl_bloomfilter* f, FILE* fp) {
   fread(f->hash_key_to_bit, sizeof( lowl_key_hash), f->k, fp);
 }
 
-void lowl_bloomfilter_destroy(lowl_bloomfilter* f) {
+void bloomfilter_destroy(bloomfilter* f) {
   free(f->b);
   free(f->mask);
   free(f->hash_key_to_word);

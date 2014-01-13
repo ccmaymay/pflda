@@ -9,6 +9,6 @@
 unsigned int get_useful_prime( unsigned int i );
 
 /* raise an integer to a non-negative integer power. */
-unsigned long lowlmath_powposint(unsigned long base, unsigned int pow);
+unsigned long powposint(unsigned long base, unsigned int pow);
 
 #endif
