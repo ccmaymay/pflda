@@ -13,10 +13,12 @@ cdef class Table:
         return lowl.tableSize(self._table)
 
     def __getitem__(self, i):
-        s = lowl.tableGet(self._table, i)
-        if s == NULL:
+        cdef char *s
+        cStr = lowl.tableGet(self._table, i)
+        if cStr is NULL:
             raise Exception("Illegal index %d" % i)
-        return s
+        pyStr = cStr
+        return pyStr
 
     def insert(self, s):
         i = lowl.tableInsert(self._table, s)
