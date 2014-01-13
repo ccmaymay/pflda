@@ -1,2 +1,4 @@
 tests
 *.o
+.*.swp
+.*.swo
