@@ -96,7 +96,7 @@ void cmsketch_destroy( cmsketch* cm ) {
  *                                                       *
  *********************************************************/
 
-int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k) { 
+int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k) {
   /* numbytes is the number of bytes to use in the bloom filter.
 	k is the number of hash functions.
 
@@ -136,7 +136,7 @@ int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k) {
   return 0;
 }
 
-void lowl_bloomfilter_insert(bloomfilter* f, const char* x, size_t len) { 
+void bloomfilter_insert(bloomfilter* f, const char* x, size_t len) {
   const size_t bits_per_bf_word = 8*sizeof(*(f->b));
   lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
 
@@ -156,7 +156,7 @@ void lowl_bloomfilter_insert(bloomfilter* f, const char* x, size_t len) {
   }
 }
 
-bool lowl_bloomfilter_query(bloomfilter* f, const char* x, size_t len) { 
+bool bloomfilter_query(bloomfilter* f, const char* x, size_t len) {
   const size_t bits_per_bf_word = 8*sizeof(*(f->b));
   lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
 
@@ -225,7 +225,7 @@ void bloomfilter_destroy(bloomfilter* f) {
 
 void bloomfilter_setmask( uint32_t* mask ) {
   int i;
-  for(i = 0; i < 8; ++i) { 
+  for(i = 0; i < 8; ++i) {
     mask[4 * i + 0] = (1 << (4 * i + 0));
     mask[4 * i + 1] = (1 << (4 * i + 1));
     mask[4 * i + 2] = (1 << (4 * i + 2));

@@ -12,11 +12,11 @@ cdef class BloomFilter:
     def init(self, size, k):
         lowl.bloomfilter_init(self._bf, size, k)
 
-    def insert(self, k):
-        lowl.bloomfilter_insertKey(self._bf, k)
+    def insert(self, x):
+        lowl.bloomfilter_insert(self._bf, x, len(x))
 
-    def query(self, k):
-        return lowl.bloomfilter_queryKey(self._bf, k)
+    def query(self, x):
+        return lowl.bloomfilter_query(self._bf, x, len(x))
 
     def cPrint(self):
         lowl.bloomfilter_print(self._bf)

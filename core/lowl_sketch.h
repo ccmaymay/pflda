@@ -27,7 +27,7 @@ void cmsketch_clear( cmsketch* cm );
 void cmsketch_destroy( cmsketch* cm );
 
 /* bloom filter. */
-typedef struct bloomfilter { 
+typedef struct bloomfilter {
   unsigned int size;
   unsigned int k; /* number of hash functions to use. */
   uint32_t* b;
@@ -40,7 +40,7 @@ typedef struct bloomfilter {
   uint32_t* mask;
 }bloomfilter;
 
-int bloomfilter_init(bloomfilter* f, size_t size, unsigned int k);
+int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k);
 void bloomfilter_setmask( uint32_t* mask );
 void bloomfilter_insert(bloomfilter* f, const char* x, size_t len);
 bool bloomfilter_query(bloomfilter* f, const char* x, size_t len);

@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
 #include "lowl_types.h"
 #include "lowl_hash.h"
 #include "lowl_math.h"
@@ -425,9 +426,9 @@ void run_bloomfilter_tests() {
     return;
   }
 
-  bloomfilter_insertKey(bf, 42);
-  assert( bloomfilter_queryKey(bf, 42) == 1 );
-  assert( bloomfilter_queryKey(bf, 35) == 0 );
+  bloomfilter_insert(bf, "hello world", 11);
+  assert(bloomfilter_query(bf, "hello waldo", 11) == false);
+  assert(bloomfilter_query(bf, "hello world", 11) == true);
 
   /* test that we can serialize to files correctly. */
 
