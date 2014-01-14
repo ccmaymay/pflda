@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "lowl_types.h"
 #include "lowl_math.h"
 #include "lowl_hash.h"
@@ -8,6 +9,7 @@
 #define CUCKOO_REHASH -2
 #define LOWLHASH_INTABLE 0
 #define LOWLHASH_NOTINTABLE 10
+#define HT_KEY_TO_COUNT_MAXLOAD 0.65
 
 /********************************************************
  *                                                      *
@@ -132,6 +134,12 @@ void motrag_hash_arm( motrag_hash* lmh ) {
  *                                                      *
  ********************************************************/
 
+rarr_entry rarr_entry_from_kvpair( lowl_key k, lowl_count v) {
+  rarr_entry result;
+  result.key = k;
+  result.value = v;
+}
+
 int rarr_init(rarr* lr, unsigned int cap) {
   /* initialize a new resizable array, with given capacity.
         Return 0 if successful.
@@ -144,6 +152,11 @@ int rarr_init(rarr* lr, unsigned int cap) {
   /* initialize all entries to be 0. */
   memset( lr->array, 0, cap*sizeof(rarr_entry) );
   return 0;
+}
+
+void rarr_clear(rarr* lr) {
+  /* set the whole array to 0. */
+  memset( lr->array, 0, lr->capacity*sizeof(rarr_entry) );
 }
 
 int rarr_set(rarr* lr, unsigned int loc, rarr_entry entry) {
@@ -167,7 +180,7 @@ int rarr_set(rarr* lr, unsigned int loc, rarr_entry entry) {
 
 /* retrieve the element at the given location and copy its contents to
 	the given address.	*/
-int rarr_get(rarr* lr, unsigned int loc, lowl_count* entry) {
+int rarr_get(rarr* lr, unsigned int loc, rarr_entry* entry) {
   if( loc >= lr->capacity ) {
     return -1;
   } else {
@@ -184,7 +197,7 @@ int rarr_upsize(rarr* lr) {
   unsigned int newCap = 2*oldCap;
 
   /* allocate the new memory. */
-  lowl_count* newarray = malloc( newCap*sizeof(rarr_entry) );
+  rarr_entry* newarray = malloc( newCap*sizeof(rarr_entry) );
   if ( newarray == NULL ) {
     return -1;
   }
@@ -210,7 +223,7 @@ int rarr_downsize(rarr* lr) {
   unsigned int newCap = oldCap/2;
 
   /* allocate the new memory and verify malloc success. */
-  lowl_count* newarray = malloc( newCap*sizeof(rarr_entry) );
+  rarr_entry* newarray = malloc( newCap*sizeof(rarr_entry) );
   if ( newarray == NULL ) {
     return -1;
   }
@@ -249,22 +262,17 @@ int rarr_destroy(rarr* lr) {
 	terribly hard to implement. Refer to
 	http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.4189	*/
 
-typedef struct ht_key_to_count{
-  /* we will actually use one hash function to get CUCKOO_NHASHES
-	hash functions using the same trick we use in the bloom filter.
-	h_i(x) = f(x) + i*g(x) */
-  lowl_key_hash* hashfn;
-  rarr* table;
-  unsigned int size; /* number of elements we've inserted. */
-}ht_key_to_count;
-
 int ht_key_to_count_init( ht_key_to_count* ht, unsigned int capacity ) {
   /* initialize a hash table mapping lowl_keys to counts.
 	capacity is the desired size of the hash table,
 	and must be a power of 2.
 	If capacity isn't a power of 2, determine_logcardinality
 	implicitly makes this the case. */
-  unsigned int M = determine_logcardinality(capacity);
+  //unsigned int M = determine_logcardinality(capacity);
+  unsigned int M = (unsigned int) log2(capacity);
+  if( M <= 0 ) {
+    M = 1;
+  }
   ht->hashfn = malloc( sizeof(lowl_key_hash) );
   ht->table = malloc( sizeof( rarr ) );
   if( ht->hashfn==NULL || ht->table==NULL ) {
@@ -279,58 +287,98 @@ int ht_key_to_count_init( ht_key_to_count* ht, unsigned int capacity ) {
 
   /* hash table is initially empty. */
   ht->size = 0;
+  return 0;
 }
 
-int ht_key_to_count_set( ht_key_to_count* ht, lowl_key lkey, lowl_count val) {
-  /* store (key,val) in the hash table. */
+float ht_key_to_count_loadfactor( ht_key_to_count* ht ) {
+  return ht_key_to_count_size(ht) / ( (float) rarr_capacity(ht->table) );
+}
+
+
+int ht_key_to_count_findslot( ht_key_to_count* ht, lowl_key lkey,
+				lowl_hashoutput* location) {
+  /* Figure out if the given key is in this hash table.
+	If it is, make the contents of *location hold the number of the
+	slot in the table where lkey is stored.
+	If it isn't, make *location the number of the first empty slot
+	found by the hash/probe of lkey.
+	Return a success code which tells us whether or not the key was
+	found in the table.	*/ 
+  
   lowl_hashoutput hout = multip_add_shift( lkey, ht->hashfn );
 
-  rarr_entry placeholder_entry, entry_to_insert;
-
-  /* we need to find a place in the hash table for this entry. */
-  entry_to_insert = rarr_entry_from_kvpair(lkey, val);
-
- /* the placeholder is to let us have a gander at what's currently stored
+ /* this placeholder is for having a gander at what's currently stored
 	in some given slot of the array.	*/
+  rarr_entry placeholder_entry;
   rarr_get( ht->table, hout, &placeholder_entry );
 
   /* hash until we either find the key we're looking for OR until we
 	find an empty spot in the array. */
-  while( (lowl_key) entry.key != 0 ) { 
-    if( (lowl_key) entry.key == lkey || (lowl_key) entry.key == 0 ) {
-      rarr_set( ht->table, hout, rarr_entry_from_kvpair(lkey, val) );
+  while(  ht_key_to_count_entryispopulated(ht, hout)  ) { 
+    if( (lowl_key) placeholder_entry.key == lkey ) {
+      /* found our key (or an empty slot). Store the location. */
+      *location = hout;
       return LOWLHASH_INTABLE;
     } else {
-      /* linear probe. */
-      hout = (hout + 7) % rarr_size(ht->table);
+      /* We found a key in this entry, but
+	this isn't the key we're looking for.
+	Linear probe to the next entry. */
+      hout = (hout + 7) % rarr_capacity(ht->table);
       rarr_get( ht->table, hout, &placeholder_entry );
     }
   }
-  (rarr->array)[hout] = make_rarr_entry_from_kvpair(lkey, val);
-  return LOWLHASH_NOTINTABLE;
-} 
-
-int ht_key_to_count_get( ht_key_to_count* ht, lowl_key lkey, lowl_count* val) {
-  lowl_hashoutput hout = multip_add_shift( lkey, ht->hashfn );
-  
-  rarr_entry entry;
-  rarr_get( ht->table, hout, &entry );
-  while( (lowl_key) entry.key != 0 ) {
-    if( (lowl_key) entry.key == lkey ) {
-      *val = entry.value;
-      return LOWLHASH_INTABLE;
-    } else {
-      /* linear probe. */
-      hout = (hout + 7) % rarr_size(ht->table);
-      rarr_get( ht->table, hout, &entry );
-    }
-  }
+  /* left the while loop without finding our key, so hout is now pointing at
+	an empty location in the table.	*/
+  *location = hout;
   return LOWLHASH_NOTINTABLE;
 }
 
+int ht_key_to_count_set( ht_key_to_count* ht, lowl_key lkey, lowl_count val) {
+  /* store (key,val) in the hash table. */
 
-  
+  /* If adding this entry will make the load factor too high,
+        resize the hash table first and THEN insert.    */
+  if( ht_key_to_count_loadfactor( ht ) >= HT_KEY_TO_COUNT_MAXLOAD ) {
+    ht_key_to_count_upsize( ht );
+    return ht_key_to_count_set( ht, lkey, val);
+  }
 
+  /* If the given key wasn't in the hash table. We need to add it.
+        The point of ht_key_to_count_find is that when the function
+        returns, location is either a place where the key was located,
+        or points to the first empty slot that the probe found if the
+        key wasn't in the table.
+	The success code tells us whether we found the key in the table
+	or not.	*/
+
+  lowl_hashoutput location;
+  int is_in_table = ht_key_to_count_findslot( ht, lkey, &location );
+  /* write our entry into this location. */
+  rarr_entry entry_to_store = rarr_entry_from_kvpair(lkey, val);
+  rarr_set( ht->table, location, entry_to_store );
+  ht->size++;
+  return is_in_table;
+}
+
+int ht_key_to_count_get( ht_key_to_count* ht, lowl_key lkey, lowl_count* val) {
+  /* retrieve the value stored for the given key. Place that value in the
+	address pointer to by lowl_count* val.	*/
+
+  lowl_hashoutput location;
+  int is_in_table = ht_key_to_count_findslot( ht, lkey, &location );
+  if( is_in_table==LOWLHASH_NOTINTABLE ) {
+    /* given key wasn't in the hash table. */
+    return LOWLHASH_NOTINTABLE;
+  } else {
+    /* given key was in the hash table.
+	Copy the value to val and return successful exit code. */
+    rarr_entry entry;
+    rarr_get(ht->table, location, &entry);
+    *val = entry.value;
+    return LOWLHASH_INTABLE;
+  } 
+}
+ 
 void ht_key_to_count_clear( ht_key_to_count* ht ) {
   rarr_clear( ht->table );
   ht->size = 0;

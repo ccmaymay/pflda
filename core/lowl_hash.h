@@ -78,6 +78,13 @@ void motrag_hash_arm( motrag_hash* lmh );
  *	Resizable array for use in hash tables.		*
  *							*
  ********************************************************/
+ /* entry of a rarr. */
+typedef struct rarr_entry{
+  lowl_key key;
+  lowl_count value;
+}rarr_entry;
+
+rarr_entry rarr_entry_from_kvpair( lowl_key k, lowl_count v);
 
 /* resizable array, for use in hash tables. */
 typedef struct rarr{
@@ -86,16 +93,13 @@ typedef struct rarr{
 }rarr;
 
 int rarr_init(rarr* lr, unsigned int cap);
-
-int rarr_set(rarr* lr, unsigned int loc, rarr_entry* elmt);
-
+void rarr_clear(rarr* lr);
+int rarr_set(rarr* lr, unsigned int loc, rarr_entry elmt);
 int rarr_get(rarr* lr, unsigned int loc, rarr_entry* elmt);
-
 int rarr_upsize(rarr* lr);
-
 int rarr_downsize(rarr* lr);
-
 int rarr_destroy(rarr* lr);
+#define rarr_capacity(rarr) ((rarr)->capacity)
 
 /********************************************************
  *							*
@@ -111,8 +115,13 @@ typedef struct ht_key_to_count{
 int ht_key_to_count_init( ht_key_to_count* ht, unsigned int capacity );
 int ht_key_to_count_set( ht_key_to_count* ht, lowl_key key, lowl_count val);
 int ht_key_to_count_get( ht_key_to_count* ht, lowl_key key, lowl_count* val);
+int ht_key_to_count_findslot( ht_key_to_count* ht, lowl_key key,
+				lowl_hashoutput* location );
+void ht_key_to_count_upsize( ht_key_to_count* ht );
 void ht_key_to_count_clear( ht_key_to_count* ht );
 void ht_key_to_count_destroy( ht_key_to_count* ht );
+float ht_key_to_count_loadfactor( ht_key_to_count* ht);
+#define ht_key_to_count_size(ht) ((ht)->size)
 
 
 /********************************************************
@@ -122,10 +131,15 @@ void ht_key_to_count_destroy( ht_key_to_count* ht );
  ********************************************************/
 
 
+
+
 /********************************************************
  *							*
  *	Hash table for <string, lowl_count>		*
  *							*
  ********************************************************/
+
+
+
 
 #endif

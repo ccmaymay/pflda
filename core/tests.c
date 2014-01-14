@@ -481,29 +481,33 @@ void run_resizablearray_tests() {
   rarr_init(lr, orig_cap);
   assert( lr->capacity == orig_cap );
   /* verify that entries of lr are zero, as they ought to be */
-  lowl_count contents;
+  rarr_entry contents;
   int succ,i;
   for( i=0; i < lr->capacity; i++ ) {
     succ = rarr_get(lr, (unsigned int) i, &contents);
-    assert( contents==0 );
+    assert( contents.key==0 );
+    assert( contents.value==0 );
     assert( succ==0 );
   }
   /* set some entries to be non-zero and verify that this works correctly. */
   lowl_count testcount1 = 1969;
+  rarr_entry testentry1 = rarr_entry_from_kvpair(1,testcount1);
   lowl_count testcount2 = 42;
+  rarr_entry testentry2 = rarr_entry_from_kvpair(2,testcount2);
   succ = rarr_set(lr, 5, testcount1);
   assert( succ == 0 );
   succ = rarr_set(lr, 10, testcount2);
   assert( succ == 0 );
   succ = rarr_get(lr, 5, &contents);
   assert( succ==0 );
-  assert( contents == testcount1 );
+  assert( contents.value == testcount1 );
   succ = rarr_get(lr, 10, &contents);
   assert( succ==0 );
-  assert( contents == testcount2 );
+  assert( contents.value == testcount2 );
   /* try setting an element that is currently out of range. */
   lowl_count testcount3 = 123456;
-  succ = rarr_set(lr, 16, testcount3);
+  rarr_entry testentry3 = rarr_entry_from_kvpair(3,testcount3);
+  succ = rarr_set(lr, 16, testentry3);
   assert( succ != 0 );
 
   /* upsize the array. */
@@ -516,18 +520,18 @@ void run_resizablearray_tests() {
     assert( succ==0 );
   }
   /* now try inserting the same element. */
-  succ = rarr_set(lr, 16, testcount3);
+  succ = rarr_set(lr, 16, testentry3);
   assert( succ == 0 );
   succ = rarr_get(lr, 16, &contents);
   assert( succ==0 );
-  assert( contents == testcount3 );
+  assert( contents.value == testcount3 );
   /* verify that previous elements were preserved correctly. */
   succ = rarr_get(lr, 5, &contents);
   assert( succ==0 );
-  assert( contents == testcount1 );
+  assert( contents.value == testcount1 );
   succ = rarr_get(lr, 10, &contents);
   assert( succ==0 );
-  assert( contents == testcount2 );
+  assert( contents.value == testcount2 );
 
 
   /* downsize the array. */
