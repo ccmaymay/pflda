@@ -201,18 +201,20 @@ void bloomfilter_write(bloomfilter* f, FILE* fp) {
   fwrite( &(f->hash_key_to_bit2), sizeof( char_hash ), 1, fp); 
 }
 
-void bloomfilter_read(bloomfilter* f, FILE* fp) {
+int bloomfilter_read(bloomfilter* f, FILE* fp) {
   f->mask = (uint32_t*) malloc(32 * sizeof(uint32_t));
   bloomfilter_setmask( f->mask );
 
   fread(&(f->size), sizeof(int), 1, fp);
   fread(&(f->k), sizeof(int), 1, fp);
   f->b = (uint32_t*)malloc( f->size*sizeof(uint32_t));
+  if (f->b == 0) return -1;
   fread(f->b, sizeof(uint32_t), f->size, fp);
   fread( &(f->hash_key_to_word1), sizeof( char_hash ), 1, fp);
   fread( &(f->hash_key_to_word2), sizeof( char_hash ), 1, fp);
   fread( &(f->hash_key_to_bit1), sizeof( char_hash ), 1, fp);
   fread( &(f->hash_key_to_bit2), sizeof( char_hash ), 1, fp);
+  return 0;
 }
 
 void bloomfilter_destroy(bloomfilter* f) {
