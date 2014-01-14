@@ -5,7 +5,7 @@ PLATFORM = $(shell uname)
 CC = gcc
 LD = gcc
 
-CC_FLAGS = -O0 -g -std=gnu99 -Wall
+CC_FLAGS = -O0 -g -std=gnu99 -Wall -Wextra
 
 LIB_NAME = lowl
 LIB_FILENAME = lib$(LIB_NAME).so
@@ -35,18 +35,29 @@ install: $(LIB_FILENAME) $(PY_LIB_FILENAME)
 tests: tests.c lowl_math.h lowl_hash.h $(LIB_FILENAME)
 	$(CC) $(CC_FLAGS) $< -Wl,-rpath,. -L. -l$(LIB_NAME) -lm -o $@
 
+.PHONY: test
+test: tests
+	./tests
+
 $(LIB_FILENAME): $(OBJECTS)
 	$(LD) -shared -Wl,-rpath,. -Wl,$(LIB_FILENAME_FLAG),$(LIB_FILENAME) -lm -o $@ $(OBJECTS)
 
 $(PY_LIB_FILENAME): setup.py $(PY_LIB_NAME).pyx $(LIB_NAME).pxd $(LIB_FILENAME)
 	CFLAGS="-I." LDFLAGS="-L. -Wl,-rpath -Wl,." python setup.py build_ext --inplace
 
+
+## bvd: this does not work for everyone, but these are the commands that you can
+## run yourself to get a user local version of Cython installed, if you can't
+## otherwise have it installed system-wide. After the following is complete, you
+## can delete the Cython directory, is it no longer needed (all built libraries
+## are installed under ~/.local)
 .PHONY: cython
 cython:
 	wget http://cython.org/release/$(CYTHON_VERSION).tar.gz
+	tar -zxvf $(CYTHON_VERSION).tar.gz
 	cd $(CYTHON_VERSION)
 	python setup.py install --user
 
 .PHONY: clean
 clean:
-	rm -rf $(LIB_NAME) *.o tests $(PY_LIB_NAME).c build
+	rm -rf *.dSYM *.so *.o tests $(PY_LIB_NAME).c build

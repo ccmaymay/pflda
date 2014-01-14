@@ -87,6 +87,17 @@ void run_chi2_motrag( double* scores, int numtrials, motrag_hash* motwani,
   return;
 }
 
+void run_mod_fnv_tests() {
+  printf("=== Tests of modified FNV hash function. ===\n");
+  unsigned int salt = 42;
+  char s[13];
+  for (unsigned int i = 0; i < 65536 ; ++i) {
+    int len = snprintf(s, 13, "%u", i);
+    lowl_hashoutput hash = mod_fnv(s, len, salt);
+    // TODO
+  }
+}
+
 void run_multip_add_shift_tests( void ) {
   printf("=== Chi2 tests of multiply-add-shift hash function. ===\n");  
 
@@ -459,6 +470,8 @@ int main( int argc, char **argv ) {
    *	 Tests for lowl_hash.c 					*
    *								*
    **************************************************************/
+
+  run_mod_fnv_tests();
 
   run_multip_add_shift_tests();
 

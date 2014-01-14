@@ -5,3 +5,4 @@ tests
 *.so
 pylowl.c
 build
+*.dSYM
