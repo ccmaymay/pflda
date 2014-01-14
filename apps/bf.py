@@ -21,8 +21,9 @@ def main(cmd, *args):
                 bf.insert(ngrams[ngram])
         print('Writing bloom filter...')
         bf.write(bf_filename)
-        print('Printing bloom filter...')
-        bf.cPrint()
+        ## bvd: the following spews bits to STDOUT
+        #print('Printing bloom filter...')
+        #bf.cPrint()
     else:
         data_filename = args[0]
         bf_filename = args[1]
