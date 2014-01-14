@@ -128,15 +128,15 @@ int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k) {
     return -1; /* allocation failed. */
   }
 
-  char_hash_arm(f.hash_key_to_word1);
-  char_hash_arm(f.hash_key_to_word2);
-  char_hash_arm(f.hash_key_to_bit1);
-  char_hash_arm(f.hash_key_to_bit2);
+  char_hash_arm(&(f->hash_key_to_word1));
+  char_hash_arm(&(f->hash_key_to_word2));
+  char_hash_arm(&(f->hash_key_to_bit1));
+  char_hash_arm(&(f->hash_key_to_bit2));
 
   return 0;
 }
 
-void lowl_bloomfilter_insert(lowl_bloomfilter* f, const char* x, size_t len) { 
+void lowl_bloomfilter_insert(bloomfilter* f, const char* x, size_t len) { 
   const size_t bits_per_bf_word = 8*sizeof(*(f->b));
   lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
 
@@ -156,7 +156,7 @@ void lowl_bloomfilter_insert(lowl_bloomfilter* f, const char* x, size_t len) {
   }
 }
 
-bool lowl_bloomfilter_query(lowl_bloomfilter* f, const char* x, size_t len) { 
+bool lowl_bloomfilter_query(bloomfilter* f, const char* x, size_t len) { 
   const size_t bits_per_bf_word = 8*sizeof(*(f->b));
   lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
 

@@ -42,7 +42,7 @@ lowl_hashoutput mod_fnv(const char *data, size_t len, char_hash* h) {
 }
 
 void char_hash_arm(char_hash* ch) { 
-  ch->seed = (unsigned int) random();
+  ch->salt = (unsigned int) random();
 }
 
 /* multiply-add-shift hash function. */

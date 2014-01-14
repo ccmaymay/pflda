@@ -17,13 +17,13 @@
  *							*
  ********************************************************/
 
-lowl_hashoutput mod_fnv(const char *data, size_t len, unsigned int salt);
+typedef struct char_hash {
+  unsigned int salt;
+} char_hash;
+
+lowl_hashoutput mod_fnv(const char *data, size_t len, char_hash* h);
 
 void char_hash_arm(char_hash* ch);
-
-typedef struct char_hash {
-  unsigned int seed;
-} char_hash;
 
 /* multiply-add-shift, described in wiki on universal hashing */
 /* uses two seeds, a and b.

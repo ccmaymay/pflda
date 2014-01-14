@@ -2,6 +2,7 @@
 #define LOWLSKETCH_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "lowl_types.h"
 #include "lowl_hash.h"
 
