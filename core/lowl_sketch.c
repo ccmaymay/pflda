@@ -25,7 +25,7 @@ int cmsketch_init( cmsketch* cm, unsigned int m,
   cm->width = w;
   cm->depth = d;
   cm->counters = malloc( d*sizeof(unsigned int*) );
-  int i;
+  unsigned int i;
   for( i=0; i < d; i++ ) {
     (cm->counters)[i] = malloc( w*sizeof(unsigned int) );
   }
@@ -42,7 +42,7 @@ int cmsketch_init( cmsketch* cm, unsigned int m,
 
 void cmsketch_arm( cmsketch* cm ) {
   /* seed all the hashes.	*/
-  int i;
+  unsigned int i;
   for( i=0; i< cm->depth; i++ ) {
     motrag_hash_arm( cm->hashes+i );
   }
@@ -54,7 +54,7 @@ int cmsketch_update(cmsketch* cm, unsigned int elmt,
   if( elmt > ( cm->hashes )->m ) { /* element is out of range. */
     return -1;
   }
-  int i;
+  unsigned int i;
   unsigned int hashoutput;
   for( i=0; i<cm->depth; i++ ) {
     /* the i-th hash function, evaluated on the input element, determines
@@ -72,7 +72,7 @@ int cmsketch_count( cmsketch* cm, unsigned int elmt ) {
 
 void cmsketch_clear( cmsketch* cm ) {
   /* zero all counters. */
-  int i;
+  unsigned int i;
   for( i=0; i < cm->depth; i++ ) {
     memset( cm->counters+i, 0, cm->width*sizeof(unsigned int) );
   }
@@ -81,7 +81,7 @@ void cmsketch_clear( cmsketch* cm ) {
 void cmsketch_destroy( cmsketch* cm ) {
   free( cm->hashes );
   cm->hashes = NULL;
-  int i;
+  unsigned int i;
   for( i=0; i<cm->depth; i++ ) {
     free( cm->counters+i );
     (cm->counters)[i] = NULL;
@@ -106,7 +106,6 @@ int bloomfilter_init( bloomfilter* f,
 
   // Need to add code that ensures that size is a power of 2.
 
-  int i;
   // These masks help us to access the i-th bit in
   // a uint32_t counter (for i=1...32)
   f->mask = (uint32_t*)malloc( 32*sizeof(uint32_t) );
@@ -124,58 +123,71 @@ int bloomfilter_init( bloomfilter* f,
   f->k = k;
   f->b = (uint32_t*)malloc(f->size * sizeof(uint32_t));
 
-
-  f->hash_key_to_word = (lowl_key_hash*)malloc( f->k*sizeof(lowl_key_hash) );
-  f->hash_key_to_bit = (lowl_key_hash*)malloc( f->k*sizeof(lowl_key_hash) );
   memset(f->b, 0, f->size * sizeof(uint32_t));
 
-  if( f->b==NULL || f->hash_key_to_word==NULL || f->hash_key_to_bit==NULL ) {
+  if( f->b==NULL ) {
     return -1; /* allocation failed. */
   }
 
-  int succ;
-  for( i=0; i<f->k; i++ ) {
-    succ = lowl_key_hash_init( f->hash_key_to_word + i,
+  int s1,s2,s3,s4;
+  s1 = lowl_key_hash_init( &(f->hash_key_to_word1),
                         (unsigned int) 8*sizeof(lowl_key),
                         (unsigned int) log2( f->size ) );
-    if( succ != 0 ) {
-      return -1;
-    }
-    /* this hash function maps a lowl_key to a specific bit within a word. */
-    succ = lowl_key_hash_init( f->hash_key_to_bit + i,
+  s2 = lowl_key_hash_init( &(f->hash_key_to_word2),
+                        (unsigned int) 8*sizeof(lowl_key),
+                        (unsigned int) log2( f->size ) );
+  s3 = lowl_key_hash_init( &(f->hash_key_to_bit1),
                         (unsigned int) 8*sizeof(lowl_key),
                         (unsigned int) log2( 8*sizeof(*(f->b)) ) );
-    if( succ != 0 ) {
-      return -1;
-    }
-    
-    /* seed the hashes. */
-    lowl_key_hash_arm( f->hash_key_to_word + i );
-    lowl_key_hash_arm( f->hash_key_to_bit + i );
+  s4 = lowl_key_hash_init( &(f->hash_key_to_bit2),
+                        (unsigned int) 8*sizeof(lowl_key),
+                        (unsigned int) log2( 8*sizeof(*(f->b)) ) );
+  if( s1!=0 || s2!=0 || s3!=0 || s4!=0 ) {
+    return -1;
   }
+  /* seed the hashes. */
+  lowl_key_hash_arm( &(f->hash_key_to_word1) );
+  lowl_key_hash_arm( &(f->hash_key_to_word2) );
+  lowl_key_hash_arm( &(f->hash_key_to_bit1) );
+  lowl_key_hash_arm( &(f->hash_key_to_bit2) );
+
   return 0;
 }
 
 void bloomfilter_insertKey(bloomfilter* f, lowl_key key) { 
-  int i;
-  lowl_hashoutput word,bit;
+  unsigned int i;
+  lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
 
+  /* we use a scheme whereby two hashes give rise to k approximately
+	independent hashes, where hash function h_i is given by
+	h_i(x) = f(x) + i*g(x).	*/
+  hash2word1 = multip_add_shift( key, &(f->hash_key_to_word1) );
+  hash2word2 = multip_add_shift( key, &(f->hash_key_to_word2) );
+  hash2bit1 = multip_add_shift( key, &(f->hash_key_to_bit1) );
+  hash2bit2 = multip_add_shift( key, &(f->hash_key_to_bit2) );
   for(i = 0; i < f->k; ++i) { 
-    ////lowl_key k->h), y, strlen(y));
-    word = multip_add_shift( key, f->hash_key_to_word + i );
-    bit = multip_add_shift( key, f->hash_key_to_bit + i );
+    word = (hash2word1 + i*hash2word2) % f->size;
+    bit = (hash2bit1 + i*hash2bit2) % 8*sizeof(*(f->b));
 
     f->b[word] = f->b[word] | f->mask[bit];
   }
 }
 
 int bloomfilter_queryKey(bloomfilter* f, lowl_key key ) {
-  int i;
-  lowl_hashoutput word,bit;
+  unsigned int i;
+  lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
 
+  /* we use a scheme whereby two hashes give rise to k approximately
+        independent hashes, where hash function h_i is given by
+        h_i(x) = f(x) + i*g(x). */
+  hash2word1 = multip_add_shift( key, &(f->hash_key_to_word1) );
+  hash2word2 = multip_add_shift( key, &(f->hash_key_to_word2) );
+  hash2bit1 = multip_add_shift( key, &(f->hash_key_to_bit1) );
+  hash2bit2 = multip_add_shift( key, &(f->hash_key_to_bit2) );
   for(i = 0; i < f->k; ++i) {
-    word = multip_add_shift( key, f->hash_key_to_word + i );
-    bit = multip_add_shift( key, f->hash_key_to_bit + i );
+    word = (hash2word1 + i*hash2word2) % f->size;
+    bit = (hash2bit1 + i*hash2bit2) % 8*sizeof(*(f->b));
+    
     if ( (f->b[word] & f->mask[bit]) == 0) {
       return 0;
     }
@@ -219,7 +231,7 @@ int bloomfilter_queryKey(bloomfilter* f, lowl_key key ) {
 /* End. */
 
 void bloomfilter_print(bloomfilter* f) {
-  int i, j;
+  unsigned int i,j;
   for(i = 0; i < f->size; ++i)
     for(j = 0; j < 8*sizeof(*(f->b)); ++j)
       if ((f->b[i] & f->mask[j]) == 0)
@@ -229,13 +241,29 @@ void bloomfilter_print(bloomfilter* f) {
   printf("\n");
 }
 
+//lowl_hashoutput bloomfilter_hash2word(bloomfilter* f,
+//					unsigned int i, lowl_key key ) {
+//    return ( multip_add_shift( key, &(f->hash_key_to_word1))
+//		+ i*multip_add_shift( key, &(f->hash_key_to_word2)) )
+//		% f->size;
+//}
+//
+//lowl_hashoutput bloomfilter_hash2bit(bloomfilter* f,
+//					unsigned int i, lowl_key key ) {
+//    return ( multip_add_shift( key, &(f->hash_key_to_bit1))
+//                + i*multip_add_shift( key, &(f->hash_key_to_bit2)) )
+//                % 8*sizeof( *(f->b) );
+//}
+
 void bloomfilter_write(bloomfilter* f, FILE* fp) {
   /* serialize the filter to the given file. */
   fwrite( &(f->size), sizeof(unsigned int), 1, fp);
   fwrite( &(f->k), sizeof(unsigned int), 1, fp);
   fwrite( f->b, sizeof( *(f->b) ), f->size, fp);
-  fwrite( f->hash_key_to_word, sizeof( lowl_key_hash ), f->k, fp);
-  fwrite( f->hash_key_to_bit, sizeof( lowl_key_hash ), f->k, fp); 
+  fwrite( &(f->hash_key_to_word1), sizeof( lowl_key_hash ), 1, fp);
+  fwrite( &(f->hash_key_to_word2), sizeof( lowl_key_hash ), 1, fp);
+  fwrite( &(f->hash_key_to_bit1), sizeof( lowl_key_hash ), 1, fp); 
+  fwrite( &(f->hash_key_to_bit2), sizeof( lowl_key_hash ), 1, fp); 
 }
 
 void bloomfilter_read(bloomfilter* f, FILE* fp) {
@@ -247,20 +275,18 @@ void bloomfilter_read(bloomfilter* f, FILE* fp) {
   fread(&(f->k), sizeof(int), 1, fp);
   f->b = (uint32_t*)malloc( f->size*sizeof(uint32_t));
   fread(f->b, sizeof(uint32_t), f->size, fp);
-  fread(f->hash_key_to_word, sizeof( lowl_key_hash), f->k, fp);
-  fread(f->hash_key_to_bit, sizeof( lowl_key_hash), f->k, fp);
+  fread( &(f->hash_key_to_word1), sizeof( lowl_key_hash), 1, fp);
+  fread( &(f->hash_key_to_word2), sizeof( lowl_key_hash), 1, fp);
+  fread( &(f->hash_key_to_bit1), sizeof( lowl_key_hash), 1, fp);
+  fread( &(f->hash_key_to_bit2), sizeof( lowl_key_hash), 1, fp);
 }
 
 void bloomfilter_destroy(bloomfilter* f) {
   free(f->b);
   free(f->mask);
-  free(f->hash_key_to_word);
-  free(f->hash_key_to_bit);
 
   f->b = NULL;
   f->mask = NULL;
-  f->hash_key_to_word = NULL;
-  f->hash_key_to_bit = NULL;
 }
 
 void bloomfilter_setmask( uint32_t* mask ) {
