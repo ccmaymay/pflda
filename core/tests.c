@@ -9,7 +9,7 @@
 #include "lowl_math.h"
 #include "lowl_sketch.h"
 
-#define test(name, f) do { printf("Testing %s... ", name); int ret; if (ret = (f)) printf("error %d\n", ret); else printf("ok\n"); } while (0);
+#define test(name, f) do { printf("Testing %s... ", name); int ret; if ((ret = (f))) printf("error %d\n", ret); else printf("ok\n"); } while (0);
 #define test_bool(name, f) test(name, (f ? 0 : 1));
 
 /*
@@ -78,12 +78,12 @@ int test_hash_padded_seq_nums(
   free(lower_bit_counts);
   free(upper_bit_counts);
 
-  for (int j = 0; j < CHISQ_CRIT_NUM_QUANTILES; ++j)
+  for (size_t j = 0; j < CHISQ_CRIT_NUM_QUANTILES; ++j)
     if (lower_chisq > CHISQ_CRIT[num_test_bits - 1][j])
-      return j;
-  for (int j = 0; j < CHISQ_CRIT_NUM_QUANTILES; ++j)
+      return (int) j;
+  for (size_t j = 0; j < CHISQ_CRIT_NUM_QUANTILES; ++j)
     if (upper_chisq > CHISQ_CRIT[num_test_bits - 1][j])
-      return j + CHISQ_CRIT_NUM_QUANTILES;
+      return (int) (j + CHISQ_CRIT_NUM_QUANTILES);
 
   return 0;
 }
@@ -94,7 +94,7 @@ void test_hash(const char *name, lowl_hashoutput (*f)(const char *data, size_t l
   for (size_t num_bits = 1; num_bits <= 16; ++num_bits) {
     snprintf(my_name, 121,
       "%s distribution on padded sequential numbers, outer %u bits",
-      name, num_bits);
+      name, (unsigned int) num_bits);
     test(my_name, test_hash_padded_seq_nums(f, num_bits, num_samples));
   }
 }
