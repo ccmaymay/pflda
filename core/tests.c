@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <math.h>
 #include <string.h>
 #include <assert.h>
@@ -7,6 +8,88 @@
 #include "lowl_hash.h"
 #include "lowl_math.h"
 #include "lowl_sketch.h"
+
+#define test(name, f) do { printf("Testing %s... ", name); int ret; if (ret = (f)) printf("error %d\n", ret); else printf("ok\n"); } while (0);
+#define test_bool(name, f) test(name, (f ? 0 : 1));
+
+/*
+ * Chi-squared critical values for tail probabilities
+ * 1 - (0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001)
+ * for df = 2^n - 1 for n from 1 to 16
+ */
+const static double CHISQ_CRIT[16][7] = {
+  {2.705543, 3.841459, 6.634897, 7.879439, 10.82757, 12.11567, 15.13671},
+  {6.251389, 7.814728, 11.34487, 12.83816, 16.26624, 17.73, 21.10751},
+  {12.01704, 14.06714, 18.47531, 20.27774, 24.32189, 26.01777, 29.8775},
+  {22.30713, 24.99579, 30.57791, 32.80132, 37.6973, 39.71876, 44.26322},
+  {41.42174, 44.98534, 52.19139, 55.0027, 61.09831, 63.58201, 69.10569},
+  {77.74538, 82.52873, 92.01002, 95.6493, 103.4424, 106.5832, 113.505},
+  {147.8048, 154.3015, 166.9874, 171.7961, 181.993, 186.067, 194.9788},
+  {284.3359, 293.2478, 310.4574, 316.9194, 330.5197, 335.9167, 347.6542},
+  {552.3739, 564.6961, 588.2978, 597.0978, 615.5149, 622.7856, 638.5285},
+  {1081.379, 1098.521, 1131.159, 1143.265, 1168.497, 1178.42, 1199.835},
+  {2129.416, 2153.37, 2198.784, 2215.567, 2250.439, 2264.115, 2293.556},
+  {4211.398, 4244.985, 4308.468, 4331.864, 4380.371, 4399.355, 4440.15},
+  {8355.451, 8402.659, 8491.692, 8524.442, 8592.232, 8618.724, 8675.581},
+  {16615.4, 16681.87, 16807.04, 16853.02, 16948.08, 16985.19, 17064.76},
+  {33095.5, 33189.21, 33365.48, 33430.16, 33563.79, 33615.92, 33727.62},
+  {65999.39, 66131.63, 66380.16, 66471.3, 66659.48, 66732.84, 66889.98},
+};
+
+double chisq_count_uniform(double expected, size_t *observed, size_t len) {
+  double chisq = 0;
+  for (size_t j = 0; j < len; ++j) {
+    double diff = observed[j] - expected;
+    chisq += diff * diff / expected;
+  }
+  return chisq;
+}
+
+int test_hash_padded_seq_nums(
+    lowl_hashoutput (*f)(const char *data, size_t len),
+    size_t num_test_bits, size_t num_samples) {
+  size_t lowl_hashoutput_bits = sizeof(lowl_hashoutput) * 8;
+  size_t num_test_bins = powposint(2, num_test_bits);
+  size_t *lower_bit_counts = malloc(sizeof(size_t) * num_test_bins);
+  size_t *upper_bit_counts = malloc(sizeof(size_t) * num_test_bins);
+  if (lower_bit_counts == 0 || upper_bit_counts == 0) return 1;
+  for (size_t i = 0; i < num_test_bins; ++i) {
+    lower_bit_counts[i] = 0;
+    upper_bit_counts[i] = 0;
+  }
+
+  char s[8];
+  for (unsigned int i = 0; i < num_samples ; ++i) {
+    int len = snprintf(s, 8, "%07u", i);
+    lowl_hashoutput hash = (*f)(s, len);
+    ++lower_bit_counts[hash & (num_test_bins - 1)];
+    ++upper_bit_counts[hash >> (lowl_hashoutput_bits - num_test_bits)];
+  }
+  printf("\n");
+
+  double lower_chisq = chisq_count_uniform((double) num_samples / (double) num_test_bins, lower_bit_counts, num_test_bins);
+  printf("%f\n", lower_chisq);
+  for (size_t j = 0; j < 7; ++j)
+    printf("%f ", CHISQ_CRIT[num_test_bits - 1][j]);
+  printf("\n");
+  double upper_chisq = chisq_count_uniform((double) num_samples / (double) num_test_bins, upper_bit_counts, num_test_bins);
+  printf("%f\n", upper_chisq);
+
+  free(lower_bit_counts);
+  free(upper_bit_counts);
+  return 0;
+}
+
+
+
+void test_hash(const char *name, lowl_hashoutput (*f)(const char *data, size_t len)) {
+  char my_name[81];
+  size_t num_samples = 1000000;
+  for (size_t num_bits = 1; num_bits <= 16; ++num_bits) {
+    snprintf(my_name, 81, "%s distribution on padded sequential numbers, %u bits", name, num_bits);
+    test(my_name, test_hash_padded_seq_nums(f, num_bits, num_samples));
+  }
+}
 
 void interp_chi2( double* scores, int numtrials);
 
@@ -17,7 +100,7 @@ void run_chi2_lkh( double* scores, int numtrials, lowl_key_hash* lkh,
 	double* scores will hold int numtrials scores.
 	Each score is obtained by hashing int numkeys lowl_keys,
 		given in lowl_key*, into unsigned int* bins, where we
-		will accumulate counts. */ 
+		will accumulate counts. */
   int n,j;
   lowl_key current_key;
   lowl_hashoutput current_hash;
@@ -87,19 +170,8 @@ void run_chi2_motrag( double* scores, int numtrials, motrag_hash* motwani,
   return;
 }
 
-void run_mod_fnv_tests() {
-  printf("=== Tests of modified FNV hash function. ===\n");
-  unsigned int salt = 42;
-  char s[13];
-  for (unsigned int i = 0; i < 65536 ; ++i) {
-    int len = snprintf(s, 13, "%u", i);
-    lowl_hashoutput hash = mod_fnv(s, len, salt);
-    // TODO
-  }
-}
-
 void run_multip_add_shift_tests( void ) {
-  printf("=== Chi2 tests of multiply-add-shift hash function. ===\n");  
+  printf("=== Chi2 tests of multiply-add-shift hash function. ===\n");
 
   /* allocate the necessary memory for running tests. */
   int numbins = 64;
@@ -107,7 +179,7 @@ void run_multip_add_shift_tests( void ) {
   int numkeys = 4096;
 
   /* we store all keys to be hashed during a trial in a signle array. */
-  lowl_key* keys = malloc( numkeys*sizeof(lowl_key) );  
+  lowl_key* keys = malloc( numkeys*sizeof(lowl_key) );
 
   /* allocate a lowl_key_hash and set its w and M parameters, which do
         not change from trial to trial. */
@@ -153,7 +225,7 @@ void run_multip_add_shift_tests( void ) {
   /* Now, we will hash sequential keys starting from a non-zero number. */
   int offset = 49327;
   for( i=0; i<numkeys; i++) {
-    keys[i] = (lowl_key) i + offset; 
+    keys[i] = (lowl_key) i + offset;
   }
   printf("Chi2 test of uniformity of hash function output when inputs are sequential keys starting at %d:\n", offset);
   run_chi2_lkh( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
@@ -161,7 +233,7 @@ void run_multip_add_shift_tests( void ) {
 
   /* Keys that are sequential by 2s. */
   for( i=0; i<numkeys; i++) {
-    keys[i] = (lowl_key) 2*i; 
+    keys[i] = (lowl_key) 2*i;
   }
   printf("Chi2 test of uniformity of hash function output when inputs are sequential by 2s, starting at 0:\n");
   run_chi2_lkh( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
@@ -169,7 +241,7 @@ void run_multip_add_shift_tests( void ) {
 
   /* Keys that are sequential by 2s. */
   for( i=0; i<numkeys; i++) {
-    keys[i] = (lowl_key) 3*i; 
+    keys[i] = (lowl_key) 3*i;
   }
   printf("Chi2 test of uniformity of hash function output when inputs are sequential by 103s, starting at 0:\n");
   run_chi2_lkh( chi2scores, numtrials, lkhash, bins, numbins, keys, numkeys );
@@ -236,7 +308,7 @@ void run_motwani_tests( void ) {
   /* Now, we will hash sequential keys starting from a non-zero number. */
   int offset = 49327;
   for( i=0; i<numkeys; i++) {
-    keys[i] = (unsigned int) i + offset; 
+    keys[i] = (unsigned int) i + offset;
     keys[i] = keys[i] % m;
   }
   printf("Chi2 test of uniformity of hash function output when inputs are sequential keys starting at %d:\n", offset);
@@ -246,7 +318,7 @@ void run_motwani_tests( void ) {
 
   /* Keys that are sequential by 2s. */
   for( i=0; i<numkeys; i++) {
-    keys[i] = (unsigned int) 2*i; 
+    keys[i] = (unsigned int) 2*i;
     keys[i] = keys[i] % m;
   }
   printf("Chi2 test of uniformity of hash function output when inputs are sequential by 2s, starting at 0:\n");
@@ -256,7 +328,7 @@ void run_motwani_tests( void ) {
 
   /* Keys that are sequential by 2s. */
   for( i=0; i<numkeys; i++) {
-    keys[i] = (unsigned int) 3*i; 
+    keys[i] = (unsigned int) 3*i;
     keys[i] = keys[i] % m;
   }
   printf("Chi2 test of uniformity of hash function output when inputs are sequential by 103s, starting at 0:\n");
@@ -280,7 +352,7 @@ void run_chi2_lmh( double* scores, int numtrials, motrag_hash* lmh,
 	double* scores will hold int numtrials scores.
 	Each score is obtained by hashing int numkeys lowl_keys,
 		given in lowl_key*, into unsigned int* bins, where we
-		will accumulate counts. */ 
+		will accumulate counts. */
   int n,j;
   unsigned int current_key;
   unsigned int current_hash;
@@ -342,7 +414,7 @@ void interp_chi2( double *chi2scores, int numtrials ) {
                 failed_lower, numtrials );
   printf("%d of %d trials failed the two-tailed chi2 test at alpha=0.05.\n",
                 failed_twotailed, numtrials );
-  printf("\n"); 
+  printf("\n");
 }
 
 void run_resizablearray_tests() {
@@ -362,7 +434,7 @@ void run_resizablearray_tests() {
   int succ,i;
   for( i=0; i < lr->capacity; i++ ) {
     succ = rarr_get(lr, (unsigned int) i, &contents);
-    assert( contents==0 ); 
+    assert( contents==0 );
     assert( succ==0 );
   }
   /* set some entries to be non-zero and verify that this works correctly. */
@@ -376,7 +448,7 @@ void run_resizablearray_tests() {
   assert( succ==0 );
   assert( contents == testcount1 );
   succ = rarr_get(lr, 10, &contents);
-  assert( succ==0 );  
+  assert( succ==0 );
   assert( contents == testcount2 );
   /* try setting an element that is currently out of range. */
   lowl_count testcount3 = 123456;
@@ -437,13 +509,17 @@ void run_bloomfilter_tests() {
   assert( bloomfilter_queryKey(bf, 35) == 0 );
 
   /* test that we can serialize to files correctly. */
-  
+
 
   bloomfilter_destroy(bf);
   free(bf);
 
   printf("Success.\n\n");
   return;
+}
+
+lowl_hashoutput curried_mod_fnv(const char *data, size_t len) {
+  return mod_fnv(data, len, 42);
 }
 
 int main( int argc, char **argv ) {
@@ -454,13 +530,13 @@ int main( int argc, char **argv ) {
    *	 Tests for lowl_math.c 					*
    *								*
    **************************************************************/
-  assert( powposint(2, 0) == 1);
-  assert( powposint(2, 1) == 2);
-  assert( powposint(2, 10) == 1024);
-  assert( powposint(2, 11) == 2048);
-  assert( powposint(2, 31) == 2147483648);
+  test_bool("powposint 2^0", powposint(2, 0) == 1);
+  test_bool("powposint 2^1", powposint(2, 1) == 2);
+  test_bool("powposint 2^10", powposint(2, 10) == 1024);
+  test_bool("powposint 2^11", powposint(2, 11) == 2048);
+  test_bool("powposint 2^31", powposint(2, 31) == 2147483648);
 
-  /* To do:
+  /* TODO
 	Write code to verify that the code to retrieve primes is working.
 	Verify that all such numbers are indeed prime (probably best done
 		by just checking online).	*/
@@ -470,8 +546,7 @@ int main( int argc, char **argv ) {
    *	 Tests for lowl_hash.c 					*
    *								*
    **************************************************************/
-
-  run_mod_fnv_tests();
+  test_hash("mod_fnv", &curried_mod_fnv);
 
   run_multip_add_shift_tests();
 
