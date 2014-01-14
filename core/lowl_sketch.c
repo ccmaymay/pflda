@@ -96,8 +96,7 @@ void cmsketch_destroy( cmsketch* cm ) {
  *                                                       *
  *********************************************************/
 
-int bloomfilter_init( bloomfilter* f,
-			size_t numbytes, unsigned int k  ) { 
+int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k) {
   /* numbytes is the number of bytes to use in the bloom filter.
 	k is the number of hash functions.
 
@@ -129,106 +128,56 @@ int bloomfilter_init( bloomfilter* f,
     return -1; /* allocation failed. */
   }
 
-  int s1,s2,s3,s4;
-  s1 = lowl_key_hash_init( &(f->hash_key_to_word1),
-                        (unsigned int) 8*sizeof(lowl_key),
-                        (unsigned int) log2( f->size ) );
-  s2 = lowl_key_hash_init( &(f->hash_key_to_word2),
-                        (unsigned int) 8*sizeof(lowl_key),
-                        (unsigned int) log2( f->size ) );
-  s3 = lowl_key_hash_init( &(f->hash_key_to_bit1),
-                        (unsigned int) 8*sizeof(lowl_key),
-                        (unsigned int) log2( 8*sizeof(*(f->b)) ) );
-  s4 = lowl_key_hash_init( &(f->hash_key_to_bit2),
-                        (unsigned int) 8*sizeof(lowl_key),
-                        (unsigned int) log2( 8*sizeof(*(f->b)) ) );
-  if( s1!=0 || s2!=0 || s3!=0 || s4!=0 ) {
-    return -1;
-  }
-  /* seed the hashes. */
-  lowl_key_hash_arm( &(f->hash_key_to_word1) );
-  lowl_key_hash_arm( &(f->hash_key_to_word2) );
-  lowl_key_hash_arm( &(f->hash_key_to_bit1) );
-  lowl_key_hash_arm( &(f->hash_key_to_bit2) );
+  char_hash_arm(&(f->hash_key_to_word1));
+  char_hash_arm(&(f->hash_key_to_word2));
+  char_hash_arm(&(f->hash_key_to_bit1));
+  char_hash_arm(&(f->hash_key_to_bit2));
 
   return 0;
 }
 
-void bloomfilter_insertKey(bloomfilter* f, lowl_key key) { 
-  unsigned int i;
-  lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
-
-  /* we use a scheme whereby two hashes give rise to k approximately
-	independent hashes, where hash function h_i is given by
-	h_i(x) = f(x) + i*g(x).	*/
-  hash2word1 = multip_add_shift( key, &(f->hash_key_to_word1) );
-  hash2word2 = multip_add_shift( key, &(f->hash_key_to_word2) );
-  hash2bit1 = multip_add_shift( key, &(f->hash_key_to_bit1) );
-  hash2bit2 = multip_add_shift( key, &(f->hash_key_to_bit2) );
-  for(i = 0; i < f->k; ++i) { 
-    word = (hash2word1 + i*hash2word2) % f->size;
-    bit = (hash2bit1 + i*hash2bit2) % 8*sizeof(*(f->b));
-
-    f->b[word] = f->b[word] | f->mask[bit];
-  }
-}
-
-int bloomfilter_queryKey(bloomfilter* f, lowl_key key ) {
-  unsigned int i;
+void bloomfilter_insert(bloomfilter* f, const char* x, size_t len) {
+  const size_t bits_per_bf_word = 8*sizeof(*(f->b));
   lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
 
   /* we use a scheme whereby two hashes give rise to k approximately
         independent hashes, where hash function h_i is given by
         h_i(x) = f(x) + i*g(x). */
-  hash2word1 = multip_add_shift( key, &(f->hash_key_to_word1) );
-  hash2word2 = multip_add_shift( key, &(f->hash_key_to_word2) );
-  hash2bit1 = multip_add_shift( key, &(f->hash_key_to_bit1) );
-  hash2bit2 = multip_add_shift( key, &(f->hash_key_to_bit2) );
-  for(i = 0; i < f->k; ++i) {
+  hash2word1 = mod_fnv(x, len, &(f->hash_key_to_word1));
+  hash2word2 = mod_fnv(x, len, &(f->hash_key_to_word2));
+  hash2bit1 = mod_fnv(x, len, &(f->hash_key_to_bit1));
+  hash2bit2 = mod_fnv(x, len, &(f->hash_key_to_bit2));
+
+  for (unsigned int i = 0; i < f->k; ++i) {
     word = (hash2word1 + i*hash2word2) % f->size;
-    bit = (hash2bit1 + i*hash2bit2) % 8*sizeof(*(f->b));
+    bit = (hash2bit1 + i*hash2bit2) % bits_per_bf_word;
     
-    if ( (f->b[word] & f->mask[bit]) == 0) {
+    f->b[word] |= f->mask[bit];
+  }
+}
+
+bool bloomfilter_query(bloomfilter* f, const char* x, size_t len) {
+  const size_t bits_per_bf_word = 8*sizeof(*(f->b));
+  lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
+
+  /* we use a scheme whereby two hashes give rise to k approximately
+        independent hashes, where hash function h_i is given by
+        h_i(x) = f(x) + i*g(x). */
+  hash2word1 = mod_fnv(x, len, &(f->hash_key_to_word1));
+  hash2word2 = mod_fnv(x, len, &(f->hash_key_to_word2));
+  hash2bit1 = mod_fnv(x, len, &(f->hash_key_to_bit1));
+  hash2bit2 = mod_fnv(x, len, &(f->hash_key_to_bit2));
+
+  for (unsigned int i = 0; i < f->k; ++i) {
+    word = (hash2word1 + i*hash2word2) % f->size;
+    bit = (hash2bit1 + i*hash2bit2) % bits_per_bf_word;
+    
+    if ((f->b[word] & f->mask[bit]) == 0)
       return 0;
-    }
   }
 
   return 1;
 }
-
-/***************************************************************
- *
- *	The following code is commented out until we are ready to
- *	hash strings inside of core.
- *
- ****************************************************************/
-
-//void lowl_bloomfilter_insertString(lowl_bloomfilter* f, char* x, int len) { 
-//  int i, index;
-//  char y[len + 8];  // assumes that f->k < 10^8
-//
-//  for(i = 0; i < f->k; ++i) { 
-//    sprintf(y, "%d%s", i, x);
-//    index = hash(&(f->h), y, strlen(y));
-//
-//    f->b[index/32] = f->b[index/32] | f->mask[index % 32];
-//  }
-//}
-
-//int lowl_bloomfilter_queryString(lowl_bloomfilter* f, char* x, int len) { 
-//  int i, index;
-//  char y[len + 8];  // assumes that f->k < 10^8
-//
-//  for(i = 0; i < f->k; ++i) { 
-//    sprintf(y, "%d%s", i, x);
-//    index = hash(&(f->h), y, strlen(y));
-//    if ((f->b[index/32] & f->mask[index % 32]) == 0)
-//      return 0;
-//  }
-//
-//  return 1;
-//}
-/* End. */
 
 void bloomfilter_print(bloomfilter* f) {
   unsigned int i,j;
@@ -241,33 +190,18 @@ void bloomfilter_print(bloomfilter* f) {
   printf("\n");
 }
 
-//lowl_hashoutput bloomfilter_hash2word(bloomfilter* f,
-//					unsigned int i, lowl_key key ) {
-//    return ( multip_add_shift( key, &(f->hash_key_to_word1))
-//		+ i*multip_add_shift( key, &(f->hash_key_to_word2)) )
-//		% f->size;
-//}
-//
-//lowl_hashoutput bloomfilter_hash2bit(bloomfilter* f,
-//					unsigned int i, lowl_key key ) {
-//    return ( multip_add_shift( key, &(f->hash_key_to_bit1))
-//                + i*multip_add_shift( key, &(f->hash_key_to_bit2)) )
-//                % 8*sizeof( *(f->b) );
-//}
-
 void bloomfilter_write(bloomfilter* f, FILE* fp) {
   /* serialize the filter to the given file. */
   fwrite( &(f->size), sizeof(unsigned int), 1, fp);
   fwrite( &(f->k), sizeof(unsigned int), 1, fp);
   fwrite( f->b, sizeof( *(f->b) ), f->size, fp);
-  fwrite( &(f->hash_key_to_word1), sizeof( lowl_key_hash ), 1, fp);
-  fwrite( &(f->hash_key_to_word2), sizeof( lowl_key_hash ), 1, fp);
-  fwrite( &(f->hash_key_to_bit1), sizeof( lowl_key_hash ), 1, fp); 
-  fwrite( &(f->hash_key_to_bit2), sizeof( lowl_key_hash ), 1, fp); 
+  fwrite( &(f->hash_key_to_word1), sizeof( char_hash ), 1, fp);
+  fwrite( &(f->hash_key_to_word2), sizeof( char_hash ), 1, fp);
+  fwrite( &(f->hash_key_to_bit1), sizeof( char_hash ), 1, fp); 
+  fwrite( &(f->hash_key_to_bit2), sizeof( char_hash ), 1, fp); 
 }
 
 void bloomfilter_read(bloomfilter* f, FILE* fp) {
-
   f->mask = (uint32_t*) malloc(32 * sizeof(uint32_t));
   bloomfilter_setmask( f->mask );
 
@@ -275,10 +209,10 @@ void bloomfilter_read(bloomfilter* f, FILE* fp) {
   fread(&(f->k), sizeof(int), 1, fp);
   f->b = (uint32_t*)malloc( f->size*sizeof(uint32_t));
   fread(f->b, sizeof(uint32_t), f->size, fp);
-  fread( &(f->hash_key_to_word1), sizeof( lowl_key_hash), 1, fp);
-  fread( &(f->hash_key_to_word2), sizeof( lowl_key_hash), 1, fp);
-  fread( &(f->hash_key_to_bit1), sizeof( lowl_key_hash), 1, fp);
-  fread( &(f->hash_key_to_bit2), sizeof( lowl_key_hash), 1, fp);
+  fread( &(f->hash_key_to_word1), sizeof( char_hash ), 1, fp);
+  fread( &(f->hash_key_to_word2), sizeof( char_hash ), 1, fp);
+  fread( &(f->hash_key_to_bit1), sizeof( char_hash ), 1, fp);
+  fread( &(f->hash_key_to_bit2), sizeof( char_hash ), 1, fp);
 }
 
 void bloomfilter_destroy(bloomfilter* f) {
@@ -291,7 +225,7 @@ void bloomfilter_destroy(bloomfilter* f) {
 
 void bloomfilter_setmask( uint32_t* mask ) {
   int i;
-  for(i = 0; i < 8; ++i) { 
+  for(i = 0; i < 8; ++i) {
     mask[4 * i + 0] = (1 << (4 * i + 0));
     mask[4 * i + 1] = (1 << (4 * i + 1));
     mask[4 * i + 2] = (1 << (4 * i + 2));
