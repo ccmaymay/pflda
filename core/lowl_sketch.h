@@ -46,7 +46,7 @@ void bloomfilter_insert(bloomfilter* f, const char* x, size_t len);
 bool bloomfilter_query(bloomfilter* f, const char* x, size_t len);
 void bloomfilter_print(bloomfilter* f);
 void bloomfilter_write(bloomfilter* f, FILE* fp);
-void bloomfilter_read(bloomfilter* f, FILE* fp);
+int bloomfilter_read(bloomfilter* f, FILE* fp);
 void bloomfilter_destroy(bloomfilter* f);
 //lowl_hashoutput bloomfilter_hash2word(bloomfilter* f,
 //					unsigned int i, lowl_key key );

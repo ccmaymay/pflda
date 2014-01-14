@@ -61,31 +61,17 @@ void reservoirsampler_print(reservoirsampler* rs) {
 }
 
 void reservoirsampler_write(reservoirsampler* rs, FILE* fp) {
-  fwrite( &(f->capacity), sizeof(size_t), 1, fp);
-  fwrite( &(f->stream_pos), sizeof(size_t), 1, fp);
-  fwrite( f->sample, sizeof( lowl_key ), f->size, fp);
-  fwrite( &(f->hash_key_to_word1), sizeof( char_hash ), 1, fp);
-  fwrite( &(f->hash_key_to_word2), sizeof( char_hash ), 1, fp);
-  fwrite( &(f->hash_key_to_bit1), sizeof( char_hash ), 1, fp); 
-  fwrite( &(f->hash_key_to_bit2), sizeof( char_hash ), 1, fp); 
+  fwrite( &(rs->capacity), sizeof(size_t), 1, fp);
+  fwrite( &(rs->stream_pos), sizeof(size_t), 1, fp);
+  fwrite( rs->sample, sizeof( lowl_key ), reservoirsampler_occupied(rs), fp);
 }
 
-void reservoirsampler_read(reservoirsampler* rs, FILE* fp) {
-}
-
-void bloomfilter_write(bloomfilter* f, FILE* fp) {
-}
-
-void bloomfilter_read(bloomfilter* f, FILE* fp) {
-  f->mask = (uint32_t*) malloc(32 * sizeof(uint32_t));
-  bloomfilter_setmask( f->mask );
-
-  fread(&(f->size), sizeof(int), 1, fp);
-  fread(&(f->k), sizeof(int), 1, fp);
-  f->b = (uint32_t*)malloc( f->size*sizeof(uint32_t));
-  fread(f->b, sizeof(uint32_t), f->size, fp);
-  fread( &(f->hash_key_to_word1), sizeof( char_hash ), 1, fp);
-  fread( &(f->hash_key_to_word2), sizeof( char_hash ), 1, fp);
-  fread( &(f->hash_key_to_bit1), sizeof( char_hash ), 1, fp);
-  fread( &(f->hash_key_to_bit2), sizeof( char_hash ), 1, fp);
+int reservoirsampler_read(reservoirsampler* rs, FILE* fp) {
+  fread( &(rs->capacity), sizeof(size_t), 1, fp);
+  fread( &(rs->stream_pos), sizeof(size_t), 1, fp);
+  rs->sample = malloc(sizeof(lowl_key) * rs->capacity);
+  if (rs->sample == 0)
+    return -1;
+  fread( rs->sample, sizeof( lowl_key ), reservoirsampler_occupied(rs), fp);
+  return 0;
 }

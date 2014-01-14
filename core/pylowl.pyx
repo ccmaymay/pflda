@@ -26,6 +26,7 @@ cdef class BloomFilter:
     def read(self, filename):
         f = lowl.fopen(filename, 'rb')
         lowl.bloomfilter_read(self._bf, f)
+        # TODO error code
         lowl.fclose(f)
 
     def write(self, filename):
@@ -60,6 +61,7 @@ cdef class ReservoirSampler:
     def read(self, filename):
         f = lowl.fopen(filename, 'rb')
         lowl.reservoirsampler_read(self._rs, f)
+        # TODO error code
         lowl.fclose(f)
 
     def write(self, filename):
