@@ -83,10 +83,32 @@ public:
   }
   void addValue(map<int, int> hMap, int key, int value){
     int i = hMap.get(key);
-    if (i == NULL){
+    if (i == NULL){//fix
       hMap.put(key, value);
     } else {
-      hMap.put(key, i + value
+      hMap.put(key, i + value);
+    }
+  }
+  bool startsWithPrefix(std::string str, std::string prefix){
+    bool found=false;
+    int size = prefix.size();
+    if (size > str.size()){
+      return false;
+    }
+    for(int i=0;i<size;i++){
+      if (str[i] != prefix[i]){
+	return false;
+      }
+    }
+    return true;
+  }
+  vector<std::string> featureWithPrefix(std::string prefix, bool actuallyWithout){
+    vector<string> list;
+    std::map<int, int>::iterator end = hMap.end();
+    for(map<int, int>::iterator it = hMap.begin(); it!= end;++it){
+      std::string key = intern.revGet(it->first);
+      if (actuallyWithout && ! startsWithPrefix(key, prefix)){
+	key = 
 class Cluster {
   std::vector<DocEntity> entities_;
   std::set<std::string> normNameSet_;
