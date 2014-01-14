@@ -108,10 +108,17 @@ int test_chisq_char(
 
 static unsigned int _generate_padded_seq_nums_counter;
 size_t generate_padded_seq_nums(char *s) {
-  return (size_t) snprintf(s, 8, "%07u", _generate_padded_seq_nums_counter++);
+  return (size_t) snprintf(s, 7, "%06u", _generate_padded_seq_nums_counter++);
 }
 void generate_padded_seq_nums_reset() {
   _generate_padded_seq_nums_counter = 0;
+}
+
+size_t generate_random_nums(char *s) {
+  return (size_t) snprintf(s, 7, "%06u", (unsigned int) (random() % 1000000));
+}
+void generate_random_nums_reset() {
+  srandom(7);
 }
 
 void test_char_hash(const char *name,
@@ -124,7 +131,15 @@ void test_char_hash(const char *name,
       name, (unsigned int) num_bits);
     generate_padded_seq_nums_reset();
     test(my_name,
-      test_chisq_char(&generate_padded_seq_nums, 8, f, num_bits, num_samples));
+      test_chisq_char(&generate_padded_seq_nums, 7, f, num_bits, num_samples));
+  }
+  for (size_t num_bits = 1; num_bits <= 16; ++num_bits) {
+    snprintf(my_name, 121,
+      "%s distribution on random numbers, outer %u bits",
+      name, (unsigned int) num_bits);
+    generate_random_nums_reset();
+    test(my_name,
+      test_chisq_char(&generate_random_nums, 7, f, num_bits, num_samples));
   }
 }
 
