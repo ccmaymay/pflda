@@ -526,8 +526,12 @@ void run_bloomfilter_tests() {
   return;
 }
 
-lowl_hashoutput curried_mod_fnv(const char *data, size_t len) {
+lowl_hashoutput curried_mod_fnv_42(const char *data, size_t len) {
   return mod_fnv(data, len, 42);
+}
+
+lowl_hashoutput curried_mod_fnv_47(const char *data, size_t len) {
+  return mod_fnv(data, len, 47);
 }
 
 int main( int argc, char **argv ) {
@@ -554,7 +558,8 @@ int main( int argc, char **argv ) {
    *	 Tests for lowl_hash.c 					*
    *								*
    **************************************************************/
-  test_hash("mod_fnv", &curried_mod_fnv);
+  test_hash("mod_fnv(42)", &curried_mod_fnv_42);
+  test_hash("mod_fnv(47)", &curried_mod_fnv_47);
 
   run_multip_add_shift_tests();
 
