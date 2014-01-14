@@ -19,6 +19,12 @@
 
 lowl_hashoutput mod_fnv(const char *data, size_t len, unsigned int salt);
 
+void char_hash_arm(char_hash* ch);
+
+typedef struct char_hash {
+  unsigned int seed;
+} char_hash;
+
 /* multiply-add-shift, described in wiki on universal hashing */
 /* uses two seeds, a and b.
 	a is a non-negative odd integer 0 < a < 2^w,

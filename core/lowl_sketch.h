@@ -32,19 +32,17 @@ typedef struct bloomfilter {
   uint32_t* b;
   /* we're using a clever trick whereby we get k nearly-independent
 	hash functions using only two. */
-  lowl_key_hash hash_key_to_word1;
-  lowl_key_hash hash_key_to_word2;
-  lowl_key_hash hash_key_to_bit1;
-  lowl_key_hash hash_key_to_bit2;
+  char_hash hash_key_to_word1;
+  char_hash hash_key_to_word2;
+  char_hash hash_key_to_bit1;
+  char_hash hash_key_to_bit2;
   uint32_t* mask;
 }bloomfilter;
 
 int bloomfilter_init(bloomfilter* f, size_t size, unsigned int k);
 void bloomfilter_setmask( uint32_t* mask );
-void bloomfilter_insertKey(bloomfilter* f, lowl_key k);
-void bloomfilter_insertString(bloomfilter* f, char* x, int len);
-int  bloomfilter_queryKey(bloomfilter* f, lowl_key k);
-int  bloomfilter_queryString(bloomfilter* f, char* x, int len);
+void bloomfilter_insert(bloomfilter* f, const char* x, size_t len);
+bool bloomfilter_query(bloomfilter* f, const char* x, size_t len);
 void bloomfilter_print(bloomfilter* f);
 void bloomfilter_write(bloomfilter* f, FILE* fp);
 void bloomfilter_read(bloomfilter* f, FILE* fp);

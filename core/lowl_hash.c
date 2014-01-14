@@ -27,10 +27,10 @@
  *   This is a modified version (to accept a salt) of Fig. 4 from
  *   {@linktourl http://home.comcast.net/~bretm/hash/6.html}
  */
-lowl_hashoutput mod_fnv(const char *data, size_t len, unsigned int salt) {
+lowl_hashoutput mod_fnv(const char *data, size_t len, char_hash* h) {
   unsigned int p = 16777619;
   lowl_hashoutput hash = 1315423911;
-  hash = (hash ^ salt) * p;
+  hash = (hash ^ h->salt) * p;
   for (size_t i = 0; i < len; ++i)
     hash = (hash ^ data[i]) * p;
   hash += hash << 13;
@@ -39,6 +39,10 @@ lowl_hashoutput mod_fnv(const char *data, size_t len, unsigned int salt) {
   hash ^= hash >> 17;
   hash += hash << 5;
   return hash;
+}
+
+void char_hash_arm(char_hash* ch) { 
+  ch->seed = (unsigned int) random();
 }
 
 /* multiply-add-shift hash function. */
@@ -59,6 +63,7 @@ int lowl_key_hash_init( lowl_key_hash* lkh, unsigned int w, unsigned int M) {
   lkh->M = M;
   return 0;
 }
+
 
 /* choose parameters a and b for the hash function, set them accordingly. */
 void lowl_key_hash_arm( lowl_key_hash* lkh ) { 
