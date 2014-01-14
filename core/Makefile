@@ -5,7 +5,7 @@ PLATFORM = $(shell uname)
 CC = gcc
 LD = gcc
 
-CC_FLAGS = -O0 -g -std=gnu99 -Wall
+CC_FLAGS = -O0 -g -std=gnu99 -Wall -Wextra
 
 LIB_NAME = lowl
 LIB_FILENAME = lib$(LIB_NAME).so
