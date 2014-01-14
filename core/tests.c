@@ -49,27 +49,36 @@ double chisq_count_uniform(double expected, size_t *observed, size_t len) {
   return chisq;
 }
 
-int test_hash_padded_seq_nums(
+int test_chisq_char(
+    size_t (*generate)(char *data),
+    size_t max_len,
     lowl_hashoutput (*f)(const char *data, size_t len),
-    size_t num_test_bits, size_t num_samples) {
+    size_t num_test_bits,
+    size_t num_samples) {
+  int ec = 1;
   size_t lowl_hashoutput_bits = sizeof(lowl_hashoutput) * 8;
   size_t num_test_bins = powposint(2, num_test_bits);
   size_t *lower_bit_counts = malloc(sizeof(size_t) * num_test_bins);
   size_t *upper_bit_counts = malloc(sizeof(size_t) * num_test_bins);
   if (lower_bit_counts == 0 || upper_bit_counts == 0)
-    return CHISQ_CRIT_NUM_QUANTILES * 2;
+    return ec;
+  ++ec;
   for (size_t i = 0; i < num_test_bins; ++i) {
     lower_bit_counts[i] = 0;
     upper_bit_counts[i] = 0;
   }
 
-  char s[8];
+  char *s = malloc(sizeof(char) * max_len);
+  if (s == 0)
+    return ec;
+  ++ec;
   for (unsigned int i = 0; i < num_samples ; ++i) {
-    int len = snprintf(s, 8, "%07u", i);
+    size_t len = generate(s);
     lowl_hashoutput hash = (*f)(s, len);
     ++lower_bit_counts[hash & (num_test_bins - 1)];
     ++upper_bit_counts[hash >> (lowl_hashoutput_bits - num_test_bits)];
   }
+  free(s);
 
   double lower_chisq = chisq_count_uniform(num_samples / (double) num_test_bins,
     lower_bit_counts, num_test_bins);
@@ -79,24 +88,43 @@ int test_hash_padded_seq_nums(
   free(lower_bit_counts);
   free(upper_bit_counts);
 
-  for (size_t j = 0; j < CHISQ_CRIT_NUM_QUANTILES; ++j)
-    if (lower_chisq > CHISQ_CRIT[num_test_bits - 1][j])
-      return (int) j;
-  for (size_t j = 0; j < CHISQ_CRIT_NUM_QUANTILES; ++j)
-    if (upper_chisq > CHISQ_CRIT[num_test_bits - 1][j])
-      return (int) (j + CHISQ_CRIT_NUM_QUANTILES);
+  for (size_t j = 0; j < CHISQ_CRIT_NUM_QUANTILES; ++j) {
+    double crit =
+      CHISQ_CRIT[num_test_bits - 1][CHISQ_CRIT_NUM_QUANTILES - j - 1];
+    if (lower_chisq > crit)
+      return (int) ec + j;
+  }
+  ec += CHISQ_CRIT_NUM_QUANTILES;
+  for (size_t j = 0; j < CHISQ_CRIT_NUM_QUANTILES; ++j) {
+    double crit =
+      CHISQ_CRIT[num_test_bits - 1][CHISQ_CRIT_NUM_QUANTILES - j - 1];
+    if (upper_chisq > crit)
+      return (int) ec + j;
+  }
+  ec += CHISQ_CRIT_NUM_QUANTILES;
 
   return 0;
 }
 
-void test_hash(const char *name, lowl_hashoutput (*f)(const char *data, size_t len)) {
+static unsigned int _generate_padded_seq_nums_counter;
+size_t generate_padded_seq_nums(char *s) {
+  return (size_t) snprintf(s, 8, "%07u", _generate_padded_seq_nums_counter++);
+}
+void generate_padded_seq_nums_reset() {
+  _generate_padded_seq_nums_counter = 0;
+}
+
+void test_char_hash(const char *name,
+    lowl_hashoutput (*f)(const char *data, size_t  len)) {
   char my_name[121];
   size_t num_samples = 1000000;
   for (size_t num_bits = 1; num_bits <= 16; ++num_bits) {
     snprintf(my_name, 121,
       "%s distribution on padded sequential numbers, outer %u bits",
       name, (unsigned int) num_bits);
-    test(my_name, test_hash_padded_seq_nums(f, num_bits, num_samples));
+    generate_padded_seq_nums_reset();
+    test(my_name,
+      test_chisq_char(&generate_padded_seq_nums, 8, f, num_bits, num_samples));
   }
 }
 
@@ -535,8 +563,16 @@ lowl_hashoutput curried_mod_fnv_47(const char *data, size_t len) {
   return mod_fnv(data, len, 47);
 }
 
-lowl_hashoutput curried_lkh(const char *data, size_t len) {
-  return mod_fnv(data, len, 47);
+void init_lkh(int num_bins) {
+  lowl_key_hash* lkhash = malloc(sizeof(lowl_key_hash));
+  unsigned int M = (unsigned int) log2(num_bins); // e.g., 2^6=64, the # of bins
+  /* we're hashing unsigned ints.
+        the w parameter to the multiply-add-shift is the number of bits
+        needed to represent the objects that we are hashing, so
+        we need w to be the number of bits in a lowl_key. */
+  unsigned int w = (unsigned int) 8*sizeof(lowl_key);
+  lowl_key_hash_init(lkhash, w, M);
+  lowl_key_hash_arm(lkhash);
 }
 
 int main( int argc, char **argv ) {
@@ -563,10 +599,8 @@ int main( int argc, char **argv ) {
    *	 Tests for lowl_hash.c 					*
    *								*
    **************************************************************/
-  test_hash("mod_fnv(42)", &curried_mod_fnv_42);
-  test_hash("mod_fnv(47)", &curried_mod_fnv_47);
-  test_hash("lkh", &curried_lkh);
-  test_hash("motwani", &curried_motwani);
+  test_char_hash("mod_fnv(42)", &curried_mod_fnv_42);
+  test_char_hash("mod_fnv(47)", &curried_mod_fnv_47);
 
   run_multip_add_shift_tests();
 
