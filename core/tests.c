@@ -56,7 +56,8 @@ int test_hash_padded_seq_nums(
   size_t num_test_bins = powposint(2, num_test_bits);
   size_t *lower_bit_counts = malloc(sizeof(size_t) * num_test_bins);
   size_t *upper_bit_counts = malloc(sizeof(size_t) * num_test_bins);
-  if (lower_bit_counts == 0 || upper_bit_counts == 0) return 1;
+  if (lower_bit_counts == 0 || upper_bit_counts == 0)
+    return CHISQ_CRIT_NUM_QUANTILES * 2;
   for (size_t i = 0; i < num_test_bins; ++i) {
     lower_bit_counts[i] = 0;
     upper_bit_counts[i] = 0;
@@ -534,6 +535,10 @@ lowl_hashoutput curried_mod_fnv_47(const char *data, size_t len) {
   return mod_fnv(data, len, 47);
 }
 
+lowl_hashoutput curried_lkh(const char *data, size_t len) {
+  return mod_fnv(data, len, 47);
+}
+
 int main( int argc, char **argv ) {
   srandom(1970);
 
@@ -560,6 +565,8 @@ int main( int argc, char **argv ) {
    **************************************************************/
   test_hash("mod_fnv(42)", &curried_mod_fnv_42);
   test_hash("mod_fnv(47)", &curried_mod_fnv_47);
+  test_hash("lkh", &curried_lkh);
+  test_hash("motwani", &curried_motwani);
 
   run_multip_add_shift_tests();
 
