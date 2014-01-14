@@ -1,0 +1,8 @@
+--fuzzyhh.c : May want to add code in beginning of main() to select the
+	correct value of elementSize to pass to reservoir_init.
+	The issue is that this will either require that the user tells us the
+	input dimensionality or the types or something...
+	For now, since we're assuming that we're just reading a stream o
+	floats, it doesn't matter.
+
+
