@@ -30,10 +30,13 @@ Now, if you want to build the bridge:
 $ make
 ```
 
-If you don't have a recent version of Cython installed, you must install it or the step above will fail.  We have provided a simple recipe for installing Cython locally (for your user only):
+If you don't have a recent version of Cython installed, you must install it or the step above will fail.  To install a known compatible version of Cython in your home directory, do the following:
 
 ```
-$ make cython
+$ wget http://cython.org/release/Cython-0.19.2.tar.gz
+$ tar -xzf Cython-0.19.2.tar.gz
+$ cd Cython-0.19.2
+$ python setup.py install --user
 ```
 
 Once `make` succeeds, use `make install` to copy the built libraries to `apps` and then head over to `apps` to run demos using `pylowl`:
