@@ -1,4 +1,4 @@
-BF_FILE = x
+BF_FILE = bf.dat
 DATA_FILE = ../data/txt/dog.txt
 
 .PHONY: run
