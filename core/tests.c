@@ -43,7 +43,7 @@ const static double CHISQ_CRIT[16][7] = {
 double chisq_count_uniform(double expected, size_t *observed, size_t len) {
   double chisq = 0;
   for (size_t j = 0; j < len; ++j) {
-    double diff = observed[j] - expected;
+    double diff = (double) observed[j] - expected;
     chisq += diff * diff / expected;
   }
   return chisq;
@@ -80,9 +80,9 @@ int test_chisq_char(
   }
   free(s);
 
-  double lower_chisq = chisq_count_uniform(num_samples / (double) num_test_bins,
+  double lower_chisq = chisq_count_uniform((double) num_samples / (double) num_test_bins,
     lower_bit_counts, num_test_bins);
-  double upper_chisq = chisq_count_uniform(num_samples / (double) num_test_bins,
+  double upper_chisq = chisq_count_uniform((double) num_samples / (double) num_test_bins,
     upper_bit_counts, num_test_bins);
 
   free(lower_bit_counts);
@@ -124,14 +124,13 @@ void generate_random_nums_reset() {
 void test_char_hash(const char *name,
     lowl_hashoutput (*f)(const char *data, size_t  len)) {
   char my_name[121];
-  size_t num_samples = 1000000;
   for (size_t num_bits = 1; num_bits <= 16; ++num_bits) {
     snprintf(my_name, 121,
       "%s distribution on padded sequential numbers, outer %u bits",
       name, (unsigned int) num_bits);
     generate_padded_seq_nums_reset();
     test(my_name,
-      test_chisq_char(&generate_padded_seq_nums, 7, f, num_bits, num_samples));
+      test_chisq_char(&generate_padded_seq_nums, 7, f, num_bits, 1000000));
   }
   for (size_t num_bits = 1; num_bits <= 16; ++num_bits) {
     snprintf(my_name, 121,
@@ -139,7 +138,7 @@ void test_char_hash(const char *name,
       name, (unsigned int) num_bits);
     generate_random_nums_reset();
     test(my_name,
-      test_chisq_char(&generate_random_nums, 7, f, num_bits, num_samples));
+      test_chisq_char(&generate_random_nums, 7, f, num_bits, 1000000));
   }
 }
 
