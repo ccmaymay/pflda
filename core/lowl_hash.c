@@ -10,6 +10,37 @@
  *                                                      *
  ********************************************************/
 
+/*
+ * Modified FNV hash function that passes distribution tests and
+ * achieves avalanche, from Jerboa:
+ * $ git clone https://github.com/vandurme/jerboa.git
+ * (see src/main/java/edu/jhu/jerboa/util/Hash.java)
+ * 
+ * Excerpt of original comment:
+ *   I've (vandurme) played with many of the hash functions out there, and
+ *   have found the following to give the most uniform results on data I've
+ *   played with, both wrt randomness for the same key with different salts,
+ *   and between keys that are very similar (such as "1" and "2") using the
+ *   same salt. I've observed minor correlation between similar keys, very
+ *   little or no correlation between the same key using different salts.
+ *
+ *   This is a modified version (to accept a salt) of Fig. 4 from
+ *   {@linktourl http://home.comcast.net/~bretm/hash/6.html}
+ */
+lowl_hashoutput mod_fnv(const char *data, size_t len, unsigned int salt) {
+  unsigned int p = 16777619;
+  lowl_hashoutput hash = 1315423911;
+  hash = (hash ^ salt) * p;
+  for (size_t i = 0; i < len; ++i)
+    hash = (hash ^ data[i]) * p;
+  hash += hash << 13;
+  hash ^= hash >> 7;
+  hash += hash << 3;
+  hash ^= hash >> 17;
+  hash += hash << 5;
+  return hash;
+}
+
 /* multiply-add-shift hash function. */
 lowl_hashoutput multip_add_shift(lowl_key x, lowl_key_hash* h) {
   if( h->w < h->M ) {
