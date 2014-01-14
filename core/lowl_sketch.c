@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include "lowl_hash.h"
 #include "lowl_sketch.h"
@@ -173,10 +172,10 @@ bool bloomfilter_query(bloomfilter* f, const char* x, size_t len) {
     bit = (hash2bit1 + i*hash2bit2) % bits_per_bf_word;
     
     if ((f->b[word] & f->mask[bit]) == 0)
-      return 0;
+      return false;
   }
 
-  return 1;
+  return true;
 }
 
 void bloomfilter_print(bloomfilter* f) {

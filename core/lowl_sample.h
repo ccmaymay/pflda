@@ -3,8 +3,8 @@
 
 #define min(a,b) ((a) < (b)) ? (a) : (b)
 
-#include <stdbool.h>
 #include "lowl_types.h"
+#include <stdbool.h>
 
 typedef struct reservoirsampler {
   size_t capacity;
