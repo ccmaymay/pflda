@@ -35,6 +35,10 @@ install: $(LIB_FILENAME) $(PY_LIB_FILENAME)
 tests: tests.c lowl_math.h lowl_hash.h $(LIB_FILENAME)
 	$(CC) $(CC_FLAGS) $< -Wl,-rpath,. -L. -l$(LIB_NAME) -lm -o $@
 
+.PHONY: test
+test: tests
+	./tests
+
 $(LIB_FILENAME): $(OBJECTS)
 	$(LD) -shared -Wl,-rpath,. -Wl,$(LIB_FILENAME_FLAG),$(LIB_FILENAME) -lm -o $@ $(OBJECTS)
 

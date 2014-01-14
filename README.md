@@ -13,3 +13,33 @@ The LittleOwl core library `liblowl` has minimal dependencies.  It is known to b
 The Python bridge `pylowl` requires modern Python 2.x (e.g., 2.6, 2.7) and Cython (e.g., 0.19).  The build is known to fail on Cython 0.11.
 
 The `apps` library requires modern Python 2.x (e.g., 2.6, 2.7).
+
+Installing
+----------
+
+To build and test the `liblowl` library:
+
+```
+$ cd core
+$ make test
+```
+
+Now, if you want to build the bridge:
+
+```
+$ make
+```
+
+If you don't have a recent version of Cython installed, you must install it or the step above will fail.  We have provided a simple recipe for installing Cython locally (for your user only):
+
+```
+$ make cython
+```
+
+Once `make` succeeds, use `make install` to copy the built libraries to `apps` and then head over to `apps` to run demos using `pylowl`:
+
+```
+$ make install
+$ cd ../apps
+$ make
+```
