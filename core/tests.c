@@ -87,6 +87,10 @@ void run_chi2_motrag( double* scores, int numtrials, motrag_hash* motwani,
   return;
 }
 
+void run_mod_fnv_tests() {
+  printf("=== Tests of modified FNV hash function. ===\n");
+}
+
 void run_multip_add_shift_tests( void ) {
   printf("=== Chi2 tests of multiply-add-shift hash function. ===\n");  
 
@@ -459,6 +463,8 @@ int main( int argc, char **argv ) {
    *	 Tests for lowl_hash.c 					*
    *								*
    **************************************************************/
+
+  run_mod_fnv_tests();
 
   run_multip_add_shift_tests();
 
