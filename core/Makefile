@@ -49,4 +49,4 @@ cython:
 
 .PHONY: clean
 clean:
-	rm -rf $(LIB_NAME) *.o tests $(PY_LIB_NAME).c build
+	rm -rf *.dSYM *.so *.o tests $(PY_LIB_NAME).c build
