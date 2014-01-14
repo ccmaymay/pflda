@@ -17,6 +17,10 @@
  * 1 - (0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001)
  * for df = 2^n - 1 for n from 1 to 16
  */
+const static size_t CHISQ_CRIT_NUM_QUANTILES = 7;
+const static double CHISQ_CRIT_QUANTILES[7] = {
+  0.9, 0.95, 0.99, 0.995, 0.999, 0.9995, 0.9999
+};
 const static double CHISQ_CRIT[16][7] = {
   {2.705543, 3.841459, 6.634897, 7.879439, 10.82757, 12.11567, 15.13671},
   {6.251389, 7.814728, 11.34487, 12.83816, 16.26624, 17.73, 21.10751},
@@ -65,28 +69,32 @@ int test_hash_padded_seq_nums(
     ++lower_bit_counts[hash & (num_test_bins - 1)];
     ++upper_bit_counts[hash >> (lowl_hashoutput_bits - num_test_bits)];
   }
-  printf("\n");
 
-  double lower_chisq = chisq_count_uniform((double) num_samples / (double) num_test_bins, lower_bit_counts, num_test_bins);
-  printf("%f\n", lower_chisq);
-  for (size_t j = 0; j < 7; ++j)
-    printf("%f ", CHISQ_CRIT[num_test_bits - 1][j]);
-  printf("\n");
-  double upper_chisq = chisq_count_uniform((double) num_samples / (double) num_test_bins, upper_bit_counts, num_test_bins);
-  printf("%f\n", upper_chisq);
+  double lower_chisq = chisq_count_uniform(num_samples / (double) num_test_bins,
+    lower_bit_counts, num_test_bins);
+  double upper_chisq = chisq_count_uniform(num_samples / (double) num_test_bins,
+    upper_bit_counts, num_test_bins);
 
   free(lower_bit_counts);
   free(upper_bit_counts);
+
+  for (int j = 0; j < CHISQ_CRIT_NUM_QUANTILES; ++j)
+    if (lower_chisq > CHISQ_CRIT[num_test_bits - 1][j])
+      return j;
+  for (int j = 0; j < CHISQ_CRIT_NUM_QUANTILES; ++j)
+    if (upper_chisq > CHISQ_CRIT[num_test_bits - 1][j])
+      return j + CHISQ_CRIT_NUM_QUANTILES;
+
   return 0;
 }
 
-
-
 void test_hash(const char *name, lowl_hashoutput (*f)(const char *data, size_t len)) {
-  char my_name[81];
+  char my_name[121];
   size_t num_samples = 1000000;
   for (size_t num_bits = 1; num_bits <= 16; ++num_bits) {
-    snprintf(my_name, 81, "%s distribution on padded sequential numbers, %u bits", name, num_bits);
+    snprintf(my_name, 121,
+      "%s distribution on padded sequential numbers, outer %u bits",
+      name, num_bits);
     test(my_name, test_hash_padded_seq_nums(f, num_bits, num_samples));
   }
 }
