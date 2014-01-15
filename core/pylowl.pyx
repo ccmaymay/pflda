@@ -2,6 +2,10 @@ cimport lowl
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
 
+def srandom(seed):
+    lowl.srandom(seed)
+
+
 cdef class BloomFilter:
     cdef lowl.bloomfilter* _bf
 

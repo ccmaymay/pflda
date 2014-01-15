@@ -1,10 +1,13 @@
 import pylowl
 import sys
+import time
 
 
 def main(cmd, *args):
     if cmd not in ('read', 'sample'):
         raise Exception('Invalid io flag')
+
+    pylowl.srandom(int(time.time()))
 
     print('Constructing reservoir sampler...')
     rs = pylowl.ValuedReservoirSampler()

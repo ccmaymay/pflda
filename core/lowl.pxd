@@ -5,6 +5,9 @@ cdef extern from "stdio.h":
     FILE *fopen(const char *filename, const char *mode)
     int fclose(FILE *f)
 
+cdef extern from "stdlib.h":
+    void srandom(unsigned int seed)
+
 cdef extern from "lowl_types.h":
     ctypedef unsigned int lowl_hashoutput
     ctypedef unsigned int lowl_key

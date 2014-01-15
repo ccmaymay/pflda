@@ -1,9 +1,13 @@
 import pylowl
 import sys
+import time
+
 
 def main(cmd, *args):
     if cmd not in ('read', 'query'):
         raise Exception('Invalid io flag')
+
+    pylowl.srandom(int(time.time()))
 
     print('Constructing bloom filter...')
     bf = pylowl.BloomFilter()
