@@ -84,3 +84,13 @@ int reservoirsampler_sample(reservoirsampler* rs, size_t *idx) {
   *idx = random() % occupied; // TODO not uniform
   return 0;
 }
+
+int reservoirsampler_get(reservoirsampler* rs, size_t idx, lowl_key* x) {
+  size_t occupied = reservoirsampler_occupied(rs);
+  if (idx < occupied) {
+    *x = rs->sample[idx];
+    return 0;
+  } else {
+    return -1;
+  }
+}

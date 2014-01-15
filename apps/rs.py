@@ -39,7 +39,7 @@ def main(cmd, *args):
         print('Reading reservoir sampler...')
         rs.read(rs_filename, values_filename)
         print('Sampling from reservoir...')
-        #rs.cPrint()
+        #rs.pyPrint()
         print(rs.sample())
         print(rs.sample())
         print(rs.sample())

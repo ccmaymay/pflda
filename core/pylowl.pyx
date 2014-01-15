@@ -89,6 +89,14 @@ cdef class ReservoirSampler:
         # TODO error code
         return idx
 
+    def get(self, idx):
+        cdef lowl.lowl_key x
+        cdef int ret
+        ret = lowl.reservoirsampler_get(self._rs, idx, &x)
+        if ret != 0:
+            raise IndexError() # TODO error code
+        return x
+
     def __dealloc__(self):
         if self._rs is not NULL:
             lowl.reservoirsampler_destroy(self._rs)
@@ -147,5 +155,12 @@ class ValuedReservoirSampler(object):
         # TODO error code
         return self.values[idx]
 
+    def get(self, idx):
+        return self.rs.get(idx)
+
     def cPrint(self):
         self.rs.cPrint()
+
+    def pyPrint(self):
+        for i in range(self.occupied()):
+            print(self.values[i])
