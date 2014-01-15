@@ -44,103 +44,133 @@ cdef class BloomFilter:
             PyMem_Free(self._bf)
 
 
-cdef class ValuedReservoirSampler:
+cdef class ReservoirSampler:
     cdef lowl.reservoirsampler* _rs
-    cdef void** _values
-    cdef lowl.lowl_key _unused_key
 
     def __cinit__(self):
         self._rs = <lowl.reservoirsampler *>PyMem_Malloc(sizeof(lowl.reservoirsampler))
         if self._rs is NULL:
             raise MemoryError()
-        self._values = NULL
-        self._unused_key = 0
 
     cpdef init(self, lowl.size_t capacity):
         lowl.reservoirsampler_init(self._rs, capacity)
         # TODO error code
-        self._values = <void **>PyMem_Malloc(sizeof(void*) * capacity)
-        self._unused_key = 0
 
-    cdef bint c_insert(self, void* v, void** ejected_val):
+    cdef bint c_insert(self, lowl.lowl_key k, lowl.size_t* idx, bint* ejected, lowl.lowl_key* ejected_key):
+        cdef bint inserted
+        inserted = lowl.reservoirsampler_insert(self._rs, k, idx, ejected, ejected_key)
+        return inserted
+
+    def insert(self, lowl.lowl_key k):
+        cdef bint inserted
         cdef lowl.size_t idx
         cdef bint ejected
         cdef lowl.lowl_key ejected_key
-        cdef bint inserted
-        inserted = lowl.reservoirsampler_insert(self._rs, self._unused_key, &idx, &ejected, &ejected_key)
-        if inserted:
-            ejected_val[0] = self._values[idx]
-            self._values[idx] = v
-            if ejected:
-                self._unused_key = ejected_key
-            else:
-                self._unused_key += 1
-                ejected_val[0] = NULL
-        else:
-            ejected_val[0] = NULL
-        cdef int i
-        for i in range(self.occupied()):
-            print(<object> (self._values[i]))
-        return inserted
+        inserted = self.c_insert(k, &idx, &ejected, &ejected_key)
+        return (inserted, idx, ejected, ejected_key)
 
-    def insert(self, v):
-        cdef void* ejected_val
-        cdef bint inserted
-        inserted = self.c_insert(<void *> v, &ejected_val)
-        ejected_obj = None
-        if ejected_val is not NULL:
-            ejected_obj = <object> ejected_val
-        return (inserted, ejected_obj)
-
-    def read(self, filename, values_filename):
-        self.c_read(filename)
-        with open(values_filename, 'r') as f:
-            i = 0
-            for line in f:
-                stripped_line = line.rstrip()
-                self._values[i] = <void *> stripped_line
-                i += 1
-
-    cdef void c_read(self, const char* filename):
+    cpdef read(self, const char* filename):
         cdef lowl.FILE* f
         f = lowl.fopen(filename, 'rb')
         lowl.reservoirsampler_read(self._rs, f)
         # TODO error code
         lowl.fclose(f)
 
-    def write(self, filename, values_filename):
-        self.c_write(filename)
-        with open(values_filename, 'w') as f:
-            for i in range(self.capacity()):
-                f.write(str(<object> self._values[i]) + '\n')
-
-    cdef void c_write(self, const char* filename):
+    cpdef write(self, const char* filename):
         cdef lowl.FILE* f
         f = lowl.fopen(filename, 'wb')
         lowl.reservoirsampler_write(self._rs, f)
         lowl.fclose(f)
 
-    cdef lowl.size_t capacity(self):
+    cpdef lowl.size_t capacity(self):
         return lowl.reservoirsampler_capacity(self._rs)
 
-    cdef lowl.size_t occupied(self):
+    cpdef lowl.size_t occupied(self):
         return lowl.reservoirsampler_occupied(self._rs)
 
-    cdef void cPrint(self):
+    cpdef prt(self):
         lowl.reservoirsampler_print(self._rs)
 
-    cdef lowl.size_t sample(self):
+    cpdef lowl.size_t sample(self):
         cdef lowl.size_t idx
         lowl.reservoirsampler_sample(self._rs, &idx)
         # TODO error code
         return idx
 
-    cdef void* get(self, idx):
-        return self._values[idx]
+    cpdef lowl.lowl_key get(self, idx):
+        cdef int ret
+        cdef lowl.lowl_key k
+        ret = lowl.reservoirsampler_get(self._rs, idx, &k)
+        # TODO bounds/ret check
+        return k
 
     def __dealloc__(self):
         if self._rs is not NULL:
             lowl.reservoirsampler_destroy(self._rs)
             PyMem_Free(self._rs)
-        if self._values is not NULL:
-            PyMem_Free(self._values)
+
+
+class ValuedReservoirSampler(object):
+    def __cinit__(self, lowl.size_t capacity):
+        self.rs = ReservoirSampler()
+        self.rs.init(capacity)
+        self.values = [None] * capacity
+        self.unused_key = 0
+
+    cdef insert(self, object v):
+        cdef bint inserted
+        cdef lowl.size_t idx
+        cdef bint ejected
+        cdef lowl.lowl_key ejected_key
+        inserted = self.rs.c_insert(self.unused_key, &idx, &ejected, &ejected_key)
+        if inserted:
+            if ejected:
+                ejected_val = self.values[idx]
+                self.unused_key = ejected_key
+            else:
+                ejected_val = None
+                self.unused_key += 1
+            self.values[idx] = v
+        else:
+            ejected_val = None
+        return (inserted, idx, ejected, ejected_val)
+
+    def read(self, const char* filename, const char* values_filename):
+        self.rs.c_read(filename)
+        self.values = [None] * self.capacity()
+        with open(values_filename, 'r') as f:
+            i = 0
+            for line in f:
+                if i < self.occupied():
+                    self.values[i] = line.rstrip()
+                i += 1
+        if self.occupied() < self.capacity():
+            self.unused_key = self.occupied()
+        else:
+            unused_keys = set(range(self.capacity() + 1))
+            for i in range(self.capacity()):
+                unused_keys.remove(self.rs.get(i))
+            self.unused_key = unused_keys.pop()
+
+    def write(self, const char* filename, const char* values_filename):
+        self.rs.c_write(filename)
+        with open(values_filename, 'w') as f:
+            for i in range(self.occupied()):
+                f.write(self.values[i] + '\n')
+
+    def capacity(self):
+        return self.rs.capacity()
+
+    def occupied(self):
+        return self.rs.occupied()
+
+    def prt(self):
+        self.rs.prt()
+
+    def get(self, idx):
+        # TODO check
+        return self.values[idx]
+
+    def sample(self):
+        # TODO check
+        return self.values[self.rs.sample()]
