@@ -24,7 +24,7 @@ cdef class BloomFilter:
     def query(self, x):
         return lowl.bloomfilter_query(self._bf, x, len(x))
 
-    def cPrint(self):
+    def prnt(self):
         lowl.bloomfilter_print(self._bf)
 
     def read(self, filename):
@@ -88,7 +88,7 @@ cdef class ReservoirSampler:
     cpdef lowl.size_t occupied(self):
         return lowl.reservoirsampler_occupied(self._rs)
 
-    cpdef prt(self):
+    cpdef prnt(self):
         lowl.reservoirsampler_print(self._rs)
 
     cpdef lowl.size_t sample(self):
@@ -160,8 +160,8 @@ class ValuedReservoirSampler(object):
     def occupied(self):
         return self.rs.occupied()
 
-    def prt(self):
-        self.rs.prt()
+    def prnt(self):
+        self.rs.prnt()
 
     def get(self, lowl.size_t idx):
         # TODO check
