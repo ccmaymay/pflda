@@ -31,11 +31,12 @@ cdef class BloomFilter:
     cdef lowl.bloomfilter* _bf
 
     def __cinit__(self):
+        self._bf = NULL
+
+    def init(self, size, k):
         self._bf = <lowl.bloomfilter *>PyMem_Malloc(sizeof(lowl.bloomfilter))
         if self._bf is NULL:
             raise MemoryError()
-
-    def init(self, size, k):
         lowl.bloomfilter_init(self._bf, size, k)
         # TODO error code
 
@@ -70,6 +71,35 @@ cdef class ReservoirSampler:
     >>> from pylowl import ReservoirSampler
     >>> rs = ReservoirSampler()
     >>> rs.init(4)
+    >>> rs.insert(42)[:3]
+    (True, 0L, False)
+    >>> rs.insert(47)[:3]
+    (True, 1L, False)
+    >>> rs.insert(3)[:3]
+    (True, 2L, False)
+    >>> rs.insert(52)[:3]
+    (True, 3L, False)
+    >>> quad = rs.insert(7)
+    >>> quad[0] == quad[2] # inserted iff ejected
+    True
+    >>> (not quad[0]) or (quad[1] in range(4))
+    True
+    >>> (not quad[2]) or (quad[3] in (42, 47, 3, 52))
+    True
+    >>> inserted = False
+    >>> ejected = False
+    >>> ejected_vals = set()
+    >>> for i in range(10000):
+    ...     quad = rs.insert(i)
+    ...     inserted |= quad[0]
+    ...     ejected_vals.add(quad[3])
+    ...     ejected |= quad[2]
+    >>> set([42, 47, 3, 52]).issubset(ejected_vals)
+    True
+    >>> inserted
+    True
+    >>> ejected
+    True
     >>> rs_noinit = ReservoirSampler()
 
     Newlines keep the compiler happy.
@@ -78,11 +108,12 @@ cdef class ReservoirSampler:
     cdef lowl.reservoirsampler* _rs
 
     def __cinit__(self):
+        self._rs = NULL
+
+    cpdef init(self, lowl.size_t capacity):
         self._rs = <lowl.reservoirsampler *>PyMem_Malloc(sizeof(lowl.reservoirsampler))
         if self._rs is NULL:
             raise MemoryError()
-
-    cpdef init(self, lowl.size_t capacity):
         lowl.reservoirsampler_init(self._rs, capacity)
         # TODO error code
 
@@ -141,6 +172,12 @@ cdef class ReservoirSampler:
 
 
 class ValuedReservoirSampler(object):
+    """
+    >>> from pylowl import ValuedReservoirSampler
+    >>> rs = ValuedReservoirSampler(4)
+
+    This newline is valued transitively.
+    """
     def __init__(self, lowl.size_t capacity):
         self.rs = ReservoirSampler()
         self.rs.init(capacity)
