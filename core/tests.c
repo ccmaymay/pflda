@@ -352,8 +352,8 @@ void run_bloomfilter_tests() {
   }
 
   bloomfilter_insert(bf, "hello world", 11);
-  assert(bloomfilter_query(bf, "hello waldo", 11) == false);
-  assert(bloomfilter_query(bf, "hello world", 11) == true);
+  assert(bloomfilter_query(bf, "hello waldo", 11) == FALSE);
+  assert(bloomfilter_query(bf, "hello world", 11) == TRUE);
 
   /* test that we can serialize to files correctly. */
 
