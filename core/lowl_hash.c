@@ -5,8 +5,6 @@
 #include "lowl_math.h"
 #include "lowl_hash.h"
 
-#define CUCKOO_NHASHES 8
-#define CUCKOO_REHASH -2
 #define LOWLHASH_INTABLE 0
 #define LOWLHASH_NOTINTABLE 10
 #define HT_KEY_TO_COUNT_MAXLOAD 0.65
@@ -290,7 +288,7 @@ int ht_key_to_count_init( ht_key_to_count* ht, unsigned int capacity ) {
     nchars_for_bitvector++;
   }
   ht->populace_table = malloc( nchars_for_bitvector*sizeof(char) );
-  bitvector_clear(&(ht->populace_table), nbits_for_bitvector);
+  bitvector_clear( &(ht->populace_table), nbits_for_bitvector);
  
   /* verify that all mallocs were successful before we move on. */
   if( ht->hashfn==NULL || ht->table==NULL || ht->populace_table==NULL ) {

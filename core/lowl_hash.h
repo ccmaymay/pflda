@@ -3,9 +3,6 @@
 
 #include "lowl_types.h"
 
-#define CUCKOO_NHASHES 8
-#define CUCKOO_REHASH -2
-
 /* data structures and functions related to hash tables.
 	This includes:
 		hash functions

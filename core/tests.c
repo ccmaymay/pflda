@@ -445,6 +445,25 @@ void run_bloomfilter_tests() {
   return;
 }
 
+void run_ht_key_to_count_tests() {
+  printf("===Running ht_key_to_count_tests. ===\n");
+
+  ht_key_to_count* ht = malloc( sizeof(ht_key_to_count) );
+
+  if( ht==NULL ) {
+    printf("Memory allocation failed in ht_key_to_count test.\n\n");
+    return;
+  }
+
+  int succ =  ht_key_to_count_init( ht, 256 );
+  assert( succ==0 );
+
+  ht_key_to_count_destroy( ht );
+  free( ht );
+
+  printf("Success.\n\n");
+}
+
 int main( ) {
   srandom(1970);
 
