@@ -108,11 +108,42 @@ public:
     for(map<int, int>::iterator it = hMap.begin(); it!= end;++it){
       std::string key = intern.revGet(it->first);
       if (actuallyWithout && ! startsWithPrefix(key, prefix)){
-	key = 
+	key = key.substr(key.find(":",0)+1, key.size());
+	list.push_back(key);
+      }
+      if (!actuallyWithout && startsWith(key, prefix)){
+	key = key.substr(key.find(":",0)+1, key.size());
+	list.push_back(key);
+      }
+    }
+    return list;
+  }
+  void print(){
+    std::map<int, int>::iterator end = hMap.end();
+    for(std::map<int, int>::iterator it = hMap.start(); it != end; ++it){
+      std::cout << intern.revGet(it->first) << "\t" << it->second << "\n";
+    }
+  }
+  std::string toString(){
+    std::string result;
+    std::map<int, int>::iterator end = hMap.end();
+    for(std::map<int, int>::iterator it = hMap.start(); it != end; ++it){
+      result = result + intern.revGet(it->first) + it->second + "\n";
+    }
+    return result;
+  }
+};
+
 class Cluster {
   std::vector<DocEntity> entities_;
-  std::set<std::string> normNameSet_;
-  std::vector<std::string> rawnames_;
+  std::set<std::string> normNameSet_;//hash set of normalised names
+  std::vector<std::string> rawnames_; // hash set of raw names
+  FeatMap feats;
+  std::map<string, bool> dids; // hash set of docids
+  Cluster(DocEntity docent){
+    entities_ = new std::vector<DocEntity>;
+    entities_.psh_back(docent);
+  }
 };
 
 class EntityStore {
