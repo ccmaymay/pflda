@@ -12,8 +12,8 @@ int reservoirsampler_init(reservoirsampler* rs, size_t capacity) {
   rs->stream_pos = 0;
   rs->sample = malloc(sizeof(lowl_key) * capacity);
   if (rs->sample == 0)
-    return -1;
-  return 0;
+    return LOWLERR_BADMALLOC;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 void reservoirsampler_destroy(reservoirsampler* rs) {
@@ -21,7 +21,7 @@ void reservoirsampler_destroy(reservoirsampler* rs) {
   rs->sample = NULL;
 }
 
-int reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx,
+lowl_bool reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx,
     int *ejected, lowl_key *ejected_key) {
   if (rs->stream_pos < rs->capacity) {
     *idx = rs->stream_pos;
@@ -74,23 +74,23 @@ int reservoirsampler_read(reservoirsampler* rs, FILE* fp) {
   fread( &(rs->stream_pos), sizeof(size_t), 1, fp);
   rs->sample = malloc(sizeof(lowl_key) * rs->capacity);
   if (rs->sample == 0)
-    return -1;
+    return LOWLERR_BADMALLOC;
   fread( rs->sample, sizeof( lowl_key ), reservoirsampler_occupied(rs), fp);
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 int reservoirsampler_sample(reservoirsampler* rs, size_t *idx) {
   size_t occupied = reservoirsampler_occupied(rs);
   *idx = random() % occupied; // TODO not uniform
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 int reservoirsampler_get(reservoirsampler* rs, size_t idx, lowl_key* x) {
   size_t occupied = reservoirsampler_occupied(rs);
   if (idx < occupied) {
     *x = rs->sample[idx];
-    return 0;
+    return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
   } else {
-    return -1;
+    return LOWLERR_INDEXOUTOFRANGE;
   }
 }

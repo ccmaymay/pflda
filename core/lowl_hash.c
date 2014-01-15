@@ -59,11 +59,11 @@ lowl_hashoutput multip_add_shift(lowl_key x, lowl_key_hash* h) {
 
 int lowl_key_hash_init( lowl_key_hash* lkh, unsigned int w, unsigned int M) {
   if( w==0 || M==0 ) {
-    return -1; /* must be non-negative numbers */
+    return LOWLERR_BADINPUT; /* must be non-negative numbers */
   }
   lkh->w = w;
   lkh->M = M;
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 
@@ -94,7 +94,7 @@ int motrag_hash_init( motrag_hash* lmh,
 				unsigned int m, unsigned int n ) {
   unsigned int bigprime = (unsigned int) LOWLMATH_BIGPRIME;
   if( m > bigprime ) {
-    return -1; // can't deal with an input universe this big.
+    return LOWLERR_BADINPUT; // can't deal with an input universe this big.
   }
   lmh->m = m;
   lmh->n = n;
@@ -112,7 +112,7 @@ int motrag_hash_init( motrag_hash* lmh,
     //lmh->p = lowlmath_usefulprimes[pow];
     lmh->p = get_useful_prime(pow);
   }
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 unsigned int motrag_map( unsigned int input, motrag_hash* lmh ) {
@@ -144,15 +144,15 @@ rarr_entry rarr_entry_from_kvpair( lowl_key k, lowl_count v) {
 int rarr_init(rarr* lr, unsigned int cap) {
   /* initialize a new resizable array, with given capacity.
         Return 0 if successful.
-        Return -1 if there was a failure (namely, failure to allocate mem.) */
+        Return !=0 if there was a failure (namely, failure to allocate mem.) */
   lr->capacity = cap;
   lr->array = malloc( cap*sizeof(rarr_entry) );
   if( lr->array == NULL ) {
-    return -1;
+    return LOWLERR_BADMALLOC;
   }
   /* initialize all entries to be 0. */
   memset( lr->array, 0, cap*sizeof(rarr_entry) );
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 void rarr_clear(rarr* lr) {
@@ -163,9 +163,9 @@ void rarr_clear(rarr* lr) {
 int rarr_set(rarr* lr, unsigned int loc, rarr_entry entry) {
   /* insert the given element into the resizable array at the given location.
         Return 0 if successful.
-        Return -1 if location is out of range.  */
+        Return !=0 if location is out of range.  */
   if( loc >= lr->capacity ) {
-    return -1;
+    return LOWLERR_INDEXOUTOFRANGE;
   } else {
     /* for now, we're assuming that the entire array is in one contiguous
         piece of memory. In the future, it will probably make sense to
@@ -176,18 +176,18 @@ int rarr_set(rarr* lr, unsigned int loc, rarr_entry entry) {
         bookkeeping.    */
     (lr->array)[loc] = entry;
   }
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 /* retrieve the element at the given location and copy its contents to
 	the given address.	*/
 int rarr_get(rarr* lr, unsigned int loc, rarr_entry* entry) {
   if( loc >= lr->capacity ) {
-    return -1;
+    return LOWLERR_INDEXOUTOFRANGE;
   } else {
     /* again, making the same contiguous memory assumption we made above. */
     *entry = (lr->array)[loc];
-    return 0;
+    return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
   }
 }
 
@@ -200,7 +200,7 @@ int rarr_upsize(rarr* lr) {
   /* allocate the new memory. */
   rarr_entry* newarray = malloc( newCap*sizeof(rarr_entry) );
   if ( newarray == NULL ) {
-    return -1;
+    return LOWLERR_BADMALLOC;
   }
 
   /* copy the old array into the new one. */
@@ -214,7 +214,7 @@ int rarr_upsize(rarr* lr) {
   /* update the capacity of the array. */
   lr->capacity = newCap;
 
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 int rarr_downsize(rarr* lr) {
@@ -226,7 +226,7 @@ int rarr_downsize(rarr* lr) {
   /* allocate the new memory and verify malloc success. */
   rarr_entry* newarray = malloc( newCap*sizeof(rarr_entry) );
   if ( newarray == NULL ) {
-    return -1;
+    return LOWLERR_BADMALLOC;
   }
 
   /* copy the old array into the new one. We need only copy the
@@ -240,7 +240,7 @@ int rarr_downsize(rarr* lr) {
   /* update the capacity of the array. */
   lr->capacity = newCap;
 
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 int rarr_destroy(rarr* lr) {
@@ -249,7 +249,7 @@ int rarr_destroy(rarr* lr) {
   free( lr->array );
   lr->array = NULL;
   lr->capacity = 0;
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 /********************************************************
@@ -296,7 +296,7 @@ int ht_key_to_count_init( ht_key_to_count* ht, unsigned int capacity ) {
 
   /* hash table is initially empty. */
   ht->size = 0;
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 float ht_key_to_count_loadfactor( ht_key_to_count* ht ) {
@@ -390,7 +390,7 @@ int ht_key_to_count_get( ht_key_to_count* ht, lowl_key lkey, lowl_count* val) {
 
 int ht_key_to_count_entryispopulated( ht_key_to_count* ht,
                                         lowl_hashoutput location) {
-  /* return 1 if an entry exists in the hash table at the given location.
+  /* return !=0 if an entry exists in the hash table at the given location.
 	return 0 otherwise. */
   return bitvector_lookup( ht->populace_table, location);
 }

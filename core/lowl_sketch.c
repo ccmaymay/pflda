@@ -33,10 +33,10 @@ int cmsketch_init( cmsketch* cm, unsigned int m,
   for( i=0; i<d; i++ ) {
     succ = motrag_hash_init( cm->hashes+i, m, w );
     if( succ != 0 ) {
-      return -1;
+      return succ;
     }
   }
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 void cmsketch_arm( cmsketch* cm ) {
@@ -45,13 +45,12 @@ void cmsketch_arm( cmsketch* cm ) {
   for( i=0; i< cm->depth; i++ ) {
     motrag_hash_arm( cm->hashes+i );
   }
-  return;
 }
 
 int cmsketch_update(cmsketch* cm, unsigned int elmt,
 				unsigned int c) {
   if( elmt > ( cm->hashes )->m ) { /* element is out of range. */
-    return -1;
+    return LOWLERR_INDEXOUTOFRANGE;
   }
   unsigned int i;
   unsigned int hashoutput;
@@ -61,7 +60,7 @@ int cmsketch_update(cmsketch* cm, unsigned int elmt,
     hashoutput = motrag_map( elmt, cm->hashes+i );
     (cm->counters+i)[hashoutput] += c;
   }
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 int cmsketch_count( cmsketch* cm, unsigned int elmt ) {
@@ -85,7 +84,6 @@ void cmsketch_destroy( cmsketch* cm ) {
     free( cm->counters+i );
     (cm->counters)[i] = NULL;
   }
-  return;
 }
 
 /*********************************************************
@@ -108,7 +106,7 @@ int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k) {
   // a uint32_t counter (for i=1...32)
   f->mask = (uint32_t*)malloc( 32*sizeof(uint32_t) );
   if( f->mask==NULL ) {
-    return -1; /* allocation failed. */
+    return LOWLERR_BADMALLOC;
   }
   bloomfilter_setmask( f->mask );
 
@@ -124,7 +122,7 @@ int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k) {
   memset(f->b, 0, f->size * sizeof(uint32_t));
 
   if( f->b==NULL ) {
-    return -1; /* allocation failed. */
+    return LOWLERR_BADMALLOC;
   }
 
   char_hash_arm(&(f->hash_key_to_word1));
@@ -132,7 +130,7 @@ int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k) {
   char_hash_arm(&(f->hash_key_to_bit1));
   char_hash_arm(&(f->hash_key_to_bit2));
 
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 void bloomfilter_insert(bloomfilter* f, const char* x, size_t len) {
@@ -155,7 +153,7 @@ void bloomfilter_insert(bloomfilter* f, const char* x, size_t len) {
   }
 }
 
-int bloomfilter_query(bloomfilter* f, const char* x, size_t len) {
+lowl_bool bloomfilter_query(bloomfilter* f, const char* x, size_t len) {
   const size_t bits_per_bf_word = 8*sizeof(*(f->b));
   lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
 
@@ -207,13 +205,13 @@ int bloomfilter_read(bloomfilter* f, FILE* fp) {
   fread(&(f->size), sizeof(int), 1, fp);
   fread(&(f->k), sizeof(int), 1, fp);
   f->b = (uint32_t*)malloc( f->size*sizeof(uint32_t));
-  if (f->b == 0) return -1;
+  if (f->b == 0) return LOWLERR_BADMALLOC;
   fread(f->b, sizeof(uint32_t), f->size, fp);
   fread( &(f->hash_key_to_word1), sizeof( char_hash ), 1, fp);
   fread( &(f->hash_key_to_word2), sizeof( char_hash ), 1, fp);
   fread( &(f->hash_key_to_bit1), sizeof( char_hash ), 1, fp);
   fread( &(f->hash_key_to_bit2), sizeof( char_hash ), 1, fp);
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 void bloomfilter_destroy(bloomfilter* f) {
@@ -232,7 +230,6 @@ void bloomfilter_setmask( uint32_t* mask ) {
     mask[4 * i + 2] = (1 << (4 * i + 2));
     mask[4 * i + 3] = (1 << (4 * i + 3));
   }
-  return;
 }
 
 /*********************************************************
