@@ -25,12 +25,13 @@ int reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx,
     lowl_key *ejected) {
   if (rs->stream_pos < rs->capacity) {
     *idx = rs->stream_pos;
+    ++(rs->stream_pos);
     ejected = 0;
     rs->sample[*idx] = x;
-    ++(rs->stream_pos);
     return TRUE;
   } else {
     *idx = random() % rs->stream_pos; // TODO not uniform
+    ++(rs->stream_pos);
     if (*idx < rs->capacity) {
       *ejected = rs->sample[*idx];
       rs->sample[*idx] = x;
