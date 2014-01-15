@@ -4,7 +4,6 @@
 #include <math.h>
 #include <string.h>
 #include <assert.h>
-#include <stdbool.h>
 #include "lowl_types.h"
 #include "lowl_hash.h"
 #include "lowl_math.h"
