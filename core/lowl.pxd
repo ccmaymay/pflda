@@ -29,7 +29,7 @@ cdef extern from "lowl_sample.h":
         pass
 
     int  reservoirsampler_init(reservoirsampler* rs, size_t capacity)
-    int reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx, lowl_key *ejected)
+    int reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx, int *ejected, lowl_key *ejected_key)
     void reservoirsampler_print(reservoirsampler* rs)
     void reservoirsampler_write(reservoirsampler* rs, FILE* fp)
     int reservoirsampler_read(reservoirsampler* rs, FILE* fp)

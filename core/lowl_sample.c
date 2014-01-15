@@ -22,23 +22,24 @@ void reservoirsampler_destroy(reservoirsampler* rs) {
 }
 
 int reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx,
-    lowl_key *ejected) {
+    int *ejected, lowl_key *ejected_key) {
   if (rs->stream_pos < rs->capacity) {
     *idx = rs->stream_pos;
     ++(rs->stream_pos);
-    ejected = 0;
+    *ejected = FALSE;
     rs->sample[*idx] = x;
     return TRUE;
   } else {
     *idx = random() % (rs->stream_pos + 1); // TODO not uniform
     ++(rs->stream_pos);
     if (*idx < rs->capacity) {
-      *ejected = rs->sample[*idx];
+      *ejected = TRUE;
+      *ejected_key = rs->sample[*idx];
       rs->sample[*idx] = x;
       return TRUE;
     } else {
+      *ejected = FALSE;
       *idx = rs->capacity;
-      ejected = 0;
       return FALSE;
     }
   }

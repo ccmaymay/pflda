@@ -25,7 +25,12 @@ def main(cmd, *args):
                 if ngram not in ngrams:
                     ngrams[ngram] = len(ngrams)
                 key = ngrams[ngram]
-                print (ngram, rs.insert(key, ngram))
+                (inserted, ejected_key) = rs.insert(key, ngram)
+                if inserted:
+                    if ejected_key is None:
+                        print('+ "%s"' % ngram)
+                    else:
+                        print('+ "%s" - "%s"' % (ngram, ejected_key))
         print('Writing reservoir sampler...')
         rs.write(rs_filename, values_filename)
     else:

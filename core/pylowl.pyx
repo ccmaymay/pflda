@@ -58,9 +58,10 @@ cdef class ReservoirSampler:
 
     def insert(self, k):
         cdef lowl.size_t idx
-        cdef lowl.lowl_key ejected
-        inserted = bool(lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected))
-        return (inserted, idx, ejected)
+        cdef int ejected
+        cdef lowl.lowl_key ejected_key
+        inserted = bool(lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected, &ejected_key))
+        return (inserted, idx, ejected, ejected_key)
 
     def read(self, filename):
         f = lowl.fopen(filename, 'rb')
@@ -105,10 +106,16 @@ class ValuedReservoirSampler(object):
         self.values = [None for i in range(capacity)]
 
     def insert(self, k, v):
-        (inserted, idx, ejected) = self.rs.insert(k)
+        (inserted, idx, ejected, ejected_key) = self.rs.insert(k)
         if inserted:
+            if ejected:
+                prev_value = self.values[idx]
+            else:
+                prev_value = None
             self.values[idx] = v
-        return ejected
+        else:
+            prev_value = None
+        return (inserted, prev_value)
 
     def read(self, filename, values_filename):
         self.rs.read(filename)
