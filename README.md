@@ -39,10 +39,16 @@ $ cd Cython-0.19.2
 $ python setup.py install --user
 ```
 
-Once `make` succeeds, use `make install` to copy the built libraries to `apps` and then head over to `apps` to run demos using `pylowl`:
+To install the built libraries to `apps`, use the `install` target:
 
 ```
 $ make install
-$ cd ../apps
-$ make
 ```
+
+To run Python demos using the `pylowl` library, use the `apps` target:
+
+```
+$ make apps
+```
+
+Note that `install` will automatically build `liblowl` if it does not exist, and `apps` will automatically invoke `install` to copy `pylowl` to `apps`.  Hence, if you're in a hurry, just run `make apps` to do everything in one fell swoop.
