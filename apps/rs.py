@@ -10,9 +10,8 @@ def main(cmd, *args):
     pylowl.srandom(int(time.time()))
 
     print('Constructing reservoir sampler...')
-    rs = pylowl.ValuedReservoirSampler()
+    rs = pylowl.ValuedReservoirSampler(64)
     print('Initializing reservoir sampler...')
-    rs.init(64)
     if cmd == 'read':
         data_filename = args[0]
         rs_filename = args[1]
@@ -21,7 +20,7 @@ def main(cmd, *args):
         with open(data_filename) as f:
             for line in f:
                 ngram = ' '.join(line.split()[:-1])
-                (inserted, ejected_ngram) = rs.insert(ngram)
+                (inserted, idx, ejected, ejected_ngram) = rs.insert(ngram)
                 if inserted:
                     if ejected_ngram is None:
                         print('+ "%s"' % ngram)

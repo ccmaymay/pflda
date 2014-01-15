@@ -111,18 +111,14 @@ cdef class ReservoirSampler:
 
 
 class ValuedReservoirSampler(object):
-    def __cinit__(self, lowl.size_t capacity):
+    def __init__(self, lowl.size_t capacity):
         self.rs = ReservoirSampler()
         self.rs.init(capacity)
         self.values = [None] * capacity
         self.unused_key = 0
 
-    cdef insert(self, object v):
-        cdef bint inserted
-        cdef lowl.size_t idx
-        cdef bint ejected
-        cdef lowl.lowl_key ejected_key
-        inserted = self.rs.c_insert(self.unused_key, &idx, &ejected, &ejected_key)
+    def insert(self, object v):
+        (inserted, idx, ejected, ejected_key) = self.rs.insert(self.unused_key)
         if inserted:
             if ejected:
                 ejected_val = self.values[idx]
@@ -136,26 +132,26 @@ class ValuedReservoirSampler(object):
         return (inserted, idx, ejected, ejected_val)
 
     def read(self, const char* filename, const char* values_filename):
-        self.rs.c_read(filename)
-        self.values = [None] * self.capacity()
+        self.rs.read(filename)
+        self.values = [None] * self.rs.capacity()
         with open(values_filename, 'r') as f:
             i = 0
             for line in f:
-                if i < self.occupied():
+                if i < self.rs.occupied():
                     self.values[i] = line.rstrip()
                 i += 1
-        if self.occupied() < self.capacity():
-            self.unused_key = self.occupied()
+        if self.rs.occupied() < self.rs.capacity():
+            self.unused_key = self.rs.occupied()
         else:
-            unused_keys = set(range(self.capacity() + 1))
-            for i in range(self.capacity()):
+            unused_keys = set(range(self.rs.capacity() + 1))
+            for i in range(self.rs.capacity()):
                 unused_keys.remove(self.rs.get(i))
             self.unused_key = unused_keys.pop()
 
     def write(self, const char* filename, const char* values_filename):
-        self.rs.c_write(filename)
+        self.rs.write(filename)
         with open(values_filename, 'w') as f:
-            for i in range(self.occupied()):
+            for i in range(self.rs.occupied()):
                 f.write(self.values[i] + '\n')
 
     def capacity(self):
@@ -167,7 +163,7 @@ class ValuedReservoirSampler(object):
     def prt(self):
         self.rs.prt()
 
-    def get(self, idx):
+    def get(self, lowl.size_t idx):
         # TODO check
         return self.values[idx]
 
