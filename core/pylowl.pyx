@@ -166,3 +166,8 @@ class ValuedReservoirSampler(object):
     def sample(self):
         # TODO check
         return self.values[self.rs.sample()]
+
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
