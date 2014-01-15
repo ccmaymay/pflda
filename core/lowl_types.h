@@ -9,6 +9,9 @@
 
 /* define basic types used throughout lowl. */
 
+#define TRUE 1
+#define FALSE 0
+
 /* lowl_keys are used as basic identifiers. We hash on these. */
 typedef unsigned long lowl_key;
 #define LOWL_KEY_MIN 0

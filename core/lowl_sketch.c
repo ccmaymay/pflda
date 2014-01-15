@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include "lowl_hash.h"
 #include "lowl_sketch.h"
@@ -156,7 +155,7 @@ void bloomfilter_insert(bloomfilter* f, const char* x, size_t len) {
   }
 }
 
-bool bloomfilter_query(bloomfilter* f, const char* x, size_t len) {
+int bloomfilter_query(bloomfilter* f, const char* x, size_t len) {
   const size_t bits_per_bf_word = 8*sizeof(*(f->b));
   lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
 
@@ -173,10 +172,10 @@ bool bloomfilter_query(bloomfilter* f, const char* x, size_t len) {
     bit = (hash2bit1 + i*hash2bit2) % bits_per_bf_word;
     
     if ((f->b[word] & f->mask[bit]) == 0)
-      return 0;
+      return FALSE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 void bloomfilter_print(bloomfilter* f) {
@@ -201,18 +200,20 @@ void bloomfilter_write(bloomfilter* f, FILE* fp) {
   fwrite( &(f->hash_key_to_bit2), sizeof( char_hash ), 1, fp); 
 }
 
-void bloomfilter_read(bloomfilter* f, FILE* fp) {
+int bloomfilter_read(bloomfilter* f, FILE* fp) {
   f->mask = (uint32_t*) malloc(32 * sizeof(uint32_t));
   bloomfilter_setmask( f->mask );
 
   fread(&(f->size), sizeof(int), 1, fp);
   fread(&(f->k), sizeof(int), 1, fp);
   f->b = (uint32_t*)malloc( f->size*sizeof(uint32_t));
+  if (f->b == 0) return -1;
   fread(f->b, sizeof(uint32_t), f->size, fp);
   fread( &(f->hash_key_to_word1), sizeof( char_hash ), 1, fp);
   fread( &(f->hash_key_to_word2), sizeof( char_hash ), 1, fp);
   fread( &(f->hash_key_to_bit1), sizeof( char_hash ), 1, fp);
   fread( &(f->hash_key_to_bit2), sizeof( char_hash ), 1, fp);
+  return 0;
 }
 
 void bloomfilter_destroy(bloomfilter* f) {
