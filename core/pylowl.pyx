@@ -1,6 +1,5 @@
 cimport lowl
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
-from cpython.cobject cimport PyCObject_AsVoidPtr, PyCObject_FromVoidPtr
 
 
 cdef class BloomFilter:
