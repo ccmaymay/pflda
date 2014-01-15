@@ -20,4 +20,4 @@ bf: bf.py
 .PHONY: rs
 rs: rs.py
 	python -m $@ read $(DATA_FILE) $(RS_FILE) $(RS_VALUES_FILE)
-	python -m $@ print $(RS_FILE) $(RS_VALUES_FILE)
+	python -m $@ sample $(RS_FILE) $(RS_VALUES_FILE)

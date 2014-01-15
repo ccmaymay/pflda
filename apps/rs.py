@@ -1,14 +1,15 @@
 import pylowl
 import sys
 
+
 def main(cmd, *args):
-    if cmd not in ('read', 'print'):
+    if cmd not in ('read', 'sample'):
         raise Exception('Invalid io flag')
 
     print('Constructing reservoir sampler...')
     rs = pylowl.ValuedReservoirSampler()
     print('Initializing reservoir sampler...')
-    rs.init(16)
+    rs.init(64)
     if cmd == 'read':
         data_filename = args[0]
         rs_filename = args[1]
@@ -29,9 +30,13 @@ def main(cmd, *args):
         values_filename = args[1]
         print('Reading reservoir sampler...')
         rs.read(rs_filename, values_filename)
-        print('Querying reservoir sampler...')
-        rs.cPrint()
+        print('Sampling from reservoir...')
+        #rs.cPrint()
+        print(rs.sample())
+        print(rs.sample())
+        print(rs.sample())
     print('Leaving scope...')
+
 
 if __name__ == '__main__':
     main(*sys.argv[1:])

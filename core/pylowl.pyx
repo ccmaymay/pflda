@@ -79,6 +79,12 @@ cdef class ReservoirSampler:
     def cPrint(self):
         lowl.reservoirsampler_print(self._rs)
 
+    def sample(self):
+        cdef lowl.size_t idx
+        lowl.reservoirsampler_sample(self._rs, &idx)
+        # TODO error code
+        return idx
+
     def __dealloc__(self):
         if self._rs is not NULL:
             lowl.reservoirsampler_destroy(self._rs)
@@ -110,7 +116,7 @@ class ValuedReservoirSampler(object):
             i = 0
             for line in f:
                 if i < self.occupied():
-                    self.values[i] = line
+                    self.values[i] = line.rstrip()
                 i += 1
 
     def write(self, filename, values_filename):
@@ -125,6 +131,11 @@ class ValuedReservoirSampler(object):
 
     def occupied(self):
         return self.rs.occupied()
+
+    def sample(self):
+        idx = self.rs.sample()
+        # TODO error code
+        return self.values[idx]
 
     def cPrint(self):
         self.rs.cPrint()

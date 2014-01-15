@@ -77,3 +77,9 @@ int reservoirsampler_read(reservoirsampler* rs, FILE* fp) {
   fread( rs->sample, sizeof( lowl_key ), reservoirsampler_occupied(rs), fp);
   return 0;
 }
+
+int reservoirsampler_sample(reservoirsampler* rs, size_t *idx) {
+  size_t occupied = reservoirsampler_occupied(rs);
+  *idx = random() % occupied; // TODO not uniform
+  return 0;
+}

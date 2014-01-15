@@ -22,5 +22,6 @@ size_t reservoirsampler_occupied(reservoirsampler* rs);
 void reservoirsampler_print(reservoirsampler* rs);
 void reservoirsampler_write(reservoirsampler* rs, FILE* fp);
 int reservoirsampler_read(reservoirsampler* rs, FILE* fp);
+int reservoirsampler_sample(reservoirsampler* rs, size_t *idx);
 
 #endif
