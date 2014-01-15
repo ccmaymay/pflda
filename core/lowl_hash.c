@@ -206,7 +206,8 @@ int rarr_upsize(rarr* lr) {
   /* copy the old array into the new one. */
   memcpy( newarray, lr->array, oldCap*sizeof(rarr_entry) );
   /* free the old memory, which we no longer need. */
-  free( lr->array );
+  if (lr->array != NULL)
+    free( lr->array );
   /* clear the remaining new memory to be all "NULL" keys. */
   memset( &( newarray[oldCap] ), 0, oldCap*sizeof(rarr_entry) );
   /* set the array to point to the new memory. */
@@ -234,7 +235,8 @@ int rarr_downsize(rarr* lr) {
         downsizing the array indicates that we do not need these entries. */
   memcpy( newarray, lr->array, newCap*sizeof(rarr_entry) );
   /* free the old memory, which we no longer need. */
-  free( lr->array );
+  if (lr->array != NULL)
+    free( lr->array );
   /* set the array to point to the new memory. */
   lr->array = newarray;
   /* update the capacity of the array. */
@@ -246,7 +248,8 @@ int rarr_downsize(rarr* lr) {
 int rarr_destroy(rarr* lr) {
   /* deal with the various freeing of memory that needs to be done
         internal to the resizable array. */
-  free( lr->array );
+  if (lr->array != NULL)
+    free( lr->array );
   lr->array = NULL;
   lr->capacity = 0;
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
@@ -416,12 +419,15 @@ void ht_key_to_count_clear( ht_key_to_count* ht ) {
 } 
 
 void ht_key_to_count_destroy( ht_key_to_count* ht ) {
-  free( ht->hashfn );
+  if (ht->hashfn != NULL)
+    free( ht->hashfn );
   ht->hashfn = NULL;
   rarr_destroy( ht->table );
-  free( ht->table );
+  if (ht->table != NULL)
+    free( ht->table );
   ht->table = NULL;
-  free( ht->populace_table );
+  if (ht->populace_table != NULL)
+    free( ht->populace_table );
   ht->populace_table = NULL;
   ht->size = 0;
 }

@@ -77,12 +77,14 @@ void cmsketch_clear( cmsketch* cm ) {
 }
 
 void cmsketch_destroy( cmsketch* cm ) {
-  free( cm->hashes );
+  if (cm->hashes != NULL)
+    free( cm->hashes );
   cm->hashes = NULL;
   unsigned int i;
   for( i=0; i<cm->depth; i++ ) {
-    free( cm->counters+i );
-    (cm->counters)[i] = NULL;
+    if (cm->counters[i] != NULL)
+      free(cm->counters[i]);
+    (cm->counters[i]) = NULL;
   }
 }
 
@@ -215,10 +217,12 @@ int bloomfilter_read(bloomfilter* f, FILE* fp) {
 }
 
 void bloomfilter_destroy(bloomfilter* f) {
-  free(f->b);
-  free(f->mask);
-
+  if (f->b != NULL)
+    free(f->b);
   f->b = NULL;
+
+  if (f->mask != NULL)
+    free(f->mask);
   f->mask = NULL;
 }
 

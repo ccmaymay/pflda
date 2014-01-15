@@ -17,7 +17,8 @@ int reservoirsampler_init(reservoirsampler* rs, size_t capacity) {
 }
 
 void reservoirsampler_destroy(reservoirsampler* rs) {
-  free(rs->sample);
+  if (rs->sample != NULL)
+    free(rs->sample);
   rs->sample = NULL;
 }
 

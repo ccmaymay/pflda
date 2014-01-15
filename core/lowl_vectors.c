@@ -133,7 +133,8 @@ void bitvector_clear( bitvector* bv ) {
 }
 
 void bitvector_destroy( bitvector* bv ) {
-  free( bv->bits );
+  if (bv->bits != NULL)
+    free( bv->bits );
   bv->bits = NULL;
   bv->numbits = 0;
 }
