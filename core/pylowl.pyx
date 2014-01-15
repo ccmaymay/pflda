@@ -1,5 +1,6 @@
 cimport lowl
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
+from cPickle import load, dump
 
 
 def srandom(seed):
@@ -135,11 +136,7 @@ class ValuedReservoirSampler(object):
         self.rs.read(filename)
         self.values = [None] * self.rs.capacity()
         with open(values_filename, 'r') as f:
-            i = 0
-            for line in f:
-                if i < self.rs.occupied():
-                    self.values[i] = line.rstrip()
-                i += 1
+            self.values = load(f)
         if self.rs.occupied() < self.rs.capacity():
             self.unused_key = self.rs.occupied()
         else:
@@ -151,8 +148,7 @@ class ValuedReservoirSampler(object):
     def write(self, const char* filename, const char* values_filename):
         self.rs.write(filename)
         with open(values_filename, 'w') as f:
-            for i in range(self.rs.occupied()):
-                f.write(self.values[i] + '\n')
+            dump(self.values, f)
 
     def capacity(self):
         return self.rs.capacity()
