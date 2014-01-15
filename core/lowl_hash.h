@@ -34,7 +34,7 @@ void char_hash_arm(char_hash* ch);
 	b is a positive non-negative integer 0<b<2^(w-M)
 	where
 	w is the number of bits in a machine word (e.g., w=32)
-	M is such that m = 2^M, where m is the number of "bins".  */
+	M is such that m = 3^M, where m is the number of "bins".  */
 typedef struct lowl_key_hash{
     unsigned long a;
     unsigned long b;
@@ -76,5 +76,83 @@ int motrag_hash_init( motrag_hash* lmh,
 unsigned int motrag_map( unsigned int input, motrag_hash* lmh);
 
 void motrag_hash_arm( motrag_hash* lmh );
+
+
+
+/********************************************************
+ *							*
+ *	Resizable array for use in hash tables.		*
+ *							*
+ ********************************************************/
+ /* entry of a rarr. */
+typedef struct rarr_entry{
+  lowl_key key;
+  lowl_count value;
+}rarr_entry;
+
+rarr_entry rarr_entry_from_kvpair( lowl_key k, lowl_count v);
+
+/* resizable array, for use in hash tables. */
+typedef struct rarr{
+  unsigned int capacity; /* total number of slots available */
+  rarr_entry* array;
+}rarr;
+
+int rarr_init(rarr* lr, unsigned int cap);
+void rarr_clear(rarr* lr);
+int rarr_set(rarr* lr, unsigned int loc, rarr_entry elmt);
+int rarr_get(rarr* lr, unsigned int loc, rarr_entry* elmt);
+int rarr_upsize(rarr* lr);
+int rarr_downsize(rarr* lr);
+int rarr_destroy(rarr* lr);
+#define rarr_capacity(rarr) ((rarr)->capacity)
+
+/********************************************************
+ *							*
+ *	Hash table for <lowl_key,lowl_count>		*
+ *							*
+ ********************************************************/
+typedef struct ht_key_to_count{
+  lowl_key_hash* hashfn;
+  rarr* table;
+  /* use a bit vector to record which entries actually have things stored
+	in them	*/
+  bitvector populace_table; 
+  unsigned int size; /* number of elements we've inserted. */
+}ht_key_to_count;
+
+int ht_key_to_count_init( ht_key_to_count* ht, unsigned int capacity );
+int ht_key_to_count_set( ht_key_to_count* ht, lowl_key key, lowl_count val);
+int ht_key_to_count_get( ht_key_to_count* ht, lowl_key key, lowl_count* val);
+int ht_key_to_count_findslot( ht_key_to_count* ht, lowl_key key,
+				lowl_hashoutput* location );
+int ht_key_to_count_entryispopulated( ht_key_to_count* ht,
+					lowl_hashoutput location);
+int ht_key_to_count_upsize( ht_key_to_count* ht );
+void ht_key_to_count_clear( ht_key_to_count* ht );
+void ht_key_to_count_destroy( ht_key_to_count* ht );
+float ht_key_to_count_loadfactor( ht_key_to_count* ht);
+#define ht_key_to_count_size(ht) ((ht)->size)
+
+int bitvector_lookup(bitvector* bv, unsigned int numbits, unsigned int loc);
+void bitvector_clear(bitvector* bv, unsigned int numbits);
+
+/********************************************************
+ *							*
+ *	Hash table for <lowl_key, string>		*
+ *							*
+ ********************************************************/
+
+
+
+
+/********************************************************
+ *							*
+ *	Hash table for <string, lowl_count>		*
+ *							*
+ ********************************************************/
+
+
+
 
 #endif

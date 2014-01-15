@@ -338,6 +338,86 @@ void interp_chi2( double *chi2scores, int numtrials ) {
   printf("\n");
 }
 
+void run_resizablearray_tests() {
+  printf("=== Running tests for resizable arrays. ===\n");
+
+  rarr *lr;
+  lr = malloc( sizeof(rarr) );
+  if( lr == NULL ) {
+    printf( "Memory allocation failed in testing resizable array.\n");
+  }
+  unsigned int orig_cap = 16;
+  /* initialize a resizable array with 16 slots. */
+  rarr_init(lr, orig_cap);
+  assert( lr->capacity == orig_cap );
+  /* verify that entries of lr are zero, as they ought to be */
+  rarr_entry contents;
+  int succ;
+  unsigned int i;
+  for( i=0; i < lr->capacity; i++ ) {
+    succ = rarr_get(lr, (unsigned int) i, &contents);
+    assert( contents.key==0 );
+    assert( contents.value==0 );
+    assert( succ==0 );
+  }
+  /* set some entries to be non-zero and verify that this works correctly. */
+  lowl_count testcount1 = 1969;
+  rarr_entry testentry1 = rarr_entry_from_kvpair(1,testcount1);
+  lowl_count testcount2 = 42;
+  rarr_entry testentry2 = rarr_entry_from_kvpair(2,testcount2);
+  succ = rarr_set(lr, 5, testentry1);
+  assert( succ == 0 );
+  succ = rarr_set(lr, 10, testentry2);
+  assert( succ == 0 );
+  succ = rarr_get(lr, 5, &contents);
+  assert( succ==0 );
+  assert( contents.value == testcount1 );
+  succ = rarr_get(lr, 10, &contents);
+  assert( succ==0 );
+  assert( contents.value == testcount2 );
+  /* try setting an element that is currently out of range. */
+  lowl_count testcount3 = 123456;
+  rarr_entry testentry3 = rarr_entry_from_kvpair(3,testcount3);
+  succ = rarr_set(lr, 16, testentry3);
+  assert( succ != 0 );
+
+  /* upsize the array. */
+  rarr_upsize( lr );
+  assert( lr->capacity == 2*orig_cap );
+  /* check that newly created memory is zero'd */
+  for( i=orig_cap; i < lr->capacity; i++ ) {
+    succ = rarr_get(lr, (unsigned int) i, &contents);
+    assert( contents.value==0 );
+    assert( contents.key==0 );
+    assert( succ==0 );
+  }
+  /* now try inserting the same element. */
+  succ = rarr_set(lr, 16, testentry3);
+  assert( succ == 0 );
+  succ = rarr_get(lr, 16, &contents);
+  assert( succ==0 );
+  assert( contents.value == testcount3 );
+  /* verify that previous elements were preserved correctly. */
+  succ = rarr_get(lr, 5, &contents);
+  assert( succ==0 );
+  assert( contents.value == testcount1 );
+  succ = rarr_get(lr, 10, &contents);
+  assert( succ==0 );
+  assert( contents.value == testcount2 );
+
+
+  /* downsize the array. */
+  succ = rarr_downsize( lr );
+  assert( lr->capacity == orig_cap );
+
+  rarr_destroy( lr );
+  free( lr );
+
+  printf("Success.\n\n");
+
+  return;
+}
+
 void run_bloomfilter_tests() {
 
   printf("=== Running Bloom filter tests. ===\n");
@@ -365,7 +445,7 @@ void run_bloomfilter_tests() {
   return;
 }
 
-int main( int argc, char **argv ) {
+int main( ) {
   srandom(1970);
 
   /**************************************************************
