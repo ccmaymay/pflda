@@ -5,10 +5,6 @@
 #include "lowl_math.h"
 #include "lowl_hash.h"
 
-#define LOWLHASH_INTABLE 0
-#define LOWLHASH_NOTINTABLE 10
-#define HT_KEY_TO_COUNT_MAXLOAD 0.65
-
 /********************************************************
  *                                                      *
  *      Hash functions.					*
@@ -280,15 +276,10 @@ int ht_key_to_count_init( ht_key_to_count* ht, unsigned int capacity ) {
   ht->hashfn = malloc( sizeof(lowl_key_hash) );
   ht->table = malloc( sizeof( rarr ) );
 
-  /* figure out how many chars we need for the populace table
-	and allocate memory as needed. */
   unsigned int nbits_for_bitvector = powposint(2,M);
-  unsigned int nchars_for_bitvector = nbits_for_bitvector/(8*sizeof(char));
-  if( nbits_for_bitvector % 8*sizeof(char) != 0 ){
-    nchars_for_bitvector++;
-  }
-  ht->populace_table = malloc( nchars_for_bitvector*sizeof(char) );
-  bitvector_clear( &(ht->populace_table), nbits_for_bitvector);
+  ht->populace_table = malloc( sizeof( bitvector ) );
+  bitvector_init( ht->populace_table, nbits_for_bitvector );
+  bitvector_clear( ht->populace_table, nbits_for_bitvector);
  
   /* verify that all mallocs were successful before we move on. */
   if( ht->hashfn==NULL || ht->table==NULL || ht->populace_table==NULL ) {
@@ -400,7 +391,7 @@ int ht_key_to_count_entryispopulated( ht_key_to_count* ht,
                                         lowl_hashoutput location) {
   /* return 1 if an entry exists in the hash table at the given location.
 	return 0 otherwise. */
-  return bitvector_lookup( &(ht->populace_table), ht->size, location);
+  return bitvector_lookup( ht->populace_table, location);
 }
 
 int ht_key_to_count_upsize( ht_key_to_count* ht ) {
@@ -434,31 +425,6 @@ void ht_key_to_count_destroy( ht_key_to_count* ht ) {
   ht->size = 0;
 }
 
-int bitvector_lookup(bitvector* bv, unsigned int length, unsigned int loc) {
-  if( loc>=length ) { // location must be 0<=loc<length.
-    return LOWLERR_BADINPUT;
-  }
-
-  /* we want to know which char our desired location is in,
-	and then which bit of thatchar it's in. */
-  unsigned int charindex = loc/(8*sizeof(char));
-  unsigned int bitindex = loc % (8*sizeof(char));
-  char mask = (1 << bitindex);
-  if( ( (*bv)[charindex] | mask) == 0 ) {
-    return 0; /* no bit in this position. */
-  } else {
-    return 1; /* found a bit in this position. */
-  }
-} 
-
-void bitvector_clear(bitvector* bv, unsigned int numbits) {
-  /* set all bits to 0 */
-  unsigned int numchars = numbits/(8*sizeof(char));
-  if( numbits % (8*sizeof(char)) != 0 ) {
-    ++numchars;
-  }
-  memset( bv, 0, numchars*sizeof(char) );
-}
 
 /********************************************************
  *                                                      *

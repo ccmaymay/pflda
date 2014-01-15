@@ -3,6 +3,10 @@
 
 #include "lowl_types.h"
 
+#define LOWLHASH_INTABLE 0
+#define LOWLHASH_NOTINTABLE 10
+#define HT_KEY_TO_COUNT_MAXLOAD 0.65
+
 /* data structures and functions related to hash tables.
 	This includes:
 		hash functions
@@ -114,7 +118,7 @@ typedef struct ht_key_to_count{
   rarr* table;
   /* use a bit vector to record which entries actually have things stored
 	in them	*/
-  bitvector populace_table; 
+  bitvector* populace_table; 
   unsigned int size; /* number of elements we've inserted. */
 }ht_key_to_count;
 
@@ -130,9 +134,6 @@ void ht_key_to_count_clear( ht_key_to_count* ht );
 void ht_key_to_count_destroy( ht_key_to_count* ht );
 float ht_key_to_count_loadfactor( ht_key_to_count* ht);
 #define ht_key_to_count_size(ht) ((ht)->size)
-
-int bitvector_lookup(bitvector* bv, unsigned int numbits, unsigned int loc);
-void bitvector_clear(bitvector* bv, unsigned int numbits);
 
 /********************************************************
  *							*
