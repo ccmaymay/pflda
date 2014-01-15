@@ -25,6 +25,10 @@ CYTHON_VERSION = Cython-0.19.2
 .PHONY: all
 all: $(OBJECTS) $(PY_LIB_FILENAME) $(LIB_FILENAME) tests
 
+.PHONY: apps
+apps: install
+	cd $(APPS_DIR) && make
+
 .PHONY: install
 install: $(LIB_FILENAME) $(PY_LIB_FILENAME)
 	install -m 0755 $^ $(APPS_DIR)
