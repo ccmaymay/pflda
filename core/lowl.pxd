@@ -16,7 +16,7 @@ cdef extern from "lowl_sketch.h":
 
     int  bloomfilter_init(bloomfilter* f, size_t size, unsigned int k)
     void bloomfilter_insert(bloomfilter* f, const char *x, size_t x_len)
-    bool bloomfilter_query(bloomfilter* f, const char *x, size_t x_len)
+    int  bloomfilter_query(bloomfilter* f, const char *x, size_t x_len)
     void bloomfilter_print(bloomfilter* f)
     void bloomfilter_write(bloomfilter* f, FILE* fp)
     int bloomfilter_read(bloomfilter* f, FILE* fp)
@@ -31,6 +31,4 @@ cdef extern from "lowl_sample.h":
     void reservoirsampler_print(reservoirsampler* rs)
     void reservoirsampler_write(reservoirsampler* rs, FILE* fp)
     int reservoirsampler_read(reservoirsampler* rs, FILE* fp)
-    size_t reservoirsampler_capacity(reservoirsampler* rs)
-    size_t reservoirsampler_occupied(reservoirsampler* rs)
     void reservoirsampler_destroy(reservoirsampler* rs)

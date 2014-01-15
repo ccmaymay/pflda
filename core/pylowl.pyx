@@ -53,9 +53,9 @@ cdef class ReservoirSampler:
         # TODO error code
 
     def insert(self, k):
-        cdef lowl.size_t idx
+        cdef size_t idx
         cdef lowl.lowl_key ejected
-        inserted = lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected)
+        inserted = lowl.reservoirsampler_insert(self._rs, k, idx, ejected)
         return (inserted, idx, ejected) # TODO
 
     def read(self, filename):
