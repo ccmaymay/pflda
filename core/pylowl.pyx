@@ -50,24 +50,48 @@ cdef class ReservoirSampler:
 
     def init(self, capacity):
         lowl.reservoirsampler_init(self._rs, capacity)
+        self.values = [None for i in range(capacity)]
         # TODO error code
 
-    def insert(self, k):
+    def insert(self, k, v):
         cdef lowl.size_t idx
         cdef lowl.lowl_key ejected
         inserted = bool(lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected))
-        return (inserted, idx, ejected) # TODO
+        if inserted:
+            if idx < len(self.values):
+                ejected_value = self.values[idx]
+                self.values[idx] = v
+                return ejected_value
+            else:
+                raise Exception('Uh oh.')
+        else:
+            return None
 
-    def read(self, filename):
+    def read(self, filename, values_filename):
         f = lowl.fopen(filename, 'rb')
         lowl.reservoirsampler_read(self._rs, f)
         # TODO error code
         lowl.fclose(f)
 
-    def write(self, filename):
+        self.values = [None for i in range(self.capacity())]
+        with open(values_filename, 'r') as vf:
+            i = 0
+            for line in vf:
+                if i < self.capacity():
+                    self.values[i] = line
+                i += 1
+
+    def write(self, filename, values_filename):
         f = lowl.fopen(filename, 'wb')
         lowl.reservoirsampler_write(self._rs, f)
         lowl.fclose(f)
+
+        with open(values_filename, 'w') as vf:
+            i = 0
+            for v in self.values:
+                if i < self.capacity():
+                    vf.write(v + '\n')
+                i += 1
 
     def capacity(self):
         return lowl.reservoirsampler_capacity(self._rs)
