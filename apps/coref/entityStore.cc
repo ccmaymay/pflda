@@ -133,7 +133,48 @@ public:
     return result;
   }
 };
-
+class DocEntity {
+  std::string eid_;
+  std::string docid_;
+  std::string type_;
+  FeatMap features_;
+  std::string lc(std::str){
+    std::res = str;
+    int size = str.size();
+    for(int i=0;i<size;i++){
+      res[i] = tolower(res[i]);
+    }
+    return res;
+  }  
+  DocEntity(std::string eid, std::string docid, string type){
+    eid_ = eid;
+    docid_ = docid;
+    type_ = lc(type);
+    features_ = new FeatMap();
+  }
+  std::string normalise(std::string s){
+    return lc(s);
+  }
+  void addFeature(std::string prefix, std::string featName){
+    features_.addOne(prefix + normalise(featName));
+  }
+  int lastIndex(char c, std:;string eid){
+    int size = eid.size();
+    for(int i=size-1, i>0, i--){
+      if (eid[i] == c){
+	return i;
+      }
+    }
+    return -1;//error
+  }
+  std::string docIdfromEid(std::string eid){
+    int idx = lastIndex('_', eid); assert(idx != -1);
+    std::string prefix = eid.substr(0, idx);
+  }
+  map<string, DocEntity> loadKB(std::string fName){
+    std::map<std::string, DocEntity> dles;
+    std::map<string, std::map<std::string, bool> entsInDoc;
+    
 class Cluster {
   std::vector<DocEntity> entities_;
   std::set<std::string> normNameSet_;//hash set of normalised names
