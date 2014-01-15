@@ -353,7 +353,8 @@ void run_resizablearray_tests() {
   assert( lr->capacity == orig_cap );
   /* verify that entries of lr are zero, as they ought to be */
   rarr_entry contents;
-  int succ,i;
+  int succ;
+  unsigned int i;
   for( i=0; i < lr->capacity; i++ ) {
     succ = rarr_get(lr, (unsigned int) i, &contents);
     assert( contents.key==0 );
@@ -365,9 +366,9 @@ void run_resizablearray_tests() {
   rarr_entry testentry1 = rarr_entry_from_kvpair(1,testcount1);
   lowl_count testcount2 = 42;
   rarr_entry testentry2 = rarr_entry_from_kvpair(2,testcount2);
-  succ = rarr_set(lr, 5, testcount1);
+  succ = rarr_set(lr, 5, testentry1);
   assert( succ == 0 );
-  succ = rarr_set(lr, 10, testcount2);
+  succ = rarr_set(lr, 10, testentry2);
   assert( succ == 0 );
   succ = rarr_get(lr, 5, &contents);
   assert( succ==0 );
@@ -387,7 +388,8 @@ void run_resizablearray_tests() {
   /* check that newly created memory is zero'd */
   for( i=orig_cap; i < lr->capacity; i++ ) {
     succ = rarr_get(lr, (unsigned int) i, &contents);
-    assert( contents==0 );
+    assert( contents.value==0 );
+    assert( contents.key==0 );
     assert( succ==0 );
   }
   /* now try inserting the same element. */
@@ -444,7 +446,7 @@ void run_bloomfilter_tests() {
   return;
 }
 
-int main( int argc, char **argv ) {
+int main( ) {
   srandom(1970);
 
   /**************************************************************

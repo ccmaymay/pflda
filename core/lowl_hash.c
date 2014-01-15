@@ -143,6 +143,7 @@ rarr_entry rarr_entry_from_kvpair( lowl_key k, lowl_count v) {
   rarr_entry result;
   result.key = k;
   result.value = v;
+  return result;
 }
 
 int rarr_init(rarr* lr, unsigned int cap) {
@@ -280,14 +281,27 @@ int ht_key_to_count_init( ht_key_to_count* ht, unsigned int capacity ) {
   }
   ht->hashfn = malloc( sizeof(lowl_key_hash) );
   ht->table = malloc( sizeof( rarr ) );
-  if( ht->hashfn==NULL || ht->table==NULL ) {
-    return -1;
+
+  /* figure out how many chars we need for the populace table
+	and allocate memory as needed. */
+  unsigned int nbits_for_bitvector = powposint(2,M);
+  unsigned int nchars_for_bitvector = nbits_for_bitvector/(8*sizeof(char));
+  if( nbits_for_bitvector % 8*sizeof(char) != 0 ){
+    nchars_for_bitvector++;
+  }
+  ht->populace_table = malloc( nchars_for_bitvector*sizeof(char) );
+  bitvector_clear(&(ht->populace_table), nbits_for_bitvector);
+ 
+  /* verify that all mallocs were successful before we move on. */
+  if( ht->hashfn==NULL || ht->table==NULL || ht->populace_table==NULL ) {
+    return LOWLERR_BADMALLOC;
   }
 
   lowl_key_hash_init( ht->hashfn, 8*sizeof(lowl_key), M );
   lowl_key_hash_arm( ht->hashfn );
 
-  /* rarr_init sets all entries in the table to 0 */
+  /* rarr_init sets all entries in the table to 0
+	Capacity of the table is 2^M which is >= the given capacity */
   rarr_init( ht->table, powposint(2, M) );
 
   /* hash table is initially empty. */
@@ -383,6 +397,28 @@ int ht_key_to_count_get( ht_key_to_count* ht, lowl_key lkey, lowl_count* val) {
     return LOWLHASH_INTABLE;
   } 
 }
+
+int ht_key_to_count_entryispopulated( ht_key_to_count* ht,
+                                        lowl_hashoutput location) {
+  /* return 1 if an entry exists in the hash table at the given location.
+	return 0 otherwise. */
+  return bitvector_lookup( &(ht->populace_table), ht->size, location);
+}
+
+int ht_key_to_count_upsize( ht_key_to_count* ht ) {
+  /* resize the hash table.
+	This involves a number of steps:
+	1) Create a new array of twice the size of the existing one.
+	2) Create a new populace_table of the same size as this new array.
+	3) Hash all old elements from the old array into the new one.
+		update the new populace table in so doing.
+	4) Free the old, now unused, memory.	*/
+  if( ht == NULL ) {
+    return LOWLERR_BADINPUT;
+  } else {
+    return LOWLERR_BADMALLOC;
+  }
+}
  
 void ht_key_to_count_clear( ht_key_to_count* ht ) {
   rarr_clear( ht->table );
@@ -395,9 +431,36 @@ void ht_key_to_count_destroy( ht_key_to_count* ht ) {
   rarr_destroy( ht->table );
   free( ht->table );
   ht->table = NULL;
+  free( ht->populace_table );
+  ht->populace_table = NULL;
   ht->size = 0;
 }
 
+int bitvector_lookup(bitvector* bv, unsigned int length, unsigned int loc) {
+  if( loc>=length ) { // location must be 0<=loc<length.
+    return LOWLERR_BADINPUT;
+  }
+
+  /* we want to know which char our desired location is in,
+	and then which bit of thatchar it's in. */
+  unsigned int charindex = loc/(8*sizeof(char));
+  unsigned int bitindex = loc % (8*sizeof(char));
+  char mask = (1 << bitindex);
+  if( ( (*bv)[charindex] | mask) == 0 ) {
+    return 0; /* no bit in this position. */
+  } else {
+    return 1; /* found a bit in this position. */
+  }
+} 
+
+void bitvector_clear(bitvector* bv, unsigned int numbits) {
+  /* set all bits to 0 */
+  unsigned int numchars = numbits/(8*sizeof(char));
+  if( numbits % (8*sizeof(char)) != 0 ) {
+    ++numchars;
+  }
+  memset( bv, 0, numchars*sizeof(char) );
+}
 
 /********************************************************
  *                                                      *

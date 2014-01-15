@@ -3,6 +3,10 @@
 
 #include <limits.h>
 
+/* define some basic error codes. */
+#define LOWLERR_BADMALLOC -1
+#define LOWLERR_BADINPUT -2
+
 /* define basic types used throughout lowl. */
 
 /* lowl_keys are used as basic identifiers. We hash on these. */
@@ -20,5 +24,8 @@ typedef unsigned int lowl_hashoutput;
 typedef unsigned int lowl_count;
 #define LOWL_COUNT_MIN 0
 #define LOWL_COUNT_MAX UINT_MAX
+
+/* bitvectors are just arrays of chars-- this typedef is just for convenience.*/
+typedef char* bitvector;
 
 #endif

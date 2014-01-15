@@ -34,7 +34,7 @@ void char_hash_arm(char_hash* ch);
 	b is a positive non-negative integer 0<b<2^(w-M)
 	where
 	w is the number of bits in a machine word (e.g., w=32)
-	M is such that m = 2^M, where m is the number of "bins".  */
+	M is such that m = 3^M, where m is the number of "bins".  */
 typedef struct lowl_key_hash{
     unsigned long a;
     unsigned long b;
@@ -115,6 +115,9 @@ int rarr_destroy(rarr* lr);
 typedef struct ht_key_to_count{
   lowl_key_hash* hashfn;
   rarr* table;
+  /* use a bit vector to record which entries actually have things stored
+	in them	*/
+  bitvector populace_table; 
   unsigned int size; /* number of elements we've inserted. */
 }ht_key_to_count;
 
@@ -123,12 +126,16 @@ int ht_key_to_count_set( ht_key_to_count* ht, lowl_key key, lowl_count val);
 int ht_key_to_count_get( ht_key_to_count* ht, lowl_key key, lowl_count* val);
 int ht_key_to_count_findslot( ht_key_to_count* ht, lowl_key key,
 				lowl_hashoutput* location );
-void ht_key_to_count_upsize( ht_key_to_count* ht );
+int ht_key_to_count_entryispopulated( ht_key_to_count* ht,
+					lowl_hashoutput location);
+int ht_key_to_count_upsize( ht_key_to_count* ht );
 void ht_key_to_count_clear( ht_key_to_count* ht );
 void ht_key_to_count_destroy( ht_key_to_count* ht );
 float ht_key_to_count_loadfactor( ht_key_to_count* ht);
 #define ht_key_to_count_size(ht) ((ht)->size)
 
+int bitvector_lookup(bitvector* bv, unsigned int numbits, unsigned int loc);
+void bitvector_clear(bitvector* bv, unsigned int numbits);
 
 /********************************************************
  *							*
