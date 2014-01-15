@@ -53,7 +53,7 @@ test: tests $(PY_LIB_FILENAME)
 	@echo "#                             bridge tests                                     #"
 	@echo "#                                                                              #"
 	@echo "################################################################################"
-	python -m doctest -v $(PY_LIB_FILENAME)
+	python -m doctest --doctest-extension=pyx -v $(PY_LIB_NAME).pyx
 	@echo
 
 $(LIB_FILENAME): $(OBJECTS)

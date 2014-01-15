@@ -8,6 +8,26 @@ def srandom(seed):
 
 
 cdef class BloomFilter:
+    """
+    >>> from pylowl import BloomFilter
+    >>> bf = BloomFilter()
+    >>> bf.init(4, 8)
+    >>> bf.insert("hello, world")
+    >>> bf.insert("hello world")
+    >>> bf.insert("hello, waldorf")
+    >>> bf.query("hello, world")
+    True
+    >>> bf.query("hello world")
+    True
+    >>> bf.query("hello, waldo")
+    False
+    >>> bf.query("hello, waldorf")
+    True
+    >>> bf_noinit = BloomFilter()
+
+    That newline was magical.
+    """
+
     cdef lowl.bloomfilter* _bf
 
     def __cinit__(self):
@@ -46,6 +66,15 @@ cdef class BloomFilter:
 
 
 cdef class ReservoirSampler:
+    """
+    >>> from pylowl import ReservoirSampler
+    >>> rs = ReservoirSampler()
+    >>> rs.init(4)
+    >>> rs_noinit = ReservoirSampler()
+
+    Newlines keep the compiler happy.
+    """
+
     cdef lowl.reservoirsampler* _rs
 
     def __cinit__(self):
@@ -166,8 +195,3 @@ class ValuedReservoirSampler(object):
     def sample(self):
         # TODO check
         return self.values[self.rs.sample()]
-
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
