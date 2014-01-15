@@ -22,7 +22,7 @@ cdef class BloomFilter:
         lowl.bloomfilter_insert(self._bf, x, len(x))
 
     def query(self, x):
-        return bool(lowl.bloomfilter_query(self._bf, x, len(x)))
+        return lowl.bloomfilter_query(self._bf, x, len(x))
 
     def cPrint(self):
         lowl.bloomfilter_print(self._bf)
@@ -60,7 +60,7 @@ cdef class ReservoirSampler:
         cdef lowl.size_t idx
         cdef int ejected
         cdef lowl.lowl_key ejected_key
-        inserted = bool(lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected, &ejected_key))
+        inserted = lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected, &ejected_key)
         return (inserted, idx, ejected, ejected_key)
 
     def read(self, filename):
@@ -88,6 +88,14 @@ cdef class ReservoirSampler:
         lowl.reservoirsampler_sample(self._rs, &idx)
         # TODO error code
         return idx
+
+    def get(self, idx):
+        cdef lowl.lowl_key x
+        cdef int ret
+        ret = lowl.reservoirsampler_get(self._rs, idx, &x)
+        if ret != 0:
+            raise IndexError() # TODO error code
+        return x
 
     def __dealloc__(self):
         if self._rs is not NULL:
@@ -147,5 +155,12 @@ class ValuedReservoirSampler(object):
         # TODO error code
         return self.values[idx]
 
+    def get(self, idx):
+        return self.rs.get(idx)
+
     def cPrint(self):
         self.rs.cPrint()
+
+    def pyPrint(self):
+        for i in range(self.occupied()):
+            print(self.values[i])
