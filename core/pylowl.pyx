@@ -50,6 +50,7 @@ cdef class ReservoirSampler:
 
     def init(self, capacity):
         lowl.reservoirsampler_init(self._rs, capacity)
+        # TODO this...
         self.values = [None for i in range(capacity)]
         # TODO error code
 

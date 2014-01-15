@@ -1,5 +1,6 @@
 BF_FILE = bf.dat
 RS_FILE = rs.dat
+RS_VALUES_FILE = rs_values.dat
 DATA_FILE = ../data/txt/dog.txt
 
 .PHONY: run
@@ -18,11 +19,11 @@ bf: bf.py
 
 .PHONY: rs
 rs: rs.py
-	python -m $@ read $(DATA_FILE) $(RS_FILE)
-	python -m $@ query $(RS_FILE) 'no'
-	python -m $@ query $(RS_FILE) 'dog bark'
-	python -m $@ query $(RS_FILE) 'cat bark'
-	python -m $@ query $(RS_FILE) 'dog clothes'
-	python -m $@ query $(RS_FILE) 'cat clothes'
-	python -m $@ query $(RS_FILE) 'dog everrrr'
-	python -m $@ query $(RS_FILE) 'cat everrrr'
+	python -m $@ read $(DATA_FILE) $(RS_FILE) $(RS_VALUES_FILE)
+	python -m $@ query $(RS_FILE) $(RS_VALUES_FILE)
+	python -m $@ query $(RS_FILE) $(RS_VALUES_FILE)
+	python -m $@ query $(RS_FILE) $(RS_VALUES_FILE)
+	python -m $@ query $(RS_FILE) $(RS_VALUES_FILE)
+	python -m $@ query $(RS_FILE) $(RS_VALUES_FILE)
+	python -m $@ query $(RS_FILE) $(RS_VALUES_FILE)
+	python -m $@ query $(RS_FILE) $(RS_VALUES_FILE)
