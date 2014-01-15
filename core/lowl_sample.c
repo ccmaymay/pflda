@@ -1,4 +1,5 @@
 #include "lowl_sample.h"
+#include <stdlib.h>
 
 /*********************************************************
  *                                                       *
@@ -51,10 +52,10 @@ size_t reservoirsampler_occupied(reservoirsampler* rs) {
 }
 
 void reservoirsampler_print(reservoirsampler* rs) {
-  printf("%u", rs->sample[0]);
+  printf("%u", (unsigned int) rs->sample[0]);
   size_t occupied = reservoirsampler_occupied(rs);
   for (size_t i = 1; i < occupied; ++i)
-    printf(" %u", rs->sample[i]);
+    printf(" %u", (unsigned int) rs->sample[i]);
   for (size_t i = occupied; i < rs->capacity; ++i)
     printf(" ()");
   printf("\n");

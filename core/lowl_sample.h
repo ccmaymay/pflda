@@ -5,6 +5,8 @@
 
 #include "lowl_types.h"
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
 
 typedef struct reservoirsampler {
   size_t capacity;
