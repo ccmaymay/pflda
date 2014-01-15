@@ -52,10 +52,10 @@ public:
   intern_ = new Interner();
   int number1 = 1;
   FeatMap(){
-    hMap_ = new map<int, int>;
+    hMap_ = new std::map<int, int>;
   }
   FeatMap(Interner intern){
-    hMap_ = new map<int, int>;
+    hMap_ = new std::map<int, int>;
     intern_ = intern;
   }
   int get(std::string key){
@@ -282,7 +282,10 @@ class Cluster {
   FeatMap getFeatures(){
     if (feats_ = NULL){
       FeatMap fm = new FeatMap();
-      
+      std::vector<DocEntity>::iterator end = entities.end();
+      for(std::vector<DocEntity>::iterator it = entities.start();
+	  it != end; ++it){
+	int size = //line 31 of cluster.java
 };
 
 class EntityStore {
