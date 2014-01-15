@@ -6,7 +6,7 @@ def main(cmd, *args):
         raise Exception('Invalid io flag')
 
     print('Constructing reservoir sampler...')
-    rs = pylowl.ReservoirSampler()
+    rs = pylowl.ValuedReservoirSampler()
     print('Initializing reservoir sampler...')
     rs.init(16)
     if cmd == 'read':

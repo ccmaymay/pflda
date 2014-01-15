@@ -43,7 +43,6 @@ cdef class BloomFilter:
 
 cdef class ReservoirSampler:
     cdef lowl.reservoirsampler* _rs
-    cdef void** values
 
     def __cinit__(self):
         self._rs = <lowl.reservoirsampler *>PyMem_Malloc(sizeof(lowl.reservoirsampler))
@@ -52,51 +51,24 @@ cdef class ReservoirSampler:
 
     def init(self, capacity):
         lowl.reservoirsampler_init(self._rs, capacity)
-        self.values = <void **>PyMem_Malloc(sizeof(void*) * capacity)
-        if self.values is NULL:
-            raise MemoryError()
         # TODO error code
 
-    def insert(self, k, v):
+    def insert(self, k):
         cdef lowl.size_t idx
         cdef lowl.lowl_key ejected
         inserted = bool(lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected))
-        if inserted:
-            ejected_value = self.values[idx]
-            self.values[idx] = PyCObject_AsVoidPtr(v)
-            if ejected_value is NULL:
-                return None
-            else:
-                return PyCObject_FromVoidPtr(ejected_value, NULL)
-        else:
-            return None
+        return (inserted, idx, ejected)
 
-    def read(self, filename, values_filename):
+    def read(self, filename):
         f = lowl.fopen(filename, 'rb')
         lowl.reservoirsampler_read(self._rs, f)
         # TODO error code
         lowl.fclose(f)
 
-        if self.values is not NULL:
-            PyMem_Free(self.values)
-        self.values = <void **>PyMem_Malloc(sizeof(void*) * self.capacity())
-        if self.values is NULL:
-            raise MemoryError()
-        with open(values_filename, 'r') as vf:
-            i = 0
-            for line in vf:
-                if i < self.occupied():
-                    self.values[i] = PyCObject_AsVoidPtr(line)
-                i += 1
-
-    def write(self, filename, values_filename):
+    def write(self, filename):
         f = lowl.fopen(filename, 'wb')
         lowl.reservoirsampler_write(self._rs, f)
         lowl.fclose(f)
-
-        with open(values_filename, 'w') as vf:
-            for i in range(self.occupied()):
-                vf.write(PyCObject_FromVoidPtr(self.values[i], NULL) + '\n')
 
     def capacity(self):
         return lowl.reservoirsampler_capacity(self._rs)
@@ -111,5 +83,48 @@ cdef class ReservoirSampler:
         if self._rs is not NULL:
             lowl.reservoirsampler_destroy(self._rs)
             PyMem_Free(self._rs)
-        if self.values is not NULL:
-            PyMem_Free(self.values)
+
+
+class ValuedReservoirSampler(object):
+    def __init__(self):
+        self.rs = ReservoirSampler()
+        self.values = None
+
+    def init(self, capacity):
+        self.rs.init(capacity)
+        # TODO error code
+        self.values = [None for i in range(capacity)]
+
+    def insert(self, k, v):
+        (inserted, idx, ejected) = self.rs.insert(k)
+        if inserted:
+            self.values[idx] = v
+        return ejected
+
+    def read(self, filename, values_filename):
+        self.rs.read(filename)
+        # TODO error code
+
+        self.values = [None for i in range(self.capacity())]
+        with open(values_filename, 'r') as f:
+            i = 0
+            for line in f:
+                if i < self.occupied():
+                    self.values[i] = line
+                i += 1
+
+    def write(self, filename, values_filename):
+        self.rs.write(filename)
+
+        with open(values_filename, 'w') as f:
+            for i in range(self.occupied()):
+                f.write(self.values[i] + '\n')
+
+    def capacity(self):
+        return self.rs.capacity()
+
+    def occupied(self):
+        return self.rs.occupied()
+
+    def cPrint(self):
+        self.rs.cPrint()
