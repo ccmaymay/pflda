@@ -2,6 +2,7 @@
 #define LOWLHASH_H
 
 #include "lowl_types.h"
+#include "lowl_vectors.h"
 
 #define LOWLHASH_INTABLE 0
 #define LOWLHASH_NOTINTABLE 10

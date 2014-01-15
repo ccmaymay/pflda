@@ -3,6 +3,7 @@
 #include <math.h>
 #include "lowl_types.h"
 #include "lowl_math.h"
+#include "lowl_vectors.h"
 #include "lowl_hash.h"
 
 /********************************************************
@@ -279,7 +280,7 @@ int ht_key_to_count_init( ht_key_to_count* ht, unsigned int capacity ) {
   unsigned int nbits_for_bitvector = powposint(2,M);
   ht->populace_table = malloc( sizeof( bitvector ) );
   bitvector_init( ht->populace_table, nbits_for_bitvector );
-  bitvector_clear( ht->populace_table, nbits_for_bitvector);
+  bitvector_clear( ht->populace_table );
  
   /* verify that all mallocs were successful before we move on. */
   if( ht->hashfn==NULL || ht->table==NULL || ht->populace_table==NULL ) {

@@ -28,7 +28,4 @@ typedef unsigned int lowl_count;
 #define LOWL_COUNT_MIN 0
 #define LOWL_COUNT_MAX UINT_MAX
 
-/* bitvectors are just arrays of chars-- this typedef is just for convenience.*/
-typedef char* bitvector;
-
 #endif

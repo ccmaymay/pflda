@@ -8,6 +8,7 @@
 #include "lowl_hash.h"
 #include "lowl_math.h"
 #include "lowl_sketch.h"
+#include "lowl_vectors.h"
 
 #define test(name, f) do { printf("Testing %s... ", name); int ret; if ((ret = (f))) printf("error %d\n", ret); else printf("ok\n"); } while (0);
 #define test_bool(name, f) test(name, (f ? 0 : 1));
@@ -418,6 +419,83 @@ void run_resizablearray_tests() {
   return;
 }
 
+void run_bitvector_tests() {
+
+  printf("=== Running bitvector tests. ===\n");
+
+  /* check that our lookups of bit indices works correctly. */
+  unsigned int bitindex, charindex;
+
+  bitvector_find_indices(0, &charindex, &bitindex);
+  assert( bitindex == 0 );
+  assert( charindex == 0 );
+
+  bitvector_find_indices(1, &charindex, &bitindex);
+  assert( bitindex == 1 );
+  assert( charindex == 0 );
+
+  bitvector_find_indices(8, &charindex, &bitindex);
+  assert( bitindex == 0 );
+  assert( charindex == 1 );
+
+  bitvector_find_indices(7, &charindex, &bitindex);
+  assert( bitindex == 7 );
+  assert( charindex == 0 );
+
+  bitvector_find_indices(15, &charindex, &bitindex);
+  assert( bitindex == 7 );
+  assert( charindex == 1 );
+  
+
+  bitvector *bv = malloc( sizeof(bitvector) );
+  if( bv==NULL ) {
+    printf("Memory allocation failed in bitvector test.\n\n");
+    return;
+  }
+  unsigned int nbits = 100;
+  int succ = bitvector_init(bv, nbits);
+  if( succ==LOWLERR_BADMALLOC ) {
+    printf("Memory allocation failed in bitvector test.\n\n");
+    return;
+  }
+
+  /* verify that all bits are 0. */
+  unsigned int i;
+  for(i=0; i<nbits; i++) {
+    assert( bitvector_lookup(bv, i)==0 );
+  }
+
+  /* try settings some bits to 1. */
+  bitvector_on( bv, 10 );
+  assert( bitvector_lookup(bv, 10)==1 );
+  bitvector_on( bv, 99 );
+  assert( bitvector_lookup(bv, 99)==1 );
+  assert( bitvector_lookup(bv, 11) == 0 );
+  assert( bitvector_lookup(bv, 9) == 0 );
+  assert( bitvector_lookup(bv, 98) == 0 );
+  /* make sure error gets thrown correctly. */
+  assert( bitvector_lookup(bv, 100) == LOWLERR_BADINPUT );
+
+  /* try setting some bits to 0. */
+  bitvector_off( bv, 1 ); // this was already off.
+  bitvector_off( bv, 10 ); // this was previously on.
+  assert( bitvector_lookup(bv, 1) == 0 );
+  assert( bitvector_lookup(bv, 10) == 0 );
+
+  /* flip some bits. */
+  bitvector_flip( bv, 1);
+  bitvector_flip( bv, 99); 
+  assert( bitvector_lookup(bv, 1)==1 );
+  assert( bitvector_lookup(bv, 99)==0 );
+  
+
+  bitvector_destroy( bv );
+  free(bv); 
+
+  printf("Success.\n\n");
+  return;
+}
+
 void run_bloomfilter_tests() {
 
   printf("=== Running Bloom filter tests. ===\n");
@@ -456,7 +534,17 @@ void run_ht_key_to_count_tests() {
   }
 
   int succ =  ht_key_to_count_init( ht, 256 );
+  if( succ==LOWLERR_BADMALLOC ) {
+    printf("Memory allocation failed in initializing ht_key_to_count.\n");
+    return;
+  }
   assert( succ==0 );
+
+  /* try adding an element to the table. */
+  lowl_key current_key = 1901;
+  lowl_count current_val = 666;
+  succ = ht_key_to_count_set( ht, current_key, current_val );
+  assert( succ==LOWLHASH_NOTINTABLE );
 
   ht_key_to_count_destroy( ht );
   free( ht );
@@ -495,13 +583,22 @@ int main( ) {
 
   run_motwani_tests();
 
+  run_ht_key_to_count_tests();
+
   /**************************************************************
    *								*
-   *	 Tests for lowl_bloom.c 					*
+   *	 Tests for lowl_bloom.c 				*
    *								*
    **************************************************************/
 
   run_bloomfilter_tests();
+
+  /**************************************************************
+   *								*
+   *	Tests for lowl_vectors.c				*
+   *								*
+   **************************************************************/
+  run_bitvector_tests();
 
   printf("All tests completed.\n");
   return 0;
