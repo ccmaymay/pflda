@@ -446,7 +446,6 @@ void run_bitvector_tests() {
   assert( bitindex == 7 );
   assert( charindex == 1 );
   
-
   bitvector *bv = malloc( sizeof(bitvector) );
   if( bv==NULL ) {
     printf("Memory allocation failed in bitvector test.\n\n");
@@ -487,7 +486,26 @@ void run_bitvector_tests() {
   bitvector_flip( bv, 99); 
   assert( bitvector_lookup(bv, 1)==1 );
   assert( bitvector_lookup(bv, 99)==0 );
-  
+
+  /* set multiple bits at once. */
+  bitvector_set( bv, 15, 55, 3 );
+  printf("\n");
+  assert( bitvector_lookup(bv, 55)==1 );
+  assert( bitvector_lookup(bv, 56)==1 );
+  assert( bitvector_lookup(bv, 57)==1 );
+  assert( bitvector_lookup(bv, 58)==0 );
+
+  /* verify that this still works when the bits we're setting cross
+	the boundaries of two chars.  */
+  bitvector_set( bv, 127, 70, 6);
+  assert( bitvector_lookup( bv, 69)==0 );
+  assert( bitvector_lookup( bv, 70)==1 );
+  assert( bitvector_lookup( bv, 71)==1 );
+  assert( bitvector_lookup( bv, 72)==1 );
+  assert( bitvector_lookup( bv, 73)==1 );
+  assert( bitvector_lookup( bv, 74)==1 );
+  assert( bitvector_lookup( bv, 75)==1 );
+  assert( bitvector_lookup( bv, 76)==0 );
 
   bitvector_destroy( bv );
   free(bv); 

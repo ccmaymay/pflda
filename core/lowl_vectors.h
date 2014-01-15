@@ -15,8 +15,11 @@ void bitvector_find_indices( 	unsigned int loc,
 int bitvector_on( bitvector* bv, unsigned int loc);
 int bitvector_off( bitvector* bv, unsigned int loc);
 int bitvector_flip( bitvector* bv, unsigned int loc);
+int bitvector_set( bitvector* bv, char byte,
+			unsigned int start, unsigned int nbits );
 int bitvector_lookup( bitvector* bv, unsigned int loc);
-void bitvector_clear( bitvector* bv );   
+void bitvector_clear( bitvector* bv );
+void bitvector_print( bitvector* bv ); 
 void bitvector_destroy( bitvector* bv );
 
 typedef struct vector{

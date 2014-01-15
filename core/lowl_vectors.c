@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "lowl_vectors.h"
 
 int bitvector_init(bitvector* bv, unsigned int numbits) {
@@ -47,7 +48,72 @@ void bitvector_find_indices( unsigned int loc, unsigned int* charindex,
 
   return;
 }
-  
+
+int bitvector_set( bitvector* bv, char byte,
+                        unsigned int start, unsigned int nbits ) {
+  /* set the first nbits starting at start in the given bitvector
+	to the first nbits of the given char byte.
+	Bits are counted from the right of the byte. So the 3rd bit of
+	00010101 is 1.
+
+	Return an error code.	*/
+
+  if( start+nbits-1 >= bv->numbits ) {
+    return LOWLERR_BADINPUT;
+  }
+
+  unsigned int charindex,bitindex;
+  bitvector_find_indices( start, &charindex, &bitindex );
+
+  /* the picture looks like this:
+        start: 11, nbits: 7,
+        bitvector: 00101101 10111100 00100001, byte: 00111010
+                               XXXXX XX
+	Bits with X under them are goingto be set. The result will look like
+	bitvector: 00101101 10100111 01100001
+	NOTE: This picture assumes that we count bits left to right.
+	Unfortunately, the actual way that we count bits on the machine
+	does not conform to this picture, which is quite unfortunate,
+	but that's the way the cookie crumbles. The mental model
+	behaves this way, and if you print a bitvector, it will look
+	like this picture. */
+
+  /* figure out how many of the bits we are setting lie in one char
+	and how many lie in the second one. We have to do this because it's
+	possible that the run of bits we're setting actually spans two
+	chars in the bitvector's underlying representation. */
+  unsigned int nbits_in_first_char, nbits_in_second_char;
+  if( bitindex + nbits <= 8*sizeof(char) ) {
+    nbits_in_first_char = nbits;
+    nbits_in_second_char = 0;
+  } else {
+    nbits_in_second_char = (nbits + bitindex) % (8*sizeof(char));
+    nbits_in_first_char = nbits - nbits_in_second_char;
+  }
+
+  /* set the bits in the first char. */
+  unsigned char mask = 0;
+  unsigned int i;
+  for(i=0; i<nbits_in_first_char; i++) {
+    mask = (mask << 1) | 1;
+  }
+  /* now left-shift the whole mask so that we select the upper bits. */
+  mask = (mask << bitindex);
+  (bv->bits)[charindex] &= ~mask; /*zero the bits that we're about to set.*/
+  (bv->bits)[charindex] |= (mask & (byte << bitindex));
+
+  if( nbits_in_second_char==0 ) {
+    return 0; /* no bits need to be set inthe second char */
+  }
+  for(i=0; i<nbits_in_second_char; i++) {
+    mask = ((mask << 1) | 1);
+  }
+  (bv->bits)[charindex+1] &= ~mask; /*zero the bits we're about to set. */
+  (bv->bits)[charindex+1] |= (mask & byte);
+
+  return 0;
+}
+
 int bitvector_on( bitvector* bv, unsigned int loc) {
   /* set the bit at location loc to 1.
 	return a success code.	*/
@@ -124,12 +190,21 @@ int bitvector_lookup(bitvector* bv, unsigned int loc) {
 }
 
 void bitvector_clear( bitvector* bv ) {
-  /* set all bits to 0 */
+  /* set all bits in the vector to 0 */
   unsigned int numchars = (bv->numbits)/(8*sizeof(char));
   if( bv->numbits % (8*sizeof(char)) != 0 ) {
     ++numchars;
   }
   memset( bv->bits, 0, numchars*sizeof(char) );
+}
+
+void bitvector_print( bitvector* bv ) {
+  /* print the bits of the bitvector in human-readable format. */
+  unsigned int i;
+  for(i=0; i<bv->numbits; ++i) {
+    printf( "%d",bitvector_lookup(bv, i) );
+  }
+  printf("\n");
 }
 
 void bitvector_destroy( bitvector* bv ) {
