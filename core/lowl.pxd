@@ -1,6 +1,5 @@
 from libc.stdio cimport FILE
 from libc.stddef cimport size_t
-from cpython cimport bool
 
 cdef extern from "stdio.h":
     FILE *fopen(const char *filename, const char *mode)
