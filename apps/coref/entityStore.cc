@@ -52,10 +52,10 @@ public:
   intern_ = new Interner();
   int number1 = 1;
   FeatMap(){
-    hMap_ = new map<int, int>;
+    hMap_ = new std::map<int, int>;
   }
   FeatMap(Interner intern){
-    hMap_ = new map<int, int>;
+    hMap_ = new std::map<int, int>;
     intern_ = intern;
   }
   int get(std::string key){
@@ -174,17 +174,118 @@ class DocEntity {
   map<string, DocEntity> loadKB(std::string fName){
     std::map<std::string, DocEntity> dles;
     std::map<string, std::map<std::string, bool> entsInDoc;
-    
+    std::string line;
+    ifstream fp;
+    fp.open(fName.c_str());
+    while(getline(fp, line)){
+      std::vector<string> pieces;
+      boost::split(pieces, line, boost::is_any_of("\t"));
+      if (pieces.size() < 3 || pieces.size() == 0 || line[0] == '#')
+	continue;
+      std::string entId = pieces[0];
+      if (entId.size() < 1 || endId[0] != ':')
+	continue;
+      std::string did = docIdFromEid(entId);
+      if (entsInDoc.find(did) != entsInDoc.end()){
+	std::map<string, bool> newSet;//probably needs to be a new
+	entsIndDoc[did] = newSet;  //probably needs to be a pointer
+      } 
+      (entsinDoc[did])[entId]=true;
+      // "type"
+      if (pieces[1] == "type"){
+	DocEntity dle = new DocEntity(entId, docIdFromEid(entId), pieces[2]);
+	dles[entId] = dle;
+      }
+      if (pieces[1] == "mention"){
+	if (dles.find(endId) == dles.end()){
+	  continue;
+	}
+	if (pieces.size() < 6 || pieces[4] == "-1" ||
+	    pieces[6] == "-1"){
+	  continue;
+	}
+	dle.addFeature("n:", pieces[2]);
+      }
+    }
+    fp.close();
+    // 2nd pass
+    fp.open(fName.c_str());
+    line = "";
+    while(getline(fp, line)){
+      std::vector<string> pieces;
+      boost::split(pieces, line, boost::is_any_of("\t"));
+      if (pieces.size() < 3 || line.size() == 0 || line[0] == '#')
+	continue;
+      std::string entId = pieces[0];
+      if (entId.size() < 1 || entId[0] != ':')
+	continue;
+      std::string did = docIdFromEid(entId);
+      // FeatMap present names // co-occuring NE strings
+      if (pieces[1] == "mention"){
+	if (pieces.size() < 6 || pieces[4] == "-1" || 
+	    pieces[5] == "-1")
+	  continue;
+	sstd::map<string, bool>::iterator it = entsInDoc.find(did);
+	if (it == entsinDoc.end())
+	  continue;
+	std::map<string, bool>::iterator fellowEnts = it.second;
+	std::map<string, bool>::iterator end = fellowEnts.end();
+	for(std::map<string, bool>::iterator iter = fellowEnts.begin();
+	    iter != end; ++it){
+	  std::string ent = iter.first;
+	  if (ent == entId)
+	    continue;
+	  DocEntity dle = dles[ent];
+	  dle.addFeature("c:",pieces[2]);
+	}      
+      }
+      fp.close();
+    }
+    return dles;
+  }
+  std::string toString(){
+    std::string sb;
+    sb = sb + "Entity ID: " + eid + "\n";
+    sb = sb + "Doc ID: " + docId + "\n";
+    sb = sb + "Type: " + type + "\n";
+    sb = sb + "\nFeatures:\n";
+    sb = sb + features.toString();
+    return sb;
+  }
+  // may need to deal with main method in DocEntity.java 
+};
 class Cluster {
-  std::vector<DocEntity> entities_;
+  std::vector<DocEntity> entities_;//needs to be pointer
   std::set<std::string> normNameSet_;//hash set of normalised names
   std::vector<std::string> rawnames_; // hash set of raw names
   FeatMap feats;
   std::map<string, bool> dids; // hash set of docids
   Cluster(DocEntity docent){
     entities_ = new std::vector<DocEntity>;
-    entities_.psh_back(docent);
+    entities_.push_back(docent);
   }
+  Cluster(DocEntity docent){
+    entities_ = new std::vector<DocEntity>;
+    entities->push_back(docent);
+  }
+  Cluster (std::vector<DocEntity> c1, std::vector<DocEntity> c2){
+    entities_ = mew std::vector<DocEntity>;
+    int size = c1.size();
+    for(int i=0;i<size;i++){
+      entities.push_back(c1[i]);
+    }
+    size = c2.size();
+    for(int i=0;i<size;i++){
+      entities.push_back(c2[i]);
+    }
+  }
+  FeatMap getFeatures(){
+    if (feats_ = NULL){
+      FeatMap fm = new FeatMap();
+      std::vector<DocEntity>::iterator end = entities.end();
+      for(std::vector<DocEntity>::iterator it = entities.start();
+	  it != end; ++it){
+	int size = //line 31 of cluster.java
 };
 
 class EntityStore {

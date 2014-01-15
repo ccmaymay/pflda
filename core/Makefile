@@ -40,8 +40,21 @@ tests: tests.c lowl_math.h lowl_hash.h $(LIB_FILENAME)
 	$(CC) $(CC_FLAGS) $< -Wl,-rpath,. -L. -l$(LIB_NAME) -lm -o $@
 
 .PHONY: test
-test: tests
+test: tests $(PY_LIB_FILENAME)
+	@echo "################################################################################"
+	@echo "#                                                                              #"
+	@echo "#                             core tests                                       #"
+	@echo "#                                                                              #"
+	@echo "################################################################################"
 	./tests
+	@echo
+	@echo "################################################################################"
+	@echo "#                                                                              #"
+	@echo "#                             bridge tests                                     #"
+	@echo "#                                                                              #"
+	@echo "################################################################################"
+	python -m doctest --doctest-extension=pyx -v $(PY_LIB_NAME).pyx
+	@echo
 
 $(LIB_FILENAME): $(OBJECTS)
 	$(LD) -shared -Wl,-rpath,. -Wl,$(LIB_FILENAME_FLAG),$(LIB_FILENAME) -lm -o $@ $(OBJECTS)

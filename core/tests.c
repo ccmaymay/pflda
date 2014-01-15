@@ -515,15 +515,14 @@ void run_bitvector_tests() {
 }
 
 void run_bloomfilter_tests() {
-
   printf("=== Running Bloom filter tests. ===\n");
 
   bloomfilter* bf = malloc( sizeof(bloomfilter) );
   /* make a big bloom filter. */
   int succ = bloomfilter_init(bf, 1024, 32);
 
-  if( succ==-1 || bf==NULL ) {
-    printf("Memory allocation failed in Bloom filter test.\n\n");
+  if( succ!=0 || bf==NULL ) {
+    printf("Init failed in Bloom filter test.\n\n");
     return;
   }
 
@@ -619,5 +618,5 @@ int main( ) {
   run_bitvector_tests();
 
   printf("All tests completed.\n");
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }

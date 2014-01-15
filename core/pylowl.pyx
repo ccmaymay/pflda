@@ -1,5 +1,6 @@
 cimport lowl
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
+from cPickle import load, dump
 
 
 def srandom(seed):
@@ -7,14 +8,35 @@ def srandom(seed):
 
 
 cdef class BloomFilter:
+    """
+    >>> from pylowl import BloomFilter
+    >>> bf = BloomFilter()
+    >>> bf.init(4, 8)
+    >>> bf.insert("hello, world")
+    >>> bf.insert("hello world")
+    >>> bf.insert("hello, waldorf")
+    >>> bf.query("hello, world")
+    True
+    >>> bf.query("hello world")
+    True
+    >>> bf.query("hello, waldo")
+    False
+    >>> bf.query("hello, waldorf")
+    True
+    >>> bf_noinit = BloomFilter()
+
+    That newline was magical.
+    """
+
     cdef lowl.bloomfilter* _bf
 
     def __cinit__(self):
+        self._bf = NULL
+
+    def init(self, size, k):
         self._bf = <lowl.bloomfilter *>PyMem_Malloc(sizeof(lowl.bloomfilter))
         if self._bf is NULL:
             raise MemoryError()
-
-    def init(self, size, k):
         lowl.bloomfilter_init(self._bf, size, k)
         # TODO error code
 
@@ -24,7 +46,7 @@ cdef class BloomFilter:
     def query(self, x):
         return lowl.bloomfilter_query(self._bf, x, len(x))
 
-    def cPrint(self):
+    def prnt(self):
         lowl.bloomfilter_print(self._bf)
 
     def read(self, filename):
@@ -45,57 +67,103 @@ cdef class BloomFilter:
 
 
 cdef class ReservoirSampler:
+    """
+    >>> from pylowl import ReservoirSampler
+    >>> rs = ReservoirSampler()
+    >>> rs.init(4)
+    >>> rs.insert(42)[:3]
+    (True, 0L, False)
+    >>> rs.insert(47)[:3]
+    (True, 1L, False)
+    >>> rs.insert(3)[:3]
+    (True, 2L, False)
+    >>> rs.insert(52)[:3]
+    (True, 3L, False)
+    >>> quad = rs.insert(7)
+    >>> quad[0] == quad[2] # inserted iff ejected
+    True
+    >>> (not quad[0]) or (quad[1] in range(4))
+    True
+    >>> (not quad[2]) or (quad[3] in (42, 47, 3, 52))
+    True
+    >>> inserted = False
+    >>> ejected = False
+    >>> ejected_vals = set()
+    >>> for i in range(10000):
+    ...     quad = rs.insert(i)
+    ...     inserted |= quad[0]
+    ...     ejected_vals.add(quad[3])
+    ...     ejected |= quad[2]
+    >>> set([42, 47, 3, 52]).issubset(ejected_vals)
+    True
+    >>> inserted
+    True
+    >>> ejected
+    True
+    >>> rs_noinit = ReservoirSampler()
+
+    Newlines keep the compiler happy.
+    """
+
     cdef lowl.reservoirsampler* _rs
 
     def __cinit__(self):
+        self._rs = NULL
+
+    cpdef init(self, lowl.size_t capacity):
         self._rs = <lowl.reservoirsampler *>PyMem_Malloc(sizeof(lowl.reservoirsampler))
         if self._rs is NULL:
             raise MemoryError()
-
-    def init(self, capacity):
         lowl.reservoirsampler_init(self._rs, capacity)
         # TODO error code
 
-    def insert(self, k):
+    cdef bint c_insert(self, lowl.lowl_key k, lowl.size_t* idx, bint* ejected, lowl.lowl_key* ejected_key):
+        cdef bint inserted
+        inserted = lowl.reservoirsampler_insert(self._rs, k, idx, ejected, ejected_key)
+        return inserted
+
+    def insert(self, lowl.lowl_key k):
+        cdef bint inserted
         cdef lowl.size_t idx
-        cdef int ejected
+        cdef bint ejected
         cdef lowl.lowl_key ejected_key
-        inserted = lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected, &ejected_key)
+        inserted = self.c_insert(k, &idx, &ejected, &ejected_key)
         return (inserted, idx, ejected, ejected_key)
 
-    def read(self, filename):
+    cpdef read(self, const char* filename):
+        cdef lowl.FILE* f
         f = lowl.fopen(filename, 'rb')
         lowl.reservoirsampler_read(self._rs, f)
         # TODO error code
         lowl.fclose(f)
 
-    def write(self, filename):
+    cpdef write(self, const char* filename):
+        cdef lowl.FILE* f
         f = lowl.fopen(filename, 'wb')
         lowl.reservoirsampler_write(self._rs, f)
         lowl.fclose(f)
 
-    def capacity(self):
+    cpdef lowl.size_t capacity(self):
         return lowl.reservoirsampler_capacity(self._rs)
 
-    def occupied(self):
+    cpdef lowl.size_t occupied(self):
         return lowl.reservoirsampler_occupied(self._rs)
 
-    def cPrint(self):
+    cpdef prnt(self):
         lowl.reservoirsampler_print(self._rs)
 
-    def sample(self):
+    cpdef lowl.size_t sample(self):
         cdef lowl.size_t idx
         lowl.reservoirsampler_sample(self._rs, &idx)
         # TODO error code
         return idx
 
-    def get(self, idx):
-        cdef lowl.lowl_key x
+    cpdef lowl.lowl_key get(self, idx):
         cdef int ret
-        ret = lowl.reservoirsampler_get(self._rs, idx, &x)
-        if ret != 0:
-            raise IndexError() # TODO error code
-        return x
+        cdef lowl.lowl_key k
+        ret = lowl.reservoirsampler_get(self._rs, idx, &k)
+        # TODO bounds/ret check
+        return k
 
     def __dealloc__(self):
         if self._rs is not NULL:
@@ -104,45 +172,49 @@ cdef class ReservoirSampler:
 
 
 class ValuedReservoirSampler(object):
-    def __init__(self):
+    """
+    >>> from pylowl import ValuedReservoirSampler
+    >>> rs = ValuedReservoirSampler(4)
+
+    This newline is valued transitively.
+    """
+    def __init__(self, lowl.size_t capacity):
         self.rs = ReservoirSampler()
-        self.values = None
-
-    def init(self, capacity):
         self.rs.init(capacity)
-        # TODO error code
-        self.values = [None for i in range(capacity)]
+        self.values = [None] * capacity
+        self.unused_key = 0
 
-    def insert(self, k, v):
-        (inserted, idx, ejected, ejected_key) = self.rs.insert(k)
+    def insert(self, object v):
+        (inserted, idx, ejected, ejected_key) = self.rs.insert(self.unused_key)
         if inserted:
             if ejected:
-                prev_value = self.values[idx]
+                ejected_val = self.values[idx]
+                self.unused_key = ejected_key
             else:
-                prev_value = None
+                ejected_val = None
+                self.unused_key += 1
             self.values[idx] = v
         else:
-            prev_value = None
-        return (inserted, prev_value)
+            ejected_val = None
+        return (inserted, idx, ejected, ejected_val)
 
-    def read(self, filename, values_filename):
+    def read(self, const char* filename, const char* values_filename):
         self.rs.read(filename)
-        # TODO error code
-
-        self.values = [None for i in range(self.capacity())]
+        self.values = [None] * self.rs.capacity()
         with open(values_filename, 'r') as f:
-            i = 0
-            for line in f:
-                if i < self.occupied():
-                    self.values[i] = line.rstrip()
-                i += 1
+            self.values = load(f)
+        if self.rs.occupied() < self.rs.capacity():
+            self.unused_key = self.rs.occupied()
+        else:
+            unused_keys = set(range(self.rs.capacity() + 1))
+            for i in range(self.rs.capacity()):
+                unused_keys.remove(self.rs.get(i))
+            self.unused_key = unused_keys.pop()
 
-    def write(self, filename, values_filename):
+    def write(self, const char* filename, const char* values_filename):
         self.rs.write(filename)
-
         with open(values_filename, 'w') as f:
-            for i in range(self.occupied()):
-                f.write(self.values[i] + '\n')
+            dump(self.values, f)
 
     def capacity(self):
         return self.rs.capacity()
@@ -150,17 +222,13 @@ class ValuedReservoirSampler(object):
     def occupied(self):
         return self.rs.occupied()
 
-    def sample(self):
-        idx = self.rs.sample()
-        # TODO error code
+    def prnt(self):
+        self.rs.prnt()
+
+    def get(self, lowl.size_t idx):
+        # TODO check
         return self.values[idx]
 
-    def get(self, idx):
-        return self.rs.get(idx)
-
-    def cPrint(self):
-        self.rs.cPrint()
-
-    def pyPrint(self):
-        for i in range(self.occupied()):
-            print(self.values[i])
+    def sample(self):
+        # TODO check
+        return self.values[self.rs.sample()]

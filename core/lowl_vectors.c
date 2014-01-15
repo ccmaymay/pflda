@@ -22,7 +22,7 @@ int bitvector_init(bitvector* bv, unsigned int numbits) {
 
   bitvector_clear( bv );
 
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 void bitvector_find_indices( unsigned int loc, unsigned int* charindex,
@@ -126,7 +126,7 @@ int bitvector_on( bitvector* bv, unsigned int loc) {
 
   char mask = (1 << bitindex);
   (bv->bits)[charindex] = (bv->bits)[charindex] | mask;
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 int bitvector_off( bitvector* bv, unsigned int loc) {
@@ -144,7 +144,7 @@ int bitvector_off( bitvector* bv, unsigned int loc) {
 	which leaves all other bits in the char intact. */
   char mask = (1 << bitindex);
   (bv->bits)[charindex] = (bv->bits)[charindex] & ~mask;
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 int bitvector_flip( bitvector* bv, unsigned int loc) {
@@ -166,10 +166,10 @@ int bitvector_flip( bitvector* bv, unsigned int loc) {
 	The bit we care about in mask is set to 1, so XORing will flip
 	the bit in the bitvector.	*/
   (bv->bits)[charindex] = (bv->bits)[charindex] ^ mask;
-  return 0;
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
-int bitvector_lookup(bitvector* bv, unsigned int loc) {
+lowl_bool bitvector_lookup(bitvector* bv, unsigned int loc) {
 
   if( loc>= bv->numbits ) { // location must be 0<=loc<length.
     return LOWLERR_BADINPUT;
@@ -183,9 +183,9 @@ int bitvector_lookup(bitvector* bv, unsigned int loc) {
   char mask = (1 << bitindex);
 
   if( ( (bv->bits)[charindex] & mask) == 0 ) {
-    return 0; /* no bit in this position. */
+    return FALSE; /* no bit in this position. */
   } else {
-    return 1; /* found a bit in this position. */
+    return TRUE; /* found a bit in this position. */
   }
 }
 
@@ -208,7 +208,8 @@ void bitvector_print( bitvector* bv ) {
 }
 
 void bitvector_destroy( bitvector* bv ) {
-  free( bv->bits );
+  if (bv->bits != NULL)
+    free( bv->bits );
   bv->bits = NULL;
   bv->numbits = 0;
 }

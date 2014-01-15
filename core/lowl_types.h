@@ -4,11 +4,14 @@
 #include <limits.h>
 
 /* define some basic error codes. */
+#define LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS 0
 #define LOWLERR_BADMALLOC -1
 #define LOWLERR_BADINPUT -2
+#define LOWLERR_INDEXOUTOFRANGE -3
 
 /* define basic types used throughout lowl. */
 
+typedef int lowl_bool;
 #define TRUE 1
 #define FALSE 0
 
