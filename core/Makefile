@@ -16,7 +16,7 @@ else ifeq ($(PLATFORM), Darwin)
 endif
 PY_LIB_NAME = py$(LIB_NAME)
 PY_LIB_FILENAME = $(PY_LIB_NAME).so
-OBJECTS = lowl_hash.o lowl_math.o lowl_sketch.o lowl_sample.o
+OBJECTS = lowl_hash.o lowl_math.o lowl_sketch.o
 APPS_DIR = ../apps
 CYTHON_VERSION = Cython-0.19.2
 
