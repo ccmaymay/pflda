@@ -2,7 +2,6 @@
 #define LOWLSKETCH_H
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "lowl_types.h"
 #include "lowl_hash.h"
 
@@ -43,7 +42,7 @@ typedef struct bloomfilter {
 int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k);
 void bloomfilter_setmask( uint32_t* mask );
 void bloomfilter_insert(bloomfilter* f, const char* x, size_t len);
-bool bloomfilter_query(bloomfilter* f, const char* x, size_t len);
+int bloomfilter_query(bloomfilter* f, const char* x, size_t len);
 void bloomfilter_print(bloomfilter* f);
 void bloomfilter_write(bloomfilter* f, FILE* fp);
 int bloomfilter_read(bloomfilter* f, FILE* fp);

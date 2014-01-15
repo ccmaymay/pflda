@@ -18,7 +18,7 @@ cdef class BloomFilter:
         lowl.bloomfilter_insert(self._bf, x, len(x))
 
     def query(self, x):
-        return lowl.bloomfilter_query(self._bf, x, len(x))
+        return bool(lowl.bloomfilter_query(self._bf, x, len(x)))
 
     def cPrint(self):
         lowl.bloomfilter_print(self._bf)
@@ -55,7 +55,7 @@ cdef class ReservoirSampler:
     def insert(self, k):
         cdef lowl.size_t idx
         cdef lowl.lowl_key ejected
-        inserted = lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected)
+        inserted = bool(lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected))
         return (inserted, idx, ejected) # TODO
 
     def read(self, filename):

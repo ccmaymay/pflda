@@ -155,7 +155,7 @@ void bloomfilter_insert(bloomfilter* f, const char* x, size_t len) {
   }
 }
 
-bool bloomfilter_query(bloomfilter* f, const char* x, size_t len) {
+int bloomfilter_query(bloomfilter* f, const char* x, size_t len) {
   const size_t bits_per_bf_word = 8*sizeof(*(f->b));
   lowl_hashoutput word,bit,hash2word1,hash2word2,hash2bit1,hash2bit2;
 
@@ -172,10 +172,10 @@ bool bloomfilter_query(bloomfilter* f, const char* x, size_t len) {
     bit = (hash2bit1 + i*hash2bit2) % bits_per_bf_word;
     
     if ((f->b[word] & f->mask[bit]) == 0)
-      return false;
+      return FALSE;
   }
 
-  return true;
+  return TRUE;
 }
 
 void bloomfilter_print(bloomfilter* f) {
