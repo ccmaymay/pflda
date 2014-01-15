@@ -22,22 +22,24 @@ void reservoirsampler_destroy(reservoirsampler* rs) {
 }
 
 int reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx,
-    lowl_key *ejected) {
+    int *ejected, lowl_key *ejected_key) {
   if (rs->stream_pos < rs->capacity) {
     *idx = rs->stream_pos;
-    ejected = 0;
-    rs->sample[*idx] = x;
     ++(rs->stream_pos);
+    *ejected = FALSE;
+    rs->sample[*idx] = x;
     return TRUE;
   } else {
-    *idx = random() % rs->stream_pos; // TODO not uniform
+    *idx = random() % (rs->stream_pos + 1); // TODO not uniform
+    ++(rs->stream_pos);
     if (*idx < rs->capacity) {
-      *ejected = rs->sample[*idx];
+      *ejected = TRUE;
+      *ejected_key = rs->sample[*idx];
       rs->sample[*idx] = x;
       return TRUE;
     } else {
-      *idx = rs->capacity + 1;
-      ejected = 0;
+      *ejected = FALSE;
+      *idx = rs->capacity;
       return FALSE;
     }
   }
@@ -74,5 +76,11 @@ int reservoirsampler_read(reservoirsampler* rs, FILE* fp) {
   if (rs->sample == 0)
     return -1;
   fread( rs->sample, sizeof( lowl_key ), reservoirsampler_occupied(rs), fp);
+  return 0;
+}
+
+int reservoirsampler_sample(reservoirsampler* rs, size_t *idx) {
+  size_t occupied = reservoirsampler_occupied(rs);
+  *idx = random() % occupied; // TODO not uniform
   return 0;
 }

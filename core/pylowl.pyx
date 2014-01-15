@@ -2,6 +2,10 @@ cimport lowl
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
 
+def srandom(seed):
+    lowl.srandom(seed)
+
+
 cdef class BloomFilter:
     cdef lowl.bloomfilter* _bf
 
@@ -54,9 +58,10 @@ cdef class ReservoirSampler:
 
     def insert(self, k):
         cdef lowl.size_t idx
-        cdef lowl.lowl_key ejected
-        inserted = bool(lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected))
-        return (inserted, idx, ejected) # TODO
+        cdef int ejected
+        cdef lowl.lowl_key ejected_key
+        inserted = bool(lowl.reservoirsampler_insert(self._rs, k, &idx, &ejected, &ejected_key))
+        return (inserted, idx, ejected, ejected_key)
 
     def read(self, filename):
         f = lowl.fopen(filename, 'rb')
@@ -78,7 +83,69 @@ cdef class ReservoirSampler:
     def cPrint(self):
         lowl.reservoirsampler_print(self._rs)
 
+    def sample(self):
+        cdef lowl.size_t idx
+        lowl.reservoirsampler_sample(self._rs, &idx)
+        # TODO error code
+        return idx
+
     def __dealloc__(self):
         if self._rs is not NULL:
             lowl.reservoirsampler_destroy(self._rs)
             PyMem_Free(self._rs)
+
+
+class ValuedReservoirSampler(object):
+    def __init__(self):
+        self.rs = ReservoirSampler()
+        self.values = None
+
+    def init(self, capacity):
+        self.rs.init(capacity)
+        # TODO error code
+        self.values = [None for i in range(capacity)]
+
+    def insert(self, k, v):
+        (inserted, idx, ejected, ejected_key) = self.rs.insert(k)
+        if inserted:
+            if ejected:
+                prev_value = self.values[idx]
+            else:
+                prev_value = None
+            self.values[idx] = v
+        else:
+            prev_value = None
+        return (inserted, prev_value)
+
+    def read(self, filename, values_filename):
+        self.rs.read(filename)
+        # TODO error code
+
+        self.values = [None for i in range(self.capacity())]
+        with open(values_filename, 'r') as f:
+            i = 0
+            for line in f:
+                if i < self.occupied():
+                    self.values[i] = line.rstrip()
+                i += 1
+
+    def write(self, filename, values_filename):
+        self.rs.write(filename)
+
+        with open(values_filename, 'w') as f:
+            for i in range(self.occupied()):
+                f.write(self.values[i] + '\n')
+
+    def capacity(self):
+        return self.rs.capacity()
+
+    def occupied(self):
+        return self.rs.occupied()
+
+    def sample(self):
+        idx = self.rs.sample()
+        # TODO error code
+        return self.values[idx]
+
+    def cPrint(self):
+        self.rs.cPrint()

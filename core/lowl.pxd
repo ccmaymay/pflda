@@ -5,6 +5,9 @@ cdef extern from "stdio.h":
     FILE *fopen(const char *filename, const char *mode)
     int fclose(FILE *f)
 
+cdef extern from "stdlib.h":
+    void srandom(unsigned int seed)
+
 cdef extern from "lowl_types.h":
     ctypedef unsigned int lowl_hashoutput
     ctypedef unsigned int lowl_key
@@ -26,10 +29,11 @@ cdef extern from "lowl_sample.h":
         pass
 
     int  reservoirsampler_init(reservoirsampler* rs, size_t capacity)
-    int reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx, lowl_key *ejected)
+    int reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx, int *ejected, lowl_key *ejected_key)
     void reservoirsampler_print(reservoirsampler* rs)
     void reservoirsampler_write(reservoirsampler* rs, FILE* fp)
     int reservoirsampler_read(reservoirsampler* rs, FILE* fp)
     size_t reservoirsampler_capacity(reservoirsampler* rs)
     size_t reservoirsampler_occupied(reservoirsampler* rs)
     void reservoirsampler_destroy(reservoirsampler* rs)
+    int reservoirsampler_sample(reservoirsampler* rs, size_t *idx)
