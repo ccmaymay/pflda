@@ -5,6 +5,9 @@ from cPickle import load, dump
 
 def _chisq(expected, observed):
     """
+    Compute chi-squared statistic for the given sequences of expected
+    and observed counts.
+
     >>> from pylowl import _chisq
     >>> _chisq([3], [3]) == 0.0
     True
@@ -33,9 +36,33 @@ def _chisq(expected, observed):
 
 cpdef srandom(unsigned int seed):
     """
-    >>> from pylowl import srandom
+    Seed the PRNG used in lowl.
+
+    Check that calling srandom with different seeds yields different
+    PRNGs while calling srandom the the same seed yields the same PRNG.
+    >>> from pylowl import srandom, ReservoirSampler
     >>> srandom(0)
+    >>> rs1 = ReservoirSampler()
+    >>> rs1.init(1)
+    >>> for i in xrange(1000000):
+    ...     (inserted, idx, ejected, ejected_key) = rs1.insert(i)
+    >>> k1 = rs1.get(0)
     >>> srandom(42)
+    >>> rs2 = ReservoirSampler()
+    >>> rs2.init(1)
+    >>> for i in xrange(1000000):
+    ...     (inserted, idx, ejected, ejected_key) = rs2.insert(i)
+    >>> k2 = rs2.get(0)
+    >>> srandom(0)
+    >>> rs3 = ReservoirSampler()
+    >>> rs3.init(1)
+    >>> for i in xrange(1000000):
+    ...     (inserted, idx, ejected, ejected_key) = rs3.insert(i)
+    >>> k3 = rs3.get(0)
+    >>> k1 == k2
+    False
+    >>> k1 == k3
+    True
 
     I'm claustrophobic.
     """
@@ -44,6 +71,9 @@ cpdef srandom(unsigned int seed):
 
 cdef class BloomFilter:
     """
+    Bloom filter for string (const char *) elements.
+
+    Test basic bloom filter behavior.
     >>> from pylowl import BloomFilter
     >>> bf = BloomFilter()
     >>> bf.init(4, 8)
@@ -58,6 +88,12 @@ cdef class BloomFilter:
     False
     >>> bf.query("hello, waldorf", 14)
     True
+    >>> bf.query("hello, waldorf!", 15)
+    False
+    >>> bf.query("hello, waldorf!", 14)
+    True
+
+    Test serialization and deserialization.
     >>> from tempfile import mkstemp
     >>> import os
     >>> (fid, filename) = mkstemp('.dat')
@@ -65,7 +101,27 @@ cdef class BloomFilter:
     >>> bf.write(filename)
     >>> bf_fromfile = BloomFilter()
     >>> bf_fromfile.read(filename)
+    >>> bf_fromfile.query("hello, world", 12)
+    True
+    >>> bf_fromfile.query("hello world", 11)
+    True
+    >>> bf_fromfile.query("hello, waldo", 12)
+    False
+    >>> bf_fromfile.query("hello, waldorf", 14)
+    True
+    >>> bf_fromfile.query("hello, waldorf!", 15)
+    False
+    >>> bf_fromfile.query("hello, waldorf!", 14)
+    True
+    >>> bf_fromfile.query("foobar", 6)
+    False
+    >>> bf_fromfile.insert("foobar!", 6)
+    >>> bf_fromfile.query("foobar", 6)
+    True
     >>> os.remove(filename)
+
+    Check that an uninitialized filter does not cause an abort when
+    it is deallocated.  (If this fails it will crash the test runner!)
     >>> bf_noinit = BloomFilter()
 
     That newline was magical.
@@ -121,45 +177,96 @@ cdef class BloomFilter:
 
 cdef class ReservoirSampler:
     """
+    Reservoir sampler for lowl_key (integral) elements.
+
+    Test basic reservoir sampler behavior.
     >>> from pylowl import ReservoirSampler
     >>> rs = ReservoirSampler()
     >>> rs.init(4)
-    >>> rs.insert(42)[:3]
-    (True, 0L, False)
-    >>> rs.insert(47)[:3]
-    (True, 1L, False)
-    >>> rs.insert(3)[:3]
-    (True, 2L, False)
-    >>> rs.insert(52)[:3]
-    (True, 3L, False)
-    >>> quad = rs.insert(7)
-    >>> quad[0] == quad[2] # inserted iff ejected
+    >>> (rs.capacity(), rs.occupied()) == (4, 0)
     True
-    >>> (not quad[0]) or (quad[1] in range(4))
+    >>> rs.insert(42)[:3] == (True, 0, False)
     True
-    >>> (not quad[2]) or (quad[3] in (42, 47, 3, 52))
+    >>> rs.insert(47)[:3] == (True, 1, False)
     True
-    >>> inserted = False
-    >>> ejected = False
-    >>> ejected_vals = set()
-    >>> for i in range(10000):
-    ...     quad = rs.insert(i)
-    ...     inserted |= quad[0]
-    ...     ejected_vals.add(quad[3])
-    ...     ejected |= quad[2]
-    >>> set([42, 47, 3, 52]).issubset(ejected_vals)
+    >>> rs.insert(3)[:3] == (True, 2, False)
     True
-    >>> inserted
+    >>> (rs.capacity(), rs.occupied()) == (4, 3)
     True
-    >>> ejected
+    >>> rs.insert(52)[:3] == (True, 3, False)
     True
+    >>> (rs.capacity(), rs.occupied()) == (4, 4)
+    True
+    >>> (inserted, idx, ejected, ejected_key) = rs.insert(7)
+    >>> inserted == ejected
+    True
+    >>> (not inserted) or (idx in range(4))
+    True
+    >>> initial_keys = set([42, 47, 3, 52])
+    >>> (not ejected) or (ejected_key in initial_keys)
+    True
+    >>> (rs.capacity(), rs.occupied()) == (4, 4)
+    True
+
+    Assert basic expectations over a long stream:  Eventually we will
+    insert and eject something, and in particular, we will eventually
+    eject the four initial reservoir elements.  Also assert that
+    insertion occurs if and only if ejection occurs, and that our sample
+    is a subset of all items seen in the stream.
+    >>> n = 10000
+    >>> inserted_any = False
+    >>> ejected_any = False
+    >>> inserted_xor_ejected = False
+    >>> ejected_keys_in_sample = True
+    >>> sample = [rs.get(i) for i in range(4)]
+    >>> for i in xrange(n):
+    ...     (inserted, idx, ejected, ejected_key) = rs.insert(i)
+    ...     inserted_any |= inserted
+    ...     ejected_any |= ejected
+    ...     ejected_keys_in_sample &= (not ejected) or (ejected_key in sample)
+    ...     inserted_xor_ejected |= (inserted ^ ejected)
+    ...     sample = [rs.get(j) for j in range(4)]
+    >>> inserted_any
+    True
+    >>> ejected_any
+    True
+    >>> inserted_xor_ejected
+    False
+    >>> ejected_keys_in_sample
+    True
+
+    Test serialization and deserialization.
+    >>> from tempfile import mkstemp
+    >>> import os
+    >>> (fid, filename) = mkstemp('.dat')
+    >>> os.close(fid)
+    >>> rs.write(filename)
+    >>> rs_fromfile = ReservoirSampler()
+    >>> rs_fromfile.read(filename)
+    >>> (rs_fromfile.capacity(), rs_fromfile.occupied()) == (4, 4)
+    True
+    >>> sample_fromfile = [rs_fromfile.get(i) for i in range(4)]
+    >>> sample == sample_fromfile
+    True
+    >>> for i in xrange(n):
+    ...     (inserted, idx, ejected, ejected_key) = rs_fromfile.insert(i + n)
+    >>> sample_fromfile = [rs_fromfile.get(i) for i in range(4)]
+    >>> set(sample).isdisjoint(set(sample_fromfile))
+    True
+    >>> os.remove(filename)
+
+    Show that if our reservoir keys are the numbers 1 through 8 and
+    the reservoir size is 2, then every 2-set of distinct numbers
+    (8 choose 2 of these) has an equal probability of being the
+    reservoir.  (Run n different experiments and show that the
+    distribution of 2-sets is uniform.)
     >>> n = 10000
     >>> expected = [n / 28.0] * 28
     >>> observed = dict()
     >>> for i in range(8):
     ...     for j in range(i):
     ...         observed[(j, i)] = 0
-    >>> for i in range(n):
+    >>> for i in xrange(n):
     ...     rs = ReservoirSampler()
     ...     rs.init(2)
     ...     for j in range(8):
@@ -168,6 +275,9 @@ cdef class ReservoirSampler:
     ...     observed[(min(sample), max(sample))] += 1
     >>> _chisq(expected, observed.values()) < 36.74122 # df = 27, alpha = 0.1
     True
+
+    Check that an uninitialized reservoir does not cause an abort when
+    it is deallocated.  (If this fails it will crash the test runner!)
     >>> rs_noinit = ReservoirSampler()
 
     Newlines keep the compiler happy.
@@ -283,7 +393,7 @@ class ValuedReservoirSampler(object):
             self.unused_key = self.rs.occupied()
         else:
             unused_keys = set(range(self.rs.capacity() + 1))
-            for i in range(self.rs.capacity()):
+            for i in xrange(self.rs.capacity()):
                 unused_keys.remove(self.rs.get(i))
             self.unused_key = unused_keys.pop()
 
