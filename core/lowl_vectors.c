@@ -213,3 +213,79 @@ void bitvector_destroy( bitvector* bv ) {
   bv->bits = NULL;
   bv->numbits = 0;
 }
+
+/********************************************************
+ *							*
+ *	Functions that operate on numeric vectors.	*
+ *							*
+ ********************************************************/
+
+float numeric_vector_get_component(numeric_vector* numvec, unsigned int comp) {
+  /* get the value in the component comp of the given vector. */
+  if( numeric_vector_is_sparse_vector( numvec ) ) {
+    return sparse_vector_get_component( &(numvec->sparse), comp);
+  } else {
+    return dense_vector_get_component( &(numvec->dense), comp);
+  }
+}
+
+float dense_vector_get_component( dense_vector *dv, unsigned int comp ) {
+  /* return the value in component comp. */
+  return (dv->entries)[comp];
+}
+
+float sparse_vector_get_component( sparse_vector *sv, unsigned int comp ) {
+  /* return the value in component comp. */
+
+  // TO DO.
+
+}
+
+float numeric_vector_dot_product( numeric_vector* nvaa,
+					numeric_vector* nvbb ) {
+  /* return the inner product of the two vectors.
+	Note that this version is a lot less efficient than the methods
+	available to us if we know that both vectors are sparse
+	or that both vectors are dense */
+  if( numeric_vector_is_sparse_vector( nvaa ) ) {
+    if( numeric_vector_is_sparse_vector( nvbb ) ) {
+      return sparse_vector_dot_product( nvaa, nvbb );
+    } else { // nvaa is sparse but nvbb is dense.
+      return sparsedense_vector_dot_product( nvaa, nvbb );
+    }
+  } else { // nvaa is dense.
+    if ( numeric_vector_is_dense_vector( nvbb ) ) {
+      return dense_vector_dot_product( nvaa, nvbb );
+    } else { // nvaa is dense, nvbb is sparse.
+      return sparsedense_vector_dot_product( nvbb, nvaa );
+    }
+  }
+}
+
+float sparse_vector_dot_product( sparse_vector* svaa, sparse_vector* svbb ) {
+  /* return the inner product of the two given sparse vectors. */
+  assert( svaa->length==svbb->length );
+
+  /* it suffices to simply traverse the entry lists of the two vectors,
+	since both lists are sorted by component index. */
+  unsigned int iaa=0;
+  unsigned int ibb=0;
+  float dotproduct = 0.0;
+
+  while( iaa < svaa->sparsity && ibb < svaa->sparsity ) {
+    if( (svaa->entries)[iaa].component == (svbb->entries)[ibb].component ) {
+      dotproduct += (svaa->entries)[iaa].value * (svbb->entries)[ibb].value;
+      ++iaa;
+      ++ibb;
+    } else if ( (svaa->entries)[iaa].component
+		> (svaa->entries)[ibb].component ) {
+      ++ibb;
+    } else {
+      ++iaa;
+    }
+  }
+  return dotproduct;
+  
+
+
+
