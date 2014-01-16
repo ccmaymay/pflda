@@ -3,7 +3,42 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 from cPickle import load, dump
 
 
-def srandom(seed):
+def _chisq(expected, observed):
+    """
+    >>> from pylowl import _chisq
+    >>> _chisq([3], [3]) == 0.0
+    True
+    >>> _chisq([1], [3]) == 4.0
+    True
+    >>> _chisq([3], [1]) == 4.0 / 3.0
+    True
+    >>> _chisq([1, 3, 5], [1, 3, 5]) == 0.0
+    True
+    >>> _chisq([5, 3, 1], [1, 3, 5]) == 16.0 / 5.0 + 16.0
+    True
+    >>> _chisq([1, 3, 5], [5, 3, 1]) == 16.0 / 5.0 + 16.0
+    True
+    >>> _chisq([2, 4, 6], [1, 3, 5]) == 0.25 + 0.5 + 1.0 / 6.0
+    True
+
+    This space intentionally left blank.
+    """
+
+    total = 0.0
+    for (exp, obs) in zip(expected, observed):
+        diff = exp - obs
+        total += diff * diff / float(exp)
+    return total
+
+
+cpdef srandom(unsigned int seed):
+    """
+    >>> from pylowl import srandom
+    >>> srandom(0)
+    >>> srandom(42)
+
+    I'm claustrophobic.
+    """
     lowl.srandom(seed)
 
 
