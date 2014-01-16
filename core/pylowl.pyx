@@ -135,16 +135,20 @@ cdef class ReservoirSampler:
     True
     >>> ejected
     True
-    >>> expected = [20000 / 8.0] * 8
-    >>> observed = [0] * 8
-    >>> for i in range(10000):
+    >>> n = 10000
+    >>> expected = [n / 28.0] * 28
+    >>> observed = dict()
+    >>> for i in range(8):
+    ...     for j in range(i):
+    ...         observed[(j, i)] = 0
+    >>> for i in range(n):
     ...     rs = ReservoirSampler()
     ...     rs.init(2)
     ...     for j in range(8):
     ...         quad = rs.insert(j)
-    ...     for k in range(2):
-    ...         observed[rs.get(k)] += 1
-    >>> _chisq(expected, observed) < 12.01704 # crit for df = 7, alpha = 0.1
+    ...     sample = (rs.get(0), rs.get(1))
+    ...     observed[(min(sample), max(sample))] += 1
+    >>> _chisq(expected, observed.values()) < 36.74122 # df = 27, alpha = 0.1
     True
     >>> rs_noinit = ReservoirSampler()
 
