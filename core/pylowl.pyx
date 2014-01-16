@@ -135,6 +135,17 @@ cdef class ReservoirSampler:
     True
     >>> ejected
     True
+    >>> expected = [20000 / 8.0] * 8
+    >>> observed = [0] * 8
+    >>> for i in range(10000):
+    ...     rs = ReservoirSampler()
+    ...     rs.init(2)
+    ...     for j in range(8):
+    ...         quad = rs.insert(j)
+    ...     for k in range(2):
+    ...         observed[rs.get(k)] += 1
+    >>> _chisq(expected, observed) < 12.01704 # crit for df = 7, alpha = 0.1
+    True
     >>> rs_noinit = ReservoirSampler()
 
     Newlines keep the compiler happy.
