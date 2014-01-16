@@ -47,17 +47,25 @@ cdef class BloomFilter:
     >>> from pylowl import BloomFilter
     >>> bf = BloomFilter()
     >>> bf.init(4, 8)
-    >>> bf.insert("hello, world")
-    >>> bf.insert("hello world")
-    >>> bf.insert("hello, waldorf")
-    >>> bf.query("hello, world")
+    >>> bf.insert("hello, world", 12)
+    >>> bf.insert("hello world", 11)
+    >>> bf.insert("hello, waldorf", 14)
+    >>> bf.query("hello, world", 12)
     True
-    >>> bf.query("hello world")
+    >>> bf.query("hello world", 11)
     True
-    >>> bf.query("hello, waldo")
+    >>> bf.query("hello, waldo", 12)
     False
-    >>> bf.query("hello, waldorf")
+    >>> bf.query("hello, waldorf", 14)
     True
+    >>> from tempfile import mkstemp
+    >>> import os
+    >>> (fid, filename) = mkstemp('.dat')
+    >>> os.close(fid)
+    >>> bf.write(filename)
+    >>> bf_fromfile = BloomFilter()
+    >>> bf_fromfile.read(filename)
+    >>> os.remove(filename)
     >>> bf_noinit = BloomFilter()
 
     That newline was magical.
@@ -68,29 +76,39 @@ cdef class BloomFilter:
     def __cinit__(self):
         self._bf = NULL
 
-    def init(self, size, k):
+    cpdef init(self, lowl.size_t size, k):
         self._bf = <lowl.bloomfilter *>PyMem_Malloc(sizeof(lowl.bloomfilter))
         if self._bf is NULL:
             raise MemoryError()
         lowl.bloomfilter_init(self._bf, size, k)
         # TODO error code
 
-    def insert(self, x):
-        lowl.bloomfilter_insert(self._bf, x, len(x))
+    cpdef insert(self, const char* x, lowl.size_t n):
+        lowl.bloomfilter_insert(self._bf, x, n)
 
-    def query(self, x):
-        return lowl.bloomfilter_query(self._bf, x, len(x))
+    cpdef bint query(self, const char* x, lowl.size_t n):
+        return lowl.bloomfilter_query(self._bf, x, n)
 
-    def prnt(self):
+    cpdef prnt(self):
         lowl.bloomfilter_print(self._bf)
 
-    def read(self, filename):
+    cpdef read(self, filename):
+        cdef lowl.FILE* f
+
+        if self._bf is not NULL:
+            lowl.bloomfilter_destroy(self._bf)
+            PyMem_Free(self._bf)
+        self._bf = <lowl.bloomfilter *>PyMem_Malloc(sizeof(lowl.bloomfilter))
+        if self._bf is NULL:
+            raise MemoryError()
+
         f = lowl.fopen(filename, 'rb')
         lowl.bloomfilter_read(self._bf, f)
         # TODO error code
         lowl.fclose(f)
 
-    def write(self, filename):
+    cpdef write(self, filename):
+        cdef lowl.FILE* f
         f = lowl.fopen(filename, 'wb')
         lowl.bloomfilter_write(self._bf, f)
         lowl.fclose(f)
@@ -182,6 +200,14 @@ cdef class ReservoirSampler:
 
     cpdef read(self, const char* filename):
         cdef lowl.FILE* f
+
+        if self._rs is not NULL:
+            lowl.reservoirsampler_destroy(self._rs)
+            PyMem_Free(self._rs)
+        self._rs = <lowl.reservoirsampler *>PyMem_Malloc(sizeof(lowl.reservoirsampler))
+        if self._rs is NULL:
+            raise MemoryError()
+
         f = lowl.fopen(filename, 'rb')
         lowl.reservoirsampler_read(self._rs, f)
         # TODO error code
