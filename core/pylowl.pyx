@@ -620,7 +620,7 @@ class ValuedReservoirSampler(object):
         self.values = [None] * capacity
         self.unused_key = 0
 
-    def insert(self, object v):
+    def insert(self, object v, object preprocess=None):
         (inserted, idx, ejected, ejected_key) = self.rs.insert(self.unused_key)
         if inserted:
             if ejected:
@@ -629,7 +629,10 @@ class ValuedReservoirSampler(object):
             else:
                 ejected_val = None
                 self.unused_key += 1
-            self.values[idx] = v
+            if preprocess is None:
+                self.values[idx] = v
+            else:
+                self.values[idx] = preprocess(v)
         else:
             ejected_val = None
         return (inserted, idx, ejected, ejected_val)
