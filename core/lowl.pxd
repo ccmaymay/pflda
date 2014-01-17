@@ -38,3 +38,4 @@ cdef extern from "lowl_sample.h":
     void reservoirsampler_destroy(reservoirsampler* rs)
     int reservoirsampler_sample(reservoirsampler* rs, size_t *idx)
     int reservoirsampler_get(reservoirsampler* rs, size_t idx, lowl_key *x)
+    lowl_key* reservoirsampler_get_all(reservoirsampler* rs)

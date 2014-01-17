@@ -95,3 +95,7 @@ int reservoirsampler_get(reservoirsampler* rs, size_t idx, lowl_key* x) {
     return LOWLERR_INDEXOUTOFRANGE;
   }
 }
+
+const lowl_key* reservoirsampler_get_all(reservoirsampler* rs) {
+  return rs->sample;
+}

@@ -255,6 +255,23 @@ cdef class ReservoirSampler:
     True
     >>> os.remove(filename)
 
+    Check that get_all returns a contiguous memoryview (read: efficient
+    array-like wrapper) on the occupied fraction of the sample.
+    >>> rs = ReservoirSampler()
+    >>> rs.init(4)
+    >>> (inserted, idx, ejected, ejected_key) = rs.insert(42)
+    >>> (inserted, idx, ejected, ejected_key) = rs.insert(47)
+    >>> (inserted, idx, ejected, ejected_key) = rs.insert(3)
+    >>> xx = rs.get_all()
+    >>> xx.strides == (xx.itemsize,)
+    True
+    >>> xx.shape == (3,)
+    True
+    >>> xx.is_c_contig()
+    True
+    >>> (xx[0], xx[1], xx[2]) == (42, 47, 3)
+    True
+
     Show that if our reservoir keys are the numbers 1 through 8 and
     the reservoir size is 2, then every 2-set of distinct numbers
     (8 choose 2 of these) has an equal probability of being the
@@ -295,7 +312,7 @@ cdef class ReservoirSampler:
         lowl.reservoirsampler_init(self._rs, capacity)
         # TODO error code
 
-    cdef bint c_insert(self, lowl.lowl_key k, lowl.size_t* idx, bint* ejected, lowl.lowl_key* ejected_key):
+    cdef bint _insert(self, lowl.lowl_key k, lowl.size_t* idx, bint* ejected, lowl.lowl_key* ejected_key):
         cdef bint inserted
         inserted = lowl.reservoirsampler_insert(self._rs, k, idx, ejected, ejected_key)
         return inserted
@@ -305,7 +322,7 @@ cdef class ReservoirSampler:
         cdef lowl.size_t idx
         cdef bint ejected
         cdef lowl.lowl_key ejected_key
-        inserted = self.c_insert(k, &idx, &ejected, &ejected_key)
+        inserted = self._insert(k, &idx, &ejected, &ejected_key)
         return (inserted, idx, ejected, ejected_key)
 
     cpdef read(self, const char* filename):
@@ -350,6 +367,18 @@ cdef class ReservoirSampler:
         ret = lowl.reservoirsampler_get(self._rs, idx, &k)
         # TODO bounds/ret check
         return k
+
+    cdef lowl.lowl_key* _get_all(self):
+        cdef lowl.lowl_key* xx
+        xx = lowl.reservoirsampler_get_all(self._rs)
+        return xx
+
+    cpdef lowl.lowl_key [::1] get_all(self):
+        cdef lowl.lowl_key [::1] xx_view
+        cdef lowl.size_t occupied
+        occupied = self.occupied()
+        xx_view = <lowl.lowl_key[:occupied]> self._get_all()
+        return xx_view
 
     def __dealloc__(self):
         if self._rs is not NULL:

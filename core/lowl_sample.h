@@ -24,5 +24,6 @@ void reservoirsampler_write(reservoirsampler* rs, FILE* fp);
 int reservoirsampler_read(reservoirsampler* rs, FILE* fp);
 int reservoirsampler_sample(reservoirsampler* rs, size_t *idx);
 int reservoirsampler_get(reservoirsampler* rs, size_t idx, lowl_key* x);
+const lowl_key* reservoirsampler_get_all(reservoirsampler* rs);
 
 #endif
