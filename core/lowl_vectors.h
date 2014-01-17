@@ -47,11 +47,15 @@ typedef union numeric_vector{
   dense_vector dense;
 }numeric_vector;
 
+int numeric_vector_is_sparse(numeric_vector* numvec); 
+int numeric_vector_is_dense(numeric_vector* numvec); 
 float numeric_vector_get_component(numeric_vector* numvec, unsigned int comp);
-
-float numeric_vector_norm( numeric_vector* numvec ) {
-  
-  
+float dense_vector_get_component(dense_vector* denvec, unsigned int comp);
+float sparse_vector_get_component(sparse_vector* spavec, unsigned int comp); 
+float numeric_vector_dot_product(numeric_vector* nvaa, numeric_vector* nvbb);
+float sparse_vector_dot_product(sparse_vector* svaa, sparse_vector* svbb);
+float dense_vector_dot_product(dense_vector* dvaa, dense_vector* dvbb);
+float sparsedense_vector_dot_product(sparse_vector* spa, dense_vector* den);
 
 
 

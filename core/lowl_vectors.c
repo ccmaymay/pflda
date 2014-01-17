@@ -220,6 +220,33 @@ void bitvector_destroy( bitvector* bv ) {
  *							*
  ********************************************************/
 
+int numeric_vector_is_sparse( numeric_vector* numvec ) {
+  /* return 1 if the numeric_vector stored at the given pointer is a
+	sparse vector.
+	Return 0 otherwise.	*/
+
+  /* dense vectors have their entries given by a simple array of floats.
+	sparse vectors have entries given by an array of svec_entry,
+	which are two cells each of size at least sizeof(float), so
+	it suffices to check whether the contents of the entries array
+	is the size of floats or larger.	*/
+  if( sizeof( *((numvec->dense).entries) ) == sizeof(float) ) {
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
+int numeric_vector_is_dense( numeric_vector* numvec ) {
+  /* return 1 if the numeric vector is dense, 0 otherwise. */
+  
+  if( sizeof( *((numvec->dense).entries)==sizeof(float) ) ) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 float numeric_vector_get_component(numeric_vector* numvec, unsigned int comp) {
   /* get the value in the component comp of the given vector. */
   if( numeric_vector_is_sparse_vector( numvec ) ) {
@@ -285,7 +312,32 @@ float sparse_vector_dot_product( sparse_vector* svaa, sparse_vector* svbb ) {
     }
   }
   return dotproduct;
-  
+}  
 
+float dense_vector_dot_product( dense_vector* dvaa, dense_vector* dvbb ) {
+  /* compute the dot product of two dense vectors. */
+  assert( dvaa->length==dvbb->length );
 
+  unsigned int i;
+  float dotproduct;
+  for(i=0; i<dvaa->length; i++ ) {
+    dotproduct += (dvaa->entries)[i]*(dvbb->entries)[i];
+  }
+
+  return dotproduct;
+}
+
+sparsedense_vector_dot_product( sparse_vector* spa, dense_vector* den ) {
+  /* compute the dot product between two numeric vectors, one or which is
+	sparse and the other dense. */
+  assert( spa->length == den->length );
+
+  /* it suffices to just traverse the non-zero entries of the sparse vector.*/
+  unsigned int ii, component;
+  float dotproduct = 0.0;
+  for(ii=0; ii < spa->sparsity; ii++ ) {
+    component = (spa->entries)[ii].component;
+    dotproduct += (spa->entries)[ii].value * (den->entries)[component];
+  }
+}
 
