@@ -4,10 +4,10 @@
 #include <limits.h>
 
 /* define some basic error codes. */
-const int LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS = 0;
-const int LOWLERR_BADMALLOC = -1;
-const int LOWLERR_BADINPUT = -2;
-const int LOWLERR_INDEXOUTOFRANGE = -3;
+extern const int LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
+extern const int LOWLERR_BADMALLOC;
+extern const int LOWLERR_BADINPUT;
+extern const int LOWLERR_INDEXOUTOFRANGE;
 
 /* define basic types used throughout lowl. */
 

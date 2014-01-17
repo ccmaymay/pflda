@@ -1,0 +1,6 @@
+#include "lowl_types.h"
+
+const int LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS = 0;
+const int LOWLERR_BADMALLOC = -1;
+const int LOWLERR_BADINPUT = -2;
+const int LOWLERR_INDEXOUTOFRANGE = -3;
