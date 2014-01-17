@@ -12,6 +12,11 @@ cdef extern from "lowl_types.h":
     ctypedef unsigned int lowl_hashoutput
     ctypedef unsigned int lowl_key
 
+    const int LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS
+    const int LOWLERR_BADMALLOC
+    const int LOWLERR_BADINPUT
+    const int LOWLERR_INDEXOUTOFRANGE
+
 cdef extern from "lowl_sketch.h":
     ctypedef struct bloomfilter:
         pass
@@ -36,5 +41,5 @@ cdef extern from "lowl_sample.h":
     size_t reservoirsampler_capacity(reservoirsampler* rs)
     size_t reservoirsampler_occupied(reservoirsampler* rs)
     void reservoirsampler_destroy(reservoirsampler* rs)
-    int reservoirsampler_sample(reservoirsampler* rs, size_t *idx)
     int reservoirsampler_get(reservoirsampler* rs, size_t idx, lowl_key *x)
+    lowl_key* reservoirsampler_sample(reservoirsampler* rs)
