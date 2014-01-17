@@ -479,10 +479,30 @@ class ValuedReservoirSampler(object):
     Test basic reservoir sampler behavior.
     >>> from pylowl import ValuedReservoirSampler
     >>> rs = ValuedReservoirSampler(4)
-    >>> (inserted, idx, ejected, ejected_val) = rs.insert(42)
-    >>> (inserted, idx, ejected, ejected_val) = rs.insert("Foobar")
-    >>> (inserted, idx, ejected, ejected_val) = rs.insert(47)
-    >>> (inserted, idx, ejected, ejected_val) = rs.insert(dict(foo="bar"))
+    >>> (rs.capacity(), rs.occupied()) == (4, 0)
+    True
+    >>> rs.insert(42)[:3] == (True, 0, False)
+    True
+    >>> rs.insert("Foobar")[:3] == (True, 1, False)
+    True
+    >>> rs.insert(47)[:3] == (True, 2, False)
+    True
+    >>> (rs.capacity(), rs.occupied()) == (4, 3)
+    True
+    >>> rs.insert(dict(foo="bar"))[:3] == (True, 3, False)
+    True
+    >>> (rs.capacity(), rs.occupied()) == (4, 4)
+    True
+    >>> (inserted, idx, ejected, ejected_key) = rs.insert(set([7, 37]))
+    >>> inserted == ejected
+    True
+    >>> (not inserted) or (idx in range(4))
+    True
+    >>> initial_keys = [42, "Foobar", 47, dict(foo="bar")]
+    >>> (not ejected) or (ejected_key in initial_keys)
+    True
+    >>> (rs.capacity(), rs.occupied()) == (4, 4)
+    True
 
     This newline is valued transitively.
     """
