@@ -497,16 +497,16 @@ class ValuedReservoirSampler(object):
     True
     >>> (rs.capacity(), rs.occupied()) == (4, 4)
     True
-    >>> sample = rs.sample()
+    >>> sample = [x for x in rs.sample()]
     >>> sample == [42, "Foobar", 47, dict(foo="bar")]
     True
-    >>> (inserted, idx, ejected, ejected_key) = rs.insert(set([7, 37]))
+    >>> (inserted, idx, ejected, ejected_val) = rs.insert(set([7, 37]))
     >>> inserted == ejected
     True
     >>> (not inserted) or (idx in range(4))
     True
-    >>> initial_keys = [42, "Foobar", 47, dict(foo="bar")]
-    >>> (not ejected) or (ejected_key in initial_keys)
+    >>> initial_vals = [42, "Foobar", 47, dict(foo="bar")]
+    >>> (not ejected) or (ejected_val in initial_vals)
     True
     >>> (rs.capacity(), rs.occupied()) == (4, 4)
     True
@@ -524,12 +524,13 @@ class ValuedReservoirSampler(object):
     >>> inserted_any = False
     >>> ejected_any = False
     >>> inserted_xor_ejected = False
-    >>> ejected_keys_in_sample = True
+    >>> ejected_vals_in_sample = True
     >>> for i in xrange(n):
-    ...     (inserted, idx, ejected, ejected_key) = rs.insert(i)
+    ...     sample = [x for x in rs.sample()]
+    ...     (inserted, idx, ejected, ejected_val) = rs.insert(i)
     ...     inserted_any |= inserted
     ...     ejected_any |= ejected
-    ...     ejected_keys_in_sample &= (not ejected) or (ejected_key in rs.sample())
+    ...     ejected_vals_in_sample &= (not ejected) or (ejected_val in rs.sample())
     ...     inserted_xor_ejected |= (inserted ^ ejected)
     >>> inserted_any
     True
@@ -537,7 +538,7 @@ class ValuedReservoirSampler(object):
     True
     >>> inserted_xor_ejected
     False
-    >>> ejected_keys_in_sample
+    >>> ejected_vals_in_sample
     True
 
     Test serialization and deserialization.
@@ -555,7 +556,7 @@ class ValuedReservoirSampler(object):
     True
     >>> inserted_any = False
     >>> for i in range(4):
-    ...     (inserted, idx, ejected, ejected_key) = rs_fromfile.insert(i + n)
+    ...     (inserted, idx, ejected, ejected_val) = rs_fromfile.insert(i + n)
     ...     inserted_any |= inserted
     >>> inserted_any
     False
@@ -579,7 +580,7 @@ class ValuedReservoirSampler(object):
     >>> raised
     True
 
-    Show that if our reservoir keys are the numbers 1 through 8 and
+    Show that if our reservoir vals are the numbers 1 through 8 and
     the reservoir size is 2, then every 2-set of distinct numbers
     (8 choose 2 of these) has an equal probability of being the
     reservoir.  (Run n different experiments and show that the
@@ -594,15 +595,14 @@ class ValuedReservoirSampler(object):
     ...     rs = ValuedReservoirSampler(2)
     ...     for j in range(8):
     ...         quad = rs.insert(j)
-    ...     sample = rs.sample()
-    ...     observed[(min(sample), max(sample))] += 1
+    ...     observed[(min(rs.sample()), max(rs.sample()))] += 1
     >>> _chisq(expected, observed.values()) < 36.74122 # df = 27, alpha = 0.1
     True
 
     Check boundary cases on parameters.
     >>> rs = ValuedReservoirSampler(1)
-    >>> (inserted, idx, ejected, ejected_key) = rs.insert(42)
-    >>> (inserted, idx, ejected, ejected_key) = rs.insert(12)
+    >>> (inserted, idx, ejected, ejected_val) = rs.insert(42)
+    >>> (inserted, idx, ejected, ejected_val) = rs.insert(12)
     >>> rs.get(0) in (42, 12)
     True
     >>> rs = ValuedReservoirSampler(0)
