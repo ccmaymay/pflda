@@ -530,7 +530,7 @@ class ValuedReservoirSampler(object):
     ...     (inserted, idx, ejected, ejected_val) = rs.insert(i)
     ...     inserted_any |= inserted
     ...     ejected_any |= ejected
-    ...     ejected_vals_in_sample &= (not ejected) or (ejected_val in rs.sample())
+    ...     ejected_vals_in_sample &= (not ejected) or (ejected_val in sample)
     ...     inserted_xor_ejected |= (inserted ^ ejected)
     >>> inserted_any
     True
