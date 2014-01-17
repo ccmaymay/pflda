@@ -474,8 +474,15 @@ cdef class ReservoirSampler:
 
 class ValuedReservoirSampler(object):
     """
+    Reservoir sampler for arbitrary Python objects as elements.
+
+    Test basic reservoir sampler behavior.
     >>> from pylowl import ValuedReservoirSampler
     >>> rs = ValuedReservoirSampler(4)
+    >>> (inserted, idx, ejected, ejected_val) = rs.insert(42)
+    >>> (inserted, idx, ejected, ejected_val) = rs.insert("Foobar")
+    >>> (inserted, idx, ejected, ejected_val) = rs.insert(47)
+    >>> (inserted, idx, ejected, ejected_val) = rs.insert(dict(foo="bar"))
 
     This newline is valued transitively.
     """
@@ -527,5 +534,6 @@ class ValuedReservoirSampler(object):
         self.rs.prnt()
 
     def get(self, lowl.size_t idx):
-        # TODO check
+        if idx >= self.occupied():
+            raise IndexError()
         return self.values[idx]
