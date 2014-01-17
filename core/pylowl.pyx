@@ -294,14 +294,14 @@ cdef class ReservoirSampler:
     True
     >>> os.remove(filename)
 
-    Check that get_all returns a contiguous memoryview (read: efficient
+    Check that sample returns a contiguous memoryview (read: efficient
     array-like wrapper) on the occupied fraction of the sample.
     >>> rs = ReservoirSampler()
     >>> ret = rs.init(4)
     >>> (inserted, idx, ejected, ejected_key) = rs.insert(42)
     >>> (inserted, idx, ejected, ejected_key) = rs.insert(47)
     >>> (inserted, idx, ejected, ejected_key) = rs.insert(3)
-    >>> xx = rs.get_all()
+    >>> xx = rs.sample()
     >>> xx.strides == (xx.itemsize,)
     True
     >>> xx.shape == (3,)
@@ -416,12 +416,6 @@ cdef class ReservoirSampler:
     cpdef prnt(self):
         lowl.reservoirsampler_print(self._rs)
 
-    cpdef lowl.size_t sample(self):
-        cdef lowl.size_t idx
-        lowl.reservoirsampler_sample(self._rs, &idx)
-        # TODO error code
-        return idx
-
     cpdef lowl.lowl_key get(self, idx):
         cdef int ret
         cdef lowl.lowl_key k
@@ -429,16 +423,16 @@ cdef class ReservoirSampler:
         # TODO bounds/ret check
         return k
 
-    cdef lowl.lowl_key* _get_all(self):
+    cdef lowl.lowl_key* _sample(self):
         cdef lowl.lowl_key* xx
-        xx = lowl.reservoirsampler_get_all(self._rs)
+        xx = lowl.reservoirsampler_sample(self._rs)
         return xx
 
-    cpdef lowl.lowl_key [::1] get_all(self):
+    cpdef lowl.lowl_key [::1] sample(self):
         cdef lowl.lowl_key [::1] xx_view
         cdef lowl.size_t occupied
         occupied = self.occupied()
-        xx_view = <lowl.lowl_key[:occupied]> self._get_all()
+        xx_view = <lowl.lowl_key[:occupied]> self._sample()
         return xx_view
 
     def __dealloc__(self):
@@ -504,7 +498,3 @@ class ValuedReservoirSampler(object):
     def get(self, lowl.size_t idx):
         # TODO check
         return self.values[idx]
-
-    def sample(self):
-        # TODO check
-        return self.values[self.rs.sample()]

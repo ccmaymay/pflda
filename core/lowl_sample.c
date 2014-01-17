@@ -80,12 +80,6 @@ int reservoirsampler_read(reservoirsampler* rs, FILE* fp) {
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
-int reservoirsampler_sample(reservoirsampler* rs, size_t *idx) {
-  size_t occupied = reservoirsampler_occupied(rs);
-  *idx = random() % occupied; // TODO not uniform
-  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
-}
-
 int reservoirsampler_get(reservoirsampler* rs, size_t idx, lowl_key* x) {
   size_t occupied = reservoirsampler_occupied(rs);
   if (idx < occupied) {
@@ -96,6 +90,6 @@ int reservoirsampler_get(reservoirsampler* rs, size_t idx, lowl_key* x) {
   }
 }
 
-const lowl_key* reservoirsampler_get_all(reservoirsampler* rs) {
+const lowl_key* reservoirsampler_sample(reservoirsampler* rs) {
   return rs->sample;
 }
