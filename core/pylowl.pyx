@@ -564,6 +564,10 @@ class ValuedReservoirSampler(object):
     >>> os.remove(values_filename)
 
     Check that exceptions are raised properly when get fails.
+    >>> rs = ValuedReservoirSampler(4)
+    >>> (inserted, idx, ejected, ejected_val) = rs.insert(42)
+    >>> (inserted, idx, ejected, ejected_val) = rs.insert("Foobar")
+    >>> (inserted, idx, ejected, ejected_val) = rs.insert(47)
     >>> x = rs.get(2)
     >>> raised = False
     >>> try:
