@@ -33,11 +33,9 @@ def main(cmd, *args):
         values_filename = args[1]
         print('Reading reservoir sampler...')
         rs.read(rs_filename, values_filename)
-        print('Sampling from reservoir...')
-        #rs.pyPrint()
-        print(rs.sample())
-        print(rs.sample())
-        print(rs.sample())
+        print('Printing reservoir...')
+        for i in range(rs.occupied()):
+            print(rs.get(i))
     print('Leaving scope...')
 
 
