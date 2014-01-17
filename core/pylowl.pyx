@@ -311,6 +311,23 @@ cdef class ReservoirSampler:
     >>> (xx[0], xx[1], xx[2]) == (42, 47, 3)
     True
 
+    Check that exceptions are raised properly when get fails.
+    >>> x = rs.get(2)
+    >>> raised = False
+    >>> try:
+    ...     rs.get(3) # >= occupied, < capacity
+    ... except IndexError:
+    ...     raised = True
+    >>> raised
+    True
+    >>> raised = False
+    >>> try:
+    ...     rs.get(4) # >= occupied, >= capacity
+    ... except IndexError:
+    ...     raised = True
+    >>> raised
+    True
+
     Show that if our reservoir keys are the numbers 1 through 8 and
     the reservoir size is 2, then every 2-set of distinct numbers
     (8 choose 2 of these) has an equal probability of being the
