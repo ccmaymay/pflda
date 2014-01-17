@@ -12,6 +12,11 @@ cdef extern from "lowl_types.h":
     ctypedef unsigned int lowl_hashoutput
     ctypedef unsigned int lowl_key
 
+    const int LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS
+    const int LOWLERR_BADMALLOC
+    const int LOWLERR_BADINPUT
+    const int LOWLERR_INDEXOUTOFRANGE
+
 cdef extern from "lowl_sketch.h":
     ctypedef struct bloomfilter:
         pass

@@ -34,6 +34,19 @@ def _chisq(expected, observed):
     return total
 
 
+cdef int _check_err(int ret) except -1:
+    if ret == lowl.LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS:
+        return 0
+    elif ret == lowl.LOWLERR_BADMALLOC:
+        raise MemoryError()
+    elif ret == lowl.LOWLERR_BADINPUT:
+        raise ValueError()
+    elif ret == lowl.LOWLERR_INDEXOUTOFRANGE:
+        raise IndexError()
+    else:
+        raise ValueError("Unknown return code.")
+
+
 cpdef srandom(unsigned int seed):
     """
     Seed the PRNG used in lowl.
@@ -76,7 +89,7 @@ cdef class BloomFilter:
     Test basic bloom filter behavior.
     >>> from pylowl import BloomFilter
     >>> bf = BloomFilter()
-    >>> bf.init(4, 8)
+    >>> ret = bf.init(4, 8)
     >>> bf.insert("hello, world", 12)
     >>> bf.insert("hello world", 11)
     >>> bf.insert("hello, waldorf", 14)
@@ -98,9 +111,9 @@ cdef class BloomFilter:
     >>> import os
     >>> (fid, filename) = mkstemp('.dat')
     >>> os.close(fid)
-    >>> bf.write(filename)
+    >>> ret = bf.write(filename)
     >>> bf_fromfile = BloomFilter()
-    >>> bf_fromfile.read(filename)
+    >>> ret = bf_fromfile.read(filename)
     >>> bf_fromfile.query("hello, world", 12)
     True
     >>> bf_fromfile.query("hello world", 11)
@@ -132,12 +145,17 @@ cdef class BloomFilter:
     def __cinit__(self):
         self._bf = NULL
 
-    cpdef init(self, lowl.size_t size, k):
+    cpdef int init(self, lowl.size_t size, unsigned int k) except -1:
+        cdef int ret
         self._bf = <lowl.bloomfilter *>PyMem_Malloc(sizeof(lowl.bloomfilter))
         if self._bf is NULL:
             raise MemoryError()
-        lowl.bloomfilter_init(self._bf, size, k)
-        # TODO error code
+
+        ret = _check_err(lowl.bloomfilter_init(self._bf, size, k))
+        if ret != 0:
+            return -1
+
+        return 0
 
     cpdef insert(self, const char* x, lowl.size_t n):
         lowl.bloomfilter_insert(self._bf, x, n)
@@ -148,8 +166,9 @@ cdef class BloomFilter:
     cpdef prnt(self):
         lowl.bloomfilter_print(self._bf)
 
-    cpdef read(self, filename):
+    cpdef int read(self, filename) except -1:
         cdef lowl.FILE* f
+        cdef int ret
 
         if self._bf is not NULL:
             lowl.bloomfilter_destroy(self._bf)
@@ -159,15 +178,30 @@ cdef class BloomFilter:
             raise MemoryError()
 
         f = lowl.fopen(filename, 'rb')
-        lowl.bloomfilter_read(self._bf, f)
-        # TODO error code
-        lowl.fclose(f)
+        if f is NULL:
+            raise IOError("Failed to open file.")
+        ret = _check_err(lowl.bloomfilter_read(self._bf, f))
+        if ret != 0:
+            return -1
+        ret = lowl.fclose(f)
+        if ret != 0:
+            raise IOError("Failed to close file.")
 
-    cpdef write(self, filename):
+        return 0
+
+    cpdef int write(self, filename) except -1:
         cdef lowl.FILE* f
+        cdef int ret
+
         f = lowl.fopen(filename, 'wb')
+        if f is NULL:
+            raise IOError("Failed to open file.")
         lowl.bloomfilter_write(self._bf, f)
-        lowl.fclose(f)
+        ret = lowl.fclose(f)
+        if ret != 0:
+            raise IOError("Failed to close file.")
+
+        return 0
 
     def __dealloc__(self):
         if self._bf is not NULL:
