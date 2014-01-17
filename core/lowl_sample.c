@@ -1,4 +1,5 @@
 #include "lowl_sample.h"
+#include "lowl_math.h"
 #include <stdlib.h>
 
 /*********************************************************
@@ -31,7 +32,7 @@ lowl_bool reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx,
     rs->sample[*idx] = x;
     return TRUE;
   } else {
-    *idx = random() % (rs->stream_pos + 1); // TODO not uniform
+    *idx = randint(rs->stream_pos + 1);
     ++(rs->stream_pos);
     if (*idx < rs->capacity) {
       *ejected = TRUE;
