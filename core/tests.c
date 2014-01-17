@@ -209,8 +209,7 @@ void run_motwani_tests( void ) {
   // populate the integer list.
   int i;
   for( i=0; i < numkeys; i++) {
-    keys[i] = (unsigned int) random();
-    keys[i] = keys[i] % m;
+    keys[i] = (unsigned int) randint(m);
   }
   printf("Chi2 test of uniformity of hash function output when inputs are randomly-drawn unsigned ints:\n");
   run_chi2_motrag(chi2scores, numtrials, motwani,

@@ -46,9 +46,9 @@ long randint(long n) {
 
   assert(n <= RAND_MAX);
 
-  // Now we're being a tiny bit inefficient because we are going to
+  // Now we're being a little inefficient because we are going to
   // pretend random() has a range of [0, RAND_MAX) instead of
-  // [0, RAND_MAX].  Oh well.  (This should not bias the samples.)
+  // [0, RAND_MAX].  This should not bias the samples though.)
 
   const long bucket_size = RAND_MAX / n;
   const long acceptance_bound = n * bucket_size;
