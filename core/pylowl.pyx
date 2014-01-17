@@ -137,6 +137,13 @@ cdef class BloomFilter:
     True
     >>> os.remove(filename)
 
+    Check boundary cases on parameters.
+    >>> bf = BloomFilter()
+    >>> ret = bf.init(1, 1)
+    >>> bf.insert("hello, world", 12)
+    >>> bf.query("hello, world", 12)
+    True
+
     Check that an uninitialized filter does not cause an abort when
     it is deallocated.  (If this fails it will crash the test runner!)
     >>> bf_noinit = BloomFilter()
@@ -287,10 +294,10 @@ cdef class ReservoirSampler:
     >>> sample_fromfile = [rs_fromfile.get(i) for i in range(4)]
     >>> sample == sample_fromfile
     True
-    >>> for i in xrange(n):
+    >>> for i in range(4):
     ...     (inserted, idx, ejected, ejected_key) = rs_fromfile.insert(i + n)
     >>> sample_fromfile = [rs_fromfile.get(i) for i in range(4)]
-    >>> set(sample).isdisjoint(set(sample_fromfile))
+    >>> set([i + n for i in range(4)]).isdisjoint(set(sample_fromfile))
     True
     >>> os.remove(filename)
 
@@ -347,6 +354,14 @@ cdef class ReservoirSampler:
     ...     sample = (rs.get(0), rs.get(1))
     ...     observed[(min(sample), max(sample))] += 1
     >>> _chisq(expected, observed.values()) < 36.74122 # df = 27, alpha = 0.1
+    True
+
+    Check boundary cases on parameters.
+    >>> rs = ReservoirSampler()
+    >>> ret = rs.init(1)
+    >>> (inserted, idx, ejected, ejected_key) = rs.insert(42)
+    >>> (inserted, idx, ejected, ejected_key) = rs.insert(12)
+    >>> rs.get(0) in (42, 12)
     True
 
     Check that an uninitialized reservoir does not cause an abort when
