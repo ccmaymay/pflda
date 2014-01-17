@@ -35,6 +35,10 @@ def _chisq(expected, observed):
 
 
 cdef int _check_err(int ret) except -1:
+    """
+    Raise exception according to standard integral lowl error code.
+    """
+
     if ret == lowl.LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS:
         return 0
     elif ret == lowl.LOWLERR_BADMALLOC:
@@ -56,19 +60,19 @@ cpdef srandom(unsigned int seed):
     >>> from pylowl import srandom, ReservoirSampler
     >>> srandom(0)
     >>> rs1 = ReservoirSampler()
-    >>> rs1.init(1)
+    >>> ret = rs1.init(1)
     >>> for i in xrange(1000000):
     ...     (inserted, idx, ejected, ejected_key) = rs1.insert(i)
     >>> k1 = rs1.get(0)
     >>> srandom(42)
     >>> rs2 = ReservoirSampler()
-    >>> rs2.init(1)
+    >>> ret = rs2.init(1)
     >>> for i in xrange(1000000):
     ...     (inserted, idx, ejected, ejected_key) = rs2.insert(i)
     >>> k2 = rs2.get(0)
     >>> srandom(0)
     >>> rs3 = ReservoirSampler()
-    >>> rs3.init(1)
+    >>> ret = rs3.init(1)
     >>> for i in xrange(1000000):
     ...     (inserted, idx, ejected, ejected_key) = rs3.insert(i)
     >>> k3 = rs3.get(0)
@@ -147,6 +151,7 @@ cdef class BloomFilter:
 
     cpdef int init(self, lowl.size_t size, unsigned int k) except -1:
         cdef int ret
+
         self._bf = <lowl.bloomfilter *>PyMem_Malloc(sizeof(lowl.bloomfilter))
         if self._bf is NULL:
             raise MemoryError()
@@ -166,7 +171,7 @@ cdef class BloomFilter:
     cpdef prnt(self):
         lowl.bloomfilter_print(self._bf)
 
-    cpdef int read(self, filename) except -1:
+    cpdef int read(self, const char* filename) except -1:
         cdef lowl.FILE* f
         cdef int ret
 
@@ -189,7 +194,7 @@ cdef class BloomFilter:
 
         return 0
 
-    cpdef int write(self, filename) except -1:
+    cpdef int write(self, const char* filename) except -1:
         cdef lowl.FILE* f
         cdef int ret
 
@@ -216,7 +221,7 @@ cdef class ReservoirSampler:
     Test basic reservoir sampler behavior.
     >>> from pylowl import ReservoirSampler
     >>> rs = ReservoirSampler()
-    >>> rs.init(4)
+    >>> ret = rs.init(4)
     >>> (rs.capacity(), rs.occupied()) == (4, 0)
     True
     >>> rs.insert(42)[:3] == (True, 0, False)
@@ -274,9 +279,9 @@ cdef class ReservoirSampler:
     >>> import os
     >>> (fid, filename) = mkstemp('.dat')
     >>> os.close(fid)
-    >>> rs.write(filename)
+    >>> ret = rs.write(filename)
     >>> rs_fromfile = ReservoirSampler()
-    >>> rs_fromfile.read(filename)
+    >>> ret = rs_fromfile.read(filename)
     >>> (rs_fromfile.capacity(), rs_fromfile.occupied()) == (4, 4)
     True
     >>> sample_fromfile = [rs_fromfile.get(i) for i in range(4)]
@@ -292,7 +297,7 @@ cdef class ReservoirSampler:
     Check that get_all returns a contiguous memoryview (read: efficient
     array-like wrapper) on the occupied fraction of the sample.
     >>> rs = ReservoirSampler()
-    >>> rs.init(4)
+    >>> ret = rs.init(4)
     >>> (inserted, idx, ejected, ejected_key) = rs.insert(42)
     >>> (inserted, idx, ejected, ejected_key) = rs.insert(47)
     >>> (inserted, idx, ejected, ejected_key) = rs.insert(3)
@@ -319,7 +324,7 @@ cdef class ReservoirSampler:
     ...         observed[(j, i)] = 0
     >>> for i in xrange(n):
     ...     rs = ReservoirSampler()
-    ...     rs.init(2)
+    ...     ret = rs.init(2)
     ...     for j in range(8):
     ...         quad = rs.insert(j)
     ...     sample = (rs.get(0), rs.get(1))
@@ -339,12 +344,18 @@ cdef class ReservoirSampler:
     def __cinit__(self):
         self._rs = NULL
 
-    cpdef init(self, lowl.size_t capacity):
+    cpdef int init(self, lowl.size_t capacity) except -1:
+        cdef int ret
+
         self._rs = <lowl.reservoirsampler *>PyMem_Malloc(sizeof(lowl.reservoirsampler))
         if self._rs is NULL:
             raise MemoryError()
-        lowl.reservoirsampler_init(self._rs, capacity)
-        # TODO error code
+
+        ret = _check_err(lowl.reservoirsampler_init(self._rs, capacity))
+        if ret != 0:
+            return -1
+
+        return 0
 
     cdef bint _insert(self, lowl.lowl_key k, lowl.size_t* idx, bint* ejected, lowl.lowl_key* ejected_key):
         cdef bint inserted
@@ -359,8 +370,9 @@ cdef class ReservoirSampler:
         inserted = self._insert(k, &idx, &ejected, &ejected_key)
         return (inserted, idx, ejected, ejected_key)
 
-    cpdef read(self, const char* filename):
+    cpdef int read(self, const char* filename) except -1:
         cdef lowl.FILE* f
+        cdef int ret
 
         if self._rs is not NULL:
             lowl.reservoirsampler_destroy(self._rs)
@@ -370,15 +382,30 @@ cdef class ReservoirSampler:
             raise MemoryError()
 
         f = lowl.fopen(filename, 'rb')
-        lowl.reservoirsampler_read(self._rs, f)
-        # TODO error code
-        lowl.fclose(f)
+        if f is NULL:
+            raise IOError("Failed to open file.")
+        ret = _check_err(lowl.reservoirsampler_read(self._rs, f))
+        if ret != 0:
+            return -1
+        ret = lowl.fclose(f)
+        if ret != 0:
+            raise IOError("Failed to close file.")
 
-    cpdef write(self, const char* filename):
+        return 0
+
+    cpdef int write(self, const char* filename) except -1:
         cdef lowl.FILE* f
+        cdef int ret
+
         f = lowl.fopen(filename, 'wb')
+        if f is NULL:
+            raise IOError("Failed to open file.")
         lowl.reservoirsampler_write(self._rs, f)
-        lowl.fclose(f)
+        ret = lowl.fclose(f)
+        if ret != 0:
+            raise IOError("Failed to close file.")
+
+        return 0
 
     cpdef lowl.size_t capacity(self):
         return lowl.reservoirsampler_capacity(self._rs)
