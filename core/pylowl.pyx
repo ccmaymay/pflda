@@ -481,6 +481,8 @@ class ValuedReservoirSampler(object):
     >>> rs = ValuedReservoirSampler(4)
     >>> (rs.capacity(), rs.occupied()) == (4, 0)
     True
+    >>> rs.sample() == []
+    True
     >>> rs.insert(42)[:3] == (True, 0, False)
     True
     >>> rs.insert("Foobar")[:3] == (True, 1, False)
@@ -489,9 +491,14 @@ class ValuedReservoirSampler(object):
     True
     >>> (rs.capacity(), rs.occupied()) == (4, 3)
     True
+    >>> rs.sample() == [42, "Foobar", 47]
+    True
     >>> rs.insert(dict(foo="bar"))[:3] == (True, 3, False)
     True
     >>> (rs.capacity(), rs.occupied()) == (4, 4)
+    True
+    >>> sample = rs.sample()
+    >>> sample == [42, "Foobar", 47, dict(foo="bar")]
     True
     >>> (inserted, idx, ejected, ejected_key) = rs.insert(set([7, 37]))
     >>> inserted == ejected
@@ -503,12 +510,109 @@ class ValuedReservoirSampler(object):
     True
     >>> (rs.capacity(), rs.occupied()) == (4, 4)
     True
+    >>> if inserted:
+    ...     sample[idx] = set([7, 37])
+    >>> sample == rs.sample()
+    True
+
+    Assert basic expectations over a long stream:  Eventually we will
+    insert and eject something, and in particular, we will eventually
+    eject the four initial reservoir elements.  Also assert that
+    insertion occurs if and only if ejection occurs, and that our sample
+    is a subset of all items seen in the stream.
+    >>> n = 10000
+    >>> inserted_any = False
+    >>> ejected_any = False
+    >>> inserted_xor_ejected = False
+    >>> ejected_keys_in_sample = True
+    >>> for i in xrange(n):
+    ...     (inserted, idx, ejected, ejected_key) = rs.insert(i)
+    ...     inserted_any |= inserted
+    ...     ejected_any |= ejected
+    ...     ejected_keys_in_sample &= (not ejected) or (ejected_key in rs.sample())
+    ...     inserted_xor_ejected |= (inserted ^ ejected)
+    >>> inserted_any
+    True
+    >>> ejected_any
+    True
+    >>> inserted_xor_ejected
+    False
+    >>> ejected_keys_in_sample
+    True
+
+    Test serialization and deserialization.
+    >>> from tempfile import mkstemp
+    >>> import os
+    >>> (fid, filename) = mkstemp('.dat')
+    >>> os.close(fid)
+    >>> (fid, values_filename) = mkstemp('.dat')
+    >>> os.close(fid)
+    >>> rs.write(filename, values_filename)
+    >>> rs_fromfile = ValuedReservoirSampler.read(filename, values_filename)
+    >>> (rs_fromfile.capacity(), rs_fromfile.occupied()) == (4, 4)
+    True
+    >>> rs.sample() == rs_fromfile.sample()
+    True
+    >>> inserted_any = False
+    >>> for i in range(4):
+    ...     (inserted, idx, ejected, ejected_key) = rs_fromfile.insert(i + n)
+    ...     inserted_any |= inserted
+    >>> inserted_any
+    False
+    >>> os.remove(filename)
+    >>> os.remove(values_filename)
+
+    Check that exceptions are raised properly when get fails.
+    >>> x = rs.get(2)
+    >>> raised = False
+    >>> try:
+    ...     rs.get(3) # >= occupied, < capacity
+    ... except IndexError:
+    ...     raised = True
+    >>> raised
+    True
+    >>> raised = False
+    >>> try:
+    ...     rs.get(4) # >= occupied, >= capacity
+    ... except IndexError:
+    ...     raised = True
+    >>> raised
+    True
+
+    Show that if our reservoir keys are the numbers 1 through 8 and
+    the reservoir size is 2, then every 2-set of distinct numbers
+    (8 choose 2 of these) has an equal probability of being the
+    reservoir.  (Run n different experiments and show that the
+    distribution of 2-sets is uniform.)
+    >>> n = 10000
+    >>> expected = [n / 28.0] * 28
+    >>> observed = dict()
+    >>> for i in range(8):
+    ...     for j in range(i):
+    ...         observed[(j, i)] = 0
+    >>> for i in xrange(n):
+    ...     rs = ValuedReservoirSampler(2)
+    ...     for j in range(8):
+    ...         quad = rs.insert(j)
+    ...     sample = rs.sample()
+    ...     observed[(min(sample), max(sample))] += 1
+    >>> _chisq(expected, observed.values()) < 36.74122 # df = 27, alpha = 0.1
+    True
+
+    Check boundary cases on parameters.
+    >>> rs = ValuedReservoirSampler(1)
+    >>> (inserted, idx, ejected, ejected_key) = rs.insert(42)
+    >>> (inserted, idx, ejected, ejected_key) = rs.insert(12)
+    >>> rs.get(0) in (42, 12)
+    True
+    >>> rs = ValuedReservoirSampler(0)
 
     This newline is valued transitively.
     """
     def __init__(self, lowl.size_t capacity):
         self.rs = ReservoirSampler()
-        self.rs.init(capacity)
+        if capacity > 0:
+            self.rs.init(capacity)
         self.values = [None] * capacity
         self.unused_key = 0
 
@@ -526,7 +630,13 @@ class ValuedReservoirSampler(object):
             ejected_val = None
         return (inserted, idx, ejected, ejected_val)
 
+    @classmethod
     def read(self, const char* filename, const char* values_filename):
+        vrs = ValuedReservoirSampler(0)
+        vrs._read(filename, values_filename)
+        return vrs
+
+    def _read(self, const char* filename, const char* values_filename):
         self.rs.read(filename)
         self.values = [None] * self.rs.capacity()
         with open(values_filename, 'r') as f:
@@ -552,6 +662,9 @@ class ValuedReservoirSampler(object):
 
     def prnt(self):
         self.rs.prnt()
+
+    def sample(self):
+        return self.values[:self.occupied()]
 
     def get(self, lowl.size_t idx):
         if idx >= self.occupied():
