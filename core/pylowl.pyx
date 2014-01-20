@@ -250,7 +250,7 @@ cdef class CMSketch:
     it is deallocated.  (If this fails it will crash the test runner!)
     >>> cm_noinit = CMSketch()
 
-    It's important to incorporate (line)breaks into one's routine.
+    It's important to take (line)breaks.
     """
 
     cdef lowl.cmsketch* _cm
