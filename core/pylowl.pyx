@@ -273,6 +273,21 @@ cdef class CountMinSketch:
     True
     >>> os.remove(filename)
 
+    Test clear.
+    >>> cm.clear()
+    >>> cm.query("hello, world", 12) == 0
+    True
+    >>> cm.query("hello world", 11) == 0
+    True
+    >>> cm.query("hello, waldo", 12) == 0
+    True
+    >>> cm.query("hello, waldorf", 14) == 0
+    True
+    >>> cm.query("hello, waldorf!", 15) == 0
+    True
+    >>> cm.query("hello, waldorf!", 14) == 0
+    True
+
     Check boundary cases on parameters.
     >>> cm = CountMinSketch()
     >>> ret = cm.init(1, 1)
@@ -313,6 +328,9 @@ cdef class CountMinSketch:
 
     cpdef prnt(self):
         lowl.cmsketch_print(self._cm)
+
+    cpdef clear(self):
+        lowl.cmsketch_clear(self._cm)
 
     cpdef int read(self, const char* filename) except -1:
         cdef lowl.FILE* f
