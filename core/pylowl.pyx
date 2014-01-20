@@ -221,13 +221,13 @@ cdef class BloomFilter:
             PyMem_Free(self._bf)
 
 
-cdef class CMSketch:
+cdef class CountMinSketch:
     """
     CM sketch for string (const char *) elements.
 
     Test basic CM sketch behavior.
-    >>> from pylowl import CMSketch
-    >>> cm = CMSketch()
+    >>> from pylowl import CountMinSketch
+    >>> cm = CountMinSketch()
     >>> ret = cm.init(4, 8)
     >>> cm.add("hello, world", 12, 1)
     >>> cm.add("hello world", 11, 1)
@@ -252,7 +252,7 @@ cdef class CMSketch:
     >>> (fid, filename) = mkstemp('.dat')
     >>> os.close(fid)
     >>> ret = cm.write(filename)
-    >>> cm_fromfile = CMSketch()
+    >>> cm_fromfile = CountMinSketch()
     >>> ret = cm_fromfile.read(filename)
     >>> cm_fromfile.query("hello, world", 12) == 5
     True
@@ -274,7 +274,7 @@ cdef class CMSketch:
     >>> os.remove(filename)
 
     Check boundary cases on parameters.
-    >>> cm = CMSketch()
+    >>> cm = CountMinSketch()
     >>> ret = cm.init(1, 1)
     >>> cm.add("hello, world", 12, 42)
     >>> cm.query("hello, world", 12) == 42
@@ -282,7 +282,7 @@ cdef class CMSketch:
 
     Check that an uninitialized sketch does not cause an abort when
     it is deallocated.  (If this fails it will crash the test runner!)
-    >>> cm_noinit = CMSketch()
+    >>> cm_noinit = CountMinSketch()
 
     It's important to take (line)breaks.
     """
