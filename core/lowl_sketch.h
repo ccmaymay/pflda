@@ -9,19 +9,21 @@
 
 /* count-min sketch. */
 typedef struct cmsketch{
-  unsigned int width;
-  unsigned int depth;
+  size_t width;
+  size_t depth;
   /* we maintain width*depth counters, which we will store as an array
 	of arrays (rather than as one contiguous block of memory,
 	at least for now.	*/
   lowl_count** counters;
-  motrag_hash* hashes; /* need an array of depth different hashes. */
+  char_hash* hashes; /* need an array of depth different hashes. */
 }cmsketch; 
 
-int cmsketch_init(cmsketch* cm, unsigned int m, unsigned int w, unsigned int d);
-int cmsketch_add(cmsketch* cm, lowl_key elmt, lowl_count delta);
-int cmsketch_add_one(cmsketch* cm, lowl_key elmt);
-lowl_count cmsketch_query(cmsketch* cm, lowl_key elmt);
+int cmsketch_init(cmsketch* cm, size_t w, size_t d);
+int cmsketch_add(cmsketch* cm, const char *x, size_t len, lowl_count delta);
+lowl_count cmsketch_query(cmsketch* cm, const char *x, size_t len);
+void cmsketch_print(cmsketch* cm);
+void cmsketch_write(cmsketch* cm, FILE* fp);
+int cmsketch_read(cmsketch* cm, FILE* fp);
 void cmsketch_clear(cmsketch* cm);
 void cmsketch_destroy(cmsketch* cm);
 

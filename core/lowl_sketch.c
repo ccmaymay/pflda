@@ -15,10 +15,8 @@
 
 
 /* initial setup of cmsketch. */
-int cmsketch_init(cmsketch* cm, unsigned int m,
-			unsigned int w, unsigned int d) {
-  /* m is the cardinality of the input universe.
-	 * w is the desired width of the sketch
+int cmsketch_init(cmsketch* cm, size_t w, size_t d) {
+  /* w is the desired width of the sketch
 	 * d is the desired depth of the sketch.
 	 * See http://dimacs.rutgers.edu/~graham/pubs/papers/cmencyc.pdf
 	 * for a good overview of the CM sketch.
@@ -35,56 +33,74 @@ int cmsketch_init(cmsketch* cm, unsigned int m,
       return LOWLERR_BADMALLOC;
   }
 
-  cm->hashes = malloc(d * sizeof(motrag_hash));
+  // TODO use two-hash scheme as in bf?
+  cm->hashes = malloc(d * sizeof(char_hash));
   if (cm->hashes == NULL)
     return LOWLERR_BADMALLOC;
-  for (size_t i = 0; i < d; ++i) {
-    int succ = motrag_hash_init(cm->hashes + i, m, w);
-    if (succ != 0)
-      return succ;
-  }
+  for (size_t i = 0; i < d; ++i)
+    char_hash_arm(cm->hashes + i);
 
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
-void cmsketch_arm(cmsketch* cm) {
-  /* seed all the hashes.	*/
-  for (size_t i = 0; i < cm->depth; ++i) {
-    motrag_hash_arm(cm->hashes + i);
-  }
-}
-
-int cmsketch_add(cmsketch* cm, lowl_key elmt, lowl_count delta) {
-  if (elmt > (cm->hashes)->m) /* element is out of range. */
-    return LOWLERR_INDEXOUTOFRANGE;
-
+int cmsketch_add(cmsketch* cm, const char *x, size_t len, lowl_count delta) {
   for (size_t i = 0; i < cm->depth; ++i) {
     /* the i-th hash function, evaluated on the input element, determines
      * which counter in the i-th array gets added to.
      */
-    lowl_hashoutput hashoutput = motrag_map(elmt, cm->hashes + i);
+    lowl_hashoutput hashoutput = mod_fnv(x, len, cm->hashes + i) % cm->width;
     cm->counters[i][hashoutput] += delta;
   }
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
-int cmsketch_add_one(cmsketch* cm, lowl_key elmt) {
-  return cmsketch_add(cm, elmt, 1);
-}
-
-lowl_count cmsketch_query(cmsketch* cm, lowl_key elmt) {
-  lowl_hashoutput hashoutput = motrag_map(elmt, cm->hashes);
+lowl_count cmsketch_query(cmsketch* cm, const char *x, size_t len) {
+  lowl_hashoutput hashoutput = mod_fnv(x, len, cm->hashes) % cm->width;
   lowl_count c = cm->counters[0][hashoutput];
   for (size_t i = 1; i < cm->depth; ++i) {
-    hashoutput = motrag_map(elmt, cm->hashes + i);
+    hashoutput = mod_fnv(x, len, cm->hashes + i) % cm->width;
     c = min(c, cm->counters[i][hashoutput]);
   }
   return c;
 }
 
+void cmsketch_print(cmsketch* cm) {
+  for (size_t i = 0; i < cm->depth; ++i) {
+    printf("%u", (unsigned int) cm->counters[i][0]);
+    for (size_t j = 1; j < cm->width; ++j)
+      printf(" %u", (unsigned int) cm->counters[i][j]);
+    printf("\n");
+  }
+}
+
+/*
+void cmsketch_write(cmsketch* cm, FILE* fp) {
+  fwrite( &(cm->width), sizeof(size_t), 1, fp);
+  fwrite( &(cm->depth), sizeof(size_t), 1, fp);
+  fwrite( cm->b, sizeof( *(cm->b) ), cm->size, fp);
+  fwrite( &(cm->hash_key_to_word1), sizeof( char_hash ), 1, fp);
+  fwrite( &(cm->hash_key_to_word2), sizeof( char_hash ), 1, fp);
+  fwrite( &(cm->hash_key_to_bit1), sizeof( char_hash ), 1, fp); 
+  fwrite( &(cm->hash_key_to_bit2), sizeof( char_hash ), 1, fp); 
+}
+
+int cmsketch_read(cmsketch* cm, FILE* fp) {
+  fread(&(cm->width), sizeof(size_t), 1, fp);
+  fread(&(cm->depth), sizeof(size_t), 1, fp);
+  cm->b = (uint32_t*)malloc( cm->size*sizeof(uint32_t));
+  if (cm->b == 0) return LOWLERR_BADMALLOC;
+  fread(cm->b, sizeof(uint32_t), cm->size, fp);
+  fread( &(cm->hash_key_to_word1), sizeof( char_hash ), 1, fp);
+  fread( &(cm->hash_key_to_word2), sizeof( char_hash ), 1, fp);
+  fread( &(cm->hash_key_to_bit1), sizeof( char_hash ), 1, fp);
+  fread( &(cm->hash_key_to_bit2), sizeof( char_hash ), 1, fp);
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
+}
+*/
+
 void cmsketch_clear(cmsketch* cm) {
   /* zero all counters. */
-  for(size_t i = 0; i < cm->depth; ++i) {
+  for (size_t i = 0; i < cm->depth; ++i) {
     for (size_t j = 0; j < cm->width; ++j) {
       cm->counters[i][j] = 0;
     }
@@ -223,8 +239,8 @@ int bloomfilter_read(bloomfilter* f, FILE* fp) {
   f->mask = (uint32_t*) malloc(32 * sizeof(uint32_t));
   bloomfilter_setmask( f->mask );
 
-  fread(&(f->size), sizeof(int), 1, fp);
-  fread(&(f->k), sizeof(int), 1, fp);
+  fread(&(f->size), sizeof(unsigned int), 1, fp);
+  fread(&(f->k), sizeof(unsigned int), 1, fp);
   f->b = (uint32_t*)malloc( f->size*sizeof(uint32_t));
   if (f->b == 0) return LOWLERR_BADMALLOC;
   fread(f->b, sizeof(uint32_t), f->size, fp);

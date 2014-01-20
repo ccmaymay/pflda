@@ -221,6 +221,87 @@ cdef class BloomFilter:
             PyMem_Free(self._bf)
 
 
+cdef class CMSketch:
+    """
+    CM sketch for string (const char *) elements.
+
+    It's important to incorporate (line)breaks into one's routine.
+    """
+
+    cdef lowl.cmsketch* _cm
+
+    def __cinit__(self):
+        self._cm = NULL
+
+    cpdef int init(self, lowl.size_t w, lowl.size_t d) except -1:
+        cdef int ret
+
+        self._cm = <lowl.cmsketch *>PyMem_Malloc(sizeof(lowl.cmsketch))
+        if self._cm is NULL:
+            raise MemoryError()
+
+        ret = _check_err(lowl.cmsketch_init(self._cm, w, d))
+        if ret != 0:
+            return -1
+
+        return 0
+
+    cpdef int add(self, const char* x, lowl.size_t n, lowl.lowl_count delta) except -1:
+        cdef int ret
+        ret = _check_err(lowl.cmsketch_add(self._cm, x, n, delta))
+        if ret != 0:
+            return -1
+        return 0
+
+    cpdef lowl.lowl_count query(self, const char* x, lowl.size_t n):
+        return lowl.cmsketch_query(self._cm, x, n)
+
+    cpdef prnt(self):
+        lowl.cmsketch_print(self._cm)
+
+    cpdef int read(self, const char* filename) except -1:
+        cdef lowl.FILE* f
+        cdef int ret
+
+        if self._cm is not NULL:
+            lowl.cmsketch_destroy(self._cm)
+            PyMem_Free(self._cm)
+        self._cm = <lowl.cmsketch *>PyMem_Malloc(sizeof(lowl.cmsketch))
+        if self._cm is NULL:
+            raise MemoryError()
+
+        f = lowl.fopen(filename, 'rb')
+        if f is NULL:
+            raise IOError("Failed to open file.")
+        ret = _check_err(lowl.cmsketch_read(self._cm, f))
+        if ret != 0:
+            return -1
+        ret = lowl.fclose(f)
+        if ret != 0:
+            raise IOError("Failed to close file.")
+
+        return 0
+
+    cpdef int write(self, const char* filename) except -1:
+        cdef lowl.FILE* f
+        cdef int ret
+
+        f = lowl.fopen(filename, 'wb')
+        if f is NULL:
+            raise IOError("Failed to open file.")
+        lowl.cmsketch_write(self._cm, f)
+        ret = lowl.fclose(f)
+        if ret != 0:
+            raise IOError("Failed to close file.")
+
+        return 0
+
+    def __dealloc__(self):
+        if self._cm is not NULL:
+            lowl.cmsketch_destroy(self._cm)
+            PyMem_Free(self._cm)
+
+
 cdef class ReservoirSampler:
     """
     Reservoir sampler for lowl_key (integral) elements.
