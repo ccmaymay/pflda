@@ -602,7 +602,6 @@ cdef class ReservoirSampler:
     cpdef prnt(self):
         lowl.reservoirsampler_print(self._rs)
 
-    # TODO does err check kill performance?
     cpdef lowl.lowl_key get(self, idx) except *:
         cdef lowl.lowl_key k
         _check_err(lowl.reservoirsampler_get(self._rs, idx, &k))
