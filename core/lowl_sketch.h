@@ -15,7 +15,8 @@ typedef struct cmsketch{
 	of arrays (rather than as one contiguous block of memory,
 	at least for now.	*/
   lowl_count** counters;
-  char_hash* hashes; /* need an array of depth different hashes. */
+  char_hash hash_key1;
+  char_hash hash_key2;
 }cmsketch; 
 
 int cmsketch_init(cmsketch* cm, size_t w, size_t d);

@@ -33,34 +33,28 @@ int cmsketch_init(cmsketch* cm, size_t w, size_t d) {
       return LOWLERR_BADMALLOC;
   }
 
-  // TODO use two-hash scheme as in bf?
-  cm->hashes = malloc(d * sizeof(char_hash));
-  if (cm->hashes == NULL)
-    return LOWLERR_BADMALLOC;
-  for (size_t i = 0; i < d; ++i)
-    char_hash_arm(cm->hashes + i);
+  char_hash_arm(&(cm->hash_key1));
+  char_hash_arm(&(cm->hash_key2));
 
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 int cmsketch_add(cmsketch* cm, const char *x, size_t len, lowl_count delta) {
-  for (size_t i = 0; i < cm->depth; ++i) {
-    /* the i-th hash function, evaluated on the input element, determines
-     * which counter in the i-th array gets added to.
-     */
-    lowl_hashoutput hashoutput = mod_fnv(x, len, cm->hashes + i) % cm->width;
-    cm->counters[i][hashoutput] += delta;
-  }
+  lowl_hashoutput hash1, hash2;
+  hash1 = mod_fnv(x, len, &(cm->hash_key1));
+  hash2 = mod_fnv(x, len, &(cm->hash_key2));
+  for (size_t i = 0; i < cm->depth; ++i)
+    cm->counters[i][(hash1 + i*hash2) % cm->width] += delta;
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 lowl_count cmsketch_query(cmsketch* cm, const char *x, size_t len) {
-  lowl_hashoutput hashoutput = mod_fnv(x, len, cm->hashes) % cm->width;
-  lowl_count c = cm->counters[0][hashoutput];
-  for (size_t i = 1; i < cm->depth; ++i) {
-    hashoutput = mod_fnv(x, len, cm->hashes + i) % cm->width;
-    c = min(c, cm->counters[i][hashoutput]);
-  }
+  lowl_hashoutput hash1, hash2;
+  hash1 = mod_fnv(x, len, &(cm->hash_key1));
+  hash2 = mod_fnv(x, len, &(cm->hash_key2));
+  lowl_count c = cm->counters[0][hash1 % cm->width];
+  for (size_t i = 1; i < cm->depth; ++i)
+    c = min(c, cm->counters[i][(hash1 + i*hash2) % cm->width]);
   return c;
 }
 
@@ -73,30 +67,30 @@ void cmsketch_print(cmsketch* cm) {
   }
 }
 
-/*
 void cmsketch_write(cmsketch* cm, FILE* fp) {
-  fwrite( &(cm->width), sizeof(size_t), 1, fp);
-  fwrite( &(cm->depth), sizeof(size_t), 1, fp);
-  fwrite( cm->b, sizeof( *(cm->b) ), cm->size, fp);
-  fwrite( &(cm->hash_key_to_word1), sizeof( char_hash ), 1, fp);
-  fwrite( &(cm->hash_key_to_word2), sizeof( char_hash ), 1, fp);
-  fwrite( &(cm->hash_key_to_bit1), sizeof( char_hash ), 1, fp); 
-  fwrite( &(cm->hash_key_to_bit2), sizeof( char_hash ), 1, fp); 
+  fwrite(&(cm->width), sizeof(size_t), 1, fp);
+  fwrite(&(cm->depth), sizeof(size_t), 1, fp);
+  fwrite(&(cm->hash_key1), sizeof(char_hash), 1, fp);
+  fwrite(&(cm->hash_key2), sizeof(char_hash), 1, fp);
 }
 
 int cmsketch_read(cmsketch* cm, FILE* fp) {
   fread(&(cm->width), sizeof(size_t), 1, fp);
   fread(&(cm->depth), sizeof(size_t), 1, fp);
-  cm->b = (uint32_t*)malloc( cm->size*sizeof(uint32_t));
-  if (cm->b == 0) return LOWLERR_BADMALLOC;
-  fread(cm->b, sizeof(uint32_t), cm->size, fp);
-  fread( &(cm->hash_key_to_word1), sizeof( char_hash ), 1, fp);
-  fread( &(cm->hash_key_to_word2), sizeof( char_hash ), 1, fp);
-  fread( &(cm->hash_key_to_bit1), sizeof( char_hash ), 1, fp);
-  fread( &(cm->hash_key_to_bit2), sizeof( char_hash ), 1, fp);
+  fread(&(cm->hash_key1), sizeof(char_hash), 1, fp);
+  fread(&(cm->hash_key2), sizeof(char_hash), 1, fp);
+
+  cm->counters = malloc(cm->depth * sizeof(lowl_count*));
+  if (cm->counters == NULL)
+    return LOWLERR_BADMALLOC;
+  for (size_t i = 0; i < cm->depth; ++i) {
+    cm->counters[i] = malloc(cm->width * sizeof(lowl_count));
+    if (cm->counters[i] == NULL)
+      return LOWLERR_BADMALLOC;
+  }
+
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
-*/
 
 void cmsketch_clear(cmsketch* cm) {
   /* zero all counters. */
@@ -108,10 +102,6 @@ void cmsketch_clear(cmsketch* cm) {
 }
 
 void cmsketch_destroy(cmsketch* cm) {
-  if (cm->hashes != NULL)
-    free(cm->hashes);
-  cm->hashes = NULL;
-
   for (size_t i = 0; i < cm->depth; ++i) {
     if (cm->counters[i] != NULL)
       free(cm->counters[i]);
