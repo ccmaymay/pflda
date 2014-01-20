@@ -39,13 +39,12 @@ int cmsketch_init(cmsketch* cm, size_t w, size_t d) {
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
-int cmsketch_add(cmsketch* cm, const char *x, size_t len, lowl_count delta) {
+void cmsketch_add(cmsketch* cm, const char *x, size_t len, lowl_count delta) {
   lowl_hashoutput hash1, hash2;
   hash1 = mod_fnv(x, len, &(cm->hash_key1));
   hash2 = mod_fnv(x, len, &(cm->hash_key2));
   for (size_t i = 0; i < cm->depth; ++i)
     cm->counters[i][(hash1 + i*hash2) % cm->width] += delta;
-  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
 lowl_count cmsketch_query(cmsketch* cm, const char *x, size_t len) {

@@ -229,6 +229,21 @@ cdef class CMSketch:
     >>> from pylowl import CMSketch
     >>> cm = CMSketch()
     >>> ret = cm.init(4, 8)
+    >>> cm.add("hello, world", 12, 1)
+    >>> cm.add("hello world", 11, 1)
+    >>> cm.add("hello, waldorf", 14, 1)
+    >>> cm.query("hello, world", 12)
+    1
+    >>> cm.query("hello world", 11)
+    1
+    >>> cm.query("hello, waldo", 12)
+    0
+    >>> cm.query("hello, waldorf", 14)
+    1
+    >>> cm.query("hello, waldorf!", 15)
+    0
+    >>> cm.query("hello, waldorf!", 14)
+    1
 
     Check that an uninitialized sketch does not cause an abort when
     it is deallocated.  (If this fails it will crash the test runner!)
@@ -255,12 +270,8 @@ cdef class CMSketch:
 
         return 0
 
-    cpdef int add(self, const char* x, lowl.size_t n, lowl.lowl_count delta) except -1:
-        cdef int ret
-        ret = _check_err(lowl.cmsketch_add(self._cm, x, n, delta))
-        if ret != 0:
-            return -1
-        return 0
+    cpdef add(self, const char* x, lowl.size_t n, lowl.lowl_count delta):
+        lowl.cmsketch_add(self._cm, x, n, delta)
 
     cpdef lowl.lowl_count query(self, const char* x, lowl.size_t n):
         return lowl.cmsketch_query(self._cm, x, n)

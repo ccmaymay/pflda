@@ -20,7 +20,7 @@ typedef struct cmsketch{
 }cmsketch; 
 
 int cmsketch_init(cmsketch* cm, size_t w, size_t d);
-int cmsketch_add(cmsketch* cm, const char *x, size_t len, lowl_count delta);
+void cmsketch_add(cmsketch* cm, const char *x, size_t len, lowl_count delta);
 lowl_count cmsketch_query(cmsketch* cm, const char *x, size_t len);
 void cmsketch_print(cmsketch* cm);
 void cmsketch_write(cmsketch* cm, FILE* fp);
