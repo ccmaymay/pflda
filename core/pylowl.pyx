@@ -225,6 +225,15 @@ cdef class CMSketch:
     """
     CM sketch for string (const char *) elements.
 
+    Test basic CM sketch behavior.
+    >>> from pylowl import CMSketch
+    >>> cm = CMSketch()
+    >>> ret = cm.init(4, 8)
+
+    Check that an uninitialized sketch does not cause an abort when
+    it is deallocated.  (If this fails it will crash the test runner!)
+    >>> cm_noinit = CMSketch()
+
     It's important to incorporate (line)breaks into one's routine.
     """
 
