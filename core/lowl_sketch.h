@@ -14,16 +14,16 @@ typedef struct cmsketch{
   /* we maintain width*depth counters, which we will store as an array
 	of arrays (rather than as one contiguous block of memory,
 	at least for now.	*/
-  unsigned int** counters;
+  lowl_count** counters;
   motrag_hash* hashes; /* need an array of depth different hashes. */
 }cmsketch; 
 
-int cmsketch_init( cmsketch* cm, unsigned int m,
-			unsigned int w, unsigned int d);
-int cmsketch_update( cmsketch* cm, unsigned int i, unsigned int c );
-int cmsketch_count( cmsketch* cm, unsigned int token );
-void cmsketch_clear( cmsketch* cm );
-void cmsketch_destroy( cmsketch* cm );
+int cmsketch_init(cmsketch* cm, unsigned int m, unsigned int w, unsigned int d);
+int cmsketch_add(cmsketch* cm, lowl_key elmt, lowl_count delta);
+int cmsketch_add_one(cmsketch* cm, lowl_key elmt);
+lowl_count cmsketch_query(cmsketch* cm, lowl_key elmt);
+void cmsketch_clear(cmsketch* cm);
+void cmsketch_destroy(cmsketch* cm);
 
 /* bloom filter. */
 typedef struct bloomfilter {

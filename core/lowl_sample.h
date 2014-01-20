@@ -1,8 +1,6 @@
 #ifndef LOWLSAMPLE_H
 #define LOWLSAMPLE_H
 
-#define min(a,b) ((a) < (b)) ? (a) : (b)
-
 #include "lowl_types.h"
 #include <stddef.h>
 #include <stdio.h>

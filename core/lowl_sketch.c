@@ -4,6 +4,7 @@
 #include <math.h>
 #include <stdio.h>
 #include "lowl_hash.h"
+#include "lowl_math.h"
 #include "lowl_sketch.h"
 
 /*********************************************************
@@ -14,78 +15,96 @@
 
 
 /* initial setup of cmsketch. */
-int cmsketch_init( cmsketch* cm, unsigned int m,
+int cmsketch_init(cmsketch* cm, unsigned int m,
 			unsigned int w, unsigned int d) {
-  /* unsigned int m is the cardinality of the input universe.
-	unsigned int w is the desired width of the sketch
-	unsigned int d is the desired depth of the sketch.
-	See http://dimacs.rutgers.edu/~graham/pubs/papers/cmencyc.pdf
-	for a good overview of the CM sketch.	*/
+  /* m is the cardinality of the input universe.
+	 * w is the desired width of the sketch
+	 * d is the desired depth of the sketch.
+	 * See http://dimacs.rutgers.edu/~graham/pubs/papers/cmencyc.pdf
+	 * for a good overview of the CM sketch.
+   */
   cm->width = w;
   cm->depth = d;
-  cm->counters = malloc( d*sizeof(unsigned int*) );
-  unsigned int i;
-  for( i=0; i < d; i++ ) {
-    (cm->counters)[i] = malloc( w*sizeof(unsigned int) );
+
+  cm->counters = malloc(d * sizeof(lowl_count*));
+  if (cm->counters == NULL)
+    return LOWLERR_BADMALLOC;
+  for (size_t i = 0; i < d; ++i) {
+    cm->counters[i] = malloc(w * sizeof(lowl_count));
+    if (cm->counters[i] == NULL)
+      return LOWLERR_BADMALLOC;
   }
-  cm->hashes = malloc( d*sizeof( motrag_hash ) );
-  int succ;
-  for( i=0; i<d; i++ ) {
-    succ = motrag_hash_init( cm->hashes+i, m, w );
-    if( succ != 0 ) {
+
+  cm->hashes = malloc(d * sizeof(motrag_hash));
+  if (cm->hashes == NULL)
+    return LOWLERR_BADMALLOC;
+  for (size_t i = 0; i < d; ++i) {
+    int succ = motrag_hash_init(cm->hashes + i, m, w);
+    if (succ != 0)
       return succ;
+  }
+
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
+}
+
+void cmsketch_arm(cmsketch* cm) {
+  /* seed all the hashes.	*/
+  for (size_t i = 0; i < cm->depth; ++i) {
+    motrag_hash_arm(cm->hashes + i);
+  }
+}
+
+int cmsketch_add(cmsketch* cm, lowl_key elmt, lowl_count delta) {
+  if (elmt > (cm->hashes)->m) /* element is out of range. */
+    return LOWLERR_INDEXOUTOFRANGE;
+
+  for (size_t i = 0; i < cm->depth; ++i) {
+    /* the i-th hash function, evaluated on the input element, determines
+     * which counter in the i-th array gets added to.
+     */
+    lowl_hashoutput hashoutput = motrag_map(elmt, cm->hashes + i);
+    cm->counters[i][hashoutput] += delta;
+  }
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
+}
+
+int cmsketch_add_one(cmsketch* cm, lowl_key elmt) {
+  return cmsketch_add(cm, elmt, 1);
+}
+
+lowl_count cmsketch_query(cmsketch* cm, lowl_key elmt) {
+  lowl_hashoutput hashoutput = motrag_map(elmt, cm->hashes);
+  lowl_count c = cm->counters[0][hashoutput];
+  for (size_t i = 1; i < cm->depth; ++i) {
+    hashoutput = motrag_map(elmt, cm->hashes + i);
+    c = min(c, cm->counters[i][hashoutput]);
+  }
+  return c;
+}
+
+void cmsketch_clear(cmsketch* cm) {
+  /* zero all counters. */
+  for(size_t i = 0; i < cm->depth; ++i) {
+    for (size_t j = 0; j < cm->width; ++j) {
+      cm->counters[i][j] = 0;
     }
   }
-  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 
-void cmsketch_arm( cmsketch* cm ) {
-  /* seed all the hashes.	*/
-  unsigned int i;
-  for( i=0; i< cm->depth; i++ ) {
-    motrag_hash_arm( cm->hashes+i );
-  }
-}
-
-int cmsketch_update(cmsketch* cm, unsigned int elmt,
-				unsigned int c) {
-  if( elmt > ( cm->hashes )->m ) { /* element is out of range. */
-    return LOWLERR_INDEXOUTOFRANGE;
-  }
-  unsigned int i;
-  unsigned int hashoutput;
-  for( i=0; i<cm->depth; i++ ) {
-    /* the i-th hash function, evaluated on the input element, determines
-	which counter in the i-th array gets added to.	*/
-    hashoutput = motrag_map( elmt, cm->hashes+i );
-    (cm->counters+i)[hashoutput] += c;
-  }
-  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
-}
-
-int cmsketch_count( cmsketch* cm, unsigned int elmt ) {
-  /* count the given element as having occurred once.	*/
-  return cmsketch_update( cm, elmt, 1);
-}
-
-void cmsketch_clear( cmsketch* cm ) {
-  /* zero all counters. */
-  unsigned int i;
-  for( i=0; i < cm->depth; i++ ) {
-    memset( cm->counters+i, 0, cm->width*sizeof(unsigned int) );
-  }
-}
-
-void cmsketch_destroy( cmsketch* cm ) {
+void cmsketch_destroy(cmsketch* cm) {
   if (cm->hashes != NULL)
-    free( cm->hashes );
+    free(cm->hashes);
   cm->hashes = NULL;
-  unsigned int i;
-  for( i=0; i<cm->depth; i++ ) {
+
+  for (size_t i = 0; i < cm->depth; ++i) {
     if (cm->counters[i] != NULL)
       free(cm->counters[i]);
-    (cm->counters[i]) = NULL;
+    cm->counters[i] = NULL;
   }
+
+  if (cm->counters != NULL)
+    free(cm->counters);
+  cm->counters = NULL;
 }
 
 /*********************************************************
