@@ -228,22 +228,23 @@ cdef class CMSketch:
     Test basic CM sketch behavior.
     >>> from pylowl import CMSketch
     >>> cm = CMSketch()
-    >>> ret = cm.init(4, 8)
+    >>> ret = cm.init(4, 2)
     >>> cm.add("hello, world", 12, 1)
     >>> cm.add("hello world", 11, 1)
-    >>> cm.add("hello, waldorf", 14, 1)
-    >>> cm.query("hello, world", 12)
-    1
-    >>> cm.query("hello world", 11)
-    1
-    >>> cm.query("hello, waldo", 12)
-    0
-    >>> cm.query("hello, waldorf", 14)
-    1
-    >>> cm.query("hello, waldorf!", 15)
-    0
-    >>> cm.query("hello, waldorf!", 14)
-    1
+    >>> cm.add("hello, world", 12, 4)
+    >>> cm.add("hello, waldorf", 14, 42)
+    >>> cm.query("hello, world", 12) == 5
+    True
+    >>> cm.query("hello world", 11) == 1
+    True
+    >>> cm.query("hello, waldo", 12) == 0
+    True
+    >>> cm.query("hello, waldorf", 14) == 42
+    True
+    >>> cm.query("hello, waldorf!", 15) == 0
+    True
+    >>> cm.query("hello, waldorf!", 14) == 42
+    True
 
     Check that an uninitialized sketch does not cause an abort when
     it is deallocated.  (If this fails it will crash the test runner!)

@@ -31,6 +31,8 @@ int cmsketch_init(cmsketch* cm, size_t w, size_t d) {
     cm->counters[i] = malloc(w * sizeof(lowl_count));
     if (cm->counters[i] == NULL)
       return LOWLERR_BADMALLOC;
+    for (size_t j = 0; j < w; ++j)
+      cm->counters[i][j] = 0;
   }
 
   char_hash_arm(&(cm->hash_key1));
@@ -86,6 +88,8 @@ int cmsketch_read(cmsketch* cm, FILE* fp) {
     cm->counters[i] = malloc(cm->width * sizeof(lowl_count));
     if (cm->counters[i] == NULL)
       return LOWLERR_BADMALLOC;
+    for (size_t j = 0; j < cm->width; ++j)
+      cm->counters[i][j] = 0;
   }
 
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
