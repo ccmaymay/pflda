@@ -228,7 +228,7 @@ cdef class CMSketch:
     Test basic CM sketch behavior.
     >>> from pylowl import CMSketch
     >>> cm = CMSketch()
-    >>> ret = cm.init(4, 2)
+    >>> ret = cm.init(4, 8)
     >>> cm.add("hello, world", 12, 1)
     >>> cm.add("hello world", 11, 1)
     >>> cm.add("hello, world", 12, 4)
@@ -244,6 +244,40 @@ cdef class CMSketch:
     >>> cm.query("hello, waldorf!", 15) == 0
     True
     >>> cm.query("hello, waldorf!", 14) == 42
+    True
+
+    Test serialization and deserialization.
+    >>> from tempfile import mkstemp
+    >>> import os
+    >>> (fid, filename) = mkstemp('.dat')
+    >>> os.close(fid)
+    >>> ret = cm.write(filename)
+    >>> cm_fromfile = CMSketch()
+    >>> ret = cm_fromfile.read(filename)
+    >>> cm_fromfile.query("hello, world", 12) == 5
+    True
+    >>> cm_fromfile.query("hello world", 11) == 1
+    True
+    >>> cm_fromfile.query("hello, waldo", 12) == 0
+    True
+    >>> cm_fromfile.query("hello, waldorf", 14) == 42
+    True
+    >>> cm_fromfile.query("hello, waldorf!", 15) == 0
+    True
+    >>> cm_fromfile.query("hello, waldorf!", 14) == 42
+    True
+    >>> cm_fromfile.query("foobar", 6) == 0
+    True
+    >>> cm_fromfile.add("foobar!", 6, 7)
+    >>> cm_fromfile.query("foobar", 6) == 7
+    True
+    >>> os.remove(filename)
+
+    Check boundary cases on parameters.
+    >>> cm = CMSketch()
+    >>> ret = cm.init(1, 1)
+    >>> cm.add("hello, world", 12, 42)
+    >>> cm.query("hello, world", 12) == 42
     True
 
     Check that an uninitialized sketch does not cause an abort when

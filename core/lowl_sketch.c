@@ -73,6 +73,8 @@ void cmsketch_write(cmsketch* cm, FILE* fp) {
   fwrite(&(cm->depth), sizeof(size_t), 1, fp);
   fwrite(&(cm->hash_key1), sizeof(char_hash), 1, fp);
   fwrite(&(cm->hash_key2), sizeof(char_hash), 1, fp);
+  for (size_t i = 0; i < cm->depth; ++i)
+    fwrite(cm->counters[i], sizeof(lowl_count), cm->width, fp);
 }
 
 int cmsketch_read(cmsketch* cm, FILE* fp) {
@@ -88,8 +90,7 @@ int cmsketch_read(cmsketch* cm, FILE* fp) {
     cm->counters[i] = malloc(cm->width * sizeof(lowl_count));
     if (cm->counters[i] == NULL)
       return LOWLERR_BADMALLOC;
-    for (size_t j = 0; j < cm->width; ++j)
-      cm->counters[i][j] = 0;
+    fread(cm->counters[i], sizeof(lowl_count), cm->width, fp);
   }
 
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
