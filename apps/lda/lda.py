@@ -104,7 +104,7 @@ def run_lda(vocab_filename, docs_filename):
             word = line.strip()
             vocab[word] = len(vocab)
     model = LdaModel(1000, 0.1, 0.1, 10, vocab)
-    with open(vocab_filename) as f:
+    with open(docs_filename) as f:
         for line in f:
             model.add_doc(line)
             model.learn(1000)
@@ -113,7 +113,7 @@ def run_lda(vocab_filename, docs_filename):
 
 def make_vocab(vocab_filename, docs_filename):
     word_counts = dict()
-    with open(filename) as f:
+    with open(docs_filename) as f:
         for line in f:
             for token in tokenize(line):
                 if token in word_counts:
@@ -127,4 +127,5 @@ def make_vocab(vocab_filename, docs_filename):
 
 
 if __name__ == '__main__':
+    import sys
     globals()[sys.argv[1]](*sys.argv[2:])
