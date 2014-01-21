@@ -94,7 +94,7 @@ class LdaModel(object):
 
 
 def tokenize(line):
-    return (w.lower() for w in NON_ALPHA.split(line.strip()))
+    return (w.lower() for w in NON_ALPHA.split(line.strip()) if w)
             
     
 def run_lda(vocab_filename, docs_filename):
