@@ -514,6 +514,63 @@ void run_bitvector_tests() {
   return;
 }
 
+void run_numeric_vector_tests() {
+  printf("=== Running numeric vector tests. ===\n");
+
+  sparse_vector* spavecaa = malloc( sizeof(sparse_vector) );
+  sparse_vector* spavecbb = malloc( sizeof(sparse_vector) );
+  dense_vector* denvecaa = malloc( sizeof(dense_vector) );
+  dense_vector* denvecbb = malloc( sizeof(dense_vector) );
+
+  float vals[6] = { 2.2, 3.3, 5.5, 8.8, 11.11, 19.19 };
+  unsigned int comps[6] = {2, 3, 5, 8, 11, 19};
+  dense_vector_init( denvecaa, vals, 6); 
+  assert( denvecaa->length == 6 );
+  sparse_vector_init( spavecaa, comps, vals, 6, 20);
+  assert( spavecaa->length == 20);
+  assert( spavecaa->sparsity == 6);
+
+  /* test that our mergesort for sparse vector entries works properly. */
+  unsigned int comps2[7] = { 6, 4, 3, 1, 5, 2, 0 };
+  float vals2[7] = { 60.6, 40.4, 30.3, 10.1, 50.5, 20.2, 0.0 };
+  sparse_vector_init( spavecbb, comps2, vals2, 7, 20 );
+  assert( spavecbb->length == 20 );
+  assert( spavecbb->sparsity == 7 );
+
+  /* verify that entries are sorted */
+  unsigned int i;
+  for( i = 0; i<6; i++ ) {
+    assert( (spavecbb->entries)[i].component
+		< (spavecbb->entries)[i+1].component );
+    if( i==5 ) {
+      continue;
+    }
+    assert(((spavecaa->entries)[i]).component
+		< ((spavecaa->entries)[i+1]).component );
+  } 
+
+  /* initialize a second dense vector. */
+  dense_vector_init( denvecbb, vals2, 6); 
+  assert( denvecbb->length == 6 );
+
+  /* test dot products */
+  float dotprod = sparse_vector_dot_product( spavecaa, spavecbb );
+  float expected_dotprod = 20.2*2.2 + 30.3*3.3 + 50.5*5.5;
+  assert( fabsf(dotprod - expected_dotprod ) < 0.0001 );
+
+  dotprod = dense_vector_dot_product( denvecaa, denvecbb );
+  expected_dotprod = 2.2*60.6 + 3.3*40.4 + 5.5*30.3 + 8.8*10.1
+				+ 11.11*50.5 + 19.19*20.2;
+  assert( fabsf(dotprod - expected_dotprod) < 0.0001 );
+
+  dotprod = sparsedense_vector_dot_product( spavecaa, denvecaa );
+  expected_dotprod = 5.5*2.2 + 8.8*3.3 + 19.19*5.5;
+  assert( fabs( dotprod - expected_dotprod ) < 0.0001 );
+
+  printf("Success.\n\n");
+  return;
+}
+
 void run_bloomfilter_tests() {
   printf("=== Running Bloom filter tests. ===\n");
 
@@ -530,8 +587,7 @@ void run_bloomfilter_tests() {
   assert(bloomfilter_query(bf, "hello waldo", 11) == FALSE);
   assert(bloomfilter_query(bf, "hello world", 11) == TRUE);
 
-  /* test that we can serialize to files correctly. */
-
+  /* test that we can serialize to files correctly? */
 
   bloomfilter_destroy(bf);
   free(bf);
@@ -616,6 +672,7 @@ int main( ) {
    *								*
    **************************************************************/
   run_bitvector_tests();
+  run_numeric_vector_tests();
 
   printf("All tests completed.\n");
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 #include "lowl_vectors.h"
 
 int bitvector_init(bitvector* bv, unsigned int numbits) {
@@ -220,40 +221,162 @@ void bitvector_destroy( bitvector* bv ) {
  *							*
  ********************************************************/
 
-int numeric_vector_is_sparse( numeric_vector* numvec ) {
-  /* return 1 if the numeric_vector stored at the given pointer is a
-	sparse vector.
-	Return 0 otherwise.	*/
-
-  /* dense vectors have their entries given by a simple array of floats.
-	sparse vectors have entries given by an array of svec_entry,
-	which are two cells each of size at least sizeof(float), so
-	it suffices to check whether the contents of the entries array
-	is the size of floats or larger.	*/
-  if( sizeof( *((numvec->dense).entries) ) == sizeof(float) ) {
-    return 0;
-  } else {
-    return 1;
-  }
+svec_entry svec_entry_from_compvalpair( unsigned int comp, float val ) {
+  svec_entry sve;
+  sve.component = comp;
+  sve.value = val;
+  return sve;
 }
 
-int numeric_vector_is_dense( numeric_vector* numvec ) {
-  /* return 1 if the numeric vector is dense, 0 otherwise. */
-  
-  if( sizeof( *((numvec->dense).entries)==sizeof(float) ) ) {
-    return 1;
-  } else {
-    return 0;
+//int numeric_vector_is_sparse_vector( numeric_vector_ptr numvec ) {
+//  /* return 1 if the numeric_vector stored at the given pointer is a
+//	sparse vector.
+//	Return 0 otherwise.	*/
+//
+//  /* dense vectors have their entries given by a simple array of floats.
+//	sparse vectors have entries given by an array of svec_entry,
+//	which are two cells each of size at least sizeof(float), so
+//	it suffices to check whether the contents of the entries array
+//	is the size of floats or larger.	*/
+//  if( sizeof( *((numvec.dense)->entries) ) == sizeof(float) ) {
+//    return 0;
+//  } else {
+//    return 1;
+//  }
+//}
+//
+//int numeric_vector_is_dense_vector( numeric_vector_ptr numvec ) {
+//  /* return 1 if the numeric vector is dense, 0 otherwise. */
+//  
+//  if( sizeof( *((numvec.dense)->entries) ) == sizeof(float) ) {
+//    return 1;
+//  } else {
+//    return 0;
+//  }
+//}
+//
+//float numeric_vector_get_component(numeric_vector_ptr numvec,
+//					unsigned int comp) {
+//  /* get the value in the component comp of the given vector. */
+//  if( numeric_vector_is_sparse_vector( numvec ) ) {
+//    return sparse_vector_get_component( numvec.sparse, comp);
+//  } else {
+//    return dense_vector_get_component( numvec.dense, comp);
+//  }
+//}
+
+int dense_vector_init( dense_vector* dv, float* entries, unsigned int len ) {
+  if( dv->entries == NULL ) {
+    return LOWLERR_BADMALLOC;
   }
+
+  dv->entries = malloc( len*sizeof(float) );
+
+  if( dv->entries == NULL ) {
+    return LOWLERR_BADMALLOC;
+  }
+  memcpy( dv->entries, entries, len*sizeof(float) );
+
+  dv->length = len;
+
+  return 0;
 }
 
-float numeric_vector_get_component(numeric_vector* numvec, unsigned int comp) {
-  /* get the value in the component comp of the given vector. */
-  if( numeric_vector_is_sparse_vector( numvec ) ) {
-    return sparse_vector_get_component( &(numvec->sparse), comp);
-  } else {
-    return dense_vector_get_component( &(numvec->dense), comp);
+int sparse_vector_init(sparse_vector* sv, unsigned int* components,
+                float* values, unsigned int sparsity, unsigned int len) {
+
+  if( sparsity > len ) {
+    return LOWLERR_BADINPUT;
   }
+
+  if( sv->entries == NULL ) {
+    return LOWLERR_BADMALLOC;
+  }
+  sv->sparsity = sparsity;
+  sv->entries = malloc( sv->sparsity*sizeof(svec_entry) );
+  sv->length = len;
+
+  unsigned int i;
+  for( i=0; i<sv->sparsity; i++ ) {
+    if( components[i] >= len ) {
+      return LOWLERR_BADINPUT;
+    }
+    (sv->entries)[i] = svec_entry_from_compvalpair( components[i], values[i] );
+  }
+
+  sparse_vector_sort_entries( sv );
+
+  return 0;
+}
+
+int sparse_vector_sort_entries( sparse_vector* sv ) {
+  /* sort the entries in this sparse vector by increasing component number */
+
+  int succ;
+  succ = sparse_vector_sort_entries_helpersort(sv->entries, 0, sv->sparsity-1);
+
+  return succ;
+}
+
+int sparse_vector_sort_entries_helpersort( svec_entry* entries,
+				unsigned int start, unsigned int end ) {
+  /* merge sort the entries in the given array at locations start to end,
+	inclusive. Sort by increasing components. */
+  if( start==end ) {
+    return 0; /* base case.*/
+  } else {
+    unsigned int mid = (start+end)/2;
+    sparse_vector_sort_entries_helpersort( entries, start, mid );
+    sparse_vector_sort_entries_helpersort( entries, mid+1, end );
+    sparse_vector_sort_entries_helpermerge( entries, start, mid+1, end );
+    return 0;
+  }
+} 
+
+int sparse_vector_sort_entries_helpermerge( svec_entry* entries,
+			unsigned int startfirst, unsigned int startsecond,
+			unsigned int end ) {
+  /* merge the sorted entries from index startfirst to startsecond-1
+	with the sorted entries from startsecond to end. */
+  svec_entry* scratch_pad = malloc( (end-startfirst+1)*sizeof(svec_entry) );
+  if( scratch_pad==NULL ) {
+    return LOWLERR_BADMALLOC;
+  }
+  unsigned int aa = 0;
+  unsigned int ii = startfirst;
+  unsigned int jj = startsecond;
+  while( ii <= startsecond-1 && jj <= end ) {
+    if( entries[ii].component <= entries[jj].component ) {
+      scratch_pad[aa] = entries[ii];
+      ++ii;
+    } else {
+      scratch_pad[aa] = entries[jj];
+      ++jj;
+    }
+    ++aa;
+  }
+  if( aa <= end-startfirst+1 ) {
+    /* we didn't copy all the elements from the two arrays into the sorted
+	array. The fact that we left the while loop means that either
+	ii > startsecond-1 or jj > end. Check which of the two conditions
+	DOESN'T hold, and copy the remaining elements from the corresponding
+	array into the merged array stored in scratch_pad. */
+    if( ii <= startsecond-1 ) {
+      while( ii <= startsecond-1 ) {
+        scratch_pad[aa++] = entries[ii++];
+      }
+    } else {
+      while( jj <= end ) {
+        scratch_pad[aa++] = entries[jj++];
+      }
+    }
+  }
+  /* copy the sorted list back into place. */
+  memcpy( entries+startfirst, scratch_pad,
+		(end-startfirst+1)*sizeof(svec_entry) );
+
+  free( scratch_pad );
+  return 0;
 }
 
 float dense_vector_get_component( dense_vector *dv, unsigned int comp ) {
@@ -263,35 +386,64 @@ float dense_vector_get_component( dense_vector *dv, unsigned int comp ) {
 
 float sparse_vector_get_component( sparse_vector *sv, unsigned int comp ) {
   /* return the value in component comp. */
+  assert( comp < sv->length );
 
-  // TO DO.
+  /* binary search it up!
+	In the future, it might be helpful to replace this with a data
+	structure that allows constant-time lookup-- is there some variant
+	of a heap that will let us keep the property of being able to traverse
+	the elements in a nicely sorted order and do constant-time lookup
+	without using a hash map?
+	It isn't particularly urgent, since the sparsity is assumed small
+	relative to the length of the vector, but worth bearing in mind. */
 
-}
+  unsigned int i = sv->sparsity/2;
+  /* keep track of the range in which the element could lie. */
+  unsigned int lowerbound=0;
+  unsigned int upperbound=sv->sparsity;
 
-float numeric_vector_dot_product( numeric_vector* nvaa,
-					numeric_vector* nvbb ) {
-  /* return the inner product of the two vectors.
-	Note that this version is a lot less efficient than the methods
-	available to us if we know that both vectors are sparse
-	or that both vectors are dense */
-  if( numeric_vector_is_sparse_vector( nvaa ) ) {
-    if( numeric_vector_is_sparse_vector( nvbb ) ) {
-      return sparse_vector_dot_product( nvaa, nvbb );
-    } else { // nvaa is sparse but nvbb is dense.
-      return sparsedense_vector_dot_product( nvaa, nvbb );
+  while( lowerbound <= upperbound ) {
+    if( (sv->entries)[i].component==comp ) {
+      return (sv->entries)[i].value;
+    } else if( (sv->entries)[i].component > comp ) {
+      lowerbound=i+1;
+    } else {
+      upperbound = i-1;
     }
-  } else { // nvaa is dense.
-    if ( numeric_vector_is_dense_vector( nvbb ) ) {
-      return dense_vector_dot_product( nvaa, nvbb );
-    } else { // nvaa is dense, nvbb is sparse.
-      return sparsedense_vector_dot_product( nvbb, nvaa );
-    }
+    i = (lowerbound+upperbound)/2;
   }
+  /* comp wasn't among the non-zero components of the vector. */
+  return 0.0;
 }
+
+//float numeric_vector_dot_product( numeric_vector_ptr nvaa,
+//					numeric_vector_ptr nvbb ) {
+//  /* return the inner product of the two vectors.
+//	Note that this version is a lot less efficient than the methods
+//	available to us if we know that both vectors are sparse
+//	or that both vectors are dense */
+//  if( numeric_vector_is_sparse_vector( nvaa ) ) {
+//    if( numeric_vector_is_sparse_vector( nvbb ) ) {
+//      return sparse_vector_dot_product( nvaa.sparse, nvbb.sparse );
+//    } else { // nvaa is sparse but nvbb is dense.
+//      return sparsedense_vector_dot_product( nvaa.sparse, nvbb.dense );
+//    }
+//  } else { // nvaa is dense.
+//    if ( numeric_vector_is_dense_vector( nvbb ) ) {
+//      return dense_vector_dot_product( nvaa.dense, nvbb.dense );
+//    } else { // nvaa is dense, nvbb is sparse.
+//      return sparsedense_vector_dot_product( nvbb.sparse, nvaa.dense );
+//    }
+//  }
+//}
 
 float sparse_vector_dot_product( sparse_vector* svaa, sparse_vector* svbb ) {
   /* return the inner product of the two given sparse vectors. */
-  assert( svaa->length==svbb->length );
+
+  /* deal "gracefully" with vectors of mismatched dimensionality
+	by using the dimensionality of the "shorter" vector. */
+  unsigned int length;
+  length = (svaa->length <= svbb->length) ? svaa->length : svbb->length;
 
   /* it suffices to simply traverse the entry lists of the two vectors,
 	since both lists are sorted by component index. */
@@ -300,12 +452,11 @@ float sparse_vector_dot_product( sparse_vector* svaa, sparse_vector* svbb ) {
   float dotproduct = 0.0;
 
   while( iaa < svaa->sparsity && ibb < svaa->sparsity ) {
-    if( (svaa->entries)[iaa].component == (svbb->entries)[ibb].component ) {
-      dotproduct += (svaa->entries)[iaa].value * (svbb->entries)[ibb].value;
+    if( svaa->entries[iaa].component == svbb->entries[ibb].component ) {
+      dotproduct += svaa->entries[iaa].value * svbb->entries[ibb].value;
       ++iaa;
       ++ibb;
-    } else if ( (svaa->entries)[iaa].component
-		> (svaa->entries)[ibb].component ) {
+    } else if ( svaa->entries[iaa].component > svbb->entries[ibb].component ) {
       ++ibb;
     } else {
       ++iaa;
@@ -316,28 +467,45 @@ float sparse_vector_dot_product( sparse_vector* svaa, sparse_vector* svbb ) {
 
 float dense_vector_dot_product( dense_vector* dvaa, dense_vector* dvbb ) {
   /* compute the dot product of two dense vectors. */
-  assert( dvaa->length==dvbb->length );
+
+  /* deal "gracefully with dimensionality mismatch by using the dimensionality
+	of the "shorter" vector. */
+  unsigned int length;
+  length = (dvaa->length <= dvbb->length) ? dvaa->length : dvbb->length;
 
   unsigned int i;
   float dotproduct;
-  for(i=0; i<dvaa->length; i++ ) {
+  for(i=0; i<length; i++ ) {
     dotproduct += (dvaa->entries)[i]*(dvbb->entries)[i];
   }
 
   return dotproduct;
 }
 
-sparsedense_vector_dot_product( sparse_vector* spa, dense_vector* den ) {
+float sparsedense_vector_dot_product( sparse_vector* spa, dense_vector* den ) {
   /* compute the dot product between two numeric vectors, one or which is
 	sparse and the other dense. */
-  assert( spa->length == den->length );
 
   /* it suffices to just traverse the non-zero entries of the sparse vector.*/
   unsigned int ii, component;
   float dotproduct = 0.0;
   for(ii=0; ii < spa->sparsity; ii++ ) {
-    component = (spa->entries)[ii].component;
-    dotproduct += (spa->entries)[ii].value * (den->entries)[component];
+    component = spa->entries[ii].component;
+    if( component >= den->length ) {
+      /* deal "gracefully" with mismatched dimensionality by using the dim.
+	of the "shorter" vector. */
+      break;
+    }
+    dotproduct += spa->entries[ii].value * den->entries[component];
   }
+  return dotproduct;
 }
 
+void sparse_vector_print_components( sparse_vector* spa ) {
+  /* print the non-zero components */
+  unsigned int i;
+  for(i=0; i < spa->sparsity; i++ ) {
+    printf("%d : %f\n", spa->entries[i].component, spa->entries[i].value );
+  }
+  return;
+}
