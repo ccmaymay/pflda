@@ -3,6 +3,15 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 from cPickle import load, dump
 
 
+def _raises(f, exception_type):
+    try:
+        f
+    except exception_type:
+        return False
+    else:
+        return True
+
+
 def _chisq(expected, observed):
     """
     Compute chi-squared statistic for the given sequences of expected
@@ -113,7 +122,7 @@ cdef class BloomFilter:
     Test serialization and deserialization.
     >>> from tempfile import mkstemp
     >>> import os
-    >>> (fid, filename) = mkstemp('.dat')
+    >>> (fid, filename) = mkstemp()
     >>> os.close(fid)
     >>> ret = bf.write(filename)
     >>> bf_fromfile = BloomFilter()
@@ -134,6 +143,25 @@ cdef class BloomFilter:
     False
     >>> bf_fromfile.insert("foobar!", 6)
     >>> bf_fromfile.query("foobar", 6)
+    True
+    >>> os.remove(filename)
+
+    Test serialization and deserialization errors.
+    >>> from tempfile import mkdtemp
+    >>> from pylowl import _raises
+    >>> _raises(lambda: bf.write("/this/path/should/not/be/writable"), IOError)
+    True
+    >>> dirname = mkdtemp()
+    >>> _raises(lambda: bf.write(dirname), IOError)
+    True
+    >>> os.rmdir(dirname)
+    >>> bf = BloomFilter()
+    >>> _raises(lambda: bf.read("/this/path/should/not/exist"), IOError)
+    True
+    >>> (fid, filename) = mkstemp()
+    >>> os.close(fid)
+    >>> bf = BloomFilter()
+    >>> _raises(lambda: bf.read(filename), IOError)
     True
     >>> os.remove(filename)
 
@@ -249,7 +277,7 @@ cdef class CountMinSketch:
     Test serialization and deserialization.
     >>> from tempfile import mkstemp
     >>> import os
-    >>> (fid, filename) = mkstemp('.dat')
+    >>> (fid, filename) = mkstemp()
     >>> os.close(fid)
     >>> ret = cm.write(filename)
     >>> cm_fromfile = CountMinSketch()
@@ -270,6 +298,25 @@ cdef class CountMinSketch:
     True
     >>> cm_fromfile.add("foobar!", 6, 7)
     >>> cm_fromfile.query("foobar", 6) == 7
+    True
+    >>> os.remove(filename)
+
+    Test serialization and deserialization errors.
+    >>> from tempfile import mkdtemp
+    >>> from pylowl import _raises
+    >>> _raises(lambda: cm.write("/this/path/should/not/be/writable"), IOError)
+    True
+    >>> dirname = mkdtemp()
+    >>> _raises(lambda: cm.write(dirname), IOError)
+    True
+    >>> os.rmdir(dirname)
+    >>> cm = CountMinSketch()
+    >>> _raises(lambda: cm.read("/this/path/should/not/exist"), IOError)
+    True
+    >>> (fid, filename) = mkstemp()
+    >>> os.close(fid)
+    >>> cm = CountMinSketch()
+    >>> _raises(lambda: cm.read(filename), IOError)
     True
     >>> os.remove(filename)
 
@@ -438,7 +485,7 @@ cdef class ReservoirSampler:
     Test serialization and deserialization.
     >>> from tempfile import mkstemp
     >>> import os
-    >>> (fid, filename) = mkstemp('.dat')
+    >>> (fid, filename) = mkstemp()
     >>> os.close(fid)
     >>> ret = rs.write(filename)
     >>> rs_fromfile = ReservoirSampler()
@@ -452,6 +499,25 @@ cdef class ReservoirSampler:
     ...     (inserted, idx, ejected, ejected_key) = rs_fromfile.insert(i + n)
     >>> sample_fromfile = [rs_fromfile.get(i) for i in range(4)]
     >>> set([i + n for i in range(4)]).isdisjoint(set(sample_fromfile))
+    True
+    >>> os.remove(filename)
+
+    Test serialization and deserialization errors.
+    >>> from tempfile import mkdtemp
+    >>> from pylowl import _raises
+    >>> _raises(lambda: rs.write("/this/path/should/not/be/writable"), IOError)
+    True
+    >>> dirname = mkdtemp()
+    >>> _raises(lambda: rs.write(dirname), IOError)
+    True
+    >>> os.rmdir(dirname)
+    >>> rs = ReservoirSampler()
+    >>> _raises(lambda: rs.read("/this/path/should/not/exist"), IOError)
+    True
+    >>> (fid, filename) = mkstemp()
+    >>> os.close(fid)
+    >>> rs = ReservoirSampler()
+    >>> _raises(lambda: rs.read(filename), IOError)
     True
     >>> os.remove(filename)
 
@@ -697,9 +763,9 @@ class ValuedReservoirSampler(object):
     Test serialization and deserialization.
     >>> from tempfile import mkstemp
     >>> import os
-    >>> (fid, filename) = mkstemp('.dat')
+    >>> (fid, filename) = mkstemp()
     >>> os.close(fid)
-    >>> (fid, values_filename) = mkstemp('.dat')
+    >>> (fid, values_filename) = mkstemp()
     >>> os.close(fid)
     >>> rs.write(filename, values_filename)
     >>> rs_fromfile = ValuedReservoirSampler.read(filename, values_filename)
@@ -713,6 +779,39 @@ class ValuedReservoirSampler(object):
     ...     inserted_any |= inserted
     >>> inserted_any
     False
+    >>> os.remove(filename)
+    >>> os.remove(values_filename)
+
+    Test serialization and deserialization errors.
+    >>> from tempfile import mkdtemp
+    >>> from pylowl import _raises
+    >>> (fid, filename) = mkstemp()
+    >>> os.close(fid)
+    >>> _raises(lambda: rs.write(filename, "/this/path/should/not/be/writable"), IOError)
+    True
+    >>> _raises(lambda: rs.write("/this/path/should/not/be/writable", filename), IOError)
+    True
+    >>> dirname = mkdtemp()
+    >>> _raises(lambda: rs.write(filename, dirname), IOError)
+    True
+    >>> _raises(lambda: rs.write(dirname, filename), IOError)
+    True
+    >>> os.rmdir(dirname)
+    >>> (fid, values_filename) = mkstemp()
+    >>> os.close(fid)
+    >>> rs_fromfile.write(filename, values_filename)
+    >>> _raises(lambda: ValuedReservoirSampler.read(filename, "/this/path/should/not/exist"), IOError)
+    True
+    >>> _raises(lambda: ValuedReservoirSampler.read("/this/path/should/not/exist", values_filename), IOError)
+    True
+    >>> os.remove(filename)
+    >>> (fid, empty_filename) = mkstemp()
+    >>> os.close(fid)
+    >>> _raises(lambda: ValuedReservoirSampler.read(filename, empty_filename), IOError)
+    True
+    >>> _raises(lambda: ValuedReservoirSampler.read(empty_filename, values_filename), IOError)
+    True
+    >>> os.remove(empty_filename)
     >>> os.remove(filename)
     >>> os.remove(values_filename)
 
