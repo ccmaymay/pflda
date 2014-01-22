@@ -127,7 +127,7 @@ def transform_tng(train_input_dir, test_input_dir, base_output_dir, stop_list_pa
     if stop_list_path is None:
         tokenizer = Tokenizer()
     else:
-        tokenizer = Tokenizer(stop_list_path)
+        tokenizer = Tokenizer(_load_stop_set(stop_list_path))
 
     doc_idx = 0
 
