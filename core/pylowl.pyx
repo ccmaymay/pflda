@@ -321,6 +321,12 @@ cdef class CountMinSketch:
     >>> os.remove(filename)
 
     Test clear.
+    >>> cm = CountMinSketch()
+    >>> ret = cm.init(4, 8)
+    >>> cm.add("hello, world", 12, 1)
+    >>> cm.add("hello world", 11, 1)
+    >>> cm.add("hello, world", 12, 4)
+    >>> cm.add("hello, waldorf", 14, 42)
     >>> cm.clear()
     >>> cm.query("hello, world", 12) == 0
     True
@@ -804,7 +810,6 @@ class ValuedReservoirSampler(object):
     True
     >>> _raises(lambda: ValuedReservoirSampler.read("/this/path/should/not/exist", values_filename), IOError)
     True
-    >>> os.remove(filename)
     >>> (fid, empty_filename) = mkstemp()
     >>> os.close(fid)
     >>> _raises(lambda: ValuedReservoirSampler.read(filename, empty_filename), IOError)
