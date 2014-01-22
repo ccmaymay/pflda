@@ -9,21 +9,24 @@
 
 /* count-min sketch. */
 typedef struct cmsketch{
-  unsigned int width;
-  unsigned int depth;
+  size_t width;
+  size_t depth;
   /* we maintain width*depth counters, which we will store as an array
 	of arrays (rather than as one contiguous block of memory,
 	at least for now.	*/
-  unsigned int** counters;
-  motrag_hash* hashes; /* need an array of depth different hashes. */
+  lowl_count** counters;
+  char_hash hash_key1;
+  char_hash hash_key2;
 }cmsketch; 
 
-int cmsketch_init( cmsketch* cm, unsigned int m,
-			unsigned int w, unsigned int d);
-int cmsketch_update( cmsketch* cm, unsigned int i, unsigned int c );
-int cmsketch_count( cmsketch* cm, unsigned int token );
-void cmsketch_clear( cmsketch* cm );
-void cmsketch_destroy( cmsketch* cm );
+int cmsketch_init(cmsketch* cm, size_t w, size_t d);
+void cmsketch_add(cmsketch* cm, const char *x, size_t len, lowl_count delta);
+lowl_count cmsketch_query(cmsketch* cm, const char *x, size_t len);
+void cmsketch_print(cmsketch* cm);
+void cmsketch_write(cmsketch* cm, FILE* fp);
+int cmsketch_read(cmsketch* cm, FILE* fp);
+void cmsketch_clear(cmsketch* cm);
+void cmsketch_destroy(cmsketch* cm);
 
 /* bloom filter. */
 typedef struct bloomfilter {

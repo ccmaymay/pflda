@@ -1,5 +1,8 @@
 #include "lowl_math.h"
 
+#include <stdlib.h>
+#include <assert.h>
+
 /* We're going to keep a prime around for each power of 2 up to some
 	reasonable value. For each power of 2, we'd like a prime that is
 	bigger than that power of 2, but not much bigger (so that it still
@@ -28,5 +31,31 @@ unsigned long powposint(unsigned long base, unsigned int pow) {
     return base*powposint( base*base, (pow-1)/2 );
   } else { // even power.
     return powposint( base*base, pow/2 );
+  }
+}
+
+long randint(long n) {
+  // return uniform value between 0 (inclusive) and n (exclusive)
+  // by rejection sampling
+
+  if (n <= 0 || n - 1 > RAND_MAX)
+    return -1;
+
+  if (n - 1 == RAND_MAX)
+    return random();
+
+  assert(n <= RAND_MAX);
+
+  // Now we're being a little inefficient because we are going to
+  // pretend random() has a range of [0, RAND_MAX) instead of
+  // [0, RAND_MAX].  This should not bias the samples though.)
+
+  const long bucket_size = RAND_MAX / n;
+  const long acceptance_bound = n * bucket_size;
+  long r = 0;
+  while (1) { // oh yeah
+    r = random();
+    if (r < acceptance_bound)
+      return r / bucket_size;
   }
 }

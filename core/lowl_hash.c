@@ -72,20 +72,9 @@ void lowl_key_hash_arm( lowl_key_hash* lkh ) {
   /* choose parameters a and b */
 
   /* a must be an odd positive integer with a < 2^w. */
-  lkh->a = (unsigned long) random();
-  if ( lkh->a % 2 == 0 ) {
-    lkh->a +=1;
-  }
-  if( lkh->a == 0 ) { /* make sure a isn't 0 */
-    lkh->a = 1;
-  }
-  if ( 8*sizeof(lkh->a) > lkh->w ) {
-    unsigned long long a_upperbound
-      = (unsigned long long) powposint(2, lkh->w);
-    lkh->a = (unsigned long) (lkh->a % a_upperbound);
-  } 
+  lkh->a = (unsigned long) (2 * randint(powposint(2, lkh->w - 1)) + 1);
   /* b must be a non-negative integer with b < 2^(w-M) */
-  lkh->b = (unsigned long) (random() % powposint(2,lkh->w - lkh->M));
+  lkh->b = (unsigned long) randint(powposint(2,lkh->w - lkh->M));
 }
 
 /* Motwani-Raghavan hash function. */
@@ -122,10 +111,8 @@ unsigned int motrag_map( unsigned int input, motrag_hash* lmh ) {
 
 void motrag_hash_arm( motrag_hash* lmh ) {
   /* choose the parameters a and b for the hash function. */
-  unsigned int r1 = (unsigned int) random();
-  unsigned int r2 = (unsigned int) random();
-  lmh->a = r1 % lmh->p;
-  lmh->b = r2 % lmh->p;
+  lmh->a = randint(lmh->p);
+  lmh->b = randint(lmh->p);
 }
 
 /********************************************************
