@@ -35,8 +35,8 @@ class Tokenizer(object):
         else:
             self.stop_set = stop_set
 
-    def tokenize(s):
-        return [w for w in s.lower().split(NON_ALPHA_RE) if w and w not in stop_set]
+    def tokenize(self, s):
+        return [w for w in NON_ALPHA_RE.split(s.lower()) if w and w not in self.stop_set]
 
 
 class Dataset(object):
@@ -114,20 +114,24 @@ class DatasetWriter(object):
         self.f = gzip.open(filename, 'w')
 
     def write(self, doc_idx, category, tokens):
-        f.write('%d %s %s\n' % (doc_idx, category, ' '.join(tokens)))
+        self.f.write('%d %s %s\n' % (doc_idx, category, ' '.join(tokens)))
 
     def close(self):
-        f.close()
+        self.f.close()
 
 
-def transform_tng(train_input_dir, test_input_dir, base_output_dir):
+def transform_tng(train_input_dir, test_input_dir, base_output_dir, stop_list_path=None):
     train_output_dir = os.path.join(base_output_dir, 'train')
     test_output_dir = os.path.join(base_output_dir, 'test')
 
-    tokenizer = Tokenizer(STOP_LIST_PATH)
+    if stop_list_path is None:
+        tokenizer = Tokenizer()
+    else:
+        tokenizer = Tokenizer(stop_list_path)
+
     doc_idx = 0
 
-    for ((input_dir, output_dir) in ((train_input_dir, train_output_dir), (test_input_dir, test_output_dir)):
+    for (input_dir, output_dir) in ((train_input_dir, train_output_dir), (test_input_dir, test_output_dir)):
         writer = DatasetWriter(os.path.join(output_dir, 'all.gz'))
         for (category, path) in _tng_shuffled_nested_file_paths(input_dir):
             with open(path) as f:
