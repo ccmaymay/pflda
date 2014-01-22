@@ -400,15 +400,23 @@ float sparse_vector_get_component( sparse_vector *sv, unsigned int comp ) {
   unsigned int upperbound = sv->sparsity - 1;
   unsigned int i = (lowerbound+upperbound)/2;
 
-  while( lowerbound <= upperbound ) {
-    if( (sv->entries)[i].component==comp ) {
-      return (sv->entries)[i].value;
+  while( lowerbound < upperbound ) {
+    if( (sv->entries[i]).component == comp ) {
+      return (sv->entries[i]).value;
     } else if( comp > (sv->entries)[i].component ) {
       lowerbound=i+1;
     } else {
       upperbound = i-1;
     }
+    /* we actually want to check upperbound < 0, but these are unsigned ints,
+	so we check for whether or not upperbound has wrapped around. */
+    if( upperbound >= sv->sparsity || lowerbound >= sv->sparsity ) {
+      return 0.0;
+    }
     i = (lowerbound+upperbound)/2;
+  }
+  if( lowerbound==upperbound && (sv->entries)[i].component==comp ) {
+    return (sv->entries)[i].value;
   }
   /* comp wasn't among the non-zero components of the vector. */
   return 0.0;
