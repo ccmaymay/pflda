@@ -23,23 +23,13 @@ class LdaModel(object):
         return (self.tw_counts[t * len(self.vocab) + w] + self.beta) / float(self.t_counts[t] + len(self.vocab) * self.beta) * (self.dt_counts[i * self.num_topics + t] + self.alpha) / float(self.d_counts[i] + self.num_topics * self.alpha)
 
     def sample_topic(self, i, w):
-        pmf = [self.conditional_posterior(i, w, t) for t in range(self.num_topics)]
-        total = sum(pmf)
-        pmf = [p / total for p in pmf]
-        cmf = self.make_cmf(pmf)
-
-        r = random.random()
-        for k in range(len(cmf)):
-            if r < cmf[k]:
+        dist = [self.conditional_posterior(i, w, t) for t in range(self.num_topics)]
+        r = random.random() * sum(dist)
+        for k in range(len(dist)-1):
+            if r < dist[k]:
                 return k
-        return len(cmf) - 1
-
-    def make_cmf(self, pmf):
-        cmf = [pmf[0]]
-        for p in pmf[1:]:
-            cmf.append(cmf[-1] + p)
-        cmf[-1] = 1
-        return cmf
+            dist[k+1] += dist[k]
+        return len(dist) - 1
 
     def preprocess(self, doc_triple):
         return [self.vocab[w] for w in doc_triple[2]]
@@ -63,20 +53,26 @@ class LdaModel(object):
                 self.dt_counts[i * self.num_topics + assignments[-1]] += 1
                 self.d_counts[i] += 1
         for t in range(num_iters):
+            sys.stdout.write('.')
+            sys.stdout.flush()
             m = 0
             for i in range(len(sample)):
                 for j in range(len(sample[i])):
                     w = sample[i][j]
-                    self.tw_counts[assignments[m] * len(self.vocab) + w] -= 1
-                    self.t_counts[assignments[m]] -= 1
-                    self.dt_counts[i * self.num_topics + assignments[m]] -= 1
+                    z = assignments[m]
+                    self.tw_counts[z * len(self.vocab) + w] -= 1
+                    self.t_counts[z] -= 1
+                    self.dt_counts[i * self.num_topics + z] -= 1
                     self.d_counts[i] -= 1
                     assignments[m] = self.sample_topic(i, w)
-                    self.tw_counts[assignments[m] * len(self.vocab) + w] += 1
-                    self.t_counts[assignments[m]] += 1
-                    self.dt_counts[i * self.num_topics + assignments[m]] += 1
+                    z = assignments[m]
+                    self.tw_counts[z * len(self.vocab) + w] += 1
+                    self.t_counts[z] += 1
+                    self.dt_counts[i * self.num_topics + z] += 1
                     self.d_counts[i] += 1
                     m += 1
+        sys.stdout.write('\n')
+        sys.stdout.flush()
 
     def __str__(self):
         s = ''
@@ -92,7 +88,7 @@ class LdaModel(object):
 
 def run_lda(data_dir, *categories):
     dataset = util.Dataset(data_dir, set(categories))
-    model = LdaModel(1000, 0.1, 0.1, 10, dataset.vocab)
+    model = LdaModel(1000, 0.1, 0.1, 3, dataset.vocab)
     i = 0
     for doc_triple in dataset.train_iterator():
         model.add_doc(doc_triple)
