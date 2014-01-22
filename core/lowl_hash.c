@@ -406,16 +406,21 @@ void ht_key_to_count_clear( ht_key_to_count* ht ) {
 } 
 
 void ht_key_to_count_destroy( ht_key_to_count* ht ) {
-  if (ht->hashfn != NULL)
+  if (ht->hashfn != NULL) {
     free( ht->hashfn );
+  }
   ht->hashfn = NULL;
   rarr_destroy( ht->table );
-  if (ht->table != NULL)
+  if (ht->table != NULL) {
     free( ht->table );
+  }
   ht->table = NULL;
-  if (ht->populace_table != NULL)
+  if (ht->populace_table != NULL) {
+    bitvector_destroy( ht->populace_table );
     free( ht->populace_table );
+  }
   ht->populace_table = NULL;
+
   ht->size = 0;
 }
 
