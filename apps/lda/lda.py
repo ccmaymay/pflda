@@ -53,8 +53,6 @@ class LdaModel(object):
                 self.dt_counts[i * self.num_topics + assignments[-1]] += 1
                 self.d_counts[i] += 1
         for t in range(num_iters):
-            sys.stdout.write('.')
-            sys.stdout.flush()
             m = 0
             for i in range(len(sample)):
                 for j in range(len(sample[i])):
@@ -71,6 +69,8 @@ class LdaModel(object):
                     self.dt_counts[i * self.num_topics + z] += 1
                     self.d_counts[i] += 1
                     m += 1
+            sys.stdout.write('.')
+            sys.stdout.flush()
         sys.stdout.write('\n')
         sys.stdout.flush()
 
@@ -91,10 +91,10 @@ def run_lda(data_dir, *categories):
     model = LdaModel(1000, 0.1, 0.1, 3, dataset.vocab)
     i = 0
     for doc_triple in dataset.train_iterator():
-        model.add_doc(doc_triple)
-        if i % 100 == 0:
+        if i > 0 and i % 100 == 0:
             model.learn(1000)
             print(model)
+        model.add_doc(doc_triple)
         i += 1
 
 
