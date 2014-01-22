@@ -266,9 +266,6 @@ svec_entry svec_entry_from_compvalpair( unsigned int comp, float val ) {
 //}
 
 int dense_vector_init( dense_vector* dv, float* entries, unsigned int len ) {
-  if( dv->entries == NULL ) {
-    return LOWLERR_BADMALLOC;
-  }
 
   dv->entries = malloc( len*sizeof(float) );
 
@@ -289,11 +286,11 @@ int sparse_vector_init(sparse_vector* sv, unsigned int* components,
     return LOWLERR_BADINPUT;
   }
 
+  sv->sparsity = sparsity;
+  sv->entries = malloc( sv->sparsity*sizeof(svec_entry) );
   if( sv->entries == NULL ) {
     return LOWLERR_BADMALLOC;
   }
-  sv->sparsity = sparsity;
-  sv->entries = malloc( sv->sparsity*sizeof(svec_entry) );
   sv->length = len;
 
   unsigned int i;
@@ -301,7 +298,7 @@ int sparse_vector_init(sparse_vector* sv, unsigned int* components,
     if( components[i] >= len ) {
       return LOWLERR_BADINPUT;
     }
-    (sv->entries)[i] = svec_entry_from_compvalpair( components[i], values[i] );
+    sv->entries[i] = svec_entry_from_compvalpair( components[i], values[i] );
   }
 
   sparse_vector_sort_entries( sv );
@@ -381,6 +378,7 @@ int sparse_vector_sort_entries_helpermerge( svec_entry* entries,
 
 float dense_vector_get_component( dense_vector *dv, unsigned int comp ) {
   /* return the value in component comp. */
+  assert( comp < dv->length );
   return (dv->entries)[comp];
 }
 
@@ -397,15 +395,15 @@ float sparse_vector_get_component( sparse_vector *sv, unsigned int comp ) {
 	It isn't particularly urgent, since the sparsity is assumed small
 	relative to the length of the vector, but worth bearing in mind. */
 
-  unsigned int i = sv->sparsity/2;
   /* keep track of the range in which the element could lie. */
-  unsigned int lowerbound=0;
-  unsigned int upperbound=sv->sparsity;
+  unsigned int lowerbound = 0;
+  unsigned int upperbound = sv->sparsity - 1;
+  unsigned int i = (lowerbound+upperbound)/2;
 
   while( lowerbound <= upperbound ) {
     if( (sv->entries)[i].component==comp ) {
       return (sv->entries)[i].value;
-    } else if( (sv->entries)[i].component > comp ) {
+    } else if( comp > (sv->entries)[i].component ) {
       lowerbound=i+1;
     } else {
       upperbound = i-1;
@@ -440,11 +438,6 @@ float sparse_vector_get_component( sparse_vector *sv, unsigned int comp ) {
 float sparse_vector_dot_product( sparse_vector* svaa, sparse_vector* svbb ) {
   /* return the inner product of the two given sparse vectors. */
 
-  /* deal "gracefully" with vectors of mismatched dimensionality
-	by using the dimensionality of the "shorter" vector. */
-  unsigned int length;
-  length = (svaa->length <= svbb->length) ? svaa->length : svbb->length;
-
   /* it suffices to simply traverse the entry lists of the two vectors,
 	since both lists are sorted by component index. */
   unsigned int iaa=0;
@@ -474,7 +467,7 @@ float dense_vector_dot_product( dense_vector* dvaa, dense_vector* dvbb ) {
   length = (dvaa->length <= dvbb->length) ? dvaa->length : dvbb->length;
 
   unsigned int i;
-  float dotproduct;
+  float dotproduct = 0.0;
   for(i=0; i<length; i++ ) {
     dotproduct += (dvaa->entries)[i]*(dvbb->entries)[i];
   }
@@ -508,4 +501,20 @@ void sparse_vector_print_components( sparse_vector* spa ) {
     printf("%d : %f\n", spa->entries[i].component, spa->entries[i].value );
   }
   return;
+}
+
+void sparse_vector_destroy( sparse_vector* sv ) {
+  if( sv->entries != NULL ) {
+    free( sv->entries );
+  }
+  sv->entries = NULL;
+  sv->sparsity = 0;
+  sv->length = 0;
+}
+
+void dense_vector_destroy( dense_vector* dv ) {
+  if( dv->entries != NULL ) {
+    free( dv->entries );
+  }
+  dv->length = 0;
 }

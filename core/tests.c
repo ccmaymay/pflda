@@ -567,6 +567,25 @@ void run_numeric_vector_tests() {
   expected_dotprod = 5.5*2.2 + 8.8*3.3 + 19.19*5.5;
   assert( fabs( dotprod - expected_dotprod ) < 0.0001 );
 
+  /* check that component retrieval is correct. */
+  assert( fabsf(dense_vector_get_component( denvecaa, 0 ) - 2.2) < 0.0001 );
+  assert( fabsf(sparse_vector_get_component( spavecaa, 3) - 3.3) < 0.0001 );
+  assert( fabsf(sparse_vector_get_component( spavecaa, 0) - 0.0) < 0.0001 );
+  assert( fabsf(sparse_vector_get_component( spavecaa, 2) - 2.2) < 0.0001 );
+  assert( fabsf(sparse_vector_get_component( spavecaa, 8) - 8.8) < 0.0001 );
+  assert( fabsf(sparse_vector_get_component( spavecaa, 9) - 0.0) < 0.0001 );
+
+  /* deallocate memory. */
+  sparse_vector_destroy( spavecaa );
+  sparse_vector_destroy( spavecbb );
+  dense_vector_destroy( denvecaa );
+  dense_vector_destroy( denvecbb );
+
+  free( spavecaa );
+  free( spavecbb );
+  free( denvecaa );
+  free( denvecbb );
+
   printf("Success.\n\n");
   return;
 }

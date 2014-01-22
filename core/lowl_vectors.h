@@ -22,6 +22,8 @@ void bitvector_clear( bitvector* bv );
 void bitvector_print( bitvector* bv ); 
 void bitvector_destroy( bitvector* bv );
 
+/* numeric vectors */
+
 typedef struct dense_vector{
   unsigned int length;
   float* entries;
@@ -72,7 +74,8 @@ float sparse_vector_dot_product(sparse_vector* svaa, sparse_vector* svbb);
 float dense_vector_dot_product(dense_vector* dvaa, dense_vector* dvbb);
 float sparsedense_vector_dot_product(sparse_vector* spa, dense_vector* den);
 
-
+void sparse_vector_destroy( sparse_vector* sv );
+void dense_vector_destroy( dense_vector* dv );
 
 
 #endif
