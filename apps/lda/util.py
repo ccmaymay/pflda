@@ -55,8 +55,10 @@ class Dataset(object):
                         for word in words:
                             _increment(word_counts, word)
 
-        self.vocab = set(k for (k, v) in word_counts.items() if v > 1)
-        self.vocab.add(OOV)
+        self.vocab = {OOV: 0}
+        for (word, count) in word_counts.items():
+            if count > 1:
+                self.vocab[word] = len(self.vocab)
 
     def _parse_doc(self, line):
         tokens = line.split()

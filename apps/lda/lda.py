@@ -4,10 +4,7 @@
 import pylowl
 import random
 import re
-
-
-OOV = '_OOV_'
-NON_ALPHA = re.compile(r'[^a-zA-Z]')
+import util
 
 
 class LdaModel(object):
@@ -16,9 +13,6 @@ class LdaModel(object):
         self.beta = beta
         self.num_topics = num_topics
         self.vocab = vocab
-        self.r_vocab = [None] * len(vocab)
-        for (word, idx) in vocab.items():
-            self.r_vocab[idx] = word
         self.tw_counts = None
         self.t_counts = None
         self.dt_counts = None
@@ -27,9 +21,6 @@ class LdaModel(object):
 
     def conditional_posterior(self, i, w, t):
         return (self.tw_counts[t * len(self.vocab) + w] + self.beta) / float(self.t_counts[t] + len(self.vocab) * self.beta) * (self.dt_counts[i * self.num_topics + t] + self.alpha) / float(self.d_counts[i] + self.num_topics * self.alpha)
-
-    def tokenize(self, doc):
-        return [self.vocab.get(word, self.vocab[OOV]) for word in doc.strip().split()]
 
     def sample_topic(self, i, w):
         pmf = [self.conditional_posterior(i, w, t) for t in range(self.num_topics)]
@@ -50,8 +41,11 @@ class LdaModel(object):
         cmf[-1] = 1
         return cmf
 
-    def add_doc(self, line):
-        self.reservoir.insert(line, self.tokenize)
+    def preprocess(self, doc_triple):
+        return [self.vocab[w] for w in doc_triple[2]]
+
+    def add_doc(self, doc_triple):
+        self.reservoir.insert(doc_triple, self.preprocess)
 
     def learn(self, num_iters):
         sample = self.reservoir.sample()
@@ -96,40 +90,16 @@ class LdaModel(object):
         return s
 
 
-def tokenize(line):
-    return (w.lower() for w in NON_ALPHA.split(line.strip()) if w)
-            
-    
-def run_lda(vocab_filename, docs_filename):
-    vocab = {OOV: 0}
-    with open(vocab_filename) as f:
-        for line in f:
-            word = line.strip()
-            vocab[word] = len(vocab)
-    model = LdaModel(1000, 0.1, 0.1, 10, vocab)
-    with open(docs_filename) as f:
-        i = 0
-        for line in f:
-            model.add_doc(line)
-            if i % 100 == 0:
-                model.learn(1000)
-                print(model)
-            i += 1
-
-
-def make_vocab(vocab_filename, docs_filename):
-    word_counts = dict()
-    with open(docs_filename) as f:
-        for line in f:
-            for token in tokenize(line):
-                if token in word_counts:
-                    word_counts[token] += 1
-                else:
-                    word_counts[token] = 1
-    with open(vocab_filename, 'w') as f:
-        for (word, count) in word_counts.items():
-            if count > 1:
-                f.write(word + '\n')
+def run_lda(data_dir, *categories):
+    dataset = util.Dataset(data_dir, set(categories))
+    model = LdaModel(1000, 0.1, 0.1, 10, dataset.vocab)
+    i = 0
+    for doc_triple in dataset.train_iterator():
+        model.add_doc(doc_triple)
+        if i % 100 == 0:
+            model.learn(1000)
+            print(model)
+        i += 1
 
 
 if __name__ == '__main__':
