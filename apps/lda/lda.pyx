@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 
-import pylowl
-import random
+from random import random, randint
 from data import Dataset
+from pylowl cimport ReservoirSampler
 import sys
 import numpy
 cimport numpy
@@ -164,13 +164,14 @@ cdef class FirstMomentPLFilter:
 
 cdef class ParticleFilter:
     cdef GlobalParams canonical_model
+    cdef ReservoirSampler reservoir
     cdef list models
     cdef numpy.double_t[:] weights, pmf, resample_cmf
-    cdef numpy.uint_t num_particles
+    cdef numpy.uint_t num_particles, token_idx
     cdef numpy.double_t ess_threshold
 
     def __cinit__(self, GlobalParams init_model, numpy.uint_t num_particles,
-            numpy.double_t ess_threshold):
+            numpy.double_t ess_threshold, ReservoirSampler reservoir):
         cdef numpy.uint_t i
         self.canonical_model = init_model
         self.models = []
@@ -181,6 +182,8 @@ cdef class ParticleFilter:
         self.ess_threshold = ess_threshold
         self.pmf = numpy.zeros((init_model.num_topics,), dtype=numpy.double)
         self.resample_cmf = numpy.zeros((num_particles,), dtype=numpy.double)
+        self.reservoir = reservoir
+        self.token_idx = 0
 
     cdef numpy.double_t ess(self):
         cdef numpy.double_t total
@@ -210,7 +213,7 @@ cdef class ParticleFilter:
     cdef numpy.uint_t sample_particle_num(self):
         cdef numpy.uint_t i
         cdef numpy.double_t r
-        r = random.random()
+        r = random()
         for i in xrange(self.num_particles):
             if r < self.resample_cmf[i]:
                 return i
@@ -260,7 +263,7 @@ cdef class ParticleFilter:
             self.pmf[t] = self.conditional_posterior(model, local_d_count, local_dt_counts, w, t)
             prior += self.pmf[t]
 
-        r = random.random() * prior
+        r = random() * prior
         for t in xrange(self.canonical_model.num_topics-1):
             if r < self.pmf[t]:
                 return t
@@ -294,7 +297,7 @@ cdef class GibbsSampler:
             self.pmf[t] = self.conditional_posterior(i, w, t)
             prior += self.pmf[t]
 
-        r = random.random() * prior
+        r = random() * prior
         for t in xrange(self.model.num_topics-1):
             if r < self.pmf[t]:
                 return t
@@ -321,7 +324,7 @@ cdef class GibbsSampler:
         for i in xrange(num_docs):
             for j in xrange(len(sample[i])):
                 w = sample[i][j]
-                z = random.randint(0, self.model.num_topics - 1)
+                z = randint(0, self.model.num_topics - 1)
                 assignments.append(z)
                 if update_model:
                     self.model.tw_counts[z, w] += 1
@@ -361,6 +364,7 @@ cdef class GibbsSampler:
 def run_lda(data_dir, categories, num_topics):
     cdef GibbsSampler init_gibbs_sampler, gibbs_sampler
     cdef GlobalParams model
+    cdef ReservoirSampler reservoir
     cdef FirstMomentPLFilter plfilter
     cdef ParticleFilter pf
     cdef numpy.uint_t i, num_tokens, reservoir_size, init_num_docs, init_num_iters, test_num_iters
@@ -376,7 +380,6 @@ def run_lda(data_dir, categories, num_topics):
     num_particles = 100
 
     dataset = Dataset(data_dir, set(categories))
-    reservoir = pylowl.ValuedReservoirSampler(reservoir_size)
     model = GlobalParams(alpha, beta, num_topics, len(dataset.vocab))
     plfilter = FirstMomentPLFilter(model)
 
@@ -419,7 +422,8 @@ def run_lda(data_dir, categories, num_topics):
                 #plfilter.likelihood(test_sample)
 
                 print('Creating particle filter on initialized model')
-                pf = ParticleFilter(model, num_particles, ess_threshold)
+                reservoir = ReservoirSampler(reservoir_size)
+                pf = ParticleFilter(model, num_particles, ess_threshold, reservoir)
                 train_labels = init_labels
             pf.step(d[2])
             train_labels.append(d[1])
