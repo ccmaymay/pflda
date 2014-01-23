@@ -53,13 +53,12 @@ cdef class LdaModel(object):
         cdef numpy.uint_t t, i, j, w, m, z
 
         assignments = []
-        # TODO
-        #self.tw_counts = [0] * (self.num_topics * self.vocab_size)
-        #self.t_counts = [0] * self.num_topics
-        #self.dt_counts = [0] * (self.num_docs * self.num_topics)
-        #self.d_counts = [0] * self.num_docs
+        self.tw_counts[:] = 0
+        self.t_counts[:] = 0
+        self.dt_counts[:] = 0
+        self.d_counts[:] = 0
 
-        for i in xrange(self.num_docs):
+        for i in xrange(len(sample)):
             for j in xrange(len(sample[i])):
                 w = sample[i][j]
                 z = random.randint(0, self.num_topics - 1)
@@ -71,7 +70,7 @@ cdef class LdaModel(object):
 
         for t in xrange(num_iters):
             m = 0
-            for i in xrange(self.num_docs):
+            for i in xrange(len(sample)):
                 for j in xrange(len(sample[i])):
                     w = sample[i][j]
                     z = assignments[m]
