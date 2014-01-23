@@ -360,24 +360,37 @@ def run_lda(data_dir, categories, num_topics):
             init_labels.append(d[1])
         elif i >= init_num_docs:
             if i == init_num_docs:
+                print('Initializing on first %d docs' % i)
+                print('Gibbs sampling with %d iters' % init_num_iters)
                 init_gibbs_sampler = GibbsSampler(model)
                 init_gibbs_sampler.learn(init_sample, init_num_iters)
+
                 print(model.to_string(dataset.vocab, 20))
                 print('In-sample NMI: %f' % nmi(init_labels, list(categories), init_gibbs_sampler.dt_counts, num_topics))
                 gibbs_sampler = GibbsSampler(model)
                 gibbs_sampler.infer(test_sample, test_num_iters)
                 print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
                 plfilter.likelihood(test_sample)
+
+                print('Creating particle filter on initialized model')
                 pf = ParticleFilter(model, num_particles)
                 train_labels = init_labels
             pf.step(d[2])
             train_labels.append(d[1])
-            #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
-            gibbs_sampler = GibbsSampler(pf.max_posterior_model())
-            gibbs_sampler.infer(test_sample, test_num_iters)
-            print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
-            #plfilter.likelihood(test_sample)
+            if i % 100 == 0:
+                print('Doc %d' % i)
+                #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
+                gibbs_sampler = GibbsSampler(pf.max_posterior_model())
+                gibbs_sampler.infer(test_sample, test_num_iters)
+                print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
+                #plfilter.likelihood(test_sample)
         i += 1
+
+    print('Processed %d docs' % i)
+    #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
+    gibbs_sampler = GibbsSampler(pf.max_posterior_model())
+    gibbs_sampler.infer(test_sample, test_num_iters)
+    print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
 
 
 if __name__ == '__main__':
