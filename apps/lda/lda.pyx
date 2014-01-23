@@ -41,17 +41,13 @@ cdef class GlobalParams:
         return s
         
 
-cdef class GibbsSampler:
+cdef class FirstMomentPLFilter:
     cdef GlobalParams model
-    cdef numpy.uint_t[:, ::1] dt_counts
-    cdef numpy.uint_t[:] d_counts
-    cdef numpy.double_t[:] pmf
 
     def __cinit__(self, GlobalParams model):
         self.model = model
-        self.pmf = numpy.zeros((model.num_topics,), dtype=numpy.double)
 
-    cdef eval_pl(self, list sample):
+    cdef likelihood(self, list sample):
         cdef numpy.double_t local_d_count, ll, s, p
         cdef numpy.double_t[:] local_dt_counts, x
         cdef numpy.uint_t i, j, t, w, num_words
@@ -79,6 +75,17 @@ cdef class GibbsSampler:
 
         print('Log-likelihood: %f' % ll)
         print('Perplexity:     %f' % (-ll / num_words))
+
+
+cdef class GibbsSampler:
+    cdef GlobalParams model
+    cdef numpy.uint_t[:, ::1] dt_counts
+    cdef numpy.uint_t[:] d_counts
+    cdef numpy.double_t[:] pmf
+
+    def __cinit__(self, GlobalParams model):
+        self.model = model
+        self.pmf = numpy.zeros((model.num_topics,), dtype=numpy.double)
 
     cdef numpy.double_t conditional_posterior(self, numpy.uint_t i, numpy.uint_t w, numpy.uint_t t):
         return (self.model.tw_counts[t, w] + self.model.beta) / (self.model.t_counts[t] + self.model.vocab_size * self.model.beta) * (self.dt_counts[i, t] + self.model.alpha) / (self.d_counts[i] + self.model.num_topics * self.model.alpha)
@@ -167,6 +174,7 @@ def run_lda(data_dir, categories):
     reservoir = pylowl.ValuedReservoirSampler(reservoir_size)
     global_params = GlobalParams(alpha, beta, num_topics, len(dataset.vocab))
     gibbs_sampler = GibbsSampler(global_params)
+    plfilter = FirstMomentPLFilter(global_params)
 
     def preprocess(doc_triple):
         return [dataset.vocab[w] for w in doc_triple[2]]
@@ -178,7 +186,7 @@ def run_lda(data_dir, categories):
         if i >= reservoir_size and i % 100 == 0:
             gibbs_sampler.learn(reservoir.sample(), num_iters)
             print(global_params.to_string(dataset.vocab, 20))
-            gibbs_sampler.eval_pl(test_sample)
+            plfilter.likelihood(test_sample)
         reservoir.insert(doc_triple, preprocess)
         i += 1
 
