@@ -116,6 +116,13 @@ cdef class GlobalParams:
                 if i >= num_words_per_topic:
                     break
         return s
+
+    cdef GlobalParams copy(self):
+        cdef GlobalParams c
+        c = GlobalParams(self.alpha, self.beta, self.num_topics, self.vocab_size)
+        c.tw_counts[:] = self.tw_counts
+        c.t_counts[:] = self.t_counts
+        return c
         
 
 cdef class FirstMomentPLFilter:
