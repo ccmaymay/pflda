@@ -131,6 +131,7 @@ cdef class FirstMomentPLFilter:
         local_dt_counts = numpy.zeros((self.model.num_topics,), dtype=numpy.double)
         x = numpy.zeros((self.model.num_topics,), dtype=numpy.double)
         for i in xrange(len(sample)):
+            local_d_count = 0.0
             local_dt_counts[:] = 0.0
             for j in xrange(len(sample[i])):
                 w = sample[i][j]
