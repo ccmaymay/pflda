@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 
 
+# for rejuvenation:
+#   in each particle, need to keep doc ids, topic assignments, words for rejuv seq
+#   reservoir map: (doc_idx, w, [(z, doc_vect), ...])
+#   (list is over particles)
+#   and need to keep list of doc labels (later)
 from random import random, randint
 from data import Dataset
-from pylowl cimport ReservoirSampler
+from pylowl import ValuedReservoirSampler
 import sys
 import numpy
 cimport numpy
@@ -164,19 +169,20 @@ cdef class FirstMomentPLFilter:
 
 cdef class ParticleFilter:
     cdef GlobalParams canonical_model
-    cdef ReservoirSampler reservoir
+    cdef object reservoir
     cdef list models
     cdef numpy.double_t[:] weights, pmf, resample_cmf
     cdef numpy.uint_t num_particles, token_idx
     cdef numpy.double_t ess_threshold
 
     def __cinit__(self, GlobalParams init_model, numpy.uint_t num_particles,
-            numpy.double_t ess_threshold, ReservoirSampler reservoir):
+            numpy.double_t ess_threshold, object reservoir):
         cdef numpy.uint_t i
+
         self.canonical_model = init_model
         self.models = []
         for i in xrange(num_particles):
-            self.models.append(init_model.copy())
+            self.models.append((init_model.copy(), 0.0, numpy.zeros((self.canonical_model.num_topics,), dtype=numpy.double)))
         self.weights = numpy.ones((num_particles,), dtype=numpy.double) / num_particles
         self.num_particles = num_particles
         self.ess_threshold = ess_threshold
@@ -219,12 +225,14 @@ cdef class ParticleFilter:
                 return i
         return self.num_particles - 1
 
-    cdef void step(self, list doc):
+    cdef void step(self, numpy.uint_t doc_idx, list doc):
         cdef numpy.uint_t i, z, t
         cdef GlobalParams model
         cdef numpy.double_t local_d_count, total_weight, prior, _ess
         cdef numpy.double_t[:] local_dt_counts
+        cdef list particle_reservoir_data
 
+        # TODO need per-particle local counts!!
         local_d_count = 0.0
         local_dt_counts = numpy.zeros((self.canonical_model.num_topics,), dtype=numpy.double)
         for j in xrange(len(doc)):
@@ -238,6 +246,7 @@ cdef class ParticleFilter:
             total_weight = numpy.sum(self.weights)
             for i in xrange(self.num_particles):
                 self.weights[i] /= total_weight
+            particle_reservoir_data = []
             for i in xrange(self.num_particles):
                 model = <GlobalParams> self.models[i]
                 z = self.sample_topic(model, local_d_count, local_dt_counts, w)
@@ -245,10 +254,12 @@ cdef class ParticleFilter:
                 model.t_counts[z] += 1
                 local_dt_counts[z] += 1
                 local_d_count += 1
+                particle_reservoir_data.append((z, local_d_count, local_dt_counts))
             _ess = self.ess()
             if _ess < self.ess_threshold:
                 print('ESS is %f, resampling...' % _ess)
                 self.resample()
+            self.reservoir.insert((doc_idx, w, particle_reservoir_data))
             PyErr_CheckSignals()
 
     cdef numpy.double_t conditional_posterior(self, GlobalParams model, numpy.double_t local_d_count, numpy.double_t[:] local_dt_counts, numpy.uint_t w, numpy.uint_t t):
@@ -364,7 +375,6 @@ cdef class GibbsSampler:
 def run_lda(data_dir, categories, num_topics):
     cdef GibbsSampler init_gibbs_sampler, gibbs_sampler
     cdef GlobalParams model
-    cdef ReservoirSampler reservoir
     cdef FirstMomentPLFilter plfilter
     cdef ParticleFilter pf
     cdef numpy.uint_t i, num_tokens, reservoir_size, init_num_docs, init_num_iters, test_num_iters
@@ -422,10 +432,10 @@ def run_lda(data_dir, categories, num_topics):
                 #plfilter.likelihood(test_sample)
 
                 print('Creating particle filter on initialized model')
-                reservoir = ReservoirSampler(reservoir_size)
+                reservoir = ValuedReservoirSampler(reservoir_size)
                 pf = ParticleFilter(model, num_particles, ess_threshold, reservoir)
                 train_labels = init_labels
-            pf.step(d[2])
+            pf.step(i, d[2])
             train_labels.append(d[1])
             if i % 100 == 0:
                 print('Doc %d' % i)
