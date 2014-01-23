@@ -175,20 +175,29 @@ cdef class ParticleFilter:
         self.models = []
         for i in xrange(num_particles):
             self.models.append(init_model.copy())
-        self.weights = numpy.zeros((num_particles,), dtype=numpy.double)
+        self.weights = numpy.ones((num_particles,), dtype=numpy.double) / num_particles
         self.num_particles = num_particles
         self.pmf = numpy.zeros((init_model.num_topics,), dtype=numpy.double)
 
     cdef step(self, list doc):
-        cdef numpy.uint_t i, z
+        cdef numpy.uint_t i, z, t
         cdef GlobalParams model
-        cdef numpy.double_t local_d_count
+        cdef numpy.double_t local_d_count, total_weight, prior
         cdef numpy.double_t[:] local_dt_counts
 
         local_d_count = 0.0
         local_dt_counts = numpy.zeros((self.canonical_model.num_topics,), dtype=numpy.double)
         for j in xrange(len(doc)):
             w = doc[j]
+            for i in xrange(self.num_particles):
+                model = <GlobalParams> self.models[i]
+                prior = 0.0
+                for t in xrange(self.canonical_model.num_topics):
+                    prior += self.conditional_posterior(model, local_d_count, local_dt_counts, w, t)
+                self.weights[i] *= prior
+            total_weight = numpy.sum(self.weights)
+            for i in xrange(self.num_particles):
+                self.weights[i] /= total_weight
             for i in xrange(self.num_particles):
                 model = <GlobalParams> self.models[i]
                 z = self.sample_topic(model, local_d_count, local_dt_counts, w)
@@ -321,7 +330,7 @@ def run_lda(data_dir, categories, num_topics):
     beta = 0.1
     init_num_docs = 100
     init_num_iters = 100
-    num_particles = 10
+    num_particles = 100
 
     dataset = Dataset(data_dir, set(categories))
     reservoir = pylowl.ValuedReservoirSampler(reservoir_size)
