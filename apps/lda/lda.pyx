@@ -165,11 +165,12 @@ cdef class FirstMomentPLFilter:
 cdef class ParticleFilter:
     cdef GlobalParams canonical_model
     cdef list models
-    cdef numpy.double_t[:] weights
+    cdef numpy.double_t[:] weights, pmf, resample_cmf
     cdef numpy.uint_t num_particles
-    cdef numpy.double_t[:] pmf
+    cdef numpy.double_t ess_threshold
 
-    def __cinit__(self, GlobalParams init_model, numpy.uint_t num_particles):
+    def __cinit__(self, GlobalParams init_model, numpy.uint_t num_particles,
+            numpy.double_t ess_threshold):
         cdef numpy.uint_t i
         self.canonical_model = init_model
         self.models = []
@@ -177,12 +178,48 @@ cdef class ParticleFilter:
             self.models.append(init_model.copy())
         self.weights = numpy.ones((num_particles,), dtype=numpy.double) / num_particles
         self.num_particles = num_particles
+        self.ess_threshold = ess_threshold
         self.pmf = numpy.zeros((init_model.num_topics,), dtype=numpy.double)
+        self.resample_cmf = numpy.zeros((num_particles,), dtype=numpy.double)
 
-    cdef step(self, list doc):
+    cdef numpy.double_t ess(self):
+        cdef numpy.double_t total
+        cdef numpy.uint_t i
+        total = 0.0
+        for i in xrange(self.num_particles):
+            total += self.weights[i] * self.weights[i]
+        return 1.0 / total
+
+    cdef void resample(self):
+        cdef numpy.uint_t i, p
+        cdef GlobalParams old_model
+        cdef list old_models
+
+        self.resample_cmf[0] = self.weights[0]
+        for i in xrange(self.num_particles - 1):
+            self.resample_cmf[i+1] = self.resample_cmf[i] + self.weights[i+1]
+
+        old_models = [m for m in self.models]
+        for i in xrange(self.num_particles):
+            p = self.sample_particle_num()
+            old_model = <GlobalParams> old_models[p]
+            self.models[i] = old_model.copy()
+
+        self.weights[:] = 1.0 / self.num_particles
+
+    cdef numpy.uint_t sample_particle_num(self):
+        cdef numpy.uint_t i
+        cdef numpy.double_t r
+        r = random.random()
+        for i in xrange(self.num_particles):
+            if r < self.resample_cmf[i]:
+                return i
+        return self.num_particles - 1
+
+    cdef void step(self, list doc):
         cdef numpy.uint_t i, z, t
         cdef GlobalParams model
-        cdef numpy.double_t local_d_count, total_weight, prior
+        cdef numpy.double_t local_d_count, total_weight, prior, _ess
         cdef numpy.double_t[:] local_dt_counts
 
         local_d_count = 0.0
@@ -205,6 +242,11 @@ cdef class ParticleFilter:
                 model.t_counts[z] += 1
                 local_dt_counts[z] += 1
                 local_d_count += 1
+            _ess = self.ess()
+            if _ess < self.ess_threshold:
+                print('ESS is %f, Resampling...' % _ess)
+                self.resample()
+            PyErr_CheckSignals()
 
     cdef numpy.double_t conditional_posterior(self, GlobalParams model, numpy.double_t local_d_count, numpy.double_t[:] local_dt_counts, numpy.uint_t w, numpy.uint_t t):
         return (model.tw_counts[t, w] + self.canonical_model.beta) / (model.t_counts[t] + self.canonical_model.vocab_size * self.canonical_model.beta) * (local_dt_counts[t] + self.canonical_model.alpha) / (local_d_count + self.canonical_model.num_topics * self.canonical_model.alpha)
@@ -322,12 +364,13 @@ def run_lda(data_dir, categories, num_topics):
     cdef FirstMomentPLFilter plfilter
     cdef ParticleFilter pf
     cdef numpy.uint_t i, reservoir_size, init_num_docs, init_num_iters, test_num_iters
-    cdef numpy.double_t alpha, beta
+    cdef numpy.double_t alpha, beta, ess_threshold
 
     reservoir_size = 1000
     test_num_iters = 5
     alpha = 0.1
     beta = 0.1
+    ess_threshold = 20.0
     init_num_docs = 100
     init_num_iters = 100
     num_particles = 100
@@ -370,10 +413,10 @@ def run_lda(data_dir, categories, num_topics):
                 gibbs_sampler = GibbsSampler(model)
                 gibbs_sampler.infer(test_sample, test_num_iters)
                 print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
-                plfilter.likelihood(test_sample)
+                #plfilter.likelihood(test_sample)
 
                 print('Creating particle filter on initialized model')
-                pf = ParticleFilter(model, num_particles)
+                pf = ParticleFilter(model, num_particles, ess_threshold)
                 train_labels = init_labels
             pf.step(d[2])
             train_labels.append(d[1])
