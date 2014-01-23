@@ -236,17 +236,16 @@ cdef class GibbsSampler:
         sys.stdout.flush()
 
 
-def run_lda(data_dir, categories):
+def run_lda(data_dir, categories, num_topics):
     cdef GibbsSampler gibbs_sampler
     cdef GlobalParams global_params
     cdef FirstMomentPLFilter plfilter
-    cdef numpy.uint_t i, reservoir_size, num_iters, test_num_iters, num_topics
+    cdef numpy.uint_t i, reservoir_size, num_iters, test_num_iters
     cdef numpy.double_t alpha, beta
 
-    reservoir_size = 100
-    num_iters = 100
+    reservoir_size = 1000
+    num_iters = 1000
     test_num_iters = 5
-    num_topics = 20
     alpha = 0.1
     beta = 0.1
 
@@ -265,7 +264,7 @@ def run_lda(data_dir, categories):
 
     i = 0
     for doc_triple in dataset.train_iterator():
-        if i >= reservoir_size and i % 100 == 0:
+        if i > 0 and i % 100 == 0:
             sample = [s[2] for s in reservoir.sample()]
             labels = [s[1] for s in reservoir.sample()]
             gibbs_sampler.learn(sample, num_iters)

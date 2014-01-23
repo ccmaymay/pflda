@@ -11,4 +11,4 @@ TNG = ('alt.atheism', 'comp.graphics', 'comp.os.ms-windows.misc',
     'rec.sport.hockey', 'sci.crypt', 'sci.electronics', 'sci.med',
     'sci.space', 'soc.religion.christian', 'talk.politics.guns',
     'talk.politics.mideast', 'talk.politics.misc', 'talk.religion.misc')
-lda.run_lda('../../data/txt/tng', TNG)
+lda.run_lda('../../data/txt/tng', DIFF3, 3)
