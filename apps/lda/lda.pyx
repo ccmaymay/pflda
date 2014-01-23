@@ -11,69 +11,73 @@ from cpython.exc cimport PyErr_CheckSignals
 
 
 cdef numpy.double_t entropy1(list labels, list label_types):
-    numpy.uint_t i, j
-    numpy.double_t n, count, p, _entropy
-
-    n = float(len(labels))
-    for i in xrange(len(label_types)):
-        count = 0.0
-        for j in xrange(len(labels)):
-            if labels[j] == label_types[i]:
-                count += 1.0
-        p = count / n
-        _entropy += -p * numpy.log(p)
-
-    return _entropy
+    return 0.0
+#    numpy.uint_t i, j
+#    numpy.double_t n, count, p, _entropy
+#
+#    n = float(len(labels))
+#    for i in xrange(len(label_types)):
+#        count = 0.0
+#        for j in xrange(len(labels)):
+#            if labels[j] == label_types[i]:
+#                count += 1.0
+#        p = count / n
+#        _entropy += -p * numpy.log(p)
+#
+#    return _entropy
 
 
 cdef numpy.double_t entropy2(numpy.uint_t[:] inferred_topics,
         numpy.uint_t num_topics):
-    numpy.uint_t i, t
-    numpy.double_t n, count, p, _entropy
-
-    n = float(inferred_topics.shape[0])
-    for t in xrange(num_topics):
-        count = 0.0
-        for i in xrange(inferred_topics.shape[0]):
-            if inferred_topics[i] == t:
-                count += 1.0
-        p = count / n
-        _entropy += -p * numpy.log(p)
-
-    return _entropy
+    return 0.0
+#    numpy.uint_t i, t
+#    numpy.double_t n, count, p, _entropy
+#
+#    n = float(inferred_topics.shape[0])
+#    for t in xrange(num_topics):
+#        count = 0.0
+#        for i in xrange(inferred_topics.shape[0]):
+#            if inferred_topics[i] == t:
+#                count += 1.0
+#        p = count / n
+#        _entropy += -p * numpy.log(p)
+#
+#    return _entropy
 
 
 cdef numpy.double_t mi(list labels, list label_types,
         numpy.uint_t[:] inferred_topics, numpy.uint_t num_topics):
-    numpy.uint_t i, t, j
-    numpy.double_t n, count, marginal_count1, marginal_count2, _mi
-    n = float(len(labels))
-    for i in xrange(len(label_types)):
-        for t in xrange(num_topics):
-            count = 0.0
-            marginal_count1 = 0.0
-            marginal_count2 = 0.0
-            for j in xrange(len(labels)):
-                if labels[j] == label_types[i]:
-                    marginal_count1 += 1.0
-                if inferred_topics[j] == t:
-                    marginal_count2 += 1.0
-                if labels[j] == label_types[i] and inferred_topics[j] == t:
-                    count += 1.0
-            if count > 0.0:
-                _mi += (count / n) * (numpy.log(count * n) - numpy.log(marginal_count1 * marginal_count2))
-    return _mi
+    return 0.0
+#    numpy.uint_t i, t, j
+#    numpy.double_t n, count, marginal_count1, marginal_count2, _mi
+#    n = float(len(labels))
+#    for i in xrange(len(label_types)):
+#        for t in xrange(num_topics):
+#            count = 0.0
+#            marginal_count1 = 0.0
+#            marginal_count2 = 0.0
+#            for j in xrange(len(labels)):
+#                if labels[j] == label_types[i]:
+#                    marginal_count1 += 1.0
+#                if inferred_topics[j] == t:
+#                    marginal_count2 += 1.0
+#                if labels[j] == label_types[i] and inferred_topics[j] == t:
+#                    count += 1.0
+#            if count > 0.0:
+#                _mi += (count / n) * (numpy.log(count * n) - numpy.log(marginal_count1 * marginal_count2))
+#    return _mi
 
 
 cdef numpy.double_t nmi(list labels, list label_types,
         numpy.uint_t[:, ::1] dt_counts, numpy.uint_t num_topics):
-    numpy.uint_t[:] inferred_topics
-    numpy.double_t _nmi
-
-    inferred_topics = numpy.argmax(self.dt_counts, 1)
-    _nmi = 2.0 * mi(labels, label_types, inferred_topics, num_topics) / (entropy1(labels, label_types) + entropy2(inferred_topics, num_topics))
-    print('In-sample NMI: %f' % _nmi)
-    return _nmi
+    return 0.0
+#    numpy.uint_t[:] inferred_topics
+#    numpy.double_t _nmi
+#
+#    inferred_topics = numpy.argmax(self.dt_counts, 1)
+#    _nmi = 2.0 * mi(labels, label_types, inferred_topics, num_topics) / (entropy1(labels, label_types) + entropy2(inferred_topics, num_topics))
+#    print('In-sample NMI: %f' % _nmi)
+#    return _nmi
 
 
 cdef class GlobalParams:
@@ -243,31 +247,33 @@ def run_lda(data_dir, categories):
     alpha = 0.1
     beta = 0.1
 
-    dataset = util.Dataset(data_dir, categories)
+    dataset = util.Dataset(data_dir, set(categories))
     reservoir = pylowl.ValuedReservoirSampler(reservoir_size)
     global_params = GlobalParams(alpha, beta, num_topics, len(dataset.vocab))
     gibbs_sampler = GibbsSampler(global_params)
     plfilter = FirstMomentPLFilter(global_params)
 
     def preprocess(doc_triple):
-        return [dataset.vocab[w] for w in doc_triple[2]]
+        return doc_triple[:2] + ([dataset.vocab[w] for w in doc_triple[2]],)
 
-    test_sample = list(preprocess(t) for t in dataset.test_iterator())
+    test_data = [preprocess(t) for t in dataset.test_iterator()]
+    test_sample = [t[2] for t in test_data]
+    test_labels = [t[1] for t in test_data]
 
     i = 0
     for doc_triple in dataset.train_iterator():
         if i >= reservoir_size and i % 100 == 0:
-            sample = reservoir.sample()
+            sample = [s[2] for s in reservoir.sample()]
+            labels = [s[1] for s in reservoir.sample()]
             gibbs_sampler.learn(sample, num_iters)
             print(global_params.to_string(dataset.vocab, 20))
-            nmi(labels, gibbs_sampler.dt_counts)
+            print('In-sample NMI: %f' % nmi(labels, list(categories), gibbs_sampler.dt_counts, num_topics))
             gibbs_sampler.infer(test_sample, test_num_iters)
-            nmi(test_labels, gibbs_sampler.dt_counts)
+            print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
             plfilter.likelihood(test_sample)
         reservoir.insert(doc_triple, preprocess)
         i += 1
 
 
 if __name__ == '__main__':
-    import sys
     globals()[sys.argv[1]](*sys.argv[2:])
