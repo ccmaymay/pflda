@@ -7,6 +7,7 @@ import util
 import sys
 import numpy
 cimport numpy
+from cpython.exc cimport PyErr_CheckSignals
 
 
 cdef class LdaModel(object):
@@ -51,6 +52,8 @@ cdef class LdaModel(object):
                     local_dt_counts[t] += p
                     local_d_count += p
                 num_words += 1
+            if i % 1000 == 0:
+                PyErr_CheckSignals()
 
         print('Log-likelihood: %f' % ll)
         print('Perplexity:     %f' % (-ll / num_words))
@@ -94,6 +97,8 @@ cdef class LdaModel(object):
                 self.t_counts[z] += 1
                 self.dt_counts[i, z] += 1
                 self.d_counts[i] += 1
+            if i % 1000 == 0:
+                PyErr_CheckSignals()
 
         for t in xrange(num_iters):
             m = 0
@@ -112,6 +117,8 @@ cdef class LdaModel(object):
                     self.dt_counts[i, z] += 1
                     self.d_counts[i] += 1
                     m += 1
+                if i % 1000 == 0:
+                    PyErr_CheckSignals()
             sys.stdout.write('.')
             sys.stdout.flush()
         sys.stdout.write('\n')
