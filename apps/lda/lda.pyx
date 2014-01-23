@@ -162,6 +162,65 @@ cdef class FirstMomentPLFilter:
         print('Perplexity:     %f' % numpy.exp(-ll / num_words))
 
 
+cdef class ParticleFilter:
+    cdef GlobalParams canonical_model
+    cdef list models
+    cdef numpy.double_t[:] weights
+    cdef numpy.uint_t num_particles
+    cdef numpy.double_t[:] pmf
+
+    def __cinit__(self, GlobalParams init_model, numpy.uint_t num_particles):
+        cdef numpy.uint_t i
+        self.canonical_model = init_model
+        self.models = []
+        for i in xrange(num_particles):
+            self.models.append(init_model.copy())
+        self.weights = numpy.zeros((num_particles,), dtype=numpy.double)
+        self.num_particles = num_particles
+        self.pmf = numpy.zeros((init_model.num_topics,), dtype=numpy.double)
+
+    cdef step(self, list doc):
+        cdef numpy.uint_t i, z
+        cdef GlobalParams model
+        cdef numpy.double_t local_d_count
+        cdef numpy.double_t[:] local_dt_counts
+
+        local_d_count = 0.0
+        local_dt_counts = numpy.zeros((self.canonical_model.num_topics,), dtype=numpy.double)
+        for j in xrange(len(doc)):
+            w = doc[j]
+            for i in xrange(self.num_particles):
+                model = <GlobalParams> self.models[i]
+                z = self.sample_topic(model, local_d_count, local_dt_counts, w)
+                model.tw_counts[z, w] += 1
+                model.t_counts[z] += 1
+                local_dt_counts[z] += 1
+                local_d_count += 1
+
+    cdef numpy.double_t conditional_posterior(self, GlobalParams model, numpy.double_t local_d_count, numpy.double_t[:] local_dt_counts, numpy.uint_t w, numpy.uint_t t):
+        return (model.tw_counts[t, w] + self.canonical_model.beta) / (model.t_counts[t] + self.canonical_model.vocab_size * self.canonical_model.beta) * (local_dt_counts[t] + self.canonical_model.alpha) / (local_d_count + self.canonical_model.num_topics * self.canonical_model.alpha)
+
+    cdef numpy.uint_t sample_topic(self, GlobalParams model, numpy.double_t local_d_count, numpy.double_t[:] local_dt_counts, numpy.uint_t w):
+        cdef numpy.double_t prior, r
+        cdef numpy.uint_t t
+
+        prior = 0.0
+        for t in xrange(self.canonical_model.num_topics):
+            self.pmf[t] = self.conditional_posterior(model, local_d_count, local_dt_counts, w, t)
+            prior += self.pmf[t]
+
+        r = random.random() * prior
+        for t in xrange(self.canonical_model.num_topics-1):
+            if r < self.pmf[t]:
+                return t
+            self.pmf[t+1] += self.pmf[t]
+
+        return self.canonical_model.num_topics - 1
+
+    cdef GlobalParams max_posterior_model(self):
+        return self.models[numpy.argmax(self.weights)]
+
+
 cdef class GibbsSampler:
     cdef GlobalParams model
     cdef readonly numpy.uint_t[:, ::1] dt_counts
@@ -249,22 +308,24 @@ cdef class GibbsSampler:
 
 
 def run_lda(data_dir, categories, num_topics):
-    cdef GibbsSampler gibbs_sampler
+    cdef GibbsSampler init_gibbs_sampler, gibbs_sampler
     cdef GlobalParams model
     cdef FirstMomentPLFilter plfilter
-    cdef numpy.uint_t i, reservoir_size, num_iters, test_num_iters
+    cdef ParticleFilter pf
+    cdef numpy.uint_t i, reservoir_size, init_num_docs, init_num_iters, test_num_iters
     cdef numpy.double_t alpha, beta
 
     reservoir_size = 1000
-    num_iters = 1000
     test_num_iters = 5
     alpha = 0.1
     beta = 0.1
+    init_num_docs = 100
+    init_num_iters = 100
+    num_particles = 10
 
     dataset = Dataset(data_dir, set(categories))
     reservoir = pylowl.ValuedReservoirSampler(reservoir_size)
     model = GlobalParams(alpha, beta, num_topics, len(dataset.vocab))
-    gibbs_sampler = GibbsSampler(model)
     plfilter = FirstMomentPLFilter(model)
 
     def preprocess(doc_triple):
@@ -274,19 +335,39 @@ def run_lda(data_dir, categories, num_topics):
     test_sample = [t[2] for t in test_data]
     test_labels = [t[1] for t in test_data]
 
+    init_sample = []
+    init_labels = []
+
+    train_sample = []
+    train_labels = []
+
+    pf = None
+
     i = 0
     for doc_triple in dataset.train_iterator():
-        if i > 0 and i % 100 == 0:
-            sample = [s[2] for s in reservoir.sample()]
-            labels = [s[1] for s in reservoir.sample()]
-            gibbs_sampler.learn(sample, num_iters)
-            print(model.to_string(dataset.vocab, 20))
-            print('In-sample NMI: %f' % nmi(labels, list(categories), gibbs_sampler.dt_counts, num_topics))
+        d = preprocess(doc_triple)
+        if i < init_num_docs:
+            init_sample.append(d[2])
+            init_labels.append(d[1])
+        elif i >= init_num_docs:
+            if i == init_num_docs:
+                init_gibbs_sampler = GibbsSampler(model)
+                init_gibbs_sampler.learn(init_sample, init_num_iters)
+                print(model.to_string(dataset.vocab, 20))
+                print('In-sample NMI: %f' % nmi(init_labels, list(categories), init_gibbs_sampler.dt_counts, num_topics))
+                gibbs_sampler = GibbsSampler(model)
+                gibbs_sampler.infer(test_sample, test_num_iters)
+                print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
+                plfilter.likelihood(test_sample)
+                pf = ParticleFilter(model, num_particles)
+                train_labels = init_labels
+            pf.step(d[2])
+            train_labels.append(d[1])
+            #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
+            gibbs_sampler = GibbsSampler(pf.max_posterior_model())
             gibbs_sampler.infer(test_sample, test_num_iters)
             print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
-            plfilter.likelihood(test_sample)
-            model.clear()
-        reservoir.insert(doc_triple, preprocess)
+            #plfilter.likelihood(test_sample)
         i += 1
 
 
