@@ -156,14 +156,14 @@ cdef class GibbsSampler:
         sys.stdout.flush()
 
 
-def run_lda(data_dir, *categories):
+def run_lda(data_dir, categories):
     reservoir_size = 100
     num_iters = 100
     num_topics = 20
     alpha = 0.1
     beta = 0.1
 
-    dataset = util.Dataset(data_dir, set(categories))
+    dataset = util.Dataset(data_dir, categories)
     reservoir = pylowl.ValuedReservoirSampler(reservoir_size)
     global_params = GlobalParams(alpha, beta, num_topics, len(dataset.vocab))
     gibbs_sampler = GibbsSampler(global_params)
