@@ -152,7 +152,7 @@ cdef class FirstMomentPLFilter:
                 PyErr_CheckSignals()
 
         print('Log-likelihood: %f' % ll)
-        print('Perplexity:     %f' % (-ll / num_words))
+        print('Perplexity:     %f' % numpy.exp(-ll / num_words))
 
 
 cdef class GibbsSampler:
