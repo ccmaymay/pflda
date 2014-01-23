@@ -136,7 +136,7 @@ cdef class LdaModel(object):
 def run_lda(data_dir, *categories):
     reservoir_size = 1000
     num_iters = 1000
-    num_topics = 3
+    num_topics = 20
     alpha = 0.1
     beta = 0.1
 
