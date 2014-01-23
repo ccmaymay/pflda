@@ -521,7 +521,7 @@ void run_numeric_vector_tests() {
   dense_vector* denvecaa = malloc( sizeof(dense_vector) );
   dense_vector* denvecbb = malloc( sizeof(dense_vector) );
 
-  float vals[6] = { 2.2, 3.3, 5.5, 8.8, 11.11, 19.19 };
+  float vals[6] = { 2.2f, 3.3f, 5.5f, 8.8f, 11.11f, 19.19f };
   unsigned int comps[6] = {2, 3, 5, 8, 11, 19};
   dense_vector_init( denvecaa, vals, 6); 
   assert( denvecaa->length == 6 );
@@ -531,7 +531,7 @@ void run_numeric_vector_tests() {
 
   /* test that our mergesort for sparse vector entries works properly. */
   unsigned int comps2[7] = { 6, 4, 3, 1, 5, 2, 0 };
-  float vals2[7] = { 60.6, 40.4, 30.3, 10.1, 50.5, 20.2, 0.0 };
+  float vals2[7] = { 60.6f, 40.4f, 30.3f, 10.1f, 50.5f, 20.2f, 0.0f };
   sparse_vector_init( spavecbb, comps2, vals2, 7, 20 );
   assert( spavecbb->length == 20 );
   assert( spavecbb->sparsity == 7 );
@@ -554,25 +554,25 @@ void run_numeric_vector_tests() {
 
   /* test dot products */
   float dotprod = sparse_vector_dot_product( spavecaa, spavecbb );
-  float expected_dotprod = 20.2*2.2 + 30.3*3.3 + 50.5*5.5;
-  assert( fabsf(dotprod - expected_dotprod ) < 0.0001 );
+  float expected_dotprod = 20.2f*2.2f + 30.3f*3.3f + 50.5f*5.5f;
+  assert( fabsf(dotprod - expected_dotprod ) < 0.0001f );
 
   dotprod = dense_vector_dot_product( denvecaa, denvecbb );
-  expected_dotprod = 2.2*60.6 + 3.3*40.4 + 5.5*30.3 + 8.8*10.1
-				+ 11.11*50.5 + 19.19*20.2;
-  assert( fabsf(dotprod - expected_dotprod) < 0.0001 );
+  expected_dotprod = 2.2f*60.6f + 3.3f*40.4f + 5.5f*30.3f + 8.8f*10.1f
+				+ 11.11f*50.5f + 19.19f*20.2f;
+  assert( fabsf(dotprod - expected_dotprod) < 0.0001f );
 
   dotprod = sparsedense_vector_dot_product( spavecaa, denvecaa );
-  expected_dotprod = 5.5*2.2 + 8.8*3.3 + 19.19*5.5;
-  assert( fabs( dotprod - expected_dotprod ) < 0.0001 );
+  expected_dotprod = 5.5f*2.2f + 8.8f*3.3f + 19.19f*5.5f;
+  assert( fabs( dotprod - expected_dotprod ) < 0.0001f );
 
   /* check that component retrieval is correct. */
-  assert( fabsf(dense_vector_get_component( denvecaa, 0 ) - 2.2) < 0.0001 );
-  assert( fabsf(sparse_vector_get_component( spavecaa, 3) - 3.3) < 0.0001 );
-  assert( fabsf(sparse_vector_get_component( spavecaa, 0) - 0.0) < 0.0001 );
-  assert( fabsf(sparse_vector_get_component( spavecaa, 2) - 2.2) < 0.0001 );
-  assert( fabsf(sparse_vector_get_component( spavecaa, 8) - 8.8) < 0.0001 );
-  assert( fabsf(sparse_vector_get_component( spavecaa, 9) - 0.0) < 0.0001 );
+  assert( fabsf(dense_vector_get_component( denvecaa, 0 ) - 2.2f) < 0.0001f );
+  assert( fabsf(sparse_vector_get_component( spavecaa, 3) - 3.3f) < 0.0001f );
+  assert( fabsf(sparse_vector_get_component( spavecaa, 0) - 0.0f) < 0.0001f );
+  assert( fabsf(sparse_vector_get_component( spavecaa, 2) - 2.2f) < 0.0001f );
+  assert( fabsf(sparse_vector_get_component( spavecaa, 8) - 8.8f) < 0.0001f );
+  assert( fabsf(sparse_vector_get_component( spavecaa, 9) - 0.0f) < 0.0001f );
 
   /* deallocate memory. */
   sparse_vector_destroy( spavecaa );
