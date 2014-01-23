@@ -28,6 +28,33 @@ cdef class LdaModel(object):
         self.d_counts = numpy.zeros((num_docs,), dtype=numpy.uint)
         self.pmf = numpy.zeros((num_topics,), dtype=numpy.double)
 
+    cdef eval_pl(self, list sample):
+        cdef numpy.double_t local_d_count, ll, s, p
+        cdef numpy.double_t[:] local_dt_counts, x
+        cdef numpy.uint_t i, j, t, w, num_words
+
+        num_words = 0
+        ll = 0.0
+        local_d_count = 0.0
+        local_dt_counts = numpy.zeros((self.num_topics,), dtype=numpy.double)
+        x = numpy.zeros((self.num_topics,), dtype=numpy.double)
+        for i in xrange(len(sample)):
+            local_dt_counts[:] = 0.0
+            for j in xrange(len(sample[i])):
+                w = sample[i][j]
+                for t in xrange(self.num_topics):
+                    x[t] = (self.tw_counts[t, w] + self.beta) / (self.t_counts[t] + self.vocab_size * self.beta) * (local_dt_counts[t] + self.alpha) / (local_d_count + self.num_topics * self.alpha)
+                s = numpy.sum(x)
+                ll += numpy.log(s)
+                for t in xrange(self.num_topics):
+                    p = x[t] / s
+                    local_dt_counts[t] += p
+                    local_d_count += p
+                num_words += 1
+
+        print('Log-likelihood: %f' % ll)
+        print('Perplexity:     %f' % (-ll / num_words))
+
     cdef numpy.double_t conditional_posterior(self, numpy.uint_t i, numpy.uint_t w, numpy.uint_t t):
         return (self.tw_counts[t, w] + self.beta) / (self.t_counts[t] + self.vocab_size * self.beta) * (self.dt_counts[i, t] + self.alpha) / (self.d_counts[i] + self.num_topics * self.alpha)
 
@@ -90,15 +117,19 @@ cdef class LdaModel(object):
         sys.stdout.write('\n')
         sys.stdout.flush()
 
-    def to_string(self, vocab):
+    def to_string(self, vocab, num_words_per_topic):
         s = ''
         for t in range(self.num_topics):
             s += 'TOPIC %d:\n' % t
             pp = [(word, self.tw_counts[t, w]) for (word, w) in vocab.items()]
             pp.sort(key=lambda p: p[1], reverse=True)
+            i = 0
             for (word, count) in pp:
                 if count > 0:
                     s += '\t%s (%d)\n' % (word, count)
+                i += 1
+                if i >= num_words_per_topic:
+                    break
         return s
 
 
@@ -116,11 +147,14 @@ def run_lda(data_dir, *categories):
     def preprocess(doc_triple):
         return [dataset.vocab[w] for w in doc_triple[2]]
 
+    test_sample = list(preprocess(t) for t in dataset.test_iterator())
+
     i = 0
     for doc_triple in dataset.train_iterator():
         if i >= reservoir_size and i % 100 == 0:
             model.learn(reservoir.sample(), num_iters)
-            print(model.to_string(dataset.vocab))
+            print(model.to_string(dataset.vocab, 20))
+            model.eval_pl(test_sample)
         reservoir.insert(doc_triple, preprocess)
         i += 1
 
