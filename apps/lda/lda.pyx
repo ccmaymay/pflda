@@ -244,7 +244,7 @@ cdef class ParticleFilter:
                 local_d_count += 1
             _ess = self.ess()
             if _ess < self.ess_threshold:
-                print('ESS is %f, Resampling...' % _ess)
+                print('ESS is %f, resampling...' % _ess)
                 self.resample()
             PyErr_CheckSignals()
 
@@ -363,7 +363,7 @@ def run_lda(data_dir, categories, num_topics):
     cdef GlobalParams model
     cdef FirstMomentPLFilter plfilter
     cdef ParticleFilter pf
-    cdef numpy.uint_t i, reservoir_size, init_num_docs, init_num_iters, test_num_iters
+    cdef numpy.uint_t i, num_tokens, reservoir_size, init_num_docs, init_num_iters, test_num_iters
     cdef numpy.double_t alpha, beta, ess_threshold
 
     reservoir_size = 1000
@@ -379,6 +379,8 @@ def run_lda(data_dir, categories, num_topics):
     reservoir = pylowl.ValuedReservoirSampler(reservoir_size)
     model = GlobalParams(alpha, beta, num_topics, len(dataset.vocab))
     plfilter = FirstMomentPLFilter(model)
+
+    print('Vocab size: %d' % len(dataset.vocab))
 
     def preprocess(doc_triple):
         return doc_triple[:2] + ([dataset.vocab[w] for w in doc_triple[2]],)
@@ -396,6 +398,7 @@ def run_lda(data_dir, categories, num_topics):
     pf = None
 
     i = 0
+    num_tokens = 0
     for doc_triple in dataset.train_iterator():
         d = preprocess(doc_triple)
         if i < init_num_docs:
@@ -403,7 +406,7 @@ def run_lda(data_dir, categories, num_topics):
             init_labels.append(d[1])
         elif i >= init_num_docs:
             if i == init_num_docs:
-                print('Initializing on first %d docs' % i)
+                print('Initializing on first %d docs (%d tokens)' % (i, num_tokens))
                 print('Gibbs sampling with %d iters' % init_num_iters)
                 init_gibbs_sampler = GibbsSampler(model)
                 init_gibbs_sampler.learn(init_sample, init_num_iters)
@@ -427,9 +430,10 @@ def run_lda(data_dir, categories, num_topics):
                 gibbs_sampler.infer(test_sample, test_num_iters)
                 print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
                 #plfilter.likelihood(test_sample)
+        num_tokens += len(d[2])
         i += 1
 
-    print('Processed %d docs' % i)
+    print('Processed %d docs (%d tokens)' % (i, num_tokens))
     #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
     gibbs_sampler = GibbsSampler(pf.max_posterior_model())
     gibbs_sampler.infer(test_sample, test_num_iters)
