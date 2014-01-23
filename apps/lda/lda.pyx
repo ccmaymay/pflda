@@ -3,7 +3,7 @@
 
 import pylowl
 import random
-import util
+from data import Dataset
 import sys
 import numpy
 cimport numpy
@@ -249,7 +249,7 @@ def run_lda(data_dir, categories, num_topics):
     alpha = 0.1
     beta = 0.1
 
-    dataset = util.Dataset(data_dir, set(categories))
+    dataset = Dataset(data_dir, set(categories))
     reservoir = pylowl.ValuedReservoirSampler(reservoir_size)
     global_params = GlobalParams(alpha, beta, num_topics, len(dataset.vocab))
     gibbs_sampler = GibbsSampler(global_params)
