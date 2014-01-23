@@ -98,6 +98,10 @@ cdef class GlobalParams:
         self.tw_counts = numpy.zeros((num_topics, vocab_size), dtype=numpy.uint)
         self.t_counts = numpy.zeros((num_topics,), dtype=numpy.uint)
 
+    cdef void clear(self):
+        self.tw_counts[:] = 0
+        self.t_counts[:] = 0
+
     def to_string(self, vocab, num_words_per_topic):
         s = ''
         for t in range(self.num_topics):
@@ -239,7 +243,7 @@ cdef class GibbsSampler:
 
 def run_lda(data_dir, categories, num_topics):
     cdef GibbsSampler gibbs_sampler
-    cdef GlobalParams global_params
+    cdef GlobalParams model
     cdef FirstMomentPLFilter plfilter
     cdef numpy.uint_t i, reservoir_size, num_iters, test_num_iters
     cdef numpy.double_t alpha, beta
@@ -252,9 +256,9 @@ def run_lda(data_dir, categories, num_topics):
 
     dataset = Dataset(data_dir, set(categories))
     reservoir = pylowl.ValuedReservoirSampler(reservoir_size)
-    global_params = GlobalParams(alpha, beta, num_topics, len(dataset.vocab))
-    gibbs_sampler = GibbsSampler(global_params)
-    plfilter = FirstMomentPLFilter(global_params)
+    model = GlobalParams(alpha, beta, num_topics, len(dataset.vocab))
+    gibbs_sampler = GibbsSampler(model)
+    plfilter = FirstMomentPLFilter(model)
 
     def preprocess(doc_triple):
         return doc_triple[:2] + ([dataset.vocab[w] for w in doc_triple[2]],)
@@ -269,11 +273,12 @@ def run_lda(data_dir, categories, num_topics):
             sample = [s[2] for s in reservoir.sample()]
             labels = [s[1] for s in reservoir.sample()]
             gibbs_sampler.learn(sample, num_iters)
-            print(global_params.to_string(dataset.vocab, 20))
+            print(model.to_string(dataset.vocab, 20))
             print('In-sample NMI: %f' % nmi(labels, list(categories), gibbs_sampler.dt_counts, num_topics))
             gibbs_sampler.infer(test_sample, test_num_iters)
             print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
             plfilter.likelihood(test_sample)
+            model.clear()
         reservoir.insert(doc_triple, preprocess)
         i += 1
 
