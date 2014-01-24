@@ -163,8 +163,8 @@ cdef class FirstMomentPLFilter:
             if i % 100 == 0:
                 PyErr_CheckSignals()
 
-        print('Log-likelihood: %f' % ll)
-        print('Perplexity:     %f' % numpy.exp(-ll / num_words))
+        print('log-likelihood: %f' % ll)
+        print('perplexity:     %f' % numpy.exp(-ll / num_words))
 
 
 cdef class ParticleFilter:
@@ -253,7 +253,7 @@ cdef class ParticleFilter:
     cdef void step(self, numpy.uint_t doc_idx, list doc):
         cdef numpy.uint_t i, z, t
         cdef numpy.double_t total_weight, prior, _ess
-        #cdef list particle_reservoir_data
+        cdef list particle_reservoir_data
 
         for i in xrange(self.num_particles):
             self.local_d_counts[i] = 0
@@ -268,19 +268,20 @@ cdef class ParticleFilter:
             total_weight = numpy.sum(self.weights)
             for i in xrange(self.num_particles):
                 self.weights[i] /= total_weight
-            #particle_reservoir_data = []
+            particle_reservoir_data = []
             for i in xrange(self.num_particles):
                 z = self.sample_topic(i, w)
                 self.tw_counts[i, z, w] += 1
                 self.t_counts[i, z] += 1
                 self.local_dt_counts[i, z] += 1
                 self.local_d_counts[i] += 1
-                #particle_reservoir_data.append((z, local_d_count, local_dt_counts))
+                particle_reservoir_data.append((z, self.local_d_counts[i], self.local_dt_counts[i, :]))
             _ess = self.ess()
             if _ess < self.ess_threshold:
-                print('Doc %d, word %d: ESS is %f, resampling...' % (doc_idx, j, _ess))
+                print('ess is %f (doc_idx %d, %d; token_idx %d), resampling...' % (_ess, doc_idx, j, self.token_idx))
                 self.resample()
-            #self.reservoir.insert((doc_idx, w, particle_reservoir_data))
+            self.reservoir.insert((doc_idx, w, particle_reservoir_data))
+            self.token_idx += 1
             PyErr_CheckSignals()
 
     cdef numpy.double_t conditional_posterior(self, numpy.uint_t p, numpy.uint_t w, numpy.uint_t t):
@@ -420,7 +421,7 @@ def run_lda(data_dir, categories, num_topics):
     model = GlobalParams(alpha, beta, num_topics, len(dataset.vocab))
     plfilter = FirstMomentPLFilter(model)
 
-    print('Vocab size: %d' % len(dataset.vocab))
+    print('vocab size: %d' % len(dataset.vocab))
 
     def preprocess(doc_triple):
         return doc_triple[:2] + ([dataset.vocab[w] for w in doc_triple[2]],)
@@ -446,39 +447,39 @@ def run_lda(data_dir, categories, num_topics):
             init_labels.append(d[1])
         elif i >= init_num_docs:
             if i == init_num_docs:
-                print('Initializing on first %d docs (%d tokens)' % (i, num_tokens))
-                print('Gibbs sampling with %d iters' % init_num_iters)
+                print('initializing on first %d docs (%d tokens)' % (i, num_tokens))
+                print('gibbs sampling with %d iters' % init_num_iters)
                 init_gibbs_sampler = GibbsSampler(model)
                 init_gibbs_sampler.learn(init_sample, init_num_iters)
 
                 print(model.to_string(dataset.vocab, 20))
-                print('In-sample NMI: %f' % nmi(init_labels, list(categories), init_gibbs_sampler.dt_counts, num_topics))
+                print('in-sample nmi: %f' % nmi(init_labels, list(categories), init_gibbs_sampler.dt_counts, num_topics))
                 gibbs_sampler = GibbsSampler(model)
                 gibbs_sampler.infer(test_sample, test_num_iters)
-                print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
+                print('out-of-sample nmi: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
                 #plfilter.likelihood(test_sample)
 
-                print('Creating particle filter on initialized model')
+                print('creating particle filter on initialized model')
                 reservoir = ValuedReservoirSampler(reservoir_size)
                 pf = ParticleFilter(model, num_particles, ess_threshold, reservoir)
                 train_labels = init_labels
             pf.step(i, d[2])
             train_labels.append(d[1])
             if i % 100 == 0:
-                print('Doc %d' % i)
+                print('doc %d...' % i)
                 #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
                 gibbs_sampler = GibbsSampler(pf.max_posterior_model())
                 gibbs_sampler.infer(test_sample, test_num_iters)
-                print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
+                print('out-of-sample nmi: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
                 #plfilter.likelihood(test_sample)
         num_tokens += len(d[2])
         i += 1
 
-    print('Processed %d docs (%d tokens)' % (i, num_tokens))
+    print('processed %d docs (%d tokens)' % (i, num_tokens))
     #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
     gibbs_sampler = GibbsSampler(pf.max_posterior_model())
     gibbs_sampler.infer(test_sample, test_num_iters)
-    print('Out-of-sample NMI: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
+    print('out-of-sample nmi: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
 
 
 if __name__ == '__main__':
