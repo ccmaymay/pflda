@@ -59,3 +59,12 @@ long randint(long n) {
       return r / bucket_size;
   }
 }
+
+void shuffle(unsigned int *x, size_t n) {
+  for (size_t i = n-1; i > 0; --i) {
+    long j = randint(i + 1);
+    unsigned int temp = x[i];
+    x[i] = x[j];
+    x[j] = temp;
+  }
+}
