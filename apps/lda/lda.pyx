@@ -319,6 +319,7 @@ cdef class GibbsSampler:
     cdef GlobalParams model
     cdef readonly numpy.uint_t[:, ::1] dt_counts
     cdef readonly numpy.uint_t[:] d_counts
+    cdef readonly list assignments
     cdef numpy.double_t[:] pmf
 
     def __cinit__(self, GlobalParams model):
@@ -352,12 +353,11 @@ cdef class GibbsSampler:
         self.run(sample, num_iters, 0)
 
     cdef run(self, list sample, numpy.uint_t num_iters, bint update_model):
-        cdef list assignments
         cdef numpy.uint_t t, i, j, w, m, z, num_docs
 
         num_docs = len(sample)
 
-        assignments = []
+        self.assignments = []
         self.dt_counts = numpy.zeros((num_docs, self.model.num_topics), dtype=numpy.uint)
         self.d_counts = numpy.zeros((num_docs,), dtype=numpy.uint)
 
@@ -365,7 +365,7 @@ cdef class GibbsSampler:
             for j in xrange(len(sample[i])):
                 w = sample[i][j]
                 z = randint(0, self.model.num_topics - 1)
-                assignments.append(z)
+                self.assignments.append(z)
                 if update_model:
                     self.model.tw_counts[z, w] += 1
                     self.model.t_counts[z] += 1
@@ -379,14 +379,14 @@ cdef class GibbsSampler:
             for i in xrange(num_docs):
                 for j in xrange(len(sample[i])):
                     w = sample[i][j]
-                    z = assignments[m]
+                    z = self.assignments[m]
                     if update_model:
                         self.model.tw_counts[z, w] -= 1
                         self.model.t_counts[z] -= 1
                     self.dt_counts[i, z] -= 1
                     self.d_counts[i] -= 1
                     z = self.sample_topic(i, w)
-                    assignments[m] = z
+                    self.assignments[m] = z
                     if update_model:
                         self.model.tw_counts[z, w] += 1
                         self.model.t_counts[z] += 1
@@ -407,7 +407,7 @@ def run_lda(data_dir, categories, num_topics):
     cdef FirstMomentPLFilter plfilter
     cdef ParticleFilter pf
     cdef numpy.uint_t i, j, doc_idx, num_tokens, reservoir_size, init_num_docs
-    cdef numpy.uint_t init_num_iters, test_num_iters, rejuv_sample_size,
+    cdef numpy.uint_t init_num_iters, test_num_iters, rejuv_sample_size, m, p
     cdef numpy.uint_t rejuv_mcmc_steps
     cdef numpy.double_t alpha, beta, ess_threshold
     cdef list particle_reservoir_data
@@ -467,13 +467,16 @@ def run_lda(data_dir, categories, num_topics):
 
                 print('creating particle filter on initialized model')
                 reservoir = ValuedReservoirSampler(reservoir_size)
+                m = 0
                 for doc_idx in xrange(len(init_sample)):
                     for j in xrange(len(init_sample[doc_idx])):
                         particle_reservoir_data = []
-                        #TODO
-                        #particle_reservoir_data.append((z, self.local_d_counts[i], self.local_dt_counts[i, :]))
+                        # are these---especially the matrices---actually copies?  TODO
+                        for p in xrange(num_particles):
+                            particle_reservoir_data.append((init_gibbs_sampler.assignments[m], init_gibbs_sampler.d_counts[doc_idx], init_gibbs_sampler.dt_counts[doc_idx, :]))
                         w = init_sample[doc_idx][j]
                         reservoir.insert((doc_idx, w, particle_reservoir_data))
+                        m += 1
                 pf = ParticleFilter(model, num_particles, ess_threshold,
                     reservoir, rejuv_sample_size, rejuv_mcmc_steps)
                 train_labels = init_labels
