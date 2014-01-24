@@ -9,4 +9,5 @@ i=0
 while [ "$i" -lt "$n" ]
 do
     bash run_lda.sh $@ > "$log_stem.$i.log"
+    i=$(($i + 1))
 done
