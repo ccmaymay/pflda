@@ -1,6 +1,8 @@
 #ifndef LOWLMATH_H
 #define LOWLMATH_H
 
+#include <stddef.h>
+
 #define min(a,b) ((a) < (b)) ? (a) : (b)
 
 /* bigprime will fit in a 32-bit unsigned int. */
@@ -14,5 +16,6 @@ unsigned int get_useful_prime( unsigned int i );
 unsigned long powposint(unsigned long base, unsigned int pow);
 
 long randint(long n);
+void shuffle(unsigned int *x, size_t n);
 
 #endif
