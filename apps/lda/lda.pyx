@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-from random import random, randint
+from random import random, randint, sample as sample_random
 from data import Dataset
 from pylowl import ValuedReservoirSampler
 import sys
@@ -164,6 +164,7 @@ cdef class FirstMomentPLFilter:
 
 # TODO: store list of all doc labels for in-sample eval
 cdef class ParticleFilter:
+    cdef GibbsSampler rejuv_sampler
     cdef object reservoir
     cdef numpy.uint_t[:, ::1] local_dt_counts
     cdef numpy.uint_t[:] local_d_counts
@@ -253,7 +254,7 @@ cdef class ParticleFilter:
     cdef void step(self, numpy.uint_t doc_idx, list doc):
         cdef numpy.uint_t i, z, t
         cdef numpy.double_t total_weight, prior, _ess
-        cdef list particle_reservoir_data, sample
+        cdef list particle_reservoir_data
 
         for i in xrange(self.num_particles):
             self.local_d_counts[i] = 0
@@ -280,10 +281,22 @@ cdef class ParticleFilter:
             if _ess < self.ess_threshold:
                 print('ess is %f (doc_idx %d, %d; token_idx %d), resampling...' % (_ess, doc_idx, j, self.token_idx))
                 self.resample()
-                sample = self.reservoir.sample()
+                self.rejuvenate()
             self.reservoir.insert((doc_idx, w, particle_reservoir_data))
             self.token_idx += 1
             PyErr_CheckSignals()
+
+    cdef void rejuvenate(self):
+        cdef GlobalParams model
+        cdef list sample, particle_reservoir_data
+        cdef numpy.uint_t i, j, doc_idx, w
+
+        sample = sample_random(self.reservoir.sample(), self.rejuv_sample_size)
+
+        for i in xrange(self.num_particles):
+            model = self.model_for_particle(i)
+            self.rejuv_sampler = GibbsSampler(model)
+            self.rejuv_sampler.learn_pf_rejuv(sample, i, self.rejuv_mcmc_steps)
 
     cdef numpy.double_t conditional_posterior(self, numpy.uint_t p, numpy.uint_t w, numpy.uint_t t):
         return (self.tw_counts[p, t, w] + self.beta) / (self.t_counts[p, t] + self.vocab_size * self.beta) * (self.local_dt_counts[p, t] + self.alpha) / (self.local_d_counts[p] + self.num_topics * self.alpha)
@@ -305,13 +318,18 @@ cdef class ParticleFilter:
 
         return self.num_topics - 1
 
+    cdef model_for_particle(self, numpy.uint_t p):
+        cdef GlobalParams model
+        model = GlobalParams(self.alpha, self.beta, self.num_topics, self.vocab_size)
+        model.tw_counts[:, :] = self.tw_counts[p, :, :]
+        model.t_counts[:] = self.t_counts[p, :]
+        return model
+
     cdef GlobalParams max_posterior_model(self):
         cdef GlobalParams model
         cdef numpy.uint_t p
         p = numpy.argmax(self.weights)
-        model = GlobalParams(self.alpha, self.beta, self.num_topics, self.vocab_size)
-        model.tw_counts[:, :] = self.tw_counts[p, :, :]
-        model.t_counts[:] = self.t_counts[p, :]
+        model = self.model_for_particle(p)
         return model
 
 
@@ -399,6 +417,60 @@ cdef class GibbsSampler:
             sys.stdout.flush()
         sys.stdout.write('\n')
         sys.stdout.flush()
+
+    cdef learn_pf_rejuv(self, list sample, numpy.uint_t p, numpy.uint_t num_iters):
+        cdef numpy.uint_t t, i, j, w, z, num_docs
+        cdef object doc_idx_map
+
+        doc_idx_map = dict()
+        for j in xrange(len(sample)):
+            doc_idx = sample[j][0]
+            if doc_idx not in doc_idx_map:
+                doc_idx_map[doc_idx] = len(doc_idx_map)
+
+        num_docs = len(doc_idx_map)
+        self.dt_counts = numpy.zeros((num_docs, self.model.num_topics), dtype=numpy.uint)
+        self.d_counts = numpy.zeros((num_docs,), dtype=numpy.uint)
+
+        for j in xrange(len(sample)):
+            doc_idx = sample[j][0]
+            particle_reservoir_data = sample[j][2][p]
+            i = doc_idx_map[doc_idx]
+            # should be okay wthat we overwrite these... should all be
+            # the same... ugh
+            self.d_counts[i] = particle_reservoir_data[1]
+            self.dt_counts[i, :] = particle_reservoir_data[2]
+
+        for t in xrange(num_iters):
+            for j in xrange(len(sample)):
+                doc_idx = sample[j][0]
+                w = sample[j][1]
+                particle_reservoir_data = sample[j][2][p]
+                z = particle_reservoir_data[0]
+                i = doc_idx_map[doc_idx]
+                self.model.tw_counts[z, w] -= 1
+                self.model.t_counts[z] -= 1
+                self.dt_counts[i, z] -= 1
+                self.d_counts[i] -= 1
+                z = self.sample_topic(i, w)
+                particle_reservoir_data[0] = z
+                self.model.tw_counts[z, w] += 1
+                self.model.t_counts[z] += 1
+                self.dt_counts[i, z] += 1
+                self.d_counts[i] += 1
+                if j % 100 == 0:
+                    PyErr_CheckSignals()
+            sys.stdout.write('.')
+            sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.flush()
+
+        for j in xrange(len(sample)):
+            doc_idx = sample[j][0]
+            particle_reservoir_data = sample[j][2][p]
+            i = doc_idx_map[doc_idx]
+            particle_reservoir_data[1] = self.d_counts[i]
+            particle_reservoir_data[2] = self.dt_counts[i, :]
 
 
 def run_lda(data_dir, categories, num_topics):
