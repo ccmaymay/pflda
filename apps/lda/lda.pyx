@@ -125,7 +125,7 @@ cdef class GlobalParams:
     cdef GlobalParams copy(self):
         cdef GlobalParams c
         c = GlobalParams(self.alpha, self.beta, self.num_topics, self.vocab_size)
-        c.tw_counts[:] = self.tw_counts
+        c.tw_counts[:, :] = self.tw_counts
         c.t_counts[:] = self.t_counts
         return c
         
@@ -180,14 +180,14 @@ cdef class ParticleFilter:
 
     def __cinit__(self, GlobalParams init_model, numpy.uint_t num_particles,
             numpy.double_t ess_threshold, object reservoir):
-        cdef numpy.uint_t i
+        cdef numpy.uint_t i, j
 
         self.canonical_model = init_model
         self.local_dt_counts = numpy.zeros((num_particles, init_model.num_topics), dtype=numpy.uint)
         self.local_d_counts = numpy.zeros((num_particles,), dtype=numpy.uint)
         self.tw_counts = numpy.zeros((num_particles, init_model.num_topics, init_model.vocab_size), dtype=numpy.uint)
         self.t_counts = numpy.zeros((num_particles, init_model.num_topics), dtype=numpy.uint)
-        for i in xrange(self.num_particles):
+        for i in xrange(num_particles):
             self.tw_counts[i, :, :] = init_model.tw_counts
             self.t_counts[i, :] = init_model.t_counts
 
