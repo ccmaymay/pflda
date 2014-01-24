@@ -162,15 +162,30 @@ cdef class FirstMomentPLFilter:
         print('perplexity:     %f' % numpy.exp(-ll / num_words))
 
 
+cdef class ParticleFilterReservoirData:
+    cdef numpy.uint_t[:] doc_idx_map
+    cdef numpy.uint_t[:] r_doc_idx_map
+    cdef numpy.uint_t[:] doc_ids
+    cdef numpy.uint_t[:] w
+    cdef numpy.uint_t[:, ::1] z
+    cdef numpy.uint_t[:, ::1] d_counts
+    cdef numpy.uint_t[:, :, ::1] dt_counts
+
+    def __cinit__(self, numpy.uint_t reservoir_size, numpy.uint_t num_particles, numpy.uint_t num_topics):
+        self.doc_idx_map = numpy.zeros((reservoir_size,), dtype=numpy.uint)
+        self.r_doc_idx_map = numpy.zeros((reservoir_size,), dtype=numpy.uint)
+        self.doc_ids = numpy.zeros((reservoir_size,), dtype=numpy.uint)
+        self.w = numpy.zeros((reservoir_size,), dtype=numpy.uint)
+        self.z = numpy.zeros((num_particles, reservoir_size), dtype=numpy.uint)
+        self.d_counts = numpy.zeros((num_particles, reservoir_size), dtype=numpy.uint)
+        self.dt_counts = numpy.zeros((num_particles, reservoir_size, num_topics), dtype=numpy.uint)
+
+
 # TODO: store list of all doc labels for in-sample eval
 cdef class ParticleFilter:
     cdef GibbsSampler rejuv_sampler
     cdef ReservoirSampler rs
-    cdef numpy.uint_t[:] rejuv_doc_ids
-    cdef numpy.uint_t[:] rejuv_w
-    cdef numpy.uint_t[:] rejuv_z
-    cdef numpy.uint_t[:, ::1] rejuv_d_counts
-    cdef numpy.uint_t[:, :, ::1] rejuv_dt_counts
+    cdef ParticleFilterReservoirData rejuv_data
     cdef numpy.uint_t[:] local_d_counts
     cdef numpy.uint_t[:, ::1] local_dt_counts
     cdef numpy.uint_t[:, :, ::1] tw_counts
@@ -182,7 +197,9 @@ cdef class ParticleFilter:
 
     def __cinit__(self, GlobalParams init_model, numpy.uint_t num_particles,
             numpy.double_t ess_threshold, ReservoirSampler rs,
-            numpy.uint_t rejuv_sample_size, numpy.uint_t rejuv_mcmc_steps):
+            ParticleFilterReservoirData rejuv_data,
+            numpy.uint_t rejuv_sample_size, numpy.uint_t rejuv_mcmc_steps,
+            numpy.uint_t next_token_idx):
         cdef numpy.uint_t i
 
         self.alpha = init_model.alpha
@@ -194,11 +211,7 @@ cdef class ParticleFilter:
         self.rs = rs
         self.rejuv_sample_size = rejuv_sample_size
         self.rejuv_mcmc_steps = rejuv_mcmc_steps
-        self.token_idx = 0
-
-        self.weights = numpy.ones((num_particles,), dtype=numpy.double) / num_particles
-        self.pmf = numpy.zeros((init_model.num_topics,), dtype=numpy.double)
-        self.resample_cmf = numpy.zeros((num_particles,), dtype=numpy.double)
+        self.token_idx = next_token_idx
 
         self.local_dt_counts = numpy.zeros((num_particles, init_model.num_topics), dtype=numpy.uint)
         self.local_d_counts = numpy.zeros((num_particles,), dtype=numpy.uint)
@@ -207,6 +220,12 @@ cdef class ParticleFilter:
         for i in xrange(num_particles):
             self.tw_counts[i, :, :] = init_model.tw_counts
             self.t_counts[i, :] = init_model.t_counts
+
+        self.rejuv_data = rejuv_data
+
+        self.weights = numpy.ones((num_particles,), dtype=numpy.double) / num_particles
+        self.pmf = numpy.zeros((init_model.num_topics,), dtype=numpy.double)
+        self.resample_cmf = numpy.zeros((num_particles,), dtype=numpy.double)
 
     cdef numpy.double_t ess(self):
         cdef numpy.double_t total
@@ -482,9 +501,10 @@ def run_lda(data_dir, categories, num_topics):
     cdef FirstMomentPLFilter plfilter
     cdef ParticleFilter pf
     cdef ReservoirSampler rs
+    cdef ParticleFilterReservoirData rejuv_data
     cdef numpy.uint_t i, j, doc_idx, num_tokens, reservoir_size, init_num_docs
-    cdef numpy.uint_t init_num_iters, test_num_iters, rejuv_sample_size, m, p
-    cdef numpy.uint_t rejuv_mcmc_steps, ret
+    cdef numpy.uint_t init_num_iters, test_num_iters, rejuv_sample_size, p
+    cdef numpy.uint_t rejuv_mcmc_steps, ret, token_idx
     cdef numpy.uint_t[:] dt_counts
     cdef numpy.double_t alpha, beta, ess_threshold
 
@@ -544,19 +564,23 @@ def run_lda(data_dir, categories, num_topics):
                 print('creating particle filter on initialized model')
                 rs = ReservoirSampler(reservoir_size)
                 ret = rs.init(reservoir_size)
-#                m = 0
-#                for doc_idx in xrange(len(init_sample)):
-#                    for j in xrange(len(init_sample[doc_idx])):
-#                        particle_reservoir_data = []
-#                        for p in xrange(num_particles):
+                token_idx = 0
+                for doc_idx in xrange(len(init_sample)):
+                    for j in xrange(len(init_sample[doc_idx])):
+                        for p in xrange(num_particles):
+                            pass
+                        token_idx += 1
 #                            dt_counts = numpy.zeros((num_topics,), dtype=numpy.uint)
 #                            dt_counts[:] = init_gibbs_sampler.dt_counts[doc_idx,:]
 #                            particle_reservoir_data.append([init_gibbs_sampler.assignments[m], init_gibbs_sampler.d_counts[doc_idx], dt_counts])
 #                        w = init_sample[doc_idx][j]
 #                        rs.insert((doc_idx, w, particle_reservoir_data))
 #                        m += 1
+                rejuv_data = ParticleFilterReservoirData(reservoir_size,
+                    num_particles, num_topics)
                 pf = ParticleFilter(model, num_particles, ess_threshold,
-                    rs, rejuv_sample_size, rejuv_mcmc_steps)
+                    rs, rejuv_data, rejuv_sample_size, rejuv_mcmc_steps,
+                    token_idx)
                 train_labels = init_labels
             pf.step(i, d[2])
             train_labels.append(d[1])
