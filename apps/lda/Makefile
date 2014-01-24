@@ -1,5 +1,7 @@
+PYTHON = python-dbg
+
 lda.so: setup.py lda.pyx
-	CFLAGS="-I. -I../../core" LDFLAGS="-L. -Wl,-rpath -Wl,." python setup.py build_ext --inplace
+	CFLAGS="-I. -I../../core" LDFLAGS="-L. -Wl,-rpath -Wl,." $(PYTHON) setup.py build_ext --inplace
 
 .PHONY: clean
 clean:
