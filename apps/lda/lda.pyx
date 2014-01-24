@@ -305,7 +305,7 @@ cdef class ParticleFilter:
         cdef numpy.uint_t p
         p = numpy.argmax(self.weights)
         model = GlobalParams(self.canonical_model.alpha, self.canonical_model.beta, self.canonical_model.num_topics, self.canonical_model.vocab_size)
-        model.tw_counts[:] = self.tw_counts[p, :, :]
+        model.tw_counts[:, :] = self.tw_counts[p, :, :]
         model.t_counts[:] = self.t_counts[p, :]
         return model
 
