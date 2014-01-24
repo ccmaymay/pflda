@@ -354,8 +354,8 @@ cdef class ParticleFilter:
                 self.rejuv_data.insert(reservoir_idx, doc_idx, w, zz,
                     self.local_d_counts, self.local_dt_counts)
                 k = self.rejuv_data.lookup(reservoir_idx)
-                self.local_d_counts = self.rejuv_data.d_counts[i,:]
-                self.local_dt_counts = self.rejuv_data.dt_counts[i,:,:]
+                self.local_d_counts = self.rejuv_data.d_counts[k,:]
+                self.local_dt_counts = self.rejuv_data.dt_counts[k,:,:]
 
             _ess = self.ess()
             if _ess < self.ess_threshold:
@@ -565,8 +565,12 @@ def run_lda(data_dir, categories, num_topics):
     cdef numpy.uint_t i, j, doc_idx, num_tokens, reservoir_size, init_num_docs
     cdef numpy.uint_t init_num_iters, test_num_iters, rejuv_sample_size, p
     cdef numpy.uint_t rejuv_mcmc_steps, ret, token_idx
-    cdef numpy.uint_t[::1] dt_counts
+    cdef numpy.uint_t[::1] particle_d_counts, dt_counts, zz
+    cdef numpy.uint_t[:, ::1] particle_dt_counts
     cdef numpy.double_t alpha, beta, ess_threshold
+    cdef bint ejected, inserted
+    cdef lowl_key ejected_token_idx
+    cdef size_t reservoir_idx
 
     reservoir_size = 1000
     test_num_iters = 5
@@ -622,22 +626,27 @@ def run_lda(data_dir, categories, num_topics):
                 #plfilter.likelihood(test_sample)
 
                 print('creating particle filter on initialized model')
+                rejuv_data = ParticleFilterReservoirData(reservoir_size,
+                    num_particles, num_topics)
                 rs = ReservoirSampler(reservoir_size)
                 ret = rs.init(reservoir_size)
                 token_idx = 0
                 for doc_idx in xrange(len(init_sample)):
                     for j in xrange(len(init_sample[doc_idx])):
-                        for p in xrange(num_particles):
-                            pass
+                        w = init_sample[doc_idx][j]
+                        inserted = rs._insert(token_idx, &reservoir_idx,
+                            &ejected, &ejected_token_idx)
+                        if inserted:
+                            zz = numpy.zeros((num_particles,), dtype=numpy.uint)
+                            particle_d_counts = numpy.zeros((num_particles,), dtype=numpy.uint)
+                            particle_dt_counts = numpy.zeros((num_particles, num_topics), dtype=numpy.uint)
+                            for p in xrange(num_particles):
+                                zz[p] = init_gibbs_sampler.assignments[token_idx]
+                                particle_d_counts[p] = init_gibbs_sampler.d_counts[doc_idx]
+                                particle_dt_counts[p,:] = init_gibbs_sampler.dt_counts[doc_idx,:]
+                            rejuv_data.insert(reservoir_idx, doc_idx, w, zz,
+                                particle_d_counts, particle_dt_counts)
                         token_idx += 1
-#                            dt_counts = numpy.zeros((num_topics,), dtype=numpy.uint)
-#                            dt_counts[:] = init_gibbs_sampler.dt_counts[doc_idx,:]
-#                            particle_reservoir_data.append([init_gibbs_sampler.assignments[m], init_gibbs_sampler.d_counts[doc_idx], dt_counts])
-#                        w = init_sample[doc_idx][j]
-#                        rs.insert((doc_idx, w, particle_reservoir_data))
-#                        m += 1
-                rejuv_data = ParticleFilterReservoirData(reservoir_size,
-                    num_particles, num_topics)
                 pf = ParticleFilter(model, num_particles, ess_threshold,
                     rs, rejuv_data, rejuv_sample_size, rejuv_mcmc_steps,
                     token_idx)
@@ -655,7 +664,7 @@ def run_lda(data_dir, categories, num_topics):
         i += 1
 
     print('processed %d docs (%d tokens)' % (i, num_tokens))
-    #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
+    print(pf.max_posterior_model().to_string(dataset.vocab, 20))
     gibbs_sampler = GibbsSampler(pf.max_posterior_model())
     gibbs_sampler.infer(test_sample, test_num_iters)
     print('out-of-sample nmi: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, num_topics))
