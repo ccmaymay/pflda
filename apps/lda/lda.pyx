@@ -180,7 +180,7 @@ cdef class ParticleFilter:
 
     def __cinit__(self, GlobalParams init_model, numpy.uint_t num_particles,
             numpy.double_t ess_threshold, object reservoir):
-        cdef numpy.uint_t i, j
+        cdef numpy.uint_t i
 
         self.canonical_model = init_model
         self.local_dt_counts = numpy.zeros((num_particles, init_model.num_topics), dtype=numpy.uint)
@@ -273,10 +273,10 @@ cdef class ParticleFilter:
                 self.local_dt_counts[i, z] += 1
                 self.local_d_counts[i] += 1
                 #particle_reservoir_data.append((z, local_d_count, local_dt_counts))
-            #_ess = self.ess()
-            #if _ess < self.ess_threshold:
-            #    print('ESS is %f, resampling...' % _ess)
-            #    self.resample()
+            _ess = self.ess()
+            if _ess < self.ess_threshold:
+                print('Doc %d, word %d: ESS is %f, resampling...' % (doc_idx, j, _ess))
+                self.resample()
             #self.reservoir.insert((doc_idx, w, particle_reservoir_data))
             PyErr_CheckSignals()
 
