@@ -175,10 +175,12 @@ cdef class ParticleFilter:
     cdef numpy.uint_t[:, :] t_counts
     cdef numpy.double_t[:] weights, pmf, resample_cmf
     cdef numpy.uint_t num_topics, vocab_size, num_particles, token_idx
+    cdef numpy.uint_t rejuv_sample_size, rejuv_mcmc_steps
     cdef numpy.double_t alpha, beta, ess_threshold
 
     def __cinit__(self, GlobalParams init_model, numpy.uint_t num_particles,
-            numpy.double_t ess_threshold, object reservoir):
+            numpy.double_t ess_threshold, object reservoir,
+            numpy.uint_t rejuv_sample_size, numpy.uint_t rejuv_mcmc_steps):
         cdef numpy.uint_t i
 
         self.alpha = init_model.alpha
@@ -188,6 +190,8 @@ cdef class ParticleFilter:
         self.num_particles = num_particles
         self.ess_threshold = ess_threshold
         self.reservoir = reservoir
+        self.rejuv_sample_size = rejuv_sample_size
+        self.rejuv_mcmc_steps = rejuv_mcmc_steps
         self.token_idx = 0
 
         self.weights = numpy.ones((num_particles,), dtype=numpy.double) / num_particles
@@ -253,7 +257,7 @@ cdef class ParticleFilter:
     cdef void step(self, numpy.uint_t doc_idx, list doc):
         cdef numpy.uint_t i, z, t
         cdef numpy.double_t total_weight, prior, _ess
-        cdef list particle_reservoir_data
+        cdef list particle_reservoir_data, sample
 
         for i in xrange(self.num_particles):
             self.local_d_counts[i] = 0
@@ -280,6 +284,7 @@ cdef class ParticleFilter:
             if _ess < self.ess_threshold:
                 print('ess is %f (doc_idx %d, %d; token_idx %d), resampling...' % (_ess, doc_idx, j, self.token_idx))
                 self.resample()
+                sample = self.reservoir.sample()
             self.reservoir.insert((doc_idx, w, particle_reservoir_data))
             self.token_idx += 1
             PyErr_CheckSignals()
@@ -405,7 +410,9 @@ def run_lda(data_dir, categories, num_topics):
     cdef GlobalParams model
     cdef FirstMomentPLFilter plfilter
     cdef ParticleFilter pf
-    cdef numpy.uint_t i, j, doc_idx, num_tokens, reservoir_size, init_num_docs, init_num_iters, test_num_iters
+    cdef numpy.uint_t i, j, doc_idx, num_tokens, reservoir_size, init_num_docs
+    cdef numpy.uint_t init_num_iters, test_num_iters, rejuv_sample_size,
+    cdef numpy.uint_t rejuv_mcmc_steps
     cdef numpy.double_t alpha, beta, ess_threshold
     cdef list particle_reservoir_data
 
@@ -417,6 +424,8 @@ def run_lda(data_dir, categories, num_topics):
     init_num_docs = 100
     init_num_iters = 100
     num_particles = 100
+    rejuv_sample_size = 10
+    rejuv_mcmc_steps = 30
 
     dataset = Dataset(data_dir, set(categories))
     model = GlobalParams(alpha, beta, num_topics, len(dataset.vocab))
@@ -469,7 +478,8 @@ def run_lda(data_dir, categories, num_topics):
                         #particle_reservoir_data.append((z, self.local_d_counts[i], self.local_dt_counts[i, :]))
                         w = init_sample[doc_idx][j]
                         reservoir.insert((doc_idx, w, particle_reservoir_data))
-                pf = ParticleFilter(model, num_particles, ess_threshold, reservoir)
+                pf = ParticleFilter(model, num_particles, ess_threshold,
+                    reservoir, rejuv_sample_size, rejuv_mcmc_steps)
                 train_labels = init_labels
             pf.step(i, d[2])
             train_labels.append(d[1])
