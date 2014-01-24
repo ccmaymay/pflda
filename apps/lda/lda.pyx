@@ -275,7 +275,7 @@ cdef class ParticleFilter:
                 self.t_counts[i, z] += 1
                 self.local_dt_counts[i, z] += 1
                 self.local_d_counts[i] += 1
-                particle_reservoir_data.append((z, self.local_d_counts[i], self.local_dt_counts[i, :]))
+                particle_reservoir_data.append([z, self.local_d_counts[i], self.local_dt_counts[i, :]])
             _ess = self.ess()
             if _ess < self.ess_threshold:
                 print('ess is %f (doc_idx %d, %d; token_idx %d), resampling...' % (_ess, doc_idx, j, self.token_idx))
@@ -409,6 +409,7 @@ def run_lda(data_dir, categories, num_topics):
     cdef numpy.uint_t i, j, doc_idx, num_tokens, reservoir_size, init_num_docs
     cdef numpy.uint_t init_num_iters, test_num_iters, rejuv_sample_size, m, p
     cdef numpy.uint_t rejuv_mcmc_steps
+    cdef numpy.uint_t[:] dt_counts
     cdef numpy.double_t alpha, beta, ess_threshold
     cdef list particle_reservoir_data
 
@@ -471,9 +472,10 @@ def run_lda(data_dir, categories, num_topics):
                 for doc_idx in xrange(len(init_sample)):
                     for j in xrange(len(init_sample[doc_idx])):
                         particle_reservoir_data = []
-                        # are these---especially the matrices---actually copies?  TODO
                         for p in xrange(num_particles):
-                            particle_reservoir_data.append((init_gibbs_sampler.assignments[m], init_gibbs_sampler.d_counts[doc_idx], init_gibbs_sampler.dt_counts[doc_idx, :]))
+                            dt_counts = numpy.zeros((num_topics,), dtype=numpy.uint)
+                            dt_counts[:] = init_gibbs_sampler.dt_counts[doc_idx,:]
+                            particle_reservoir_data.append([init_gibbs_sampler.assignments[m], init_gibbs_sampler.d_counts[doc_idx], dt_counts])
                         w = init_sample[doc_idx][j]
                         reservoir.insert((doc_idx, w, particle_reservoir_data))
                         m += 1
