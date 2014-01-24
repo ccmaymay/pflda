@@ -2,6 +2,7 @@
 
 
 import lda
+import sys
 DIFF3 = ('alt.atheism', 'rec.sport.baseball', 'sci.space')
 SIM3 = ('comp.graphics', 'comp.os.ms-windows.misc', 'comp.windows.x')
 REL3 = ('talk.politics.guns', 'talk.politics.mideast', 'talk.politics.misc')
@@ -11,4 +12,4 @@ TNG = ('alt.atheism', 'comp.graphics', 'comp.os.ms-windows.misc',
     'rec.sport.hockey', 'sci.crypt', 'sci.electronics', 'sci.med',
     'sci.space', 'soc.religion.christian', 'talk.politics.guns',
     'talk.politics.mideast', 'talk.politics.misc', 'talk.religion.misc')
-lda.run_lda('../../data/txt/tng', DIFF3, 3)
+lda.run_lda('../../data/txt/tng', globals()[sys.argv[1]], int(sys.argv[2]))
