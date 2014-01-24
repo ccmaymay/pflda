@@ -4,6 +4,7 @@ PLATFORM = $(shell uname)
 
 CC = gcc
 LD = gcc
+PYTHON = python
 
 CC_FLAGS = -O0 -g -std=gnu99 -Wall -Wextra
 
@@ -53,14 +54,14 @@ test: tests $(PY_LIB_FILENAME)
 	@echo "#                             bridge tests                                     #"
 	@echo "#                                                                              #"
 	@echo "################################################################################"
-	python -m doctest --doctest-extension=pyx -v $(PY_LIB_NAME).pyx
+	$(PYTHON) -m doctest --doctest-extension=pyx -v $(PY_LIB_NAME).pyx
 	@echo
 
 $(LIB_FILENAME): $(OBJECTS)
 	$(LD) -shared -Wl,-rpath,. -Wl,$(LIB_FILENAME_FLAG),$(LIB_FILENAME) -lm -o $@ $(OBJECTS)
 
 $(PY_LIB_FILENAME): setup.py $(PY_LIB_NAME).pyx $(LIB_NAME).pxd $(LIB_FILENAME)
-	CFLAGS="-I." LDFLAGS="-L. -Wl,-rpath -Wl,." python setup.py build_ext --inplace
+	CFLAGS="-I." LDFLAGS="-L. -Wl,-rpath -Wl,." $(PYTHON) setup.py build_ext --inplace
 
 
 ## bvd: this does not work for everyone, but these are the commands that you can
@@ -73,7 +74,7 @@ cython:
 	wget http://cython.org/release/$(CYTHON_VERSION).tar.gz
 	tar -zxvf $(CYTHON_VERSION).tar.gz
 	cd $(CYTHON_VERSION)
-	python setup.py install --user
+	$(PYTHON) setup.py install --user
 
 .PHONY: clean
 clean:
