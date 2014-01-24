@@ -187,6 +187,9 @@ cdef class ParticleFilter:
         self.local_d_counts = numpy.zeros((num_particles,), dtype=numpy.uint)
         self.tw_counts = numpy.zeros((num_particles, init_model.num_topics, init_model.vocab_size), dtype=numpy.uint)
         self.t_counts = numpy.zeros((num_particles, init_model.num_topics), dtype=numpy.uint)
+        for i in xrange(self.num_particles):
+            self.tw_counts[i, :, :] = init_model.tw_counts
+            self.t_counts[i, :] = init_model.t_counts
 
         self.weights = numpy.ones((num_particles,), dtype=numpy.double) / num_particles
         self.num_particles = num_particles
@@ -205,15 +208,33 @@ cdef class ParticleFilter:
         return 1.0 / total
 
     cdef void resample(self):
-        cdef numpy.uint_t i, p
+        cdef numpy.uint_t i, j
+        cdef numpy.uint_t[:] ids_to_resample, filled_slots
 
         self.resample_cmf[0] = self.weights[0]
         for i in xrange(self.num_particles - 1):
             self.resample_cmf[i+1] = self.resample_cmf[i] + self.weights[i+1]
 
+        ids_to_resample = numpy.zeros((self.num_particles,), dtype=numpy.uint)
+        filled_slots = numpy.zeros((self.num_particles,), dtype=numpy.uint)
         for i in xrange(self.num_particles):
-            p = self.sample_particle_num()
-            # TODO copy
+            j = self.sample_particle_num()
+            if filled_slots[j] == 0:
+                filled_slots[j] = 1
+            else:
+                ids_to_resample[j] += 1
+
+        for i in xrange(self.num_particles):
+            while ids_to_resample[i] > 0:
+                j = 0
+                while filled_slots[j] == 1:
+                    j += 1
+                self.tw_counts[j, :, :] = self.tw_counts[i, :, :]
+                self.t_counts[j, :] = self.t_counts[i, :]
+                self.local_dt_counts[j, :] = self.local_dt_counts[i, :]
+                self.local_d_counts[j] = self.local_d_counts[i]
+                filled_slots[j] = 1
+                ids_to_resample[i] -= 1
 
         self.weights[:] = 1.0 / self.num_particles
 
@@ -230,9 +251,7 @@ cdef class ParticleFilter:
         cdef numpy.uint_t i, z, t
         cdef numpy.double_t total_weight, prior, _ess
         #cdef list particle_reservoir_data
-        #particle_reservoir_data = []
 
-        # TODO need per-particle local counts!!
         for i in xrange(self.num_particles):
             self.local_d_counts[i] = 0
             self.local_dt_counts[i, :] = 0
@@ -246,7 +265,7 @@ cdef class ParticleFilter:
             total_weight = numpy.sum(self.weights)
             for i in xrange(self.num_particles):
                 self.weights[i] /= total_weight
-            particle_reservoir_data = []
+            #particle_reservoir_data = []
             for i in xrange(self.num_particles):
                 z = self.sample_topic(i, w)
                 self.tw_counts[i, z, w] += 1
@@ -254,11 +273,11 @@ cdef class ParticleFilter:
                 self.local_dt_counts[i, z] += 1
                 self.local_d_counts[i] += 1
                 #particle_reservoir_data.append((z, local_d_count, local_dt_counts))
-            _ess = self.ess()
-            if _ess < self.ess_threshold:
-                print('ESS is %f, resampling...' % _ess)
-                self.resample()
-            self.reservoir.insert((doc_idx, w, particle_reservoir_data))
+            #_ess = self.ess()
+            #if _ess < self.ess_threshold:
+            #    print('ESS is %f, resampling...' % _ess)
+            #    self.resample()
+            #self.reservoir.insert((doc_idx, w, particle_reservoir_data))
             PyErr_CheckSignals()
 
     cdef numpy.double_t conditional_posterior(self, numpy.uint_t p, numpy.uint_t w, numpy.uint_t t):
