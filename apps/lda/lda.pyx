@@ -3,7 +3,7 @@
 
 from random import random, randint, sample as sample_random
 from data import Dataset
-from pylowl cimport ReservoirSampler
+from pylowl cimport ReservoirSampler, lowl_key, size_t
 import sys
 import numpy
 cimport numpy
@@ -87,7 +87,7 @@ cdef class GlobalParams:
     cdef numpy.double_t alpha, beta
     cdef numpy.uint_t num_topics, vocab_size
     cdef numpy.uint_t[:, ::1] tw_counts
-    cdef numpy.uint_t[:] t_counts
+    cdef numpy.uint_t[::1] t_counts
 
     def __cinit__(self, numpy.double_t alpha, numpy.double_t beta,
             numpy.uint_t num_topics, numpy.uint_t vocab_size):
@@ -163,22 +163,63 @@ cdef class FirstMomentPLFilter:
 
 
 cdef class ParticleFilterReservoirData:
-    cdef numpy.uint_t[:] doc_idx_map
-    cdef numpy.uint_t[:] r_doc_idx_map
-    cdef numpy.uint_t[:] doc_ids
-    cdef numpy.uint_t[:] w
+    cdef numpy.uint_t[::1] doc_ids
+    cdef numpy.uint_t[::1] w
     cdef numpy.uint_t[:, ::1] z
+    cdef numpy.uint_t[::1] reservoir_idx_map
+    cdef numpy.uint_t[::1] r_reservoir_idx_map
     cdef numpy.uint_t[:, ::1] d_counts
     cdef numpy.uint_t[:, :, ::1] dt_counts
+    cdef numpy.uint_t capacity, num_particles, num_topics, occupied
 
-    def __cinit__(self, numpy.uint_t reservoir_size, numpy.uint_t num_particles, numpy.uint_t num_topics):
-        self.doc_idx_map = numpy.zeros((reservoir_size,), dtype=numpy.uint)
-        self.r_doc_idx_map = numpy.zeros((reservoir_size,), dtype=numpy.uint)
-        self.doc_ids = numpy.zeros((reservoir_size,), dtype=numpy.uint)
-        self.w = numpy.zeros((reservoir_size,), dtype=numpy.uint)
-        self.z = numpy.zeros((num_particles, reservoir_size), dtype=numpy.uint)
-        self.d_counts = numpy.zeros((num_particles, reservoir_size), dtype=numpy.uint)
-        self.dt_counts = numpy.zeros((num_particles, reservoir_size, num_topics), dtype=numpy.uint)
+    def __cinit__(self, numpy.uint_t capacity, numpy.uint_t num_particles, numpy.uint_t num_topics):
+        self.reservoir_idx_map = numpy.zeros((capacity,), dtype=numpy.uint)
+        self.r_reservoir_idx_map = numpy.zeros((capacity,), dtype=numpy.uint)
+        self.doc_ids = numpy.zeros((capacity,), dtype=numpy.uint)
+        self.w = numpy.zeros((capacity,), dtype=numpy.uint)
+        self.z = numpy.zeros((capacity, num_particles), dtype=numpy.uint)
+        self.d_counts = numpy.zeros((capacity, num_particles), dtype=numpy.uint)
+        self.dt_counts = numpy.zeros((capacity, num_particles, num_topics), dtype=numpy.uint)
+        self.capacity = capacity
+        self.num_particles = num_particles
+        self.num_topics = num_topics
+        self.occupied = 0
+
+    cdef numpy.uint_t lookup(self, numpy.uint_t reservoir_idx):
+        return self.reservoir_idx_map[reservoir_idx]
+
+    cdef void insert(self, numpy.uint_t reservoir_idx,
+            numpy.uint_t doc_idx, numpy.uint_t w, numpy.uint_t[::1] z,
+            numpy.uint_t[::1] d_counts, numpy.uint_t[:, ::1] dt_counts):
+        cdef numpy.uint_t i, j
+        cdef bint doc_already_inserted
+
+        self.w[reservoir_idx] = w
+        self.z[reservoir_idx,:] = z
+
+        if reservoir_idx < self.occupied:
+            self.r_reservoir_idx_map[self.reservoir_idx_map[reservoir_idx]] -= 1
+
+        doc_already_inserted = 0
+        for i in xrange(self.occupied):
+            if self.doc_ids[i] == doc_idx:
+                j = self.reservoir_idx_map[i]
+                self.reservoir_idx_map[reservoir_idx] = j
+                self.r_reservoir_idx_map[j] += 1
+                doc_already_inserted = 1
+                break
+
+        if not doc_already_inserted:
+            for i in xrange(self.occupied):
+                if self.r_reservoir_idx_map[i] == 0:
+                    self.reservoir_idx_map[reservoir_idx] = i
+                    self.r_reservoir_idx_map[i] += 1
+                    self.d_counts[i, :] = d_counts
+                    self.dt_counts[i, :, :] = dt_counts
+                    break
+
+        if reservoir_idx >= self.occupied:
+            self.occupied += 1
 
 
 # TODO: store list of all doc labels for in-sample eval
@@ -186,11 +227,11 @@ cdef class ParticleFilter:
     cdef GibbsSampler rejuv_sampler
     cdef ReservoirSampler rs
     cdef ParticleFilterReservoirData rejuv_data
-    cdef numpy.uint_t[:] local_d_counts
+    cdef numpy.uint_t[::1] local_d_counts
     cdef numpy.uint_t[:, ::1] local_dt_counts
     cdef numpy.uint_t[:, :, ::1] tw_counts
-    cdef numpy.uint_t[:, :] t_counts
-    cdef numpy.double_t[:] weights, pmf, resample_cmf
+    cdef numpy.uint_t[:, ::1] t_counts
+    cdef numpy.double_t[::1] weights, pmf, resample_cmf
     cdef numpy.uint_t num_topics, vocab_size, num_particles, token_idx
     cdef numpy.uint_t rejuv_sample_size, rejuv_mcmc_steps
     cdef numpy.double_t alpha, beta, ess_threshold
@@ -237,7 +278,7 @@ cdef class ParticleFilter:
 
     cdef void resample(self):
         cdef numpy.uint_t i, j
-        cdef numpy.uint_t[:] ids_to_resample, filled_slots
+        cdef numpy.uint_t[::1] ids_to_resample, filled_slots
 
         self.resample_cmf[0] = self.weights[0]
         for i in xrange(self.num_particles - 1):
@@ -276,14 +317,21 @@ cdef class ParticleFilter:
         return self.num_particles - 1
 
     cdef void step(self, numpy.uint_t doc_idx, list doc):
-        cdef numpy.uint_t i, z, t
+        cdef lowl_key ejected_token_idx
+        cdef size_t reservoir_idx
+        cdef numpy.uint_t k, z, i, t
+        cdef numpy.uint_t[::1] zz
         cdef numpy.double_t total_weight, prior, _ess
+        cdef bint inserted, ejected
 
-        for i in xrange(self.num_particles):
-            self.local_d_counts[i] = 0
-            self.local_dt_counts[i, :] = 0
+        zz = numpy.zeros((self.num_particles,), dtype=numpy.uint)
+
+        self.local_d_counts = numpy.zeros((self.num_particles,), dtype=numpy.uint)
+        self.local_dt_counts = numpy.zeros((self.num_particles, self.num_topics), dtype=numpy.uint)
+
         for j in xrange(len(doc)):
             w = doc[j]
+
             for i in xrange(self.num_particles):
                 prior = 0.0
                 for t in xrange(self.num_topics):
@@ -294,16 +342,28 @@ cdef class ParticleFilter:
                 self.weights[i] /= total_weight
             for i in xrange(self.num_particles):
                 z = self.sample_topic(i, w)
+                zz[i] = z
                 self.tw_counts[i, z, w] += 1
                 self.t_counts[i, z] += 1
                 self.local_dt_counts[i, z] += 1
                 self.local_d_counts[i] += 1
+
+            inserted = self.rs._insert(self.token_idx, &reservoir_idx, &ejected,
+                &ejected_token_idx)
+            if inserted:
+                self.rejuv_data.insert(reservoir_idx, doc_idx, w, zz,
+                    self.local_d_counts, self.local_dt_counts)
+                k = self.rejuv_data.lookup(reservoir_idx)
+                self.local_d_counts = self.rejuv_data.d_counts[i,:]
+                self.local_dt_counts = self.rejuv_data.dt_counts[i,:,:]
+
             _ess = self.ess()
             if _ess < self.ess_threshold:
-                print('ess is %f (doc_idx %d, %d; token_idx %d), resampling...' % (_ess, doc_idx, j, self.token_idx))
+                print('ess is %f (doc_idx %d, %d; token_idx %d), resampling...'
+                    % (_ess, doc_idx, j, self.token_idx))
                 self.resample()
                 self.rejuvenate()
-            self.rs.insert(self.token_idx)
+
             self.token_idx += 1
             PyErr_CheckSignals()
 
@@ -358,9 +418,9 @@ cdef class ParticleFilter:
 cdef class GibbsSampler:
     cdef GlobalParams model
     cdef readonly numpy.uint_t[:, ::1] dt_counts
-    cdef readonly numpy.uint_t[:] d_counts
+    cdef readonly numpy.uint_t[::1] d_counts
     cdef readonly list assignments
-    cdef numpy.double_t[:] pmf
+    cdef numpy.double_t[::1] pmf
 
     def __cinit__(self, GlobalParams model):
         self.model = model
@@ -505,7 +565,7 @@ def run_lda(data_dir, categories, num_topics):
     cdef numpy.uint_t i, j, doc_idx, num_tokens, reservoir_size, init_num_docs
     cdef numpy.uint_t init_num_iters, test_num_iters, rejuv_sample_size, p
     cdef numpy.uint_t rejuv_mcmc_steps, ret, token_idx
-    cdef numpy.uint_t[:] dt_counts
+    cdef numpy.uint_t[::1] dt_counts
     cdef numpy.double_t alpha, beta, ess_threshold
 
     reservoir_size = 1000
