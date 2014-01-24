@@ -168,21 +168,32 @@ cdef class FirstMomentPLFilter:
 
 
 cdef class ParticleFilter:
-    cdef GlobalParams canonical_model
     cdef object reservoir
     cdef numpy.uint_t[:, ::1] local_dt_counts
     cdef numpy.uint_t[:] local_d_counts
     cdef numpy.uint_t[:, :, ::1] tw_counts
     cdef numpy.uint_t[:, :] t_counts
     cdef numpy.double_t[:] weights, pmf, resample_cmf
-    cdef numpy.uint_t num_particles, token_idx
-    cdef numpy.double_t ess_threshold
+    cdef numpy.uint_t num_topics, vocab_size, num_particles, token_idx
+    cdef numpy.double_t alpha, beta, ess_threshold
 
     def __cinit__(self, GlobalParams init_model, numpy.uint_t num_particles,
             numpy.double_t ess_threshold, object reservoir):
         cdef numpy.uint_t i
 
-        self.canonical_model = init_model
+        self.alpha = init_model.alpha
+        self.beta = init_model.beta
+        self.num_topics = init_model.num_topics
+        self.vocab_size = init_model.vocab_size
+        self.num_particles = num_particles
+        self.ess_threshold = ess_threshold
+        self.reservoir = reservoir
+        self.token_idx = 0
+
+        self.weights = numpy.ones((num_particles,), dtype=numpy.double) / num_particles
+        self.pmf = numpy.zeros((init_model.num_topics,), dtype=numpy.double)
+        self.resample_cmf = numpy.zeros((num_particles,), dtype=numpy.double)
+
         self.local_dt_counts = numpy.zeros((num_particles, init_model.num_topics), dtype=numpy.uint)
         self.local_d_counts = numpy.zeros((num_particles,), dtype=numpy.uint)
         self.tw_counts = numpy.zeros((num_particles, init_model.num_topics, init_model.vocab_size), dtype=numpy.uint)
@@ -190,14 +201,6 @@ cdef class ParticleFilter:
         for i in xrange(num_particles):
             self.tw_counts[i, :, :] = init_model.tw_counts
             self.t_counts[i, :] = init_model.t_counts
-
-        self.weights = numpy.ones((num_particles,), dtype=numpy.double) / num_particles
-        self.num_particles = num_particles
-        self.ess_threshold = ess_threshold
-        self.pmf = numpy.zeros((init_model.num_topics,), dtype=numpy.double)
-        self.resample_cmf = numpy.zeros((num_particles,), dtype=numpy.double)
-        self.reservoir = reservoir
-        self.token_idx = 0
 
     cdef numpy.double_t ess(self):
         cdef numpy.double_t total
@@ -259,7 +262,7 @@ cdef class ParticleFilter:
             w = doc[j]
             for i in xrange(self.num_particles):
                 prior = 0.0
-                for t in xrange(self.canonical_model.num_topics):
+                for t in xrange(self.num_topics):
                     prior += self.conditional_posterior(i, w, t)
                 self.weights[i] *= prior
             total_weight = numpy.sum(self.weights)
@@ -281,30 +284,30 @@ cdef class ParticleFilter:
             PyErr_CheckSignals()
 
     cdef numpy.double_t conditional_posterior(self, numpy.uint_t p, numpy.uint_t w, numpy.uint_t t):
-        return (self.tw_counts[p, t, w] + self.canonical_model.beta) / (self.t_counts[p, t] + self.canonical_model.vocab_size * self.canonical_model.beta) * (self.local_dt_counts[p, t] + self.canonical_model.alpha) / (self.local_d_counts[p] + self.canonical_model.num_topics * self.canonical_model.alpha)
+        return (self.tw_counts[p, t, w] + self.beta) / (self.t_counts[p, t] + self.vocab_size * self.beta) * (self.local_dt_counts[p, t] + self.alpha) / (self.local_d_counts[p] + self.num_topics * self.alpha)
 
     cdef numpy.uint_t sample_topic(self, numpy.uint_t p, numpy.uint_t w):
         cdef numpy.double_t prior, r
         cdef numpy.uint_t t
 
         prior = 0.0
-        for t in xrange(self.canonical_model.num_topics):
+        for t in xrange(self.num_topics):
             self.pmf[t] = self.conditional_posterior(p, w, t)
             prior += self.pmf[t]
 
         r = random() * prior
-        for t in xrange(self.canonical_model.num_topics-1):
+        for t in xrange(self.num_topics-1):
             if r < self.pmf[t]:
                 return t
             self.pmf[t+1] += self.pmf[t]
 
-        return self.canonical_model.num_topics - 1
+        return self.num_topics - 1
 
     cdef GlobalParams max_posterior_model(self):
         cdef GlobalParams model
         cdef numpy.uint_t p
         p = numpy.argmax(self.weights)
-        model = GlobalParams(self.canonical_model.alpha, self.canonical_model.beta, self.canonical_model.num_topics, self.canonical_model.vocab_size)
+        model = GlobalParams(self.alpha, self.beta, self.num_topics, self.vocab_size)
         model.tw_counts[:, :] = self.tw_counts[p, :, :]
         model.t_counts[:] = self.t_counts[p, :]
         return model
