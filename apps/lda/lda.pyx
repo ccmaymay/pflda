@@ -405,8 +405,9 @@ def run_lda(data_dir, categories, num_topics):
     cdef GlobalParams model
     cdef FirstMomentPLFilter plfilter
     cdef ParticleFilter pf
-    cdef numpy.uint_t i, num_tokens, reservoir_size, init_num_docs, init_num_iters, test_num_iters
+    cdef numpy.uint_t i, j, doc_idx, num_tokens, reservoir_size, init_num_docs, init_num_iters, test_num_iters
     cdef numpy.double_t alpha, beta, ess_threshold
+    cdef list particle_reservoir_data
 
     reservoir_size = 1000
     test_num_iters = 5
@@ -461,6 +462,13 @@ def run_lda(data_dir, categories, num_topics):
 
                 print('creating particle filter on initialized model')
                 reservoir = ValuedReservoirSampler(reservoir_size)
+                for doc_idx in xrange(len(init_sample)):
+                    for j in xrange(len(init_sample[doc_idx])):
+                        particle_reservoir_data = []
+                        #TODO
+                        #particle_reservoir_data.append((z, self.local_d_counts[i], self.local_dt_counts[i, :]))
+                        w = init_sample[doc_idx][j]
+                        reservoir.insert((doc_idx, w, particle_reservoir_data))
                 pf = ParticleFilter(model, num_particles, ess_threshold, reservoir)
                 train_labels = init_labels
             pf.step(i, d[2])
