@@ -359,7 +359,7 @@ cdef class ParticleFilter:
 
             _ess = self.ess()
             if _ess < self.ess_threshold:
-                print('ess is %f (doc_idx %d, %d; token_idx %d), resampling...'
+                print('ess is %f (doc_idx %d, %d; token_idx %d), resampling'
                     % (_ess, doc_idx, j, self.token_idx))
                 self.resample()
                 self.rejuvenate()
@@ -368,16 +368,15 @@ cdef class ParticleFilter:
             PyErr_CheckSignals()
 
     cdef void rejuvenate(self):
-        pass
-#        cdef GlobalParams model
-#        cdef list sample
-#        cdef numpy.uint_t i
-#
-#        sample = sample_random(self.rs.sample(), self.rejuv_sample_size)
-#
-#        for i in xrange(self.num_particles):
-#            model = self.model_for_particle(i)
-#            self.rejuv_sampler = GibbsSampler(model)
+        cdef GlobalParams model
+        cdef list sample
+        cdef numpy.uint_t i
+
+        sample = sample_random(self.rs.sample(), self.rejuv_sample_size)
+
+        for i in xrange(self.num_particles):
+            model = self.model_for_particle(i)
+            self.rejuv_sampler = GibbsSampler(model)
 #            self.rejuv_sampler.learn_pf_rejuv(sample, i, self.rejuv_mcmc_steps)
 
     cdef numpy.double_t conditional_posterior(self, numpy.uint_t p, numpy.uint_t w, numpy.uint_t t):
@@ -654,7 +653,7 @@ def run_lda(data_dir, categories, num_topics):
             pf.step(i, d[2])
             train_labels.append(d[1])
             if i % 100 == 0:
-                print('doc %d...' % i)
+                print('doc %d' % i)
                 #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
                 gibbs_sampler = GibbsSampler(pf.max_posterior_model())
                 gibbs_sampler.infer(test_sample, test_num_iters)
