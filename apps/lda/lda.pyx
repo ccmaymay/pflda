@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 
-from random import random, randint, sample as sample_random
+from random import random, randint
 from data import Dataset
 from pylowl cimport ReservoirSampler, lowl_key, size_t
 import sys
 import numpy
+import numpy.random
 cimport numpy
 from cpython.exc cimport PyErr_CheckSignals
 
@@ -369,15 +370,19 @@ cdef class ParticleFilter:
 
     cdef void rejuvenate(self):
         cdef GlobalParams model
-        cdef list sample
+        cdef numpy.uint_t[::1] sample
         cdef numpy.uint_t i
 
-        sample = sample_random(self.rs.sample(), self.rejuv_sample_size)
+        if self.rejuv_sample_size < self.rs.occupied():
+            sample = numpy.random.choice(numpy.arange(self.rs.occupied(), dtype=numpy.uint), self.rejuv_sample_size, replace=False)
+        else:
+            sample = numpy.arange(self.rs.occupied(), dtype=numpy.uint)
 
         for i in xrange(self.num_particles):
             model = self.model_for_particle(i)
             self.rejuv_sampler = GibbsSampler(model)
-#            self.rejuv_sampler.learn_pf_rejuv(sample, i, self.rejuv_mcmc_steps)
+            self.rejuv_sampler.learn_pf_rejuv(i, sample, self.rejuv_data,
+                self.rejuv_mcmc_steps)
 
     cdef numpy.double_t conditional_posterior(self, numpy.uint_t p, numpy.uint_t w, numpy.uint_t t):
         return (self.tw_counts[p, t, w] + self.beta) / (self.t_counts[p, t] + self.vocab_size * self.beta) * (self.local_dt_counts[p, t] + self.alpha) / (self.local_d_counts[p] + self.num_topics * self.alpha)
@@ -499,59 +504,51 @@ cdef class GibbsSampler:
         sys.stdout.write('\n')
         sys.stdout.flush()
 
-#    cdef learn_pf_rejuv(self, list sample, numpy.uint_t p, numpy.uint_t num_iters):
-#        cdef numpy.uint_t t, i, j, jj, w, z, num_docs
-#        cdef object doc_idx_map
-#
-#        doc_idx_map = dict()
-#        for j in xrange(len(sample)):
-#            doc_idx = sample[j][0]
-#            if doc_idx not in doc_idx_map:
-#                doc_idx_map[doc_idx] = len(doc_idx_map)
-#
-#        num_docs = len(doc_idx_map)
-#        self.dt_counts = numpy.zeros((num_docs, self.model.num_topics), dtype=numpy.uint)
-#        self.d_counts = numpy.zeros((num_docs,), dtype=numpy.uint)
-#
-#        for j in xrange(len(sample)):
-#            doc_idx = sample[j][0]
-#            particle_reservoir_data = sample[j][2][p]
-#            i = doc_idx_map[doc_idx]
-#            # should be okay wthat we overwrite these... should all be
-#            # the same... ugh
-#            self.d_counts[i] = particle_reservoir_data[1]
-#            for jj in xrange(self.model.num_topics):
-#                self.dt_counts[i, jj] = particle_reservoir_data[2][jj]
-#
-#        for t in xrange(num_iters):
-#            for j in xrange(len(sample)):
-#                doc_idx = sample[j][0]
-#                w = sample[j][1]
-#                particle_reservoir_data = sample[j][2][p]
-#                z = particle_reservoir_data[0]
-#                i = doc_idx_map[doc_idx]
-#                self.model.tw_counts[z, w] -= 1
-#                self.model.t_counts[z] -= 1
-#                self.dt_counts[i, z] -= 1
-#                self.d_counts[i] -= 1
-#                z = self.sample_topic(i, w)
-#                particle_reservoir_data[0] = z
-#                self.model.tw_counts[z, w] += 1
-#                self.model.t_counts[z] += 1
-#                self.dt_counts[i, z] += 1
-#                self.d_counts[i] += 1
-#                if j % 100 == 0:
-#                    PyErr_CheckSignals()
-#
-#        # TODO these doc vects are not synchronized with those
-#        # used by pf step...
-#        for j in xrange(len(sample)):
-#            doc_idx = sample[j][0]
-#            particle_reservoir_data = sample[j][2][p]
-#            i = doc_idx_map[doc_idx]
-#            particle_reservoir_data[1] = self.d_counts[i]
-#            for jj in xrange(self.model.num_topics):
-#                particle_reservoir_data[2][jj] = self.dt_counts[i, jj]
+    cdef numpy.double_t conditional_posterior_pf_rejuv(self, numpy.uint_t[:] dt_counts, numpy.uint_t d_count, numpy.uint_t w, numpy.uint_t t):
+        return (self.model.tw_counts[t, w] + self.model.beta) / (self.model.t_counts[t] + self.model.vocab_size * self.model.beta) * (dt_counts[t] + self.model.alpha) / (d_count + self.model.num_topics * self.model.alpha)
+
+    cdef numpy.uint_t sample_topic_pf_rejuv(self, numpy.uint_t[:] dt_counts, numpy.uint_t d_count, numpy.uint_t w):
+        cdef numpy.double_t prior, r
+        cdef numpy.uint_t t
+
+        prior = 0.0
+        for t in xrange(self.model.num_topics):
+            self.pmf[t] = self.conditional_posterior_pf_rejuv(dt_counts, d_count, w, t)
+            prior += self.pmf[t]
+
+        r = random() * prior
+        for t in xrange(self.model.num_topics-1):
+            if r < self.pmf[t]:
+                return t
+            self.pmf[t+1] += self.pmf[t]
+
+        return self.model.num_topics - 1
+
+    cdef void learn_pf_rejuv(self, numpy.uint_t p, numpy.uint_t[::1] sample,
+            ParticleFilterReservoirData rejuv_data,
+            numpy.uint_t rejuv_mcmc_steps):
+        cdef numpy.uint_t t, i, j, w, z, num_docs
+
+        num_docs = len(sample)
+
+        for t in xrange(rejuv_mcmc_steps):
+            for j in xrange(len(sample)):
+                doc_idx = rejuv_data.doc_ids[j]
+                w = rejuv_data.w[j]
+                z = rejuv_data.z[j, p]
+                i = rejuv_data.reservoir_idx_map[j]
+                self.model.tw_counts[z, w] -= 1
+                self.model.t_counts[z] -= 1
+                rejuv_data.dt_counts[i, p, z] -= 1
+                rejuv_data.d_counts[i, p] -= 1
+                z = self.sample_topic_pf_rejuv(rejuv_data.dt_counts[i, p, :], rejuv_data.d_counts[i, p], w)
+                rejuv_data.z[j, p] = z
+                self.model.tw_counts[z, w] += 1
+                self.model.t_counts[z] += 1
+                rejuv_data.dt_counts[i, p, z] += 1
+                rejuv_data.d_counts[i, p] += 1
+                if j % 100 == 0:
+                    PyErr_CheckSignals()
 
 
 def run_lda(data_dir, categories, num_topics):
