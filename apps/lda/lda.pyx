@@ -288,8 +288,8 @@ cdef class ParticleFilter:
 
     cdef void rejuvenate(self):
         cdef GlobalParams model
-        cdef list sample, particle_reservoir_data
-        cdef numpy.uint_t i, j, doc_idx, w
+        cdef list sample
+        cdef numpy.uint_t i
 
         sample = sample_random(self.reservoir.sample(), self.rejuv_sample_size)
 
@@ -419,8 +419,8 @@ cdef class GibbsSampler:
         sys.stdout.flush()
 
     cdef learn_pf_rejuv(self, list sample, numpy.uint_t p, numpy.uint_t num_iters):
-        cdef numpy.uint_t t, i, j, w, z, num_docs
-        cdef object doc_idx_map
+        cdef numpy.uint_t t, i, j, jj, w, z, num_docs
+        cdef object doc_idx_map, particle_reservoir_data
 
         doc_idx_map = dict()
         for j in xrange(len(sample)):
@@ -439,7 +439,8 @@ cdef class GibbsSampler:
             # should be okay wthat we overwrite these... should all be
             # the same... ugh
             self.d_counts[i] = particle_reservoir_data[1]
-            self.dt_counts[i, :] = particle_reservoir_data[2]
+            for jj in xrange(self.model.num_topics):
+                self.dt_counts[i, jj] = particle_reservoir_data[2][jj]
 
         for t in xrange(num_iters):
             for j in xrange(len(sample)):
@@ -460,17 +461,16 @@ cdef class GibbsSampler:
                 self.d_counts[i] += 1
                 if j % 100 == 0:
                     PyErr_CheckSignals()
-            sys.stdout.write('.')
-            sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.flush()
 
+        # TODO these doc vects are not synchronized with those
+        # used by pf step...
         for j in xrange(len(sample)):
             doc_idx = sample[j][0]
             particle_reservoir_data = sample[j][2][p]
             i = doc_idx_map[doc_idx]
             particle_reservoir_data[1] = self.d_counts[i]
-            particle_reservoir_data[2] = self.dt_counts[i, :]
+            for jj in xrange(self.model.num_topics):
+                particle_reservoir_data[2][jj] = self.dt_counts[i, jj]
 
 
 def run_lda(data_dir, categories, num_topics):
