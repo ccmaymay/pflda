@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 
 
-# for rejuvenation:
-#   in each particle, need to keep doc ids, topic assignments, words for rejuv seq
-#   reservoir map: (doc_idx, w, [(z, doc_vect), ...])
-#   (list is over particles)
-#   and need to keep list of doc labels (later)
 from random import random, randint
 from data import Dataset
 from pylowl import ValuedReservoirSampler
@@ -167,6 +162,7 @@ cdef class FirstMomentPLFilter:
         print('perplexity:     %f' % numpy.exp(-ll / num_words))
 
 
+# TODO: store list of all doc labels for in-sample eval
 cdef class ParticleFilter:
     cdef object reservoir
     cdef numpy.uint_t[:, ::1] local_dt_counts
