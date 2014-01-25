@@ -376,7 +376,7 @@ cdef class ParticleFilter:
 
             _ess = self.ess()
             if _ess < self.ess_threshold:
-                print('ess is %f (doc_idx %d, %d; token_idx %d), resampling'
+                print('resampling: ess %f; doc_idx %d, %d; token_idx %d'
                     % (_ess, doc_idx, j, self.token_idx))
                 self.resample()
                 self.rejuvenate()
@@ -656,8 +656,9 @@ def run_lda(data_dir, categories, **kwargs):
                 train_labels = init_labels
             pf.step(i, d[2])
             train_labels.append(d[1])
+            print('doc: %d' % i)
+            print('num words: %d' % len(d[2]))
             if i % 100 == 0:
-                print('doc %d' % i)
                 #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
                 gibbs_sampler = GibbsSampler(pf.max_posterior_model())
                 gibbs_sampler.infer(test_sample, params['test_num_iters'])
