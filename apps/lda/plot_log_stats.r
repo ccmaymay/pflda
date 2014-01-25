@@ -2,6 +2,8 @@ library(ggplot2)
 
 options(warn=1)
 
+stat.names <- c('in_sample_nmi', 'out_of_sample_nmi', 'out_of_sample_log_likelihood', 'out_of_sample_perplexity')
+
 plot.experiments <- function(experiment.group.name, dataset.names, experiment.names, experiment.names.legend) {
     if (is.null(experiment.names.legend)) {
         experiment.names.legend <- experiment.names
@@ -10,7 +12,7 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
     cat(experiment.group.name, '\n')
     for (dataset.name in dataset.names) {
         cat('*', dataset.name, '\n')
-        for (stat.name in c('in_sample_nmi', 'in_sample_non_init_nmi', 'out_of_sample_nmi', 'out_of_sample_log_likelihood', 'out_of_sample_perplexity')) {
+        for (stat.name in stat.names) {
             data <- data.frame()
             for (i in 1:length(experiment.names)) {
                 experiment.name <- experiment.names[i]
@@ -36,6 +38,7 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
     }
 }
 
+plot.experiments('0', c('diff3'), c('0'), c('0'))
 #plot.experiments('1', c('diff3', 'rel3', 'sim3'), c('1-rs0', '1-rs1k', '1-rs10k', '1-rs100k'), c('reservoir size 0', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k'))
 #plot.experiments('2', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs0', '2-rs1k-ibs10', '2-rs1k-ibs100', '2-rs1k-ibs1k'), c('initialization size 0', 'initialization size 10', 'initialization size 100', 'initialization size 1k'))
 #plot.experiments('9', c('diff3', 'rel3', 'sim3'), c('9-rs0', '9-rs1k', '9-rs10k', '9-rs100k'), c('reservoir size 0', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k'))
@@ -51,5 +54,5 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
 #plot.experiments('17_18_19', c('diff3', 'rel3', 'sim3'), c('17-rs10k', '18-rs10k', '19-rs10k'), c('fixed init', 'fixed init data', 'variable init'))
 #plot.experiments('24', c('diff3'), c('24-rs1k', '24-rs10k', '24-rs100k'), c('reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k'))
 #plot.experiments('25', c('diff3'), c('25-rs1k-ibs0', '25-rs1k-ibs10', '25-rs1k-ibs100', '25-rs1k-ibs1k'), c('initialization size 0', 'initialization size 10', 'initialization size 100', 'initialization size 1k'))
-plot.experiments('26_27_28', c('diff3'), c('26', '27', '28-rs10k'), c('no resampling/rejuv', 'resampling', 'resampling and rejuv'))
-plot.experiments('28', c('diff3'), c('28-rs100', '28-rs1k', '28-rs10k', '28-rs100k'), c('reservoir size 100', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k'))
+#plot.experiments('26_27_28', c('diff3'), c('26', '27', '28-rs10k'), c('no resampling/rejuv', 'resampling', 'resampling and rejuv'))
+#plot.experiments('28', c('diff3'), c('28-rs100', '28-rs1k', '28-rs10k', '28-rs100k'), c('reservoir size 100', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k'))
