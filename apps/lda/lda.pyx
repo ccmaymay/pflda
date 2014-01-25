@@ -672,7 +672,3 @@ def run_lda(data_dir, categories, **kwargs):
     gibbs_sampler = GibbsSampler(pf.max_posterior_model())
     gibbs_sampler.infer(test_sample, params['test_num_iters'])
     print('out-of-sample nmi: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, params['num_topics']))
-
-
-if __name__ == '__main__':
-    globals()[sys.argv[1]](*sys.argv[2:])

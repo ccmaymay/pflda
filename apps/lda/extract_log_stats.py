@@ -50,16 +50,19 @@ def dict_increment(d, doc_num, key):
 
 
 def process_logs(experiment_path):
-    print(experiment_path)
     if not os.path.isdir(experiment_path):
         raise Exception(experiment_path + ' is not a directory')
+
+    print(experiment_path)
     for dataset_entry in os.listdir(experiment_path):
         dataset_path = os.path.join(experiment_path, dataset_entry)
         if os.path.isdir(dataset_path):
             doc_num_bound = 0
             per_doc_stats_list = []
+            entries = os.listdir(dataset_path)
+            entries.sort()
 
-            for entry in os.listdir(dataset_path):
+            for entry in entries:
                 path = os.path.join(dataset_path, entry)
                 if os.path.isfile(path) and not entry.startswith('.'):
                     (last_doc_num, per_doc_stats) = parse_log(path)
@@ -87,12 +90,10 @@ def parse_log(log_filename):
 
     with open(log_filename) as f:
         for line in f:
-            line = line.rstrip()
-
             split_idx = line.find(':')
             if split_idx >= 0:
                 key = line[:split_idx]
-                val = line[split_idx+1:]
+                val = line[split_idx+1:].strip()
             else:
                 key = None
                 val = None
