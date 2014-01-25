@@ -45,8 +45,7 @@ cdef numpy.double_t entropy1(list labels, list label_types):
     return _entropy
 
 
-cdef numpy.double_t entropy2(long[:] inferred_topics,
-        numpy.uint_t num_topics):
+cdef numpy.double_t entropy2(long[:] inferred_topics, numpy.uint_t num_topics):
     cdef numpy.uint_t i, t
     cdef numpy.double_t n, count, p, _entropy
 
@@ -84,7 +83,8 @@ cdef numpy.double_t mi(list labels, list label_types,
                 if labels[j] == label_types[i] and inferred_topics[j] == t:
                     count += 1.0
             if count > 0.0:
-                _mi += (count / n) * (numpy.log(count * n) - numpy.log(marginal_count1 * marginal_count2))
+                _mi += (count / n) * (numpy.log(count * n)
+                    - numpy.log(marginal_count1 * marginal_count2))
 
     return _mi
 
@@ -95,7 +95,8 @@ cdef numpy.double_t nmi(list labels, list label_types,
     cdef numpy.double_t _nmi
 
     inferred_topics = numpy.argmax(dt_counts, 1)
-    _nmi = 2.0 * mi(labels, label_types, inferred_topics, num_topics) / (entropy1(labels, label_types) + entropy2(inferred_topics, num_topics))
+    _nmi = 2.0 * (mi(labels, label_types, inferred_topics, num_topics) /
+        (entropy1(labels, label_types) + entropy2(inferred_topics, num_topics)))
 
     return _nmi
 
@@ -446,16 +447,14 @@ cdef class GibbsSampler:
         self.model = model
         self.pmf = numpy.zeros((model.num_topics,), dtype=numpy.double)
 
-    cdef numpy.double_t conditional_posterior(self, numpy.uint_t i, numpy.uint_t w, numpy.uint_t t):
-        return (self.model.tw_counts[t, w] + self.model.beta) / (self.model.t_counts[t] + self.model.vocab_size * self.model.beta) * (self.dt_counts[i, t] + self.model.alpha) / (self.d_counts[i] + self.model.num_topics * self.model.alpha)
-
     cdef numpy.uint_t sample_topic(self, numpy.uint_t i, numpy.uint_t w):
         cdef numpy.double_t prior, r
         cdef numpy.uint_t t
 
         prior = 0.0
         for t in xrange(self.model.num_topics):
-            self.pmf[t] = self.conditional_posterior(i, w, t)
+            self.pmf[t] = self.conditional_posterior(self.dt_counts[i, :],
+                self.d_counts[i], w, t)
             prior += self.pmf[t]
 
         r = random() * prior
@@ -520,7 +519,7 @@ cdef class GibbsSampler:
         sys.stdout.write('\n')
         sys.stdout.flush()
 
-    cdef numpy.double_t conditional_posterior_pf_rejuv(self, numpy.uint_t[:] dt_counts, numpy.uint_t d_count, numpy.uint_t w, numpy.uint_t t):
+    cdef numpy.double_t conditional_posterior(self, numpy.uint_t[:] dt_counts, numpy.uint_t d_count, numpy.uint_t w, numpy.uint_t t):
         return (self.model.tw_counts[t, w] + self.model.beta) / (self.model.t_counts[t] + self.model.vocab_size * self.model.beta) * (dt_counts[t] + self.model.alpha) / (d_count + self.model.num_topics * self.model.alpha)
 
     cdef numpy.uint_t sample_topic_pf_rejuv(self, numpy.uint_t[:] dt_counts, numpy.uint_t d_count, numpy.uint_t w):
@@ -529,7 +528,7 @@ cdef class GibbsSampler:
 
         prior = 0.0
         for t in xrange(self.model.num_topics):
-            self.pmf[t] = self.conditional_posterior_pf_rejuv(dt_counts, d_count, w, t)
+            self.pmf[t] = self.conditional_posterior(dt_counts, d_count, w, t)
             prior += self.pmf[t]
 
         r = random() * prior
