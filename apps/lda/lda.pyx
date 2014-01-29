@@ -179,16 +179,28 @@ cdef class ParticleLabelStore:
             numpy.uint_t label):
         self.labels[p][doc_idx] = label
 
+    cdef long compute_label(self, numpy.uint_t[::1] dt_counts):
+        cdef numpy.uint_t t, max_t, count, max_count
+        max_count = 0
+        max_t = 0
+        for t in xrange(self.num_topics):
+            count = dt_counts[t]
+            if count > max_count:
+                max_count = count
+                max_t = t
+        return max_t
+
     cdef void recompute(self, ParticleFilterReservoirData rejuv_data):
         cdef numpy.uint_t[::1] dt_counts
-        cdef numpy.uint_t p, i, j, doc_idx, label
+        cdef numpy.uint_t p, i, j, doc_idx
+        cdef long label
 
         for p in xrange(self.num_particles):
             for j in xrange(rejuv_data.occupied):
                 i = rejuv_data.reservoir_idx_map[j]
                 doc_idx = rejuv_data.doc_ids[j]
-                dt_counts = rejuv_data.dt_counts[i, p, :]
-                label = numpy.argmax(dt_counts, 0)
+                dt_counts = rejuv_data.dt_counts[i, p, :] # TODO using the right index here?
+                label = self.compute_label(dt_counts)
                 self.set(p, doc_idx, label)
 
     cdef long[::1] label_view(self, numpy.uint_t p):
@@ -523,7 +535,7 @@ cdef class ParticleFilter:
 
         for i in xrange(self.num_particles):
             self.label_store.set(i, doc_idx,
-                numpy.argmax(self.local_dt_counts[i, :], 0))
+                self.label_store.compute_label(self.local_dt_counts[i, :]))
 
     cdef void rejuvenate(self):
         cdef GlobalModel model
@@ -738,7 +750,8 @@ def create_pf(GlobalModel model, list init_sample,
             token_idx += 1
 
         for p in xrange(num_particles):
-            label_store.append(p, numpy.argmax(dt_counts[doc_idx, :], 0))
+            label_store.append(p,
+                label_store.compute_label(dt_counts[doc_idx, :]))
 
     pf = ParticleFilter(model, num_particles, ess_threshold, rs, rejuv_data,
         rejuv_sample_size, rejuv_mcmc_steps, token_idx, label_store)
