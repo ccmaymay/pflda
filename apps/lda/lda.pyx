@@ -11,6 +11,11 @@ cimport numpy
 from cpython.exc cimport PyErr_CheckSignals
 
 
+# TODO finish label store stuff
+# TODO check nmi
+# TODO add option to resample before step
+
+
 cdef object DEFAULT_PARAMS
 DEFAULT_PARAMS = dict(
     reservoir_size = 1000,
@@ -25,6 +30,25 @@ DEFAULT_PARAMS = dict(
     rejuv_mcmc_steps = 1,
     num_topics = 3,
 )
+
+
+cdef class ParticleLabelStore:
+    cdef list labels
+
+    def __cinit__(self, numpy.uint_t num_particles):
+        cdef numpy.uint_t p
+        self.labels = []
+        for p in xrange(num_particles):
+            self.labels.append([])
+
+    def append(self, numpy.uint_t p, numpy.uint_t label):
+        self.labels[p].append(label)
+
+    def set(self, numpy.uint_t p, numpy.uint_t doc_idx, numpy.uint_t label):
+        self.labels[p][i] = label
+
+    def recompute(self, ParticleFilterReservoirData rejuv_data):
+        pass
 
 
 cdef numpy.double_t perplexity(numpy.double_t likelihood, list sample):
@@ -314,11 +338,11 @@ cdef class ParticleFilterReservoirData:
             self.occupied += 1
 
 
-# TODO: store list of all doc labels for in-sample eval
 cdef class ParticleFilter:
     cdef GibbsSampler rejuv_sampler
     cdef ReservoirSampler rs
     cdef ParticleFilterReservoirData rejuv_data
+    cdef ParticleLabelStore label_store
     cdef numpy.uint_t[::1] local_d_counts
     cdef numpy.uint_t[:, ::1] local_dt_counts
     cdef numpy.uint_t[:, :, ::1] tw_counts
@@ -332,7 +356,7 @@ cdef class ParticleFilter:
             numpy.double_t ess_threshold, ReservoirSampler rs,
             ParticleFilterReservoirData rejuv_data,
             numpy.uint_t rejuv_sample_size, numpy.uint_t rejuv_mcmc_steps,
-            numpy.uint_t next_token_idx):
+            numpy.uint_t next_token_idx, ParticleLabelStore label_store):
         cdef numpy.uint_t i
 
         self.alpha = init_model.alpha
@@ -368,6 +392,8 @@ cdef class ParticleFilter:
             / num_particles)
         self.pmf = numpy.zeros((init_model.num_topics,), dtype=numpy.double)
         self.resample_cmf = numpy.zeros((num_particles,), dtype=numpy.double)
+
+        self.label_store = label_store
 
     cdef numpy.double_t ess(self):
         cdef numpy.double_t total
@@ -466,6 +492,7 @@ cdef class ParticleFilter:
                     % (_ess, doc_idx, j, self.token_idx))
                 self.resample()
                 self.rejuvenate()
+                self.label_store.recompute(self.rejuv_data)
 
             self.token_idx += 1
             PyErr_CheckSignals()
@@ -636,6 +663,7 @@ def create_pf(GlobalModel model, list init_sample,
     cdef ParticleFilter pf
     cdef ReservoirSampler rs
     cdef ParticleFilterReservoirData rejuv_data
+    cdef ParticleLabelStore label_store
     cdef bint ejected, inserted
     cdef lowl_key ejected_token_idx
     cdef size_t reservoir_idx
@@ -669,8 +697,9 @@ def create_pf(GlobalModel model, list init_sample,
                     particle_d_counts, particle_dt_counts)
             token_idx += 1
 
+    label_store = ParticleLabelStore(num_particles)
     pf = ParticleFilter(model, num_particles, ess_threshold, rs, rejuv_data,
-        rejuv_sample_size, rejuv_mcmc_steps, token_idx)
+        rejuv_sample_size, rejuv_mcmc_steps, token_idx, label_store)
     return pf
 
 
