@@ -27,6 +27,44 @@ DEFAULT_PARAMS = dict(
 )
 
 
+cdef numpy.double_t conditional_posterior(
+        numpy.uint_t[:] tw_counts, numpy.uint_t[::1] t_counts,
+        numpy.uint_t[::1] dt_counts, numpy.uint_t d_count,
+        numpy.double_t alpha, numpy.double_t beta,
+        numpy.uint_t vocab_size, numpy.uint_t num_topics,
+        numpy.uint_t t):
+    return ((tw_counts[t] + beta) / (t_counts[t] + vocab_size * beta)
+        * (dt_counts[t] + alpha) / (d_count + num_topics * alpha))
+
+
+cdef numpy.uint_t sample_topic(
+        numpy.uint_t[:, ::1] tw_counts, numpy.uint_t[::1] t_counts,
+        numpy.uint_t[::1] dt_counts, numpy.uint_t d_count,
+        numpy.double_t alpha, numpy.double_t beta,
+        numpy.uint_t vocab_size, numpy.uint_t num_topics,
+        numpy.uint_t w, numpy.double_t[::1] pmf):
+    cdef numpy.double_t prior, r
+    cdef numpy.uint_t t
+
+    prior = 0.0
+    for t in xrange(num_topics):
+        pmf[t] = conditional_posterior(
+            tw_counts[:, w], t_counts,
+            dt_counts, d_count,
+            alpha, beta,
+            vocab_size, num_topics,
+            t)
+        prior += pmf[t]
+
+    r = random() * prior
+    for t in xrange(num_topics-1):
+        if r < pmf[t]:
+            return t
+        pmf[t+1] += pmf[t]
+
+    return num_topics - 1
+
+
 cdef numpy.double_t entropy1(list labels, list label_types):
     cdef numpy.uint_t i, j
     cdef numpy.double_t n, count, p, _entropy
@@ -133,8 +171,15 @@ cdef class GlobalModel:
                     break
         return s
 
-    cdef numpy.double_t conditional_posterior(self, numpy.uint_t[:] dt_counts, numpy.uint_t d_count, numpy.uint_t w, numpy.uint_t t):
-        return (self.tw_counts[t, w] + self.beta) / (self.t_counts[t] + self.vocab_size * self.beta) * (dt_counts[t] + self.alpha) / (d_count + self.num_topics * self.alpha)
+    cdef numpy.double_t conditional_posterior(self,
+            numpy.uint_t[::1] dt_counts, numpy.uint_t d_count,
+            numpy.uint_t w, numpy.uint_t t):
+        return conditional_posterior(
+            self.tw_counts[:, w], self.t_counts,
+            dt_counts, d_count,
+            self.alpha, self.beta,
+            self.vocab_size, self.num_topics,
+            t)
 
     cdef GlobalModel copy(self):
         cdef GlobalModel c
@@ -150,7 +195,7 @@ cdef class FirstMomentPLFilter:
 
     cdef likelihood(self, list sample):
         cdef numpy.double_t local_d_count, ll, s, p
-        cdef numpy.double_t[:] local_dt_counts, x
+        cdef numpy.double_t[::1] local_dt_counts, x
         cdef numpy.uint_t i, j, t, w, num_words
 
         num_words = 0
@@ -400,25 +445,22 @@ cdef class ParticleFilter:
             self.rejuv_sampler.learn_pf_rejuv(i, sample, self.rejuv_data,
                 self.rejuv_mcmc_steps)
 
-    cdef numpy.double_t conditional_posterior(self, numpy.uint_t p, numpy.uint_t w, numpy.uint_t t):
-        return (self.tw_counts[p, t, w] + self.beta) / (self.t_counts[p, t] + self.vocab_size * self.beta) * (self.local_dt_counts[p, t] + self.alpha) / (self.local_d_counts[p] + self.num_topics * self.alpha)
+    cdef numpy.double_t conditional_posterior(self,
+            numpy.uint_t p, numpy.uint_t w, numpy.uint_t t):
+        return conditional_posterior(
+            self.tw_counts[p, :, w], self.t_counts[p, :],
+            self.local_dt_counts[p, :], self.local_d_counts[p],
+            self.alpha, self.beta,
+            self.vocab_size, self.num_topics,
+            t)
 
     cdef numpy.uint_t sample_topic(self, numpy.uint_t p, numpy.uint_t w):
-        cdef numpy.double_t prior, r
-        cdef numpy.uint_t t
-
-        prior = 0.0
-        for t in xrange(self.num_topics):
-            self.pmf[t] = self.conditional_posterior(p, w, t)
-            prior += self.pmf[t]
-
-        r = random() * prior
-        for t in xrange(self.num_topics-1):
-            if r < self.pmf[t]:
-                return t
-            self.pmf[t+1] += self.pmf[t]
-
-        return self.num_topics - 1
+        return sample_topic(
+            self.tw_counts[p, :, :], self.t_counts[p, :],
+            self.local_dt_counts[p, :], self.local_d_counts[p],
+            self.alpha, self.beta,
+            self.vocab_size, self.num_topics,
+            w, self.pmf)
 
     cdef model_for_particle(self, numpy.uint_t p):
         cdef GlobalModel model
@@ -445,22 +487,12 @@ cdef class GibbsSampler:
         self.pmf = numpy.zeros((model.num_topics,), dtype=numpy.double)
 
     cdef numpy.uint_t sample_topic(self, numpy.uint_t i, numpy.uint_t w):
-        cdef numpy.double_t prior, r
-        cdef numpy.uint_t t
-
-        prior = 0.0
-        for t in xrange(self.model.num_topics):
-            self.pmf[t] = self.model.conditional_posterior(self.dt_counts[i, :],
-                self.d_counts[i], w, t)
-            prior += self.pmf[t]
-
-        r = random() * prior
-        for t in xrange(self.model.num_topics-1):
-            if r < self.pmf[t]:
-                return t
-            self.pmf[t+1] += self.pmf[t]
-
-        return self.model.num_topics - 1
+        return sample_topic(
+            self.model.tw_counts, self.model.t_counts,
+            self.dt_counts[i, :], self.d_counts[i],
+            self.model.alpha, self.model.beta,
+            self.model.vocab_size, self.model.num_topics,
+            w, self.pmf)
 
     cdef learn(self, list sample, numpy.uint_t num_iters):
         self.run(sample, num_iters, 1)
@@ -516,24 +548,6 @@ cdef class GibbsSampler:
         sys.stdout.write('\n')
         sys.stdout.flush()
 
-    cdef numpy.uint_t sample_topic_pf_rejuv(self, numpy.uint_t[:] dt_counts, numpy.uint_t d_count, numpy.uint_t w):
-        cdef numpy.double_t prior, r
-        cdef numpy.uint_t t
-
-        prior = 0.0
-        for t in xrange(self.model.num_topics):
-            self.pmf[t] = self.model.conditional_posterior(dt_counts, d_count,
-                w, t)
-            prior += self.pmf[t]
-
-        r = random() * prior
-        for t in xrange(self.model.num_topics-1):
-            if r < self.pmf[t]:
-                return t
-            self.pmf[t+1] += self.pmf[t]
-
-        return self.model.num_topics - 1
-
     cdef void learn_pf_rejuv(self, numpy.uint_t p, numpy.uint_t[::1] sample,
             ParticleFilterReservoirData rejuv_data,
             numpy.uint_t rejuv_mcmc_steps):
@@ -551,7 +565,12 @@ cdef class GibbsSampler:
                 self.model.t_counts[z] -= 1
                 rejuv_data.dt_counts[i, p, z] -= 1
                 rejuv_data.d_counts[i, p] -= 1
-                z = self.sample_topic_pf_rejuv(rejuv_data.dt_counts[i, p, :], rejuv_data.d_counts[i, p], w)
+                z = sample_topic(
+                    self.model.tw_counts, self.model.t_counts,
+                    rejuv_data.dt_counts[i, p, :], rejuv_data.d_counts[i, p],
+                    self.model.alpha, self.model.beta,
+                    self.model.vocab_size, self.model.num_topics,
+                    w, self.pmf)
                 rejuv_data.z[j, p] = z
                 self.model.tw_counts[z, w] += 1
                 self.model.t_counts[z] += 1
