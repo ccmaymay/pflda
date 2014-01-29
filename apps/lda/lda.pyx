@@ -101,24 +101,22 @@ cdef numpy.double_t nmi(list labels, list label_types,
     return _nmi
 
 
-cdef class GlobalParams:
+cdef class GlobalModel:
     cdef numpy.double_t alpha, beta
     cdef numpy.uint_t num_topics, vocab_size
     cdef numpy.uint_t[:, ::1] tw_counts
     cdef numpy.uint_t[::1] t_counts
 
-    def __cinit__(self, numpy.double_t alpha, numpy.double_t beta,
+    def __cinit__(self, numpy.uint_t[:, ::1] tw_counts,
+            numpy.uint_t[::1] t_counts,
+            numpy.double_t alpha, numpy.double_t beta,
             numpy.uint_t num_topics, numpy.uint_t vocab_size):
+        self.tw_counts = tw_counts
+        self.t_counts = t_counts
         self.alpha = alpha
         self.beta = beta
         self.num_topics = num_topics
         self.vocab_size = vocab_size
-        self.tw_counts = numpy.zeros((num_topics, vocab_size), dtype=numpy.uint)
-        self.t_counts = numpy.zeros((num_topics,), dtype=numpy.uint)
-
-    cdef void clear(self):
-        self.tw_counts[:] = 0
-        self.t_counts[:] = 0
 
     def to_string(self, vocab, num_words_per_topic):
         s = ''
@@ -135,18 +133,19 @@ cdef class GlobalParams:
                     break
         return s
 
-    cdef GlobalParams copy(self):
-        cdef GlobalParams c
-        c = GlobalParams(self.alpha, self.beta, self.num_topics, self.vocab_size)
-        c.tw_counts[:, :] = self.tw_counts
-        c.t_counts[:] = self.t_counts
+    cdef numpy.double_t conditional_posterior(self, numpy.uint_t[:] dt_counts, numpy.uint_t d_count, numpy.uint_t w, numpy.uint_t t):
+        return (self.tw_counts[t, w] + self.beta) / (self.t_counts[t] + self.vocab_size * self.beta) * (dt_counts[t] + self.alpha) / (d_count + self.num_topics * self.alpha)
+
+    cdef GlobalModel copy(self):
+        cdef GlobalModel c
+        c = GlobalModel(self.tw_counts.copy(), self.t_counts.copy(), self.alpha, self.beta, self.num_topics, self.vocab_size)
         return c
         
 
 cdef class FirstMomentPLFilter:
-    cdef GlobalParams model
+    cdef GlobalModel model
 
-    def __cinit__(self, GlobalParams model):
+    def __cinit__(self, GlobalModel model):
         self.model = model
 
     cdef likelihood(self, list sample):
@@ -254,7 +253,7 @@ cdef class ParticleFilter:
     cdef numpy.uint_t rejuv_sample_size, rejuv_mcmc_steps
     cdef numpy.double_t alpha, beta, ess_threshold
 
-    def __cinit__(self, GlobalParams init_model, numpy.uint_t num_particles,
+    def __cinit__(self, GlobalModel init_model, numpy.uint_t num_particles,
             numpy.double_t ess_threshold, ReservoirSampler rs,
             ParticleFilterReservoirData rejuv_data,
             numpy.uint_t rejuv_sample_size, numpy.uint_t rejuv_mcmc_steps,
@@ -386,7 +385,7 @@ cdef class ParticleFilter:
             PyErr_CheckSignals()
 
     cdef void rejuvenate(self):
-        cdef GlobalParams model
+        cdef GlobalModel model
         cdef numpy.uint_t[::1] sample
         cdef numpy.uint_t i
 
@@ -422,14 +421,12 @@ cdef class ParticleFilter:
         return self.num_topics - 1
 
     cdef model_for_particle(self, numpy.uint_t p):
-        cdef GlobalParams model
-        model = GlobalParams(self.alpha, self.beta, self.num_topics, self.vocab_size)
-        model.tw_counts[:, :] = self.tw_counts[p, :, :]
-        model.t_counts[:] = self.t_counts[p, :]
+        cdef GlobalModel model
+        model = GlobalModel(self.tw_counts[p, :, :], self.t_counts[p, :], self.alpha, self.beta, self.num_topics, self.vocab_size)
         return model
 
-    cdef GlobalParams max_posterior_model(self):
-        cdef GlobalParams model
+    cdef GlobalModel max_posterior_model(self):
+        cdef GlobalModel model
         cdef numpy.uint_t p
         p = numpy.argmax(self.weights)
         model = self.model_for_particle(p)
@@ -437,13 +434,13 @@ cdef class ParticleFilter:
 
 
 cdef class GibbsSampler:
-    cdef GlobalParams model
+    cdef GlobalModel model
     cdef readonly numpy.uint_t[:, ::1] dt_counts
     cdef readonly numpy.uint_t[::1] d_counts
     cdef readonly list assignments
     cdef numpy.double_t[::1] pmf
 
-    def __cinit__(self, GlobalParams model):
+    def __cinit__(self, GlobalModel model):
         self.model = model
         self.pmf = numpy.zeros((model.num_topics,), dtype=numpy.double)
 
@@ -453,7 +450,7 @@ cdef class GibbsSampler:
 
         prior = 0.0
         for t in xrange(self.model.num_topics):
-            self.pmf[t] = self.conditional_posterior(self.dt_counts[i, :],
+            self.pmf[t] = self.model.conditional_posterior(self.dt_counts[i, :],
                 self.d_counts[i], w, t)
             prior += self.pmf[t]
 
@@ -519,16 +516,14 @@ cdef class GibbsSampler:
         sys.stdout.write('\n')
         sys.stdout.flush()
 
-    cdef numpy.double_t conditional_posterior(self, numpy.uint_t[:] dt_counts, numpy.uint_t d_count, numpy.uint_t w, numpy.uint_t t):
-        return (self.model.tw_counts[t, w] + self.model.beta) / (self.model.t_counts[t] + self.model.vocab_size * self.model.beta) * (dt_counts[t] + self.model.alpha) / (d_count + self.model.num_topics * self.model.alpha)
-
     cdef numpy.uint_t sample_topic_pf_rejuv(self, numpy.uint_t[:] dt_counts, numpy.uint_t d_count, numpy.uint_t w):
         cdef numpy.double_t prior, r
         cdef numpy.uint_t t
 
         prior = 0.0
         for t in xrange(self.model.num_topics):
-            self.pmf[t] = self.conditional_posterior(dt_counts, d_count, w, t)
+            self.pmf[t] = self.model.conditional_posterior(dt_counts, d_count,
+                w, t)
             prior += self.pmf[t]
 
         r = random() * prior
@@ -568,14 +563,14 @@ cdef class GibbsSampler:
 
 def run_lda(data_dir, categories, **kwargs):
     cdef GibbsSampler init_gibbs_sampler, gibbs_sampler
-    cdef GlobalParams model
+    cdef GlobalModel model
     cdef FirstMomentPLFilter plfilter
     cdef ParticleFilter pf
     cdef ReservoirSampler rs
     cdef ParticleFilterReservoirData rejuv_data
     cdef numpy.uint_t i, j, doc_idx, num_tokens, p, ret, token_idx
-    cdef numpy.uint_t[::1] particle_d_counts, dt_counts, zz
-    cdef numpy.uint_t[:, ::1] particle_dt_counts
+    cdef numpy.uint_t[::1] particle_d_counts, dt_counts, zz, t_counts
+    cdef numpy.uint_t[:, ::1] particle_dt_counts, tw_counts
     cdef bint ejected, inserted
     cdef lowl_key ejected_token_idx
     cdef size_t reservoir_idx
@@ -586,7 +581,9 @@ def run_lda(data_dir, categories, **kwargs):
             params[k] = type(params[k])(v)
 
     dataset = Dataset(data_dir, set(categories))
-    model = GlobalParams(params['alpha'], params['beta'], params['num_topics'], len(dataset.vocab))
+    tw_counts = numpy.zeros((params['num_topics'], len(dataset.vocab)), dtype=numpy.uint)
+    t_counts = numpy.zeros((params['num_topics'],), dtype=numpy.uint)
+    model = GlobalModel(tw_counts, t_counts, params['alpha'], params['beta'], params['num_topics'], len(dataset.vocab))
     plfilter = FirstMomentPLFilter(model)
 
     print('vocab size: %d' % len(dataset.vocab))
