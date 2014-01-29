@@ -37,6 +37,16 @@ cdef numpy.double_t conditional_posterior(
         * (dt_counts[t] + alpha) / (d_count + num_topics * alpha))
 
 
+cdef numpy.double_t double_conditional_posterior(
+        numpy.uint_t[:] tw_counts, numpy.uint_t[::1] t_counts,
+        numpy.double_t[::1] dt_counts, numpy.double_t d_count,
+        numpy.double_t alpha, numpy.double_t beta,
+        numpy.uint_t vocab_size, numpy.uint_t num_topics,
+        numpy.uint_t t):
+    return ((tw_counts[t] + beta) / (t_counts[t] + vocab_size * beta)
+        * (dt_counts[t] + alpha) / (d_count + num_topics * alpha))
+
+
 cdef numpy.uint_t sample_topic(
         numpy.uint_t[:, ::1] tw_counts, numpy.uint_t[::1] t_counts,
         numpy.uint_t[::1] dt_counts, numpy.uint_t d_count,
@@ -183,7 +193,8 @@ cdef class GlobalModel:
 
     cdef GlobalModel copy(self):
         cdef GlobalModel c
-        c = GlobalModel(self.tw_counts.copy(), self.t_counts.copy(), self.alpha, self.beta, self.num_topics, self.vocab_size)
+        c = GlobalModel(self.tw_counts.copy(), self.t_counts.copy(),
+            self.alpha, self.beta, self.num_topics, self.vocab_size)
         return c
         
 
@@ -193,7 +204,17 @@ cdef class FirstMomentPLFilter:
     def __cinit__(self, GlobalModel model):
         self.model = model
 
-    cdef likelihood(self, list sample):
+    cdef numpy.double_t conditional_posterior(self,
+            numpy.double_t[::1] dt_counts, numpy.double_t d_count,
+            numpy.uint_t w, numpy.uint_t t):
+        return double_conditional_posterior(
+            self.model.tw_counts[:, w], self.model.t_counts,
+            dt_counts, d_count,
+            self.model.alpha, self.model.beta,
+            self.model.vocab_size, self.model.num_topics,
+            t)
+
+    cdef void likelihood(self, list sample):
         cdef numpy.double_t local_d_count, ll, s, p
         cdef numpy.double_t[::1] local_dt_counts, x
         cdef numpy.uint_t i, j, t, w, num_words
@@ -201,7 +222,8 @@ cdef class FirstMomentPLFilter:
         num_words = 0
         ll = 0.0
         local_d_count = 0.0
-        local_dt_counts = numpy.zeros((self.model.num_topics,), dtype=numpy.double)
+        local_dt_counts = numpy.zeros(
+            (self.model.num_topics,), dtype=numpy.double)
         x = numpy.zeros((self.model.num_topics,), dtype=numpy.double)
         for i in xrange(len(sample)):
             local_d_count = 0.0
@@ -209,7 +231,8 @@ cdef class FirstMomentPLFilter:
             for j in xrange(len(sample[i])):
                 w = sample[i][j]
                 for t in xrange(self.model.num_topics):
-                    x[t] = (self.model.tw_counts[t, w] + self.model.beta) / (self.model.t_counts[t] + self.model.vocab_size * self.model.beta) * (local_dt_counts[t] + self.model.alpha) / (local_d_count + self.model.num_topics * self.model.alpha)
+                    x[t] = self.conditional_posterior(
+                        local_dt_counts, local_d_count, w, t)
                 s = numpy.sum(x)
                 ll += numpy.log(s)
                 for t in xrange(self.model.num_topics):
@@ -234,14 +257,16 @@ cdef class ParticleFilterReservoirData:
     cdef numpy.uint_t[:, :, ::1] dt_counts
     cdef numpy.uint_t capacity, num_particles, num_topics, occupied
 
-    def __cinit__(self, numpy.uint_t capacity, numpy.uint_t num_particles, numpy.uint_t num_topics):
+    def __cinit__(self, numpy.uint_t capacity, numpy.uint_t num_particles,
+            numpy.uint_t num_topics):
         self.reservoir_idx_map = numpy.zeros((capacity,), dtype=numpy.uint)
         self.r_reservoir_idx_map = numpy.zeros((capacity,), dtype=numpy.uint)
         self.doc_ids = numpy.zeros((capacity,), dtype=numpy.uint)
         self.w = numpy.zeros((capacity,), dtype=numpy.uint)
         self.z = numpy.zeros((capacity, num_particles), dtype=numpy.uint)
         self.d_counts = numpy.zeros((capacity, num_particles), dtype=numpy.uint)
-        self.dt_counts = numpy.zeros((capacity, num_particles, num_topics), dtype=numpy.uint)
+        self.dt_counts = numpy.zeros(
+            (capacity, num_particles, num_topics), dtype=numpy.uint)
         self.capacity = capacity
         self.num_particles = num_particles
         self.num_topics = num_topics
@@ -316,17 +341,26 @@ cdef class ParticleFilter:
         self.rejuv_mcmc_steps = rejuv_mcmc_steps
         self.token_idx = next_token_idx
 
-        self.local_dt_counts = numpy.zeros((num_particles, init_model.num_topics), dtype=numpy.uint)
-        self.local_d_counts = numpy.zeros((num_particles,), dtype=numpy.uint)
-        self.tw_counts = numpy.zeros((num_particles, init_model.num_topics, init_model.vocab_size), dtype=numpy.uint)
-        self.t_counts = numpy.zeros((num_particles, init_model.num_topics), dtype=numpy.uint)
+        self.local_dt_counts = numpy.zeros(
+            (num_particles, init_model.num_topics),
+            dtype=numpy.uint)
+        self.local_d_counts = numpy.zeros(
+            (num_particles,),
+            dtype=numpy.uint)
+        self.tw_counts = numpy.zeros(
+            (num_particles, init_model.num_topics, init_model.vocab_size),
+            dtype=numpy.uint)
+        self.t_counts = numpy.zeros(
+            (num_particles, init_model.num_topics),
+            dtype=numpy.uint)
         for i in xrange(num_particles):
             self.tw_counts[i, :, :] = init_model.tw_counts
             self.t_counts[i, :] = init_model.t_counts
 
         self.rejuv_data = rejuv_data
 
-        self.weights = numpy.ones((num_particles,), dtype=numpy.double) / num_particles
+        self.weights = (numpy.ones((num_particles,), dtype=numpy.double)
+            / num_particles)
         self.pmf = numpy.zeros((init_model.num_topics,), dtype=numpy.double)
         self.resample_cmf = numpy.zeros((num_particles,), dtype=numpy.double)
 
@@ -388,8 +422,10 @@ cdef class ParticleFilter:
 
         zz = numpy.zeros((self.num_particles,), dtype=numpy.uint)
 
-        self.local_d_counts = numpy.zeros((self.num_particles,), dtype=numpy.uint)
-        self.local_dt_counts = numpy.zeros((self.num_particles, self.num_topics), dtype=numpy.uint)
+        self.local_d_counts = numpy.zeros(
+            (self.num_particles,), dtype=numpy.uint)
+        self.local_dt_counts = numpy.zeros(
+            (self.num_particles, self.num_topics), dtype=numpy.uint)
 
         for j in xrange(len(doc)):
             w = doc[j]
@@ -431,19 +467,39 @@ cdef class ParticleFilter:
 
     cdef void rejuvenate(self):
         cdef GlobalModel model
-        cdef numpy.uint_t[::1] sample
-        cdef numpy.uint_t i
+        cdef numpy.uint_t[::1] sample_candidates, sample
+        cdef numpy.uint_t p, t, i, j, w, z
 
+        sample_candidates = numpy.arange(self.rs.occupied(), dtype=numpy.uint)
         if self.rejuv_sample_size < self.rs.occupied():
-            sample = numpy.random.choice(numpy.arange(self.rs.occupied(), dtype=numpy.uint), self.rejuv_sample_size, replace=False)
+            sample = numpy.random.choice(sample_candidates,
+                self.rejuv_sample_size, replace=False)
         else:
-            sample = numpy.arange(self.rs.occupied(), dtype=numpy.uint)
+            sample = sample_candidates
 
-        for i in xrange(self.num_particles):
-            model = self.model_for_particle(i)
-            self.rejuv_sampler = GibbsSampler(model)
-            self.rejuv_sampler.learn_pf_rejuv(i, sample, self.rejuv_data,
-                self.rejuv_mcmc_steps)
+        for p in xrange(self.num_particles):
+            for t in xrange(self.rejuv_mcmc_steps):
+                for j in xrange(len(sample)):
+                    rd_idx = sample[j]
+                    w = self.rejuv_data.w[rd_idx]
+                    z = self.rejuv_data.z[rd_idx, p]
+                    i = self.rejuv_data.reservoir_idx_map[rd_idx]
+                    self.tw_counts[p, z, w] -= 1
+                    self.t_counts[p, z] -= 1
+                    self.rejuv_data.dt_counts[i, p, z] -= 1
+                    self.rejuv_data.d_counts[i, p] -= 1
+                    z = sample_topic(
+                        self.tw_counts[p, :, :], self.t_counts[p, :],
+                        self.rejuv_data.dt_counts[i, p, :],
+                        self.rejuv_data.d_counts[i, p],
+                        self.alpha, self.beta,
+                        self.vocab_size, self.num_topics,
+                        w, self.pmf)
+                    self.rejuv_data.z[rd_idx, p] = z
+                    self.tw_counts[p, z, w] += 1
+                    self.t_counts[p, z] += 1
+                    self.rejuv_data.dt_counts[i, p, z] += 1
+                    self.rejuv_data.d_counts[i, p] += 1
 
     cdef numpy.double_t conditional_posterior(self,
             numpy.uint_t p, numpy.uint_t w, numpy.uint_t t):
@@ -464,7 +520,8 @@ cdef class ParticleFilter:
 
     cdef model_for_particle(self, numpy.uint_t p):
         cdef GlobalModel model
-        model = GlobalModel(self.tw_counts[p, :, :], self.t_counts[p, :], self.alpha, self.beta, self.num_topics, self.vocab_size)
+        model = GlobalModel(self.tw_counts[p, :, :], self.t_counts[p, :],
+            self.alpha, self.beta, self.num_topics, self.vocab_size)
         return model
 
     cdef GlobalModel max_posterior_model(self):
@@ -506,7 +563,8 @@ cdef class GibbsSampler:
         num_docs = len(sample)
 
         self.assignments = []
-        self.dt_counts = numpy.zeros((num_docs, self.model.num_topics), dtype=numpy.uint)
+        self.dt_counts = numpy.zeros(
+            (num_docs, self.model.num_topics), dtype=numpy.uint)
         self.d_counts = numpy.zeros((num_docs,), dtype=numpy.uint)
 
         for i in xrange(num_docs):
@@ -548,37 +606,6 @@ cdef class GibbsSampler:
         sys.stdout.write('\n')
         sys.stdout.flush()
 
-    cdef void learn_pf_rejuv(self, numpy.uint_t p, numpy.uint_t[::1] sample,
-            ParticleFilterReservoirData rejuv_data,
-            numpy.uint_t rejuv_mcmc_steps):
-        cdef numpy.uint_t t, i, j, w, z, num_docs
-
-        num_docs = len(sample)
-
-        for t in xrange(rejuv_mcmc_steps):
-            for j in xrange(len(sample)):
-                doc_idx = rejuv_data.doc_ids[j]
-                w = rejuv_data.w[j]
-                z = rejuv_data.z[j, p]
-                i = rejuv_data.reservoir_idx_map[j]
-                self.model.tw_counts[z, w] -= 1
-                self.model.t_counts[z] -= 1
-                rejuv_data.dt_counts[i, p, z] -= 1
-                rejuv_data.d_counts[i, p] -= 1
-                z = sample_topic(
-                    self.model.tw_counts, self.model.t_counts,
-                    rejuv_data.dt_counts[i, p, :], rejuv_data.d_counts[i, p],
-                    self.model.alpha, self.model.beta,
-                    self.model.vocab_size, self.model.num_topics,
-                    w, self.pmf)
-                rejuv_data.z[j, p] = z
-                self.model.tw_counts[z, w] += 1
-                self.model.t_counts[z] += 1
-                rejuv_data.dt_counts[i, p, z] += 1
-                rejuv_data.d_counts[i, p] += 1
-                if j % 100 == 0:
-                    PyErr_CheckSignals()
-
 
 def run_lda(data_dir, categories, **kwargs):
     cdef GibbsSampler init_gibbs_sampler, gibbs_sampler
@@ -600,9 +627,11 @@ def run_lda(data_dir, categories, **kwargs):
             params[k] = type(params[k])(v)
 
     dataset = Dataset(data_dir, set(categories))
-    tw_counts = numpy.zeros((params['num_topics'], len(dataset.vocab)), dtype=numpy.uint)
+    tw_counts = numpy.zeros(
+        (params['num_topics'], len(dataset.vocab)), dtype=numpy.uint)
     t_counts = numpy.zeros((params['num_topics'],), dtype=numpy.uint)
-    model = GlobalModel(tw_counts, t_counts, params['alpha'], params['beta'], params['num_topics'], len(dataset.vocab))
+    model = GlobalModel(tw_counts, t_counts, params['alpha'], params['beta'],
+        params['num_topics'], len(dataset.vocab))
     plfilter = FirstMomentPLFilter(model)
 
     print('vocab size: %d' % len(dataset.vocab))
@@ -631,21 +660,27 @@ def run_lda(data_dir, categories, **kwargs):
             init_labels.append(d[1])
         elif i >= params['init_num_docs']:
             if i == params['init_num_docs']:
-                print('initializing on first %d docs (%d tokens)' % (i, num_tokens))
+                print('initializing on first %d docs (%d tokens)'
+                    % (i, num_tokens))
                 print('gibbs sampling with %d iters' % params['init_num_iters'])
                 init_gibbs_sampler = GibbsSampler(model)
                 init_gibbs_sampler.learn(init_sample, params['init_num_iters'])
 
                 print(model.to_string(dataset.vocab, 20))
-                print('in-sample nmi: %f' % nmi(init_labels, list(categories), init_gibbs_sampler.dt_counts, params['num_topics']))
+                print('in-sample nmi: %f'
+                    % nmi(init_labels, list(categories),
+                        init_gibbs_sampler.dt_counts, params['num_topics']))
                 gibbs_sampler = GibbsSampler(model)
                 gibbs_sampler.infer(test_sample, params['test_num_iters'])
-                print('out-of-sample nmi: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, params['num_topics']))
+                print('out-of-sample nmi: %f'
+                    % nmi(test_labels, list(categories),
+                        gibbs_sampler.dt_counts, params['num_topics']))
                 #plfilter.likelihood(test_sample)
 
                 print('creating particle filter on initialized model')
-                rejuv_data = ParticleFilterReservoirData(params['reservoir_size'],
-                    params['num_particles'], params['num_topics'])
+                rejuv_data = ParticleFilterReservoirData(
+                    params['reservoir_size'], params['num_particles'],
+                    params['num_topics'])
                 rs = ReservoirSampler(params['reservoir_size'])
                 ret = rs.init(params['reservoir_size'])
                 token_idx = 0
@@ -655,9 +690,13 @@ def run_lda(data_dir, categories, **kwargs):
                         inserted = rs._insert(token_idx, &reservoir_idx,
                             &ejected, &ejected_token_idx)
                         if inserted:
-                            zz = numpy.zeros((params['num_particles'],), dtype=numpy.uint)
-                            particle_d_counts = numpy.zeros((params['num_particles'],), dtype=numpy.uint)
-                            particle_dt_counts = numpy.zeros((params['num_particles'], params['num_topics']), dtype=numpy.uint)
+                            zz = numpy.zeros(
+                                (params['num_particles'],), dtype=numpy.uint)
+                            particle_d_counts = numpy.zeros(
+                                (params['num_particles'],), dtype=numpy.uint)
+                            particle_dt_counts = numpy.zeros(
+                                (params['num_particles'], params['num_topics']),
+                                dtype=numpy.uint)
                             for p in xrange(params['num_particles']):
                                 zz[p] = init_gibbs_sampler.assignments[token_idx]
                                 particle_d_counts[p] = init_gibbs_sampler.d_counts[doc_idx]
@@ -665,8 +704,9 @@ def run_lda(data_dir, categories, **kwargs):
                             rejuv_data.insert(reservoir_idx, doc_idx, w, zz,
                                 particle_d_counts, particle_dt_counts)
                         token_idx += 1
-                pf = ParticleFilter(model, params['num_particles'], params['ess_threshold'],
-                    rs, rejuv_data, params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
+                pf = ParticleFilter(model, params['num_particles'],
+                    params['ess_threshold'], rs, rejuv_data,
+                    params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
                     token_idx)
                 train_labels = init_labels
             pf.step(i, d[2])
@@ -677,7 +717,9 @@ def run_lda(data_dir, categories, **kwargs):
                 #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
                 gibbs_sampler = GibbsSampler(pf.max_posterior_model())
                 gibbs_sampler.infer(test_sample, params['test_num_iters'])
-                print('out-of-sample nmi: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, params['num_topics']))
+                print('out-of-sample nmi: %f'
+                    % nmi(test_labels, list(categories),
+                        gibbs_sampler.dt_counts, params['num_topics']))
                 #plfilter.likelihood(test_sample)
         num_tokens += len(d[2])
         i += 1
@@ -686,4 +728,6 @@ def run_lda(data_dir, categories, **kwargs):
     print(pf.max_posterior_model().to_string(dataset.vocab, 20))
     gibbs_sampler = GibbsSampler(pf.max_posterior_model())
     gibbs_sampler.infer(test_sample, params['test_num_iters'])
-    print('out-of-sample nmi: %f' % nmi(test_labels, list(categories), gibbs_sampler.dt_counts, params['num_topics']))
+    print('out-of-sample nmi: %f'
+        % nmi(test_labels, list(categories),
+            gibbs_sampler.dt_counts, params['num_topics']))
