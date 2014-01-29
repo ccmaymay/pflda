@@ -105,7 +105,8 @@ cdef numpy.double_t entropy1(list labels, list label_types):
     return _entropy
 
 
-cdef numpy.double_t entropy2(long[:] inferred_topics, numpy.uint_t num_topics):
+cdef numpy.double_t entropy2(long[::1] inferred_topics,
+        numpy.uint_t num_topics):
     cdef numpy.uint_t i, t
     cdef numpy.double_t n, count, p, _entropy
 
@@ -124,7 +125,7 @@ cdef numpy.double_t entropy2(long[:] inferred_topics, numpy.uint_t num_topics):
 
 
 cdef numpy.double_t mi(list labels, list label_types,
-        long[:] inferred_topics, numpy.uint_t num_topics):
+        long[::1] inferred_topics, numpy.uint_t num_topics):
     cdef numpy.uint_t i, t, j
     cdef numpy.double_t n, count, marginal_count1, marginal_count2, _mi
 
@@ -150,7 +151,7 @@ cdef numpy.double_t mi(list labels, list label_types,
 
 
 cdef numpy.double_t nmi(list labels, list label_types,
-        long[:] inferred_topics, numpy.uint_t num_topics):
+        long[::1] inferred_topics, numpy.uint_t num_topics):
     cdef numpy.double_t _nmi
 
     _nmi = 2.0 * (mi(labels, label_types, inferred_topics, num_topics) /
@@ -522,7 +523,7 @@ cdef class ParticleFilter:
 
         for i in xrange(self.num_particles):
             self.label_store.set(i, doc_idx,
-                self.label_store.compute(self.local_dt_counts[i, :]))
+                numpy.argmax(self.local_dt_counts[i, :], 0))
 
     cdef void rejuvenate(self):
         cdef GlobalModel model
@@ -673,6 +674,7 @@ cdef class GibbsSampler:
 
 cdef void eval_pf(numpy.uint_t num_topics, ParticleFilter pf,
         FirstMomentPLFilter plfilter, list test_sample, list test_labels,
+        list train_labels,
         numpy.uint_t test_num_iters, list categories):
     cdef GibbsSampler gibbs_sampler
     cdef numpy.double_t ll
@@ -680,7 +682,7 @@ cdef void eval_pf(numpy.uint_t num_topics, ParticleFilter pf,
 
     inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
     print('in-sample nmi: %f'
-        % nmi(test_labels, categories, inferred_topics, num_topics))
+        % nmi(train_labels, categories, inferred_topics, num_topics))
     gibbs_sampler = GibbsSampler(pf.max_posterior_model())
     gibbs_sampler.infer(test_sample, test_num_iters)
     inferred_topics = numpy.argmax(gibbs_sampler.dt_counts, 1)
@@ -813,7 +815,7 @@ def run_lda(data_dir, categories, **kwargs):
 
                 train_labels = init_labels
                 eval_pf(params['num_topics'], pf, plfilter,
-                    test_sample, test_labels,
+                    test_sample, test_labels, train_labels,
                     params['test_num_iters'], list(categories))
 
                 print(pf.max_posterior_model().to_string(dataset.vocab, 20))
@@ -825,7 +827,7 @@ def run_lda(data_dir, categories, **kwargs):
             print('num words: %d' % len(d[2]))
             if i % 50 == 0:
                 eval_pf(params['num_topics'], pf, plfilter,
-                    test_sample, test_labels,
+                    test_sample, test_labels, train_labels,
                     params['test_num_iters'], list(categories))
 
         num_tokens += len(d[2])
@@ -833,7 +835,7 @@ def run_lda(data_dir, categories, **kwargs):
 
     # end of run, do one last eval and print topics
     eval_pf(params['num_topics'], pf, plfilter, test_sample, test_labels,
-        params['test_num_iters'], list(categories))
+        train_labels, params['test_num_iters'], list(categories))
 
     print('processed %d docs (%d tokens)' % (i, num_tokens))
     print(pf.max_posterior_model().to_string(dataset.vocab, 20))
