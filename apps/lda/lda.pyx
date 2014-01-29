@@ -31,49 +31,6 @@ DEFAULT_PARAMS = dict(
 )
 
 
-cdef class ParticleLabelStore:
-    cdef list labels
-    cdef numpy.uint_t num_particles, num_topics
-
-    def __cinit__(self, numpy.uint_t num_particles, numpy.uint_t num_topics):
-        cdef numpy.uint_t p
-        self.num_particles = num_particles
-        self.num_topics = num_topics
-        self.labels = []
-        for p in xrange(num_particles):
-            self.labels.append([])
-
-    def append(self, numpy.uint_t p, numpy.uint_t label):
-        self.labels[p].append(label)
-
-    def set(self, numpy.uint_t p, numpy.uint_t doc_idx, numpy.uint_t label):
-        self.labels[p][i] = label
-
-    def compute_label(self, numpy.uint_t[::1] dt_counts):
-        cdef numpy.uint_t t, count, max_t, max_count
-        count = 0
-        max_count = 0
-        max_t = 0
-        for t in xrange(self.num_topics):
-            count = dt_counts[t]
-            if count > max_count:
-                max_t = t
-                max_count = count
-        return max_t
-
-    def recompute(self, ParticleFilterReservoirData rejuv_data):
-        cdef numpy.uint_t[::1] dt_counts
-        cdef numpy.uint_t p, i, j, doc_idx, label
-
-        for p in xrange(self.num_particles):
-            for j in xrange(rejuv_data.occupied):
-                i = rejuv_data.reservoir_idx_map[j]
-                doc_idx = rejuv_data.doc_ids[j]
-                dt_counts = rejuv_data.dt_counts[i, p, :]
-                label = self.compute_label(dt_counts)
-                self.set(p, doc_idx, label)
-
-
 cdef numpy.double_t perplexity(numpy.double_t likelihood, list sample):
     cdef numpy.uint_t num_words, i
     num_words = 0
@@ -193,15 +150,60 @@ cdef numpy.double_t mi(list labels, list label_types,
 
 
 cdef numpy.double_t nmi(list labels, list label_types,
-        numpy.uint_t[:, ::1] dt_counts, numpy.uint_t num_topics):
-    cdef long[:] inferred_topics
+        long[:] inferred_topics, numpy.uint_t num_topics):
     cdef numpy.double_t _nmi
 
-    inferred_topics = numpy.argmax(dt_counts, 1)
     _nmi = 2.0 * (mi(labels, label_types, inferred_topics, num_topics) /
         (entropy1(labels, label_types) + entropy2(inferred_topics, num_topics)))
 
     return _nmi
+
+
+cdef class ParticleLabelStore:
+    cdef list labels
+    cdef numpy.uint_t num_particles, num_topics
+
+    def __cinit__(self, numpy.uint_t num_particles, numpy.uint_t num_topics):
+        cdef numpy.uint_t p
+        self.num_particles = num_particles
+        self.num_topics = num_topics
+        self.labels = []
+        for p in xrange(num_particles):
+            self.labels.append([])
+
+    cdef void append(self, numpy.uint_t p, numpy.uint_t label):
+        self.labels[p].append(label)
+
+    cdef void set(self, numpy.uint_t p, numpy.uint_t doc_idx,
+            numpy.uint_t label):
+        self.labels[p][i] = label
+
+    cdef long compute_label(self, numpy.uint_t[::1] dt_counts):
+        cdef long[::1] t
+        t = numpy.argmax(dt_counts, 1)
+        return t[0]
+
+    cdef void recompute(self, ParticleFilterReservoirData rejuv_data):
+        cdef numpy.uint_t[::1] dt_counts
+        cdef numpy.uint_t p, i, j, doc_idx, label
+
+        for p in xrange(self.num_particles):
+            for j in xrange(rejuv_data.occupied):
+                i = rejuv_data.reservoir_idx_map[j]
+                doc_idx = rejuv_data.doc_ids[j]
+                dt_counts = rejuv_data.dt_counts[i, p, :]
+                label = self.compute_label(dt_counts)
+                self.set(p, doc_idx, label)
+
+    cdef long[::1] label_view(self, numpy.uint_t p):
+        cdef list particle_labels
+        cdef long[::1] view
+        cdef numpy.uint_t i
+        particle_labels = labels[p]
+        view = numpy.zeros((len(particle_labels),), dtype=numpy.long)
+        for i in xrange(len(particle_labels)):
+            view[i] = particle_labels[i]
+        return view
 
 
 cdef class GlobalModel:
@@ -586,10 +588,15 @@ cdef class ParticleFilter:
             self.alpha, self.beta, self.num_topics, self.vocab_size)
         return model
 
+    cdef numpy.uint_t max_posterior_particle(self):
+        cdef numpy.uint_t p
+        p = numpy.argmax(self.weights)
+        return p
+
     cdef GlobalModel max_posterior_model(self):
         cdef GlobalModel model
         cdef numpy.uint_t p
-        p = numpy.argmax(self.weights)
+        p = self.max_posterior_particle()
         model = self.model_for_particle(p)
         return model
 
@@ -674,11 +681,16 @@ cdef void eval_pf(numpy.uint_t num_topics, ParticleFilter pf,
         numpy.uint_t test_num_iters, list categories):
     cdef GibbsSampler gibbs_sampler
     cdef numpy.double_t ll
+    cdef long[::1] inferred_topics
 
+    inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
+    print('in-sample nmi: %f'
+        nmi(test_labels, categories, inferred_topics, num_topics))
     gibbs_sampler = GibbsSampler(pf.max_posterior_model())
     gibbs_sampler.infer(test_sample, test_num_iters)
+    inferred_topics = numpy.argmax(gibbs_sampler.dt_counts, 1)
     print('out-of-sample nmi: %f'
-        % nmi(test_labels, categories, gibbs_sampler.dt_counts, num_topics))
+        % nmi(test_labels, categories, inferred_topics, num_topics))
     ll = plfilter.likelihood(test_sample)
     print('out-of-sample log-likelihood: %f' % ll)
     print('out-of-sample perplexity: %f' % perplexity(ll, test_sample))
