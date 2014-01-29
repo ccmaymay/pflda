@@ -23,22 +23,27 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
                 my.data <- data.frame(mean=rowSums(my.data.raw)/dim(my.data.raw)[2])
                 my.data$experiment <- rep(experiment.name.legend, dim(my.data)[1])
                 my.data$sd <- apply(my.data.raw, 1, sd)
-                my.data$idx <- 1:dim(my.data)[1]
+                my.data$idx <- (1:dim(my.data)[1]) - 1
                 my.data$lcl <- my.data$mean - my.data$sd
                 my.data$ucl <- my.data$mean + my.data$sd
+                my.data <- my.data[!is.na(my.data$mean),]
                 data <- rbind(data, my.data)
             }
 
             dir.create('plots')
             dir.create(paste('plots', experiment.group.name, sep='/'))
             filename.out <- paste('plots', experiment.group.name, paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
-            qplot(idx, mean, data=data, group=experiment) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document number (starting at end of initialization)') + ggtitle(paste(dataset.name, stat.name)) #+ ylim(0,1)
-            ggsave(filename.out)
+            if (dim(data)[1] > 0) {
+                qplot(idx, mean, data=data, group=experiment) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document number (starting at end of initialization)') + ggtitle(paste(dataset.name, stat.name)) #+ ylim(0,1)
+                ggsave(filename.out)
+            } else {
+                cat('Data empty for', filename.out, '\n')
+            }
         }
     }
 }
 
-plot.experiments('0', c('diff3'), c('0'), c('0'))
+plot.experiments('0', c('diff3', 'sim3', 'rel3'), c('0'), NULL)
 #plot.experiments('1', c('diff3', 'rel3', 'sim3'), c('1-rs0', '1-rs1k', '1-rs10k', '1-rs100k'), c('reservoir size 0', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k'))
 #plot.experiments('2', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs0', '2-rs1k-ibs10', '2-rs1k-ibs100', '2-rs1k-ibs1k'), c('initialization size 0', 'initialization size 10', 'initialization size 100', 'initialization size 1k'))
 #plot.experiments('9', c('diff3', 'rel3', 'sim3'), c('9-rs0', '9-rs1k', '9-rs10k', '9-rs100k'), c('reservoir size 0', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k'))
