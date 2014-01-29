@@ -176,12 +176,7 @@ cdef class ParticleLabelStore:
 
     cdef void set(self, numpy.uint_t p, numpy.uint_t doc_idx,
             numpy.uint_t label):
-        self.labels[p][i] = label
-
-    cdef long compute_label(self, numpy.uint_t[::1] dt_counts):
-        cdef long[::1] t
-        t = numpy.argmax(dt_counts, 1)
-        return t[0]
+        self.labels[p][doc_idx] = label
 
     cdef void recompute(self, ParticleFilterReservoirData rejuv_data):
         cdef numpy.uint_t[::1] dt_counts
@@ -192,14 +187,14 @@ cdef class ParticleLabelStore:
                 i = rejuv_data.reservoir_idx_map[j]
                 doc_idx = rejuv_data.doc_ids[j]
                 dt_counts = rejuv_data.dt_counts[i, p, :]
-                label = self.compute_label(dt_counts)
+                label = numpy.argmax(dt_counts, 0)
                 self.set(p, doc_idx, label)
 
     cdef long[::1] label_view(self, numpy.uint_t p):
         cdef list particle_labels
         cdef long[::1] view
         cdef numpy.uint_t i
-        particle_labels = labels[p]
+        particle_labels = self.labels[p]
         view = numpy.zeros((len(particle_labels),), dtype=numpy.long)
         for i in xrange(len(particle_labels)):
             view[i] = particle_labels[i]
@@ -685,7 +680,7 @@ cdef void eval_pf(numpy.uint_t num_topics, ParticleFilter pf,
 
     inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
     print('in-sample nmi: %f'
-        nmi(test_labels, categories, inferred_topics, num_topics))
+        % nmi(test_labels, categories, inferred_topics, num_topics))
     gibbs_sampler = GibbsSampler(pf.max_posterior_model())
     gibbs_sampler.infer(test_sample, test_num_iters)
     inferred_topics = numpy.argmax(gibbs_sampler.dt_counts, 1)
@@ -741,8 +736,7 @@ def create_pf(GlobalModel model, list init_sample,
             token_idx += 1
 
         for p in xrange(num_particles):
-            self.label_store.append(p,
-                self.label_store.compute(dt_counts[doc_idx, :]))
+            label_store.append(p, numpy.argmax(dt_counts[doc_idx, :], 0))
 
     pf = ParticleFilter(model, num_particles, ess_threshold, rs, rejuv_data,
         rejuv_sample_size, rejuv_mcmc_steps, token_idx, label_store)
