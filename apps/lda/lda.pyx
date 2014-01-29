@@ -21,8 +21,8 @@ DEFAULT_PARAMS = dict(
     init_num_docs = 100,
     init_num_iters = 100,
     num_particles = 100,
-    rejuv_sample_size = 10,
-    rejuv_mcmc_steps = 30,
+    rejuv_sample_size = 30,
+    rejuv_mcmc_steps = 1,
     num_topics = 3,
 )
 
