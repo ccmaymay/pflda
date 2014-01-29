@@ -27,6 +27,14 @@ DEFAULT_PARAMS = dict(
 )
 
 
+cdef numpy.double_t perplexity(numpy.double_t likelihood, list sample):
+    cdef numpy.uint_t num_words, i
+    num_words = 0
+    for i in xrange(len(sample)):
+        num_words += len(sample[i])
+    return numpy.exp(-likelihood / num_words)
+
+
 cdef numpy.double_t conditional_posterior(
         numpy.uint_t[:] tw_counts, numpy.uint_t[::1] t_counts,
         numpy.uint_t[::1] dt_counts, numpy.uint_t d_count,
@@ -214,12 +222,11 @@ cdef class FirstMomentPLFilter:
             self.model.vocab_size, self.model.num_topics,
             t)
 
-    cdef void likelihood(self, list sample):
+    cdef numpy.double_t likelihood(self, list sample):
         cdef numpy.double_t local_d_count, ll, s, p
         cdef numpy.double_t[::1] local_dt_counts, x
-        cdef numpy.uint_t i, j, t, w, num_words
+        cdef numpy.uint_t i, j, t, w
 
-        num_words = 0
         ll = 0.0
         local_d_count = 0.0
         local_dt_counts = numpy.zeros(
@@ -239,12 +246,10 @@ cdef class FirstMomentPLFilter:
                     p = x[t] / s
                     local_dt_counts[t] += p
                     local_d_count += p
-                num_words += 1
             if i % 100 == 0:
                 PyErr_CheckSignals()
 
-        print('log-likelihood: %f' % ll)
-        print('perplexity:     %f' % numpy.exp(-ll / num_words))
+        return ll
 
 
 cdef class ParticleFilterReservoirData:
@@ -607,20 +612,78 @@ cdef class GibbsSampler:
         sys.stdout.flush()
 
 
-def run_lda(data_dir, categories, **kwargs):
-    cdef GibbsSampler init_gibbs_sampler, gibbs_sampler
-    cdef GlobalModel model
-    cdef FirstMomentPLFilter plfilter
+cdef void eval_pf(numpy.uint_t num_topics, ParticleFilter pf,
+        FirstMomentPLFilter plfilter, list test_sample, list test_labels,
+        numpy.uint_t test_num_iters, list categories):
+    cdef GibbsSampler gibbs_sampler
+    cdef numpy.double_t ll
+
+    gibbs_sampler = GibbsSampler(pf.max_posterior_model())
+    gibbs_sampler.infer(test_sample, test_num_iters)
+    print('out-of-sample nmi: %f'
+        % nmi(test_labels, categories, gibbs_sampler.dt_counts, num_topics))
+    ll = plfilter.likelihood(test_sample)
+    print('out-of-sample log-likelihood: %f' % ll)
+    print('out-of-sample perplexity: %f' % perplexity(ll, test_sample))
+
+
+def create_pf(GlobalModel model, list init_sample,
+        numpy.uint_t[:, ::1] dt_counts, numpy.uint_t[::1] d_counts,
+        list assignments,
+        numpy.uint_t reservoir_size, numpy.uint_t num_particles,
+        numpy.uint_t num_topics, numpy.double_t ess_threshold,
+        numpy.uint_t rejuv_sample_size, numpy.uint_t rejuv_mcmc_steps):
     cdef ParticleFilter pf
     cdef ReservoirSampler rs
     cdef ParticleFilterReservoirData rejuv_data
-    cdef numpy.uint_t i, j, doc_idx, num_tokens, p, ret, token_idx
-    cdef numpy.uint_t[::1] particle_d_counts, dt_counts, zz, t_counts
-    cdef numpy.uint_t[:, ::1] particle_dt_counts, tw_counts
     cdef bint ejected, inserted
     cdef lowl_key ejected_token_idx
     cdef size_t reservoir_idx
+    cdef numpy.uint_t ret, token_idx
+    cdef numpy.uint_t[::1] particle_d_counts, zz
+    cdef numpy.uint_t[:, ::1] particle_dt_counts
 
+    rejuv_data = ParticleFilterReservoirData(reservoir_size, num_particles,
+        num_topics)
+    rs = ReservoirSampler()
+    ret = rs.init(reservoir_size)
+    token_idx = 0
+
+    for doc_idx in xrange(len(init_sample)):
+        for j in xrange(len(init_sample[doc_idx])):
+            w = init_sample[doc_idx][j]
+            inserted = rs._insert(token_idx, &reservoir_idx,
+                &ejected, &ejected_token_idx)
+            if inserted:
+                zz = numpy.zeros(
+                    (num_particles,), dtype=numpy.uint)
+                particle_d_counts = numpy.zeros(
+                    (num_particles,), dtype=numpy.uint)
+                particle_dt_counts = numpy.zeros(
+                    (num_particles, num_topics), dtype=numpy.uint)
+                for p in xrange(num_particles):
+                    zz[p] = assignments[token_idx]
+                    particle_d_counts[p] = d_counts[doc_idx]
+                    particle_dt_counts[p,:] = dt_counts[doc_idx,:]
+                rejuv_data.insert(reservoir_idx, doc_idx, w, zz,
+                    particle_d_counts, particle_dt_counts)
+            token_idx += 1
+
+    pf = ParticleFilter(model, num_particles, ess_threshold, rs, rejuv_data,
+        rejuv_sample_size, rejuv_mcmc_steps, token_idx)
+    return pf
+
+
+def run_lda(data_dir, categories, **kwargs):
+    cdef GibbsSampler init_gibbs_sampler
+    cdef GlobalModel model
+    cdef FirstMomentPLFilter plfilter
+    cdef ParticleFilter pf
+    cdef numpy.uint_t i, j, doc_idx, num_tokens, p
+    cdef numpy.uint_t[::1] t_counts
+    cdef numpy.uint_t[:, ::1] tw_counts
+
+    # load default params and override with contents of kwargs (if any)
     params = DEFAULT_PARAMS.copy()
     for (k, v) in kwargs.items():
         if k in params:
@@ -637,6 +700,7 @@ def run_lda(data_dir, categories, **kwargs):
     print('vocab size: %d' % len(dataset.vocab))
 
     def preprocess(doc_triple):
+        # replace words with unique ids
         return doc_triple[:2] + ([dataset.vocab[w] for w in doc_triple[2]],)
 
     test_data = [preprocess(t) for t in dataset.test_iterator()]
@@ -653,81 +717,54 @@ def run_lda(data_dir, categories, **kwargs):
 
     i = 0
     num_tokens = 0
+
     for doc_triple in dataset.train_iterator():
         d = preprocess(doc_triple)
+
         if i < params['init_num_docs']:
+            # accumulate data for init gibbs sampler
             init_sample.append(d[2])
             init_labels.append(d[1])
-        elif i >= params['init_num_docs']:
+        else:
             if i == params['init_num_docs']:
+                # run init gibbs sampler on accumulated data, then
+                # create pf from results
                 print('initializing on first %d docs (%d tokens)'
                     % (i, num_tokens))
                 print('gibbs sampling with %d iters' % params['init_num_iters'])
                 init_gibbs_sampler = GibbsSampler(model)
                 init_gibbs_sampler.learn(init_sample, params['init_num_iters'])
 
-                print(model.to_string(dataset.vocab, 20))
-                print('in-sample nmi: %f'
-                    % nmi(init_labels, list(categories),
-                        init_gibbs_sampler.dt_counts, params['num_topics']))
-                gibbs_sampler = GibbsSampler(model)
-                gibbs_sampler.infer(test_sample, params['test_num_iters'])
-                print('out-of-sample nmi: %f'
-                    % nmi(test_labels, list(categories),
-                        gibbs_sampler.dt_counts, params['num_topics']))
-                #plfilter.likelihood(test_sample)
-
                 print('creating particle filter on initialized model')
-                rejuv_data = ParticleFilterReservoirData(
+                pf = create_pf(model, init_sample, init_gibbs_sampler.dt_counts,
+                    init_gibbs_sampler.d_counts, init_gibbs_sampler.assignments,
                     params['reservoir_size'], params['num_particles'],
-                    params['num_topics'])
-                rs = ReservoirSampler(params['reservoir_size'])
-                ret = rs.init(params['reservoir_size'])
-                token_idx = 0
-                for doc_idx in xrange(len(init_sample)):
-                    for j in xrange(len(init_sample[doc_idx])):
-                        w = init_sample[doc_idx][j]
-                        inserted = rs._insert(token_idx, &reservoir_idx,
-                            &ejected, &ejected_token_idx)
-                        if inserted:
-                            zz = numpy.zeros(
-                                (params['num_particles'],), dtype=numpy.uint)
-                            particle_d_counts = numpy.zeros(
-                                (params['num_particles'],), dtype=numpy.uint)
-                            particle_dt_counts = numpy.zeros(
-                                (params['num_particles'], params['num_topics']),
-                                dtype=numpy.uint)
-                            for p in xrange(params['num_particles']):
-                                zz[p] = init_gibbs_sampler.assignments[token_idx]
-                                particle_d_counts[p] = init_gibbs_sampler.d_counts[doc_idx]
-                                particle_dt_counts[p,:] = init_gibbs_sampler.dt_counts[doc_idx,:]
-                            rejuv_data.insert(reservoir_idx, doc_idx, w, zz,
-                                particle_d_counts, particle_dt_counts)
-                        token_idx += 1
-                pf = ParticleFilter(model, params['num_particles'],
-                    params['ess_threshold'], rs, rejuv_data,
-                    params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
-                    token_idx)
+                    params['num_topics'], params['ess_threshold'],
+                    params['rejuv_sample_size'], params['rejuv_mcmc_steps'])
+
                 train_labels = init_labels
+                eval_pf(params['num_topics'], pf, plfilter,
+                    test_sample, test_labels,
+                    params['test_num_iters'], list(categories))
+
+                print(pf.max_posterior_model().to_string(dataset.vocab, 20))
+
+            # process current document through pf
             pf.step(i, d[2])
             train_labels.append(d[1])
             print('doc: %d' % i)
             print('num words: %d' % len(d[2]))
-            if i % 100 == 0:
-                #print(pf.max_posterior_model().to_string(dataset.vocab, 20))
-                gibbs_sampler = GibbsSampler(pf.max_posterior_model())
-                gibbs_sampler.infer(test_sample, params['test_num_iters'])
-                print('out-of-sample nmi: %f'
-                    % nmi(test_labels, list(categories),
-                        gibbs_sampler.dt_counts, params['num_topics']))
-                #plfilter.likelihood(test_sample)
+            if i % 50 == 0:
+                eval_pf(params['num_topics'], pf, plfilter,
+                    test_sample, test_labels,
+                    params['test_num_iters'], list(categories))
+
         num_tokens += len(d[2])
         i += 1
 
+    # end of run, do one last eval and print topics
+    eval_pf(params['num_topics'], pf, plfilter, test_sample, test_labels,
+        params['test_num_iters'], list(categories))
+
     print('processed %d docs (%d tokens)' % (i, num_tokens))
     print(pf.max_posterior_model().to_string(dataset.vocab, 20))
-    gibbs_sampler = GibbsSampler(pf.max_posterior_model())
-    gibbs_sampler.infer(test_sample, params['test_num_iters'])
-    print('out-of-sample nmi: %f'
-        % nmi(test_labels, list(categories),
-            gibbs_sampler.dt_counts, params['num_topics']))
