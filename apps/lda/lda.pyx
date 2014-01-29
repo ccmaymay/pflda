@@ -11,7 +11,6 @@ cimport numpy
 from cpython.exc cimport PyErr_CheckSignals
 
 
-# TODO finish label store stuff
 # TODO check nmi
 # TODO add option to resample before step
 
@@ -34,9 +33,12 @@ DEFAULT_PARAMS = dict(
 
 cdef class ParticleLabelStore:
     cdef list labels
+    cdef numpy.uint_t num_particles, num_topics
 
-    def __cinit__(self, numpy.uint_t num_particles):
+    def __cinit__(self, numpy.uint_t num_particles, numpy.uint_t num_topics):
         cdef numpy.uint_t p
+        self.num_particles = num_particles
+        self.num_topics = num_topics
         self.labels = []
         for p in xrange(num_particles):
             self.labels.append([])
@@ -47,8 +49,29 @@ cdef class ParticleLabelStore:
     def set(self, numpy.uint_t p, numpy.uint_t doc_idx, numpy.uint_t label):
         self.labels[p][i] = label
 
+    def compute_label(self, numpy.uint_t[::1] dt_counts):
+        cdef numpy.uint_t t, count, max_t, max_count
+        count = 0
+        max_count = 0
+        max_t = 0
+        for t in xrange(self.num_topics):
+            count = dt_counts[t]
+            if count > max_count:
+                max_t = t
+                max_count = count
+        return max_t
+
     def recompute(self, ParticleFilterReservoirData rejuv_data):
-        pass
+        cdef numpy.uint_t[::1] dt_counts
+        cdef numpy.uint_t p, i, j, doc_idx, label
+
+        for p in xrange(self.num_particles):
+            for j in xrange(rejuv_data.occupied):
+                i = rejuv_data.reservoir_idx_map[j]
+                doc_idx = rejuv_data.doc_ids[j]
+                dt_counts = rejuv_data.dt_counts[i, p, :]
+                label = self.compute_label(dt_counts)
+                self.set(p, doc_idx, label)
 
 
 cdef numpy.double_t perplexity(numpy.double_t likelihood, list sample):
@@ -458,6 +481,9 @@ cdef class ParticleFilter:
         self.local_dt_counts = numpy.zeros(
             (self.num_particles, self.num_topics), dtype=numpy.uint)
 
+        for i in xrange(self.num_particles):
+            self.label_store.append(i, 0)
+
         for j in xrange(len(doc)):
             w = doc[j]
 
@@ -496,6 +522,10 @@ cdef class ParticleFilter:
 
             self.token_idx += 1
             PyErr_CheckSignals()
+
+        for i in xrange(self.num_particles):
+            self.label_store.set(i, doc_idx,
+                self.label_store.compute(self.local_dt_counts[i, :]))
 
     cdef void rejuvenate(self):
         cdef GlobalModel model
@@ -671,6 +701,7 @@ def create_pf(GlobalModel model, list init_sample,
     cdef numpy.uint_t[::1] particle_d_counts, zz
     cdef numpy.uint_t[:, ::1] particle_dt_counts
 
+    label_store = ParticleLabelStore(num_particles, num_topics)
     rejuv_data = ParticleFilterReservoirData(reservoir_size, num_particles,
         num_topics)
     rs = ReservoirSampler()
@@ -697,7 +728,10 @@ def create_pf(GlobalModel model, list init_sample,
                     particle_d_counts, particle_dt_counts)
             token_idx += 1
 
-    label_store = ParticleLabelStore(num_particles)
+        for p in xrange(num_particles):
+            self.label_store.append(p,
+                self.label_store.compute(dt_counts[doc_idx, :]))
+
     pf = ParticleFilter(model, num_particles, ess_threshold, rs, rejuv_data,
         rejuv_sample_size, rejuv_mcmc_steps, token_idx, label_store)
     return pf
