@@ -5,5 +5,7 @@ shift
 
 for dataset in diff3 rel3 sim3
 do
-    qsub -o "$experiment_dir/dataset/\$TASK_ID.log" "$@"
+    d="$experiment_dir/$dataset"
+    mkdir -p "$d"
+    qsub -o "$d/\$TASK_ID.log" "$@"
 done
