@@ -793,6 +793,12 @@ def run_lda(data_dir, categories, **kwargs):
     for (k, v) in params.items():
         print('\t%s = %s' % (k, str(v)))
 
+    print('data dir: %s' % data_dir)
+
+    print('categories:')
+    for category in categories:
+        print('\t%s' % category)
+
     dataset = Dataset(data_dir, set(categories))
     tw_counts = numpy.zeros(
         (params['num_topics'], len(dataset.vocab)), dtype=numpy.uint)
