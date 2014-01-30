@@ -30,6 +30,27 @@ DEFAULT_PARAMS = dict(
 )
 
 
+cdef void shuffle(numpy.uint_t[::1] x):
+    cdef numpy.uint_t n, i, j, temp
+    n = len(x)
+    for i in xrange(n - 1, 0, -1):
+        j = randint(0, i)
+        temp = x[i]
+        x[i] = x[j]
+        x[j] = temp
+
+
+cdef numpy.uint_t[::1] sample_without_replacement(numpy.uint_t[::1] x,
+        numpy.uint_t n):
+    cdef numpy.uint_t[::1] samp
+    if n < len(x):
+        shuffle(x)
+        samp = x[:n]
+    else:
+        samp = x
+    return samp
+
+
 cdef numpy.double_t perplexity(numpy.double_t likelihood, list sample):
     cdef numpy.uint_t num_words, i
     num_words = 0
@@ -542,11 +563,8 @@ cdef class ParticleFilter:
         cdef numpy.uint_t p, t, i, j, w, z
 
         sample_candidates = numpy.arange(self.rs.occupied(), dtype=numpy.uint)
-        if self.rejuv_sample_size < self.rs.occupied():
-            sample = numpy.random.choice(sample_candidates,
-                self.rejuv_sample_size, replace=False)
-        else:
-            sample = sample_candidates
+        sample = sample_without_replacement(sample_candidates,
+            self.rejuv_sample_size)
 
         for p in xrange(self.num_particles):
             for t in xrange(self.rejuv_mcmc_steps):
