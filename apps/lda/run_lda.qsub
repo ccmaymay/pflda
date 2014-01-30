@@ -2,7 +2,6 @@
 #$ -cwd
 #$ -j y
 #$ -t 1-30
-#$ -tc 4
 #$ -V
 #$ -N "slda"
 bash run_lda.sh $@
