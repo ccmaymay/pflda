@@ -12,7 +12,6 @@ from cpython.exc cimport PyErr_CheckSignals
 
 
 # TODO check nmi
-# TODO add option to resample before step
 
 
 cdef object DEFAULT_PARAMS
@@ -772,6 +771,9 @@ def run_lda(data_dir, categories, **kwargs):
     for (k, v) in kwargs.items():
         if k in params:
             params[k] = type(params[k])(v)
+    print('params:')
+    for (k, v) in params.items():
+        print('\t%s = %s' % (k, str(v)))
 
     dataset = Dataset(data_dir, set(categories))
     tw_counts = numpy.zeros(
