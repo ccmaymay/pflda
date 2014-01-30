@@ -24,3 +24,7 @@ bash qsub_tng3.sh 2-rs1k-ibs1k -q text.q -tc 2 \
     -l num_proc=1,mem_free=200M,h_rt=2:00:00 \
     run_lda.qsub $dataset --reservoir_size=1000 \
     --init_num_docs=1000 --init_num_iters=2000
+bash qsub_tng3.sh 2-rs1k-ibs2k -q text.q -tc 2 \
+    -l num_proc=1,mem_free=200M,h_rt=2:00:00 \
+    run_lda.qsub $dataset --reservoir_size=1000 \
+    --init_num_docs=2000 --init_num_iters=2000
