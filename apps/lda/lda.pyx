@@ -872,6 +872,24 @@ def run_lda(data_dir, categories, **kwargs):
         num_tokens += len(d[2])
         i += 1
 
+    if i <= params['init_num_docs']:
+        # init_num_docs was really big; do Gibbs sampling and initialize
+        # pf just so we can evaluate the model learned by Gibbs
+        print('initializing on first %d docs (%d tokens)'
+            % (i, num_tokens))
+        print('gibbs sampling with %d iters' % params['init_num_iters'])
+        init_gibbs_sampler = GibbsSampler(model)
+        init_gibbs_sampler.learn(init_sample, params['init_num_iters'])
+
+        print('creating particle filter on initialized model')
+        pf = create_pf(model, init_sample, init_gibbs_sampler.dt_counts,
+            init_gibbs_sampler.d_counts, init_gibbs_sampler.assignments,
+            params['reservoir_size'], params['num_particles'],
+            params['num_topics'], params['ess_threshold'],
+            params['rejuv_sample_size'], params['rejuv_mcmc_steps'])
+
+        train_labels = init_labels
+
     # end of run, do one last eval and print topics
     eval_pf(params['num_topics'], pf, plfilter, test_sample, test_labels,
         train_labels, params['test_num_iters'], list(categories))
