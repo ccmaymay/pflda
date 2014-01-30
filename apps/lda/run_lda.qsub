@@ -5,4 +5,4 @@
 #$ -tc 4
 #$ -V
 #$ -N "slda"
-bash run_tng3.sh $@
+bash run_lda.sh $@
