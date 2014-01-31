@@ -715,21 +715,27 @@ cdef class GibbsSampler:
 
 
 cdef void eval_pf(numpy.uint_t num_topics, ParticleFilter pf,
-        FirstMomentPLFilter plfilter, list test_sample, list test_labels,
-        list train_labels,
+        list test_sample, list test_labels, list train_labels,
         numpy.uint_t test_num_iters, list categories):
+    cdef FirstMomentPLFilter plfilter
+    cdef GlobalModel model
     cdef GibbsSampler gibbs_sampler
     cdef numpy.double_t ll
     cdef long[::1] inferred_topics
 
+    model = pf.max_posterior_model()
+
     inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
     print('in-sample nmi: %f'
         % nmi(train_labels, categories, inferred_topics, num_topics))
-    gibbs_sampler = GibbsSampler(pf.max_posterior_model())
+
+    gibbs_sampler = GibbsSampler(model)
     gibbs_sampler.infer(test_sample, test_num_iters)
     inferred_topics = numpy.argmax(gibbs_sampler.dt_counts, 1)
     print('out-of-sample nmi: %f'
         % nmi(test_labels, categories, inferred_topics, num_topics))
+
+    plfilter = FirstMomentPLFilter(model)
     ll = plfilter.likelihood(test_sample)
     print('out-of-sample log-likelihood: %f' % ll)
     print('out-of-sample perplexity: %f' % perplexity(ll, test_sample))
@@ -869,7 +875,7 @@ def run_lda(data_dir, categories, **kwargs):
                     params['resample_propagate'])
 
                 train_labels = init_labels
-                eval_pf(params['num_topics'], pf, plfilter,
+                eval_pf(params['num_topics'], pf,
                     test_sample, test_labels, train_labels,
                     params['test_num_iters'], list(categories))
 
@@ -881,7 +887,7 @@ def run_lda(data_dir, categories, **kwargs):
             print('doc: %d' % i)
             print('num words: %d' % len(d[2]))
             if i % 50 == 0:
-                eval_pf(params['num_topics'], pf, plfilter,
+                eval_pf(params['num_topics'], pf,
                     test_sample, test_labels, train_labels,
                     params['test_num_iters'], list(categories))
 
@@ -908,7 +914,7 @@ def run_lda(data_dir, categories, **kwargs):
         train_labels = init_labels
 
     # end of run, do one last eval and print topics
-    eval_pf(params['num_topics'], pf, plfilter, test_sample, test_labels,
+    eval_pf(params['num_topics'], pf, test_sample, test_labels,
         train_labels, params['test_num_iters'], list(categories))
 
     print('processed %d docs (%d tokens)' % (i, num_tokens))
