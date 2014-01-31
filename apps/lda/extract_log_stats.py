@@ -66,8 +66,9 @@ def process_logs(experiment_path):
                 path = os.path.join(dataset_path, entry)
                 if os.path.isfile(path) and not entry.startswith('.'):
                     (last_doc_num, per_doc_stats) = parse_log(path)
-                    doc_num_bound = max(last_doc_num + 1, doc_num_bound)
-                    per_doc_stats_list.append(per_doc_stats)
+                    if last_doc_num is not None and per_doc_stats:
+                        doc_num_bound = max(last_doc_num + 1, doc_num_bound)
+                        per_doc_stats_list.append(per_doc_stats)
 
             for stat_name in PER_DOC_STAT_NAMES:
                 dataset_tab_path = dataset_path + '_%s.tab' % normalize_stat_name(stat_name)
