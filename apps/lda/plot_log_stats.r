@@ -19,15 +19,17 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
                 experiment.name.legend <- experiment.names.legend[i]
                 cat('  -', experiment.name, stat.name, '\n')
                 filename.in <- paste(experiment.name, '/', dataset.name, '_', stat.name, '.tab', sep='')
-                my.data.raw <- read.table(filename.in, header=T)
-                my.data <- data.frame(mean=rowSums(my.data.raw)/dim(my.data.raw)[2])
-                my.data$experiment <- rep(experiment.name.legend, dim(my.data)[1])
-                my.data$sd <- apply(my.data.raw, 1, sd)
-                my.data$idx <- (1:dim(my.data)[1]) - 1
-                my.data$lcl <- my.data$mean - my.data$sd
-                my.data$ucl <- my.data$mean + my.data$sd
-                my.data <- my.data[!is.na(my.data$mean),]
-                data <- rbind(data, my.data)
+                my.data.raw <- tryCatch(read.table(filename.in, header=T), error=function(ex) {NULL})
+                if (! is.null(my.data.raw)) {
+                    my.data <- data.frame(mean=rowSums(my.data.raw)/dim(my.data.raw)[2])
+                    my.data$experiment <- rep(experiment.name.legend, dim(my.data)[1])
+                    my.data$sd <- apply(my.data.raw, 1, sd)
+                    my.data$idx <- (1:dim(my.data)[1]) - 1
+                    my.data$lcl <- my.data$mean - my.data$sd
+                    my.data$ucl <- my.data$mean + my.data$sd
+                    my.data <- my.data[!is.na(my.data$mean),]
+                    data <- rbind(data, my.data)
+                }
             }
 
             dir.create('plots')
