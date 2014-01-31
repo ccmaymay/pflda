@@ -4,4 +4,4 @@
 #$ -t 1-30
 #$ -V
 #$ -N "slda"
-bash run_lda.sh $@
+bash run_lda.sh "$@"

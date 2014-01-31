@@ -1,11 +1,8 @@
 #!/bin/bash
 
-experiment_dir="$1"
-shift
-
 for dataset in diff3 rel3 sim3
 do
-    d="$experiment_dir/$dataset"
+    d="$1/$dataset"
     mkdir -p "$d"
-    qsub -o "$d/\$TASK_ID.log" "$@"
+    qsub -o "$d/\$TASK_ID.log" $2 run_lda.qsub $dataset $3
 done
