@@ -45,9 +45,8 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
     }
 }
 
-plot.experiments('1', c('diff3', 'rel3', 'sim3'), c('1-rs1k'), c('reservoir size 1k'))
 #plot.experiments('1', c('diff3', 'rel3', 'sim3'), c('1-rs0', '1-rs1k', '1-rs10k', '1-rs100k'), c('reservoir size 0', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k'))
-#plot.experiments('2', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs0', '2-rs1k-ibs10', '2-rs1k-ibs100', '2-rs1k-ibs1k'), c('initialization size 0', 'initialization size 10', 'initialization size 100', 'initialization size 1k'))
+plot.experiments('2', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs0', '2-rs1k-ibs10', '2-rs1k-ibs30', '2-rs1k-ibs100', '2-rs1k-ibs300', '2-rs1k-ibs1k', '2-rs1k-ibs3k'), c('initialization size 0', 'initialization size 10', 'initialization size 30', 'initialization size 100', 'initialization size 300', 'initialization size 1k', 'initialization size 3k'))
 #plot.experiments('9', c('diff3', 'rel3', 'sim3'), c('9-rs0', '9-rs1k', '9-rs10k', '9-rs100k'), c('reservoir size 0', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k'))
 #plot.experiments('3-ibs10', c('diff3', 'rel3', 'sim3'), c('3-rs0-ibs10', '3-rs1k-ibs10', '3-rs10k-ibs10', '3-rs100k-ibs10'), NULL)
 #plot.experiments('3-ibs100', c('diff3', 'rel3', 'sim3'), c('3-rs0-ibs100', '3-rs1k-ibs100', '3-rs10k-ibs100', '3-rs100k-ibs100'), NULL)
