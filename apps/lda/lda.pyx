@@ -27,6 +27,7 @@ DEFAULT_PARAMS = dict(
     rejuv_sample_size = 30,
     rejuv_mcmc_steps = 1,
     num_topics = 3,
+    resample_propagate = False
 )
 
 
@@ -404,12 +405,14 @@ cdef class ParticleFilter:
     cdef numpy.uint_t num_topics, vocab_size, num_particles, token_idx
     cdef numpy.uint_t rejuv_sample_size, rejuv_mcmc_steps
     cdef numpy.double_t alpha, beta, ess_threshold
+    cdef bint resample_propagate
 
     def __cinit__(self, GlobalModel init_model, numpy.uint_t num_particles,
             numpy.double_t ess_threshold, ReservoirSampler rs,
             ParticleFilterReservoirData rejuv_data,
             numpy.uint_t rejuv_sample_size, numpy.uint_t rejuv_mcmc_steps,
-            numpy.uint_t next_token_idx, ParticleLabelStore label_store):
+            numpy.uint_t next_token_idx, ParticleLabelStore label_store,
+            bint resample_propagate):
         cdef numpy.uint_t i
 
         self.alpha = init_model.alpha
@@ -447,6 +450,8 @@ cdef class ParticleFilter:
         self.resample_cmf = numpy.zeros((num_particles,), dtype=numpy.double)
 
         self.label_store = label_store
+
+        self.resample_propagate = resample_propagate
 
     cdef numpy.double_t ess(self):
         cdef numpy.double_t total
@@ -525,6 +530,13 @@ cdef class ParticleFilter:
             total_weight = numpy.sum(self.weights)
             for i in xrange(self.num_particles):
                 self.weights[i] /= total_weight
+
+            if self.resample_propagate:
+                _ess = self.ess()
+                print('resampling: ess %f; doc_idx %d, %d; token_idx %d'
+                    % (_ess, doc_idx, j, self.token_idx))
+                self.resample()
+
             for i in xrange(self.num_particles):
                 z = self.sample_topic(i, w)
                 zz[i] = z
@@ -533,22 +545,23 @@ cdef class ParticleFilter:
                 self.local_dt_counts[i, z] += 1
                 self.local_d_counts[i] += 1
 
-            inserted = self.rs._insert(self.token_idx, &reservoir_idx, &ejected,
-                &ejected_token_idx)
-            if inserted:
-                self.rejuv_data.insert(reservoir_idx, doc_idx, w, zz,
-                    self.local_d_counts, self.local_dt_counts)
-                k = self.rejuv_data.lookup(reservoir_idx)
-                self.local_d_counts = self.rejuv_data.d_counts[k,:]
-                self.local_dt_counts = self.rejuv_data.dt_counts[k,:,:]
+            if not self.resample_propagate:
+                inserted = self.rs._insert(self.token_idx, &reservoir_idx,
+                    &ejected, &ejected_token_idx)
+                if inserted:
+                    self.rejuv_data.insert(reservoir_idx, doc_idx, w, zz,
+                        self.local_d_counts, self.local_dt_counts)
+                    k = self.rejuv_data.lookup(reservoir_idx)
+                    self.local_d_counts = self.rejuv_data.d_counts[k,:]
+                    self.local_dt_counts = self.rejuv_data.dt_counts[k,:,:]
 
-            _ess = self.ess()
-            if _ess < self.ess_threshold:
-                print('resampling: ess %f; doc_idx %d, %d; token_idx %d'
-                    % (_ess, doc_idx, j, self.token_idx))
-                self.resample()
-                self.rejuvenate()
-                self.label_store.recompute(self.rejuv_data)
+                _ess = self.ess()
+                if _ess < self.ess_threshold:
+                    print('resampling: ess %f; doc_idx %d, %d; token_idx %d'
+                        % (_ess, doc_idx, j, self.token_idx))
+                    self.resample()
+                    self.rejuvenate()
+                    self.label_store.recompute(self.rejuv_data)
 
             self.token_idx += 1
             PyErr_CheckSignals()
@@ -727,7 +740,8 @@ def create_pf(GlobalModel model, list init_sample,
         list assignments,
         numpy.uint_t reservoir_size, numpy.uint_t num_particles,
         numpy.uint_t num_topics, numpy.double_t ess_threshold,
-        numpy.uint_t rejuv_sample_size, numpy.uint_t rejuv_mcmc_steps):
+        numpy.uint_t rejuv_sample_size, numpy.uint_t rejuv_mcmc_steps,
+        bint resample_propagate):
     cdef ParticleFilter pf
     cdef ReservoirSampler rs
     cdef ParticleFilterReservoirData rejuv_data
@@ -771,7 +785,8 @@ def create_pf(GlobalModel model, list init_sample,
                 label_store.compute_label(dt_counts[doc_idx, :]))
 
     pf = ParticleFilter(model, num_particles, ess_threshold, rs, rejuv_data,
-        rejuv_sample_size, rejuv_mcmc_steps, token_idx, label_store)
+        rejuv_sample_size, rejuv_mcmc_steps, token_idx, label_store,
+        resample_propagate)
     return pf
 
 
@@ -850,7 +865,8 @@ def run_lda(data_dir, categories, **kwargs):
                     init_gibbs_sampler.d_counts, init_gibbs_sampler.assignments,
                     params['reservoir_size'], params['num_particles'],
                     params['num_topics'], params['ess_threshold'],
-                    params['rejuv_sample_size'], params['rejuv_mcmc_steps'])
+                    params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
+                    params['resample_propagate'])
 
                 train_labels = init_labels
                 eval_pf(params['num_topics'], pf, plfilter,
@@ -886,7 +902,8 @@ def run_lda(data_dir, categories, **kwargs):
             init_gibbs_sampler.d_counts, init_gibbs_sampler.assignments,
             params['reservoir_size'], params['num_particles'],
             params['num_topics'], params['ess_threshold'],
-            params['rejuv_sample_size'], params['rejuv_mcmc_steps'])
+            params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
+            params['resample_propagate'])
 
         train_labels = init_labels
 
