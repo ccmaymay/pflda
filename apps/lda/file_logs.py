@@ -37,11 +37,11 @@ def main():
             run_stem = run_stems[i]
             entries = entry_dict[run_stem]
             print('%s %s' % (dataset, experiment))
-            #d = os.path.join(experiment, dataset)
-            #os.makedirs(d)
+            d = os.path.join(experiment, dataset)
+            os.makedirs(d)
             for entry in entries:
                 print('\t%s' % entry)
-                #shutil.move(entry, d)
+                shutil.copy(entry, d)
             i += 1
 
     if i != len(run_stems):
