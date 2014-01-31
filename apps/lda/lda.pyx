@@ -6,12 +6,9 @@ from data import Dataset
 from pylowl cimport ReservoirSampler, lowl_key, size_t
 import sys
 import numpy
-import numpy.random
 cimport numpy
 from cpython.exc cimport PyErr_CheckSignals
-
-
-# TODO check nmi
+from libc.math cimport log
 
 
 cdef object DEFAULT_PARAMS
@@ -121,7 +118,7 @@ cdef numpy.double_t entropy1(list labels, list label_types):
                 count += 1.0
         p = count / n
         if p > 0.0:
-            _entropy += -p * numpy.log(p)
+            _entropy += -p * log(p)
 
     return _entropy
 
@@ -140,7 +137,7 @@ cdef numpy.double_t entropy2(long[::1] inferred_topics,
                 count += 1.0
         p = count / n
         if p > 0.0:
-            _entropy += -p * numpy.log(p)
+            _entropy += -p * log(p)
 
     return _entropy
 
@@ -165,8 +162,8 @@ cdef numpy.double_t mi(list labels, list label_types,
                 if labels[j] == label_types[i] and inferred_topics[j] == t:
                     count += 1.0
             if count > 0.0:
-                _mi += (count / n) * (numpy.log(count * n)
-                    - numpy.log(marginal_count1 * marginal_count2))
+                _mi += (count / n) * (log(count * n)
+                    - log(marginal_count1 * marginal_count2))
 
     return _mi
 
@@ -315,11 +312,12 @@ cdef class FirstMomentPLFilter:
             local_dt_counts[:] = 0.0
             for j in xrange(len(sample[i])):
                 w = sample[i][j]
+                s = 0.0
                 for t in xrange(self.model.num_topics):
                     x[t] = self.conditional_posterior(
                         local_dt_counts, local_d_count, w, t)
-                s = numpy.sum(x)
-                ll += numpy.log(s)
+                    s += x[t]
+                ll += log(s)
                 for t in xrange(self.model.num_topics):
                     p = x[t] / s
                     local_dt_counts[t] += p
