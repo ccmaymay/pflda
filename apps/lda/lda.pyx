@@ -14,22 +14,80 @@ from numpy cimport uint_t as np_uint_t, double_t as np_double_t, long_t as np_lo
 
 cdef object DEFAULT_PARAMS
 DEFAULT_PARAMS = dict(
+    # size of reservoir, in tokens, used by particle filter
     reservoir_size = 1000,
+
+    # number of gibbs iterations (one per token) used when computing
+    # out-of-sample nmi
     test_num_iters = 5,
+
+    # dirichlet hyperparameter on topic distributions
     alpha = 0.1,
+
+    # dirichlet hyperparameter on word distributions
     beta = 0.1,
+
+    # threshold for effective sample size over particle weights, when
+    # resample_propagate is False: if computed ess drops below this
+    # value, the particles will be resampled
     ess_threshold = 20.0,
+
+    # total number of docs to use to initialize model (via gibbs
+    # sampling) for particle filter
     init_num_docs = 100,
+
+    # number of gibbs sweeps to use when initializing model
     init_num_iters = 100,
-    init_tune_seed = -1,
-    init_tune_train_frac = 0.8,
-    init_tune_num_cv_folds = 1,
+
+    # prng seed for initialization: if non-negative, prng will be seeded
+    # with this value before initialization and re-seeded randomly
+    # afterward; if negative, do not seed prng (python chooses a random
+    # state for us at start-up)
+    init_seed = -1,
+
+    # number of runs to perform when initializing model: if 0 or 1,
+    # initialize model using init_num_iters gibbs sweeps over the
+    # initialization sample; if greater than 1, initialize this many
+    # models (using init_num_iters gibbs sweeps over the initialization
+    # sample each) and create the particle filter from the
+    # highest-scoring model
     init_tune_num_runs = 1,
+
+    # when init_tune_num_runs is greater than 1, this boolean controls
+    # whether we use NMI (True) or log-likelihood (False) to score
+    # the models
     init_tune_eval_nmi = False,
+
+    # when init_tune_num_runs is greater than 1, this controls whether
+    # we choose our initialization model by in-sample evaluation (0),
+    # simple out-of-sample evaluation (1), or cross-validation
+    # (any value greater than one---in which case this is the number
+    # of folds used)
+    init_tune_num_cv_folds = 1,
+
+    # when init_tune_num_runs is greater than 1 and
+    # init_tune_num_cv_folds is 1, during initialization, train each
+    # model on this fraction of the initialization data
+    # (that is, fraction of init_num_docs) and evaluate on the rest
+    # (the split will be the same for all runs)
+    init_tune_train_frac = 0.8,
+
+    # number of particles used in particle filter
     num_particles = 100,
+
+    # size of sample drawn from reservoir for rejuvenation, in tokens
     rejuv_sample_size = 30,
+
+    # number of gibbs sweeps performed over sample during rejuvenation
     rejuv_mcmc_steps = 1,
+
+    # number of topics
     num_topics = 3,
+
+    # controls whether we do resampling and rejuvenation after the
+    # state transition, if ess threshold is breached (False),
+    # or do resampling (but no rejuvenation) *before* every state
+    # transition (True)
     resample_propagate = False
 )
 
@@ -852,11 +910,11 @@ def init_lda(list init_sample, list init_labels, list categories,
         params['beta'], params['num_topics'], vocab_size)
 
     reseed = None
-    if params['init_tune_seed'] >= 0:
+    if params['init_seed'] >= 0:
         print('fixing prng seed to %d for initialization'
-            % params['init_tune_seed'])
+            % params['init_seed'])
         reseed = randint(0, 1e9)
-        seed(params['init_tune_seed'])
+        seed(params['init_seed'])
 
     if params['init_tune_num_runs'] > 1:
         if params['init_tune_num_cv_folds'] == 0:
