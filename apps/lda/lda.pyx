@@ -846,11 +846,12 @@ def init_lda(list init_sample, list init_labels, list categories,
     cdef list init_train_sample, init_eval_sample
     cdef list init_train_labels, init_eval_labels
     cdef list best_init_train_sample, best_init_train_labels
-    cdef list boundaries
+    cdef list limits
     cdef np_uint_t i, j, k, r, b, init_train_size, num_tokens, base_fold_size
     cdef np_double_t score, best_score
     cdef np_long_t[::1] inferred_topics
-    cdef list scores, models, init_gibbs_samplers, init_train_sample_lists, init_train_label_lists
+    cdef list scores, models, init_gibbs_samplers, init_train_sample_lists
+    cdef list init_train_label_lists
 
     tw_counts = zeros((num_topics, vocab_size), dtype=np_uint)
     t_counts = zeros((num_topics,), dtype=np_uint)
@@ -891,14 +892,14 @@ def init_lda(list init_sample, list init_labels, list categories,
             print('best run result: %f' % best_score)
 
         else:
-            boundaries = [0]
+            limits = [0]
             base_fold_size = len(init_sample) / init_tune_num_cv_folds
             r = len(init_sample) - base_fold_size * init_tune_num_cv_folds
             for i in xrange(init_tune_num_cv_folds):
-                b = boundaries[-1] + base_fold_size
+                b = limits[-1] + base_fold_size
                 if i < r:
                     b += 1
-                boundaries.append(b)
+                limits.append(b)
 
             if init_tune_eval_nmi:
                 print('initializing from best run of %d, by out-of-sample nmi'
@@ -910,7 +911,7 @@ def init_lda(list init_sample, list init_labels, list categories,
             print('using cross-validation with %d folds with sizes:'
                 % init_tune_num_cv_folds)
             for j in xrange(init_tune_num_cv_folds):
-                sys.stdout.write('  %d' % (boundaries[j+1] - boundaries[j]))
+                sys.stdout.write('  %d' % (limits[j+1] - limits[j]))
             sys.stdout.write('\n')
             sys.stdout.flush()
 
@@ -922,10 +923,12 @@ def init_lda(list init_sample, list init_labels, list categories,
                 init_train_label_lists = []
 
                 for j in xrange(init_tune_num_cv_folds):
-                    init_eval_sample = init_sample[boundaries[j]:boundaries[j+1]]
-                    init_eval_labels = init_labels[boundaries[j]:boundaries[j+1]]
-                    init_train_sample = init_sample[:boundaries[j]] + init_sample[boundaries[j+1]:]
-                    init_train_labels = init_labels[:boundaries[j]] + init_labels[boundaries[j+1]:]
+                    init_eval_sample = init_sample[limits[j]:limits[j+1]]
+                    init_eval_labels = init_labels[limits[j]:limits[j+1]]
+                    init_train_sample = (init_sample[:limits[j]]
+                        + init_sample[limits[j+1]:])
+                    init_train_labels = (init_labels[:limits[j]]
+                        + init_labels[limits[j+1]:])
 
                     model = orig_model.copy()
                     init_gibbs_sampler = GibbsSampler(model)
@@ -943,7 +946,8 @@ def init_lda(list init_sample, list init_labels, list categories,
                         num_tokens = 0
                         for k in xrange(len(init_train_sample)):
                             num_tokens += len(init_train_sample[k])
-                        score = plfilter.likelihood(init_eval_sample) / num_tokens
+                        score = (plfilter.likelihood(init_eval_sample)
+                            / num_tokens)
 
                     scores.append(score)
                     models.append(model)
