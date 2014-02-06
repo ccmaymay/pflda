@@ -921,8 +921,8 @@ def init_lda(list init_sample, list init_labels, list categories,
                 else:
                     plfilter = FirstMomentPLFilter(model)
                     num_tokens = 0
-                    for k in xrange(len(init_train_sample)):
-                        num_tokens += len(init_train_sample[k])
+                    for k in xrange(len(init_eval_sample)):
+                        num_tokens += len(init_eval_sample[k])
                     score = (plfilter.likelihood(init_eval_sample)
                         / num_tokens)
 
@@ -993,8 +993,8 @@ def init_lda(list init_sample, list init_labels, list categories,
                     else:
                         plfilter = FirstMomentPLFilter(model)
                         num_tokens = 0
-                        for k in xrange(len(init_train_sample)):
-                            num_tokens += len(init_train_sample[k])
+                        for k in xrange(len(init_eval_sample)):
+                            num_tokens += len(init_eval_sample[k])
                         score = (plfilter.likelihood(init_eval_sample)
                             / num_tokens)
 
