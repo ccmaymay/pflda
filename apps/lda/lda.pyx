@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from random import random, randint
+from random import random, randint, seed
 from data import Dataset
 from pylowl cimport ReservoirSampler, lowl_key, size_t
 import sys
@@ -21,6 +21,10 @@ DEFAULT_PARAMS = dict(
     ess_threshold = 20.0,
     init_num_docs = 100,
     init_num_iters = 100,
+    init_tune_seed = -1,
+    init_tune_num_cv_folds = 5,
+    init_tune_num_runs = 10,
+    init_tune_eval_nmi = True,
     num_particles = 100,
     rejuv_sample_size = 30,
     rejuv_mcmc_steps = 1,
@@ -826,8 +830,16 @@ def create_pf(GlobalModel model, list init_sample,
 
 
 def init_lda(doc_idx, num_tokens, init_sample, init_labels, model,
+        init_tune_num_runs, init_tune_eval_nmi,
+        init_tune_seed, init_tune_num_cv_folds,
         init_num_iters, reservoir_size, num_particles, num_topics,
         ess_threshold, rejuv_sample_size, rejuv_mcmc_steps, resample_propagate):
+    reseed = None
+    if init_tune_seed >= 0:
+        print('fixing prng seed to %d for initialization' % init_tune_seed)
+        reseed = randint(0, 1e9)
+        seed(init_tune_seed)
+
     print('initializing on first %d docs (%d tokens)' % (doc_idx, num_tokens))
     print('gibbs sampling with %d iters' % init_num_iters)
     init_gibbs_sampler = GibbsSampler(model)
@@ -842,6 +854,10 @@ def init_lda(doc_idx, num_tokens, init_sample, init_labels, model,
         resample_propagate)
 
     train_labels = init_labels
+
+    if reseed is not None:
+        print('reseeding prng with %d' % reseed)
+        seed(reseed)
 
     return (pf, train_labels)
 
@@ -910,7 +926,12 @@ def run_lda(data_dir, categories, **kwargs):
                 # run init gibbs sampler on accumulated data, then
                 # create pf from results
                 (pf, train_labels) = init_lda(i, num_tokens,
-                    init_sample, init_labels, model, params['init_num_iters'],
+                    init_sample, init_labels, model,
+                    params['init_tune_num_runs'],
+                    params['init_tune_eval_nmi'],
+                    params['init_tune_seed'],
+                    params['init_tune_num_cv_folds'],
+                    params['init_num_iters'],
                     params['reservoir_size'], params['num_particles'],
                     params['num_topics'], params['ess_threshold'],
                     params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
@@ -938,7 +959,12 @@ def run_lda(data_dir, categories, **kwargs):
         # init_num_docs was really big; do Gibbs sampling and initialize
         # pf just so we can evaluate the model learned by Gibbs
         (pf, train_labels) = init_lda(i, num_tokens,
-            init_sample, init_labels, model, params['init_num_iters'],
+            init_sample, init_labels, model,
+            params['init_tune_num_runs'],
+            params['init_tune_eval_nmi'],
+            params['init_tune_seed'],
+            params['init_tune_num_cv_folds'],
+            params['init_num_iters'],
             params['reservoir_size'], params['num_particles'],
             params['num_topics'], params['ess_threshold'],
             params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
