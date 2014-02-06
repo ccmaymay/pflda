@@ -829,46 +829,88 @@ def create_pf(GlobalModel model, list init_sample,
     return pf
 
 
-def init_lda(doc_idx, num_tokens, init_sample, init_labels, model,
-        init_tune_num_runs, init_tune_eval_nmi,
-        init_tune_seed, init_tune_num_cv_folds,
-        init_num_iters, reservoir_size, num_particles, num_topics,
-        ess_threshold, rejuv_sample_size, rejuv_mcmc_steps, resample_propagate):
+def init_lda(list init_sample, list init_labels,
+        np_uint_t vocab_size, np_double_t alpha, np_double_t beta,
+        np_uint_t init_tune_num_runs, bint init_tune_eval_nmi,
+        np_long_t init_tune_seed, np_uint_t init_tune_num_cv_folds,
+        np_uint_t init_num_iters, np_uint_t reservoir_size,
+        np_uint_t num_particles, np_uint_t num_topics,
+        np_double_t ess_threshold, np_uint_t rejuv_sample_size,
+        np_uint_t rejuv_mcmc_steps, bint resample_propagate):
+    cdef np_uint_t[::1] t_counts
+    cdef np_uint_t[:, ::1] tw_counts
+    cdef GlobalModel orig_model, best_model, model
+    cdef FirstMomentPLFilter plfilter
+    cdef GibbsSampler init_gibbs_sampler, best_init_gibbs_sampler
+    cdef ParticleFilter pf
+    cdef list init_train_sample, init_eval_sample
+    cdef list init_train_labels, init_eval_labels
+    cdef list best_init_train_sample, best_init_train_labels
+    cdef np_uint_t i, init_train_size, num_tokens
+    cdef np_double_t ll, best_ll
+
+    tw_counts = zeros((num_topics, vocab_size), dtype=np_uint)
+    t_counts = zeros((num_topics,), dtype=np_uint)
+    orig_model = GlobalModel(tw_counts, t_counts, alpha, beta,
+        num_topics, vocab_size)
+
     reseed = None
     if init_tune_seed >= 0:
         print('fixing prng seed to %d for initialization' % init_tune_seed)
         reseed = randint(0, 1e9)
         seed(init_tune_seed)
 
-    print('initializing on first %d docs (%d tokens)' % (doc_idx, num_tokens))
-    print('gibbs sampling with %d iters' % init_num_iters)
-    init_gibbs_sampler = GibbsSampler(model)
-    init_gibbs_sampler.learn(init_sample, init_num_iters)
+    init_train_size = int(len(init_sample) * .8)
+    init_train_sample = init_sample[:init_train_size]
+    init_train_labels = init_labels[:init_train_size]
+    init_eval_sample = init_sample[init_train_size:]
+    init_eval_labels = init_labels[init_train_size:]
+
+    if init_tune_num_runs > 1:
+        for i in xrange(init_tune_num_runs):
+            model = orig_model.copy()
+            init_gibbs_sampler = GibbsSampler(model)
+            init_gibbs_sampler.learn(init_train_sample, init_num_iters)
+            plfilter = FirstMomentPLFilter(model)
+            ll = plfilter.likelihood(init_eval_sample)
+            if i == 0 or ll > best_ll:
+                best_ll = ll
+                best_model = model
+                best_init_gibbs_sampler = init_gibbs_sampler
+                best_init_train_sample = init_train_sample
+                best_init_train_labels = init_train_labels
+    else:
+        print('gibbs sampling with %d iters' % init_num_iters)
+        best_model = orig_model
+        best_init_gibbs_sampler = GibbsSampler(best_model)
+        best_init_gibbs_sampler.learn(init_sample, init_num_iters)
+        best_init_train_sample = init_sample
+        best_init_train_labels = init_labels
 
     print('creating particle filter on initialized model')
-    pf = create_pf(model, init_sample, init_gibbs_sampler.dt_counts,
-        init_gibbs_sampler.d_counts, init_gibbs_sampler.assignments,
+    pf = create_pf(best_model, best_init_train_sample,
+        best_init_gibbs_sampler.dt_counts,
+        best_init_gibbs_sampler.d_counts,
+        best_init_gibbs_sampler.assignments,
         reservoir_size, num_particles,
         num_topics, ess_threshold,
         rejuv_sample_size, rejuv_mcmc_steps,
         resample_propagate)
 
-    train_labels = init_labels
-
     if reseed is not None:
         print('reseeding prng with %d' % reseed)
         seed(reseed)
 
-    return (pf, train_labels)
+    num_tokens = 0
+    for i in xrange(len(best_init_train_sample)):
+        num_tokens += len(best_init_train_sample[i])
+
+    return (pf, best_init_train_labels, len(best_init_train_sample), num_tokens)
 
 
 def run_lda(data_dir, categories, **kwargs):
-    cdef GlobalModel model
-    cdef FirstMomentPLFilter plfilter
     cdef ParticleFilter pf
-    cdef np_uint_t i, j, doc_idx, num_tokens, p
-    cdef np_uint_t[::1] t_counts
-    cdef np_uint_t[:, ::1] tw_counts
+    cdef np_uint_t i, doc_idx, num_tokens, p
 
     # load default params and override with contents of kwargs (if any)
     params = DEFAULT_PARAMS.copy()
@@ -886,12 +928,6 @@ def run_lda(data_dir, categories, **kwargs):
         print('\t%s' % category)
 
     dataset = Dataset(data_dir, set(categories))
-    tw_counts = zeros(
-        (params['num_topics'], len(dataset.vocab)), dtype=np_uint)
-    t_counts = zeros((params['num_topics'],), dtype=np_uint)
-    model = GlobalModel(tw_counts, t_counts, params['alpha'], params['beta'],
-        params['num_topics'], len(dataset.vocab))
-    plfilter = FirstMomentPLFilter(model)
 
     print('vocab size: %d' % len(dataset.vocab))
 
@@ -906,13 +942,9 @@ def run_lda(data_dir, categories, **kwargs):
     init_sample = []
     init_labels = []
 
-    train_sample = []
-    train_labels = []
-
     pf = None
 
     i = 0
-    num_tokens = 0
 
     for doc_triple in dataset.train_iterator():
         d = preprocess(doc_triple)
@@ -925,8 +957,9 @@ def run_lda(data_dir, categories, **kwargs):
             if i == params['init_num_docs']:
                 # run init gibbs sampler on accumulated data, then
                 # create pf from results
-                (pf, train_labels) = init_lda(i, num_tokens,
-                    init_sample, init_labels, model,
+                (pf, train_labels, doc_idx, num_tokens) = init_lda(
+                    init_sample, init_labels,
+                    len(dataset.vocab), params['alpha'], params['beta'],
                     params['init_tune_num_runs'],
                     params['init_tune_eval_nmi'],
                     params['init_tune_seed'],
@@ -943,23 +976,26 @@ def run_lda(data_dir, categories, **kwargs):
                 print(pf.max_posterior_model().to_string(dataset.vocab, 20))
 
             # process current document through pf
-            pf.step(i, d[2])
+            pf.step(doc_idx, d[2])
             train_labels.append(d[1])
-            print('doc: %d' % i)
+            print('doc: %d' % doc_idx)
             print('num words: %d' % len(d[2]))
-            if i % 50 == 0:
+            if doc_idx % 50 == 0:
                 eval_pf(params['num_topics'], pf,
                     test_sample, test_labels, train_labels,
                     params['test_num_iters'], list(categories))
 
-        num_tokens += len(d[2])
+            doc_idx += 1
+            num_tokens += len(d[2])
+
         i += 1
 
     if i <= params['init_num_docs']:
         # init_num_docs was really big; do Gibbs sampling and initialize
         # pf just so we can evaluate the model learned by Gibbs
-        (pf, train_labels) = init_lda(i, num_tokens,
-            init_sample, init_labels, model,
+        (pf, train_labels, doc_idx, num_tokens) = init_lda(
+            init_sample, init_labels,
+            len(dataset.vocab), params['alpha'], params['beta'],
             params['init_tune_num_runs'],
             params['init_tune_eval_nmi'],
             params['init_tune_seed'],
@@ -974,5 +1010,5 @@ def run_lda(data_dir, categories, **kwargs):
     eval_pf(params['num_topics'], pf, test_sample, test_labels,
         train_labels, params['test_num_iters'], list(categories))
 
-    print('processed %d docs (%d tokens)' % (i, num_tokens))
+    print('trained on %d docs (%d tokens)' % (doc_idx, num_tokens))
     print(pf.max_posterior_model().to_string(dataset.vocab, 20))
