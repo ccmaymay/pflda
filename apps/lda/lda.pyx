@@ -22,6 +22,7 @@ DEFAULT_PARAMS = dict(
     init_num_docs = 100,
     init_num_iters = 100,
     init_tune_seed = -1,
+    init_tune_train_frac = 0.8,
     init_tune_num_cv_folds = 1,
     init_tune_num_runs = 1,
     init_tune_eval_nmi = False,
@@ -857,9 +858,8 @@ def init_lda(list init_sample, list init_labels, list categories,
         reseed = randint(0, 1e9)
         seed(params['init_tune_seed'])
 
-    if (params['init_tune_num_runs'] > 1
-            and params['init_tune_num_cv_folds'] > 0):
-        if params['init_tune_num_cv_folds'] == 1:
+    if params['init_tune_num_runs'] > 1:
+        if params['init_tune_num_cv_folds'] == 0:
             if not params['init_tune_eval_nmi']:
                 print('warning: in-sample likelihood is not supported')
             print('initializing from best run of %d, by in-sample nmi'
@@ -882,6 +882,58 @@ def init_lda(list init_sample, list init_labels, list categories,
                     best_init_gibbs_sampler = init_gibbs_sampler
                     best_init_train_sample = init_sample
                     best_init_train_labels = init_labels
+
+            print('best run result: %f' % best_score)
+
+        elif params['init_tune_num_cv_folds'] == 1:
+            init_train_size = int(len(init_sample)
+                * params['init_tune_train_frac'])
+
+            if params['init_tune_eval_nmi']:
+                print('initializing from best run of %d, by out-of-sample nmi'
+                    % params['init_tune_num_runs'])
+            else:
+                print('initializing from best run of %d, by out-of-sample ll'
+                    % params['init_tune_num_runs'])
+
+            print('training on %f%% (%d docs), evaluating on remainder'
+                % (100 * params['init_tune_train_frac'], init_train_size))
+
+            init_eval_sample = init_sample[init_train_size:]
+            init_eval_labels = init_labels[init_train_size:]
+            init_train_sample = init_sample[:init_train_size]
+            init_train_labels = init_labels[:init_train_size]
+
+            for i in xrange(params['init_tune_num_runs']):
+                model = orig_model.copy()
+                init_gibbs_sampler = GibbsSampler(model)
+                init_gibbs_sampler.learn(init_train_sample,
+                    params['init_num_iters'])
+
+                if params['init_tune_eval_nmi']:
+                    eval_gs = GibbsSampler(model)
+                    eval_gs.infer(init_eval_sample,
+                        params['test_num_iters'])
+                    inferred_topics = infer_topics(eval_gs.dt_counts,
+                        len(init_eval_sample), params['num_topics'])
+                    score = nmi(init_eval_labels, categories,
+                        inferred_topics, params['num_topics'])
+                else:
+                    plfilter = FirstMomentPLFilter(model)
+                    num_tokens = 0
+                    for k in xrange(len(init_train_sample)):
+                        num_tokens += len(init_train_sample[k])
+                    score = (plfilter.likelihood(init_eval_sample)
+                        / num_tokens)
+
+                print('result: %f' % score)
+
+                if i == 0 or score > best_score:
+                    best_score = score
+                    best_model = model
+                    best_init_gibbs_sampler = init_gibbs_sampler
+                    best_init_train_sample = init_train_sample
+                    best_init_train_labels = init_train_labels
 
             print('best run result: %f' % best_score)
 
