@@ -776,11 +776,7 @@ cdef void eval_pf(np_uint_t num_topics, ParticleFilter pf,
 
 def create_pf(GlobalModel model, list init_sample,
         np_uint_t[:, ::1] dt_counts, np_uint_t[::1] d_counts,
-        list assignments,
-        np_uint_t reservoir_size, np_uint_t num_particles,
-        np_uint_t num_topics, np_double_t ess_threshold,
-        np_uint_t rejuv_sample_size, np_uint_t rejuv_mcmc_steps,
-        bint resample_propagate):
+        list assignments, dict params):
     cdef ParticleFilter pf
     cdef ReservoirSampler rs
     cdef ParticleFilterReservoirData rejuv_data
@@ -792,11 +788,12 @@ def create_pf(GlobalModel model, list init_sample,
     cdef np_uint_t[::1] particle_d_counts, zz
     cdef np_uint_t[:, ::1] particle_dt_counts
 
-    label_store = ParticleLabelStore(num_particles, num_topics)
-    rejuv_data = ParticleFilterReservoirData(reservoir_size, num_particles,
-        num_topics)
+    label_store = ParticleLabelStore(params['num_particles'],
+        params['num_topics'])
+    rejuv_data = ParticleFilterReservoirData(params['reservoir_size'],
+        params['num_particles'], params['num_topics'])
     rs = ReservoirSampler()
-    ret = rs.init(reservoir_size)
+    ret = rs.init(params['reservoir_size'])
     token_idx = 0
 
     for doc_idx in xrange(len(init_sample)):
@@ -806,12 +803,13 @@ def create_pf(GlobalModel model, list init_sample,
                 &ejected, &ejected_token_idx)
             if inserted:
                 zz = zeros(
-                    (num_particles,), dtype=np_uint)
+                    (params['num_particles'],), dtype=np_uint)
                 particle_d_counts = zeros(
-                    (num_particles,), dtype=np_uint)
+                    (params['num_particles'],), dtype=np_uint)
                 particle_dt_counts = zeros(
-                    (num_particles, num_topics), dtype=np_uint)
-                for p in xrange(num_particles):
+                    (params['num_particles'], params['num_topics']),
+                    dtype=np_uint)
+                for p in xrange(params['num_particles']):
                     zz[p] = assignments[token_idx]
                     particle_d_counts[p] = d_counts[doc_idx]
                     particle_dt_counts[p,:] = dt_counts[doc_idx,:]
@@ -819,24 +817,18 @@ def create_pf(GlobalModel model, list init_sample,
                     particle_d_counts, particle_dt_counts)
             token_idx += 1
 
-        for p in xrange(num_particles):
+        for p in xrange(params['num_particles']):
             label_store.append(p,
                 label_store.compute_label(dt_counts[doc_idx, :]))
 
-    pf = ParticleFilter(model, num_particles, ess_threshold, rs, rejuv_data,
-        rejuv_sample_size, rejuv_mcmc_steps, token_idx, label_store,
-        resample_propagate)
+    pf = ParticleFilter(model, params['num_particles'], params['ess_threshold'],
+        rs, rejuv_data, params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
+        token_idx, label_store, params['resample_propagate'])
     return pf
 
 
 def init_lda(list init_sample, list init_labels, list categories,
-        np_uint_t vocab_size, np_double_t alpha, np_double_t beta,
-        np_uint_t init_tune_num_runs, bint init_tune_eval_nmi,
-        np_long_t init_tune_seed, np_uint_t init_tune_num_cv_folds,
-        np_uint_t init_num_iters, np_uint_t test_num_iters,
-        np_uint_t reservoir_size, np_uint_t num_particles, np_uint_t num_topics,
-        np_double_t ess_threshold, np_uint_t rejuv_sample_size,
-        np_uint_t rejuv_mcmc_steps, bint resample_propagate):
+        np_uint_t vocab_size, dict params):
     cdef np_uint_t[::1] t_counts
     cdef np_uint_t[:, ::1] tw_counts
     cdef GlobalModel orig_model, best_model, model
@@ -853,33 +845,35 @@ def init_lda(list init_sample, list init_labels, list categories,
     cdef list scores, models, init_gibbs_samplers, init_train_sample_lists
     cdef list init_train_label_lists
 
-    tw_counts = zeros((num_topics, vocab_size), dtype=np_uint)
-    t_counts = zeros((num_topics,), dtype=np_uint)
-    orig_model = GlobalModel(tw_counts, t_counts, alpha, beta,
-        num_topics, vocab_size)
+    tw_counts = zeros((params['num_topics'], vocab_size), dtype=np_uint)
+    t_counts = zeros((params['num_topics'],), dtype=np_uint)
+    orig_model = GlobalModel(tw_counts, t_counts, params['alpha'],
+        params['beta'], params['num_topics'], vocab_size)
 
     reseed = None
-    if init_tune_seed >= 0:
-        print('fixing prng seed to %d for initialization' % init_tune_seed)
+    if params['init_tune_seed'] >= 0:
+        print('fixing prng seed to %d for initialization'
+            % params['init_tune_seed'])
         reseed = randint(0, 1e9)
-        seed(init_tune_seed)
+        seed(params['init_tune_seed'])
 
-    if init_tune_num_runs > 1 and init_tune_num_cv_folds > 0:
-        if init_tune_num_cv_folds == 1:
+    if (params['init_tune_num_runs'] > 1
+            and params['init_tune_num_cv_folds'] > 0):
+        if params['init_tune_num_cv_folds'] == 1:
+            if not params['init_tune_eval_nmi']:
+                print('warning: in-sample likelihood is not supported')
             print('initializing from best run of %d, by in-sample nmi'
-                % init_tune_num_runs)
-            for i in xrange(init_tune_num_runs):
+                % params['init_tune_num_runs'])
+            for i in xrange(params['init_tune_num_runs']):
                 model = orig_model.copy()
                 init_gibbs_sampler = GibbsSampler(model)
-                if not init_tune_eval_nmi:
-                    print('in-sample likelihood is not supported')
-                init_gibbs_sampler.learn(init_sample, init_num_iters)
+                init_gibbs_sampler.learn(init_sample, params['init_num_iters'])
                 inferred_topics = zeros((len(init_sample),), dtype=np_long)
                 for j in xrange(len(init_sample)):
                     inferred_topics[j] = uint_argmax(
-                        init_gibbs_sampler.dt_counts[j,:], num_topics)
+                        init_gibbs_sampler.dt_counts[j,:], params['num_topics'])
                 score = nmi(init_labels, categories, inferred_topics,
-                    num_topics)
+                    params['num_topics'])
                 print('result: %f' % score)
 
                 if i == 0 or score > best_score:
@@ -893,36 +887,37 @@ def init_lda(list init_sample, list init_labels, list categories,
 
         else:
             limits = [0]
-            base_fold_size = len(init_sample) / init_tune_num_cv_folds
-            r = len(init_sample) - base_fold_size * init_tune_num_cv_folds
-            for i in xrange(init_tune_num_cv_folds):
+            base_fold_size = len(init_sample) / params['init_tune_num_cv_folds']
+            r = (len(init_sample)
+                - base_fold_size * params['init_tune_num_cv_folds'])
+            for i in xrange(params['init_tune_num_cv_folds']):
                 b = limits[-1] + base_fold_size
                 if i < r:
                     b += 1
                 limits.append(b)
 
-            if init_tune_eval_nmi:
+            if params['init_tune_eval_nmi']:
                 print('initializing from best run of %d, by out-of-sample nmi'
-                    % init_tune_num_runs)
+                    % params['init_tune_num_runs'])
             else:
                 print('initializing from best run of %d, by out-of-sample ll'
-                    % init_tune_num_runs)
+                    % params['init_tune_num_runs'])
 
             print('using cross-validation with %d folds with sizes:'
-                % init_tune_num_cv_folds)
-            for j in xrange(init_tune_num_cv_folds):
+                % params['init_tune_num_cv_folds'])
+            for j in xrange(params['init_tune_num_cv_folds']):
                 sys.stdout.write('  %d' % (limits[j+1] - limits[j]))
             sys.stdout.write('\n')
             sys.stdout.flush()
 
-            for i in xrange(init_tune_num_runs):
+            for i in xrange(params['init_tune_num_runs']):
                 scores = []
                 models = []
                 init_gibbs_samplers = []
                 init_train_sample_lists = []
                 init_train_label_lists = []
 
-                for j in xrange(init_tune_num_cv_folds):
+                for j in xrange(params['init_tune_num_cv_folds']):
                     init_eval_sample = init_sample[limits[j]:limits[j+1]]
                     init_eval_labels = init_labels[limits[j]:limits[j+1]]
                     init_train_sample = (init_sample[:limits[j]]
@@ -932,15 +927,17 @@ def init_lda(list init_sample, list init_labels, list categories,
 
                     model = orig_model.copy()
                     init_gibbs_sampler = GibbsSampler(model)
-                    init_gibbs_sampler.learn(init_train_sample, init_num_iters)
+                    init_gibbs_sampler.learn(init_train_sample,
+                        params['init_num_iters'])
 
-                    if init_tune_eval_nmi:
+                    if params['init_tune_eval_nmi']:
                         eval_gs = GibbsSampler(model)
-                        eval_gs.infer(init_eval_sample, test_num_iters)
+                        eval_gs.infer(init_eval_sample,
+                            params['test_num_iters'])
                         inferred_topics = infer_topics(eval_gs.dt_counts,
-                            len(init_eval_sample), num_topics)
+                            len(init_eval_sample), params['num_topics'])
                         score = nmi(init_eval_labels, categories,
-                            inferred_topics, num_topics)
+                            inferred_topics, params['num_topics'])
                     else:
                         plfilter = FirstMomentPLFilter(model)
                         num_tokens = 0
@@ -956,12 +953,13 @@ def init_lda(list init_sample, list init_labels, list categories,
                     init_train_label_lists.append(init_train_labels)
 
                 print('cross-validation results:')
-                for j in xrange(init_tune_num_cv_folds):
+                for j in xrange(params['init_tune_num_cv_folds']):
                     sys.stdout.write('  %f' % scores[j])
                 sys.stdout.write('\n')
                 sys.stdout.flush()
 
-                idx_score_pairs = zip(range(init_tune_num_cv_folds), scores)
+                idx_score_pairs = zip(range(params['init_tune_num_cv_folds']),
+                    scores)
                 idx_score_pairs.sort(key=lambda p: p[1])
                 m = idx_score_pairs[len(idx_score_pairs)/2][0]
                 print('median result: %f' % scores[m])
@@ -976,10 +974,10 @@ def init_lda(list init_sample, list init_labels, list categories,
             print('best run (median) result: %f' % best_score)
 
     else:
-        print('gibbs sampling with %d iters' % init_num_iters)
+        print('gibbs sampling with %d iters' % params['init_num_iters'])
         best_model = orig_model
         best_init_gibbs_sampler = GibbsSampler(best_model)
-        best_init_gibbs_sampler.learn(init_sample, init_num_iters)
+        best_init_gibbs_sampler.learn(init_sample, params['init_num_iters'])
         best_init_train_sample = init_sample
         best_init_train_labels = init_labels
 
@@ -988,10 +986,7 @@ def init_lda(list init_sample, list init_labels, list categories,
         best_init_gibbs_sampler.dt_counts,
         best_init_gibbs_sampler.d_counts,
         best_init_gibbs_sampler.assignments,
-        reservoir_size, num_particles,
-        num_topics, ess_threshold,
-        rejuv_sample_size, rejuv_mcmc_steps,
-        resample_propagate)
+        params)
 
     if reseed is not None:
         print('reseeding prng with %d' % reseed)
@@ -1055,17 +1050,7 @@ def run_lda(data_dir, categories, **kwargs):
                 # create pf from results
                 (pf, train_labels, doc_idx, num_tokens) = init_lda(
                     init_sample, init_labels, list(categories),
-                    len(dataset.vocab), params['alpha'], params['beta'],
-                    params['init_tune_num_runs'],
-                    params['init_tune_eval_nmi'],
-                    params['init_tune_seed'],
-                    params['init_tune_num_cv_folds'],
-                    params['init_num_iters'],
-                    params['test_num_iters'],
-                    params['reservoir_size'], params['num_particles'],
-                    params['num_topics'], params['ess_threshold'],
-                    params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
-                    params['resample_propagate'])
+                    len(dataset.vocab), params)
 
                 eval_pf(params['num_topics'], pf,
                     test_sample, test_labels, train_labels,
@@ -1092,18 +1077,7 @@ def run_lda(data_dir, categories, **kwargs):
         # pf just so we can evaluate the model learned by Gibbs
         (pf, train_labels, doc_idx, num_tokens) = init_lda(
             init_sample, init_labels, list(categories),
-            len(dataset.vocab), params['alpha'], params['beta'],
-            params['init_tune_num_runs'],
-            params['init_tune_eval_nmi'],
-            params['init_tune_eval_in_sample'],
-            params['init_tune_seed'],
-            params['init_tune_num_cv_folds'],
-            params['init_num_iters'],
-            params['test_num_iters'],
-            params['reservoir_size'], params['num_particles'],
-            params['num_topics'], params['ess_threshold'],
-            params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
-            params['resample_propagate'])
+            len(dataset.vocab), params)
 
     # end of run, do one last eval and print topics
     eval_pf(params['num_topics'], pf, test_sample, test_labels,
