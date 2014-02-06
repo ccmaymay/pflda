@@ -54,7 +54,7 @@ DEFAULT_PARAMS = dict(
     init_tune_num_runs = 1,
 
     # when init_tune_num_runs is greater than 1, this boolean controls
-    # whether we use NMI (True) or log-likelihood (False) to score
+    # whether we use NMI (True) or perplexity (False) to score
     # the models
     init_tune_eval_nmi = False,
 
@@ -898,7 +898,7 @@ def init_lda(list init_sample, list init_labels, list categories,
     cdef list init_train_labels, init_eval_labels
     cdef list best_init_train_sample, best_init_train_labels
     cdef list limits
-    cdef np_uint_t i, j, k, r, b, init_train_size, num_tokens, base_fold_size
+    cdef np_uint_t i, j, r, b, init_train_size, num_tokens, base_fold_size
     cdef np_double_t score, best_score
     cdef np_long_t[::1] inferred_topics
     cdef list scores, models, init_gibbs_samplers, init_train_sample_lists
@@ -917,11 +917,11 @@ def init_lda(list init_sample, list init_labels, list categories,
         seed(params['init_seed'])
 
     if params['init_tune_num_runs'] > 1:
+        print('initializing from best run of %d' % params['init_tune_num_runs'])
         if params['init_tune_num_cv_folds'] == 0:
             if not params['init_tune_eval_nmi']:
-                print('warning: in-sample likelihood is not supported')
-            print('initializing from best run of %d, by in-sample nmi'
-                % params['init_tune_num_runs'])
+                print('warning: in-sample perplexity is not supported')
+            print('scoring runs by in-sample nmi')
             for i in xrange(params['init_tune_num_runs']):
                 model = orig_model.copy()
                 init_gibbs_sampler = GibbsSampler(model)
@@ -948,11 +948,9 @@ def init_lda(list init_sample, list init_labels, list categories,
                 * params['init_tune_train_frac'])
 
             if params['init_tune_eval_nmi']:
-                print('initializing from best run of %d, by out-of-sample nmi'
-                    % params['init_tune_num_runs'])
+                print('scoring runs by out-of-sample nmi')
             else:
-                print('initializing from best run of %d, by out-of-sample ll'
-                    % params['init_tune_num_runs'])
+                print('scoring runs by out-of-sample (negative) perplexity')
 
             print('training on %f%% (%d docs), evaluating on remainder'
                 % (100 * params['init_tune_train_frac'], init_train_size))
@@ -978,11 +976,8 @@ def init_lda(list init_sample, list init_labels, list categories,
                         inferred_topics, params['num_topics'])
                 else:
                     plfilter = FirstMomentPLFilter(model)
-                    num_tokens = 0
-                    for k in xrange(len(init_eval_sample)):
-                        num_tokens += len(init_eval_sample[k])
-                    score = (plfilter.likelihood(init_eval_sample)
-                        / num_tokens)
+                    score = -perplexity(plfilter.likelihood(init_eval_sample),
+                        init_eval_sample)
 
                 print('result: %f' % score)
 
@@ -1007,11 +1002,9 @@ def init_lda(list init_sample, list init_labels, list categories,
                 limits.append(b)
 
             if params['init_tune_eval_nmi']:
-                print('initializing from best run of %d, by out-of-sample nmi'
-                    % params['init_tune_num_runs'])
+                print('scoring runs by out-of-sample nmi')
             else:
-                print('initializing from best run of %d, by out-of-sample ll'
-                    % params['init_tune_num_runs'])
+                print('scoring runs by out-of-sample (negative) perplexity')
 
             print('using cross-validation with %d folds with sizes:'
                 % params['init_tune_num_cv_folds'])
@@ -1050,11 +1043,9 @@ def init_lda(list init_sample, list init_labels, list categories,
                             inferred_topics, params['num_topics'])
                     else:
                         plfilter = FirstMomentPLFilter(model)
-                        num_tokens = 0
-                        for k in xrange(len(init_eval_sample)):
-                            num_tokens += len(init_eval_sample[k])
-                        score = (plfilter.likelihood(init_eval_sample)
-                            / num_tokens)
+                        score = -perplexity(
+                            plfilter.likelihood(init_eval_sample),
+                            init_eval_sample)
 
                     scores.append(score)
                     models.append(model)
