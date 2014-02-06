@@ -825,8 +825,28 @@ def create_pf(GlobalModel model, list init_sample,
     return pf
 
 
+def init_lda(doc_idx, num_tokens, init_sample, init_labels, model,
+        init_num_iters, reservoir_size, num_particles, num_topics,
+        ess_threshold, rejuv_sample_size, rejuv_mcmc_steps, resample_propagate):
+    print('initializing on first %d docs (%d tokens)' % (doc_idx, num_tokens))
+    print('gibbs sampling with %d iters' % init_num_iters)
+    init_gibbs_sampler = GibbsSampler(model)
+    init_gibbs_sampler.learn(init_sample, init_num_iters)
+
+    print('creating particle filter on initialized model')
+    pf = create_pf(model, init_sample, init_gibbs_sampler.dt_counts,
+        init_gibbs_sampler.d_counts, init_gibbs_sampler.assignments,
+        reservoir_size, num_particles,
+        num_topics, ess_threshold,
+        rejuv_sample_size, rejuv_mcmc_steps,
+        resample_propagate)
+
+    train_labels = init_labels
+
+    return (pf, train_labels)
+
+
 def run_lda(data_dir, categories, **kwargs):
-    cdef GibbsSampler init_gibbs_sampler
     cdef GlobalModel model
     cdef FirstMomentPLFilter plfilter
     cdef ParticleFilter pf
@@ -889,25 +909,16 @@ def run_lda(data_dir, categories, **kwargs):
             if i == params['init_num_docs']:
                 # run init gibbs sampler on accumulated data, then
                 # create pf from results
-                print('initializing on first %d docs (%d tokens)'
-                    % (i, num_tokens))
-                print('gibbs sampling with %d iters' % params['init_num_iters'])
-                init_gibbs_sampler = GibbsSampler(model)
-                init_gibbs_sampler.learn(init_sample, params['init_num_iters'])
-
-                print('creating particle filter on initialized model')
-                pf = create_pf(model, init_sample, init_gibbs_sampler.dt_counts,
-                    init_gibbs_sampler.d_counts, init_gibbs_sampler.assignments,
+                (pf, train_labels) = init_lda(i, num_tokens,
+                    init_sample, init_labels, model, params['init_num_iters'],
                     params['reservoir_size'], params['num_particles'],
                     params['num_topics'], params['ess_threshold'],
                     params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
                     params['resample_propagate'])
 
-                train_labels = init_labels
                 eval_pf(params['num_topics'], pf,
                     test_sample, test_labels, train_labels,
                     params['test_num_iters'], list(categories))
-
                 print(pf.max_posterior_model().to_string(dataset.vocab, 20))
 
             # process current document through pf
@@ -926,21 +937,12 @@ def run_lda(data_dir, categories, **kwargs):
     if i <= params['init_num_docs']:
         # init_num_docs was really big; do Gibbs sampling and initialize
         # pf just so we can evaluate the model learned by Gibbs
-        print('initializing on first %d docs (%d tokens)'
-            % (i, num_tokens))
-        print('gibbs sampling with %d iters' % params['init_num_iters'])
-        init_gibbs_sampler = GibbsSampler(model)
-        init_gibbs_sampler.learn(init_sample, params['init_num_iters'])
-
-        print('creating particle filter on initialized model')
-        pf = create_pf(model, init_sample, init_gibbs_sampler.dt_counts,
-            init_gibbs_sampler.d_counts, init_gibbs_sampler.assignments,
+        (pf, train_labels) = init_lda(i, num_tokens,
+            init_sample, init_labels, model, params['init_num_iters'],
             params['reservoir_size'], params['num_particles'],
             params['num_topics'], params['ess_threshold'],
             params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
             params['resample_propagate'])
-
-        train_labels = init_labels
 
     # end of run, do one last eval and print topics
     eval_pf(params['num_topics'], pf, test_sample, test_labels,
