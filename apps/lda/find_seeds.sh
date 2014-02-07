@@ -5,7 +5,7 @@ shutdown_interval=2
 
 for i in `seq 100`
 do
-    for dataset_filename in tng-nonalpha tng-whitespace
+    for dataset_filename in tng-nonalpha tng-whitespace tng-whitespace-mc
     do
         for dataset_name in diff3 rel3 sim3
         do
