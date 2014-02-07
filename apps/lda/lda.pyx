@@ -84,6 +84,9 @@ DEFAULT_PARAMS = dict(
     # number of topics
     num_topics = 3,
 
+    # number of words to use in coherence estimation
+    coherence_num_words = 10,
+
     # controls whether we do resampling and rejuvenation after the
     # state transition, if ess threshold is breached (False),
     # or do resampling (but no rejuvenation) *before* every state
@@ -125,6 +128,29 @@ cdef void shuffle(np_uint_t[::1] x):
         temp = x[i]
         x[i] = x[j]
         x[j] = temp
+
+
+cdef np_uint_t[::1] reverse_sort_uint(np_uint_t[::1] x, np_uint_t req):
+    cdef np_uint_t[::1] indices
+    cdef np_uint_t n, i, j, temp
+
+    n = len(x)
+    indices = zeros((n,), dtype=np_uint)
+    for i in xrange(n):
+        indices[i] = i
+
+    for i in xrange(req):
+        for j in xrange(1, n):
+            if x[j] > x[i]:
+                temp = x[i]
+                x[i] = x[j]
+                x[j] = temp
+
+                temp = indices[i]
+                indices[i] = indices[j]
+                indices[j] = temp
+
+    return indices
 
 
 cdef np_uint_t[::1] sample_without_replacement(np_uint_t[::1] x,
@@ -360,6 +386,63 @@ cdef class GlobalModel:
         c = GlobalModel(self.tw_counts.copy(), self.t_counts.copy(),
             self.alpha, self.beta, self.num_topics, self.vocab_size)
         return c
+        
+
+cdef class CoherenceEstimator:
+    cdef GlobalModel model
+    cdef np_uint_t num_words
+
+    def __cinit__(self, GlobalModel model, np_uint_t num_words):
+        self.model = model
+        self.num_words = num_words
+
+    cdef np_double_t coherence(self, list sample):
+        cdef np_uint_t t, w, i, v, j, c, d, doc_idx, word_idx, doc_freq, joint_doc_freq
+        cdef np_double_t avg
+        cdef np_uint_t[::1] w_counts, w_indices, r_w_indices
+        cdef np_uint_t[:, ::1] sample_w_counts
+        cdef list doc
+
+        w_counts = zeros((self.model.vocab_size,), dtype=np_uint)
+        r_w_indices = zeros((self.model.vocab_size,), dtype=np_uint)
+        sample_w_counts = zeros((len(sample), self.num_words), dtype=np_uint)
+
+        avg = 0.0
+
+        for t in xrange(self.model.num_topics):
+            w_counts[:] = self.model.tw_counts[t,:]
+            w_indices = reverse_sort_uint(w_counts, self.num_words)
+            for w in xrange(self.model.vocab_size):
+                r_w_indices[w] = self.num_words
+            for i in xrange(self.num_words):
+                r_w_indices[w_indices[i]] = i
+
+            for doc_idx in xrange(len(sample)):
+                for i in xrange(self.num_words):
+                    sample_w_counts[doc_idx, i] = 0
+                doc = sample[doc_idx]
+                for word_idx in xrange(len(doc)):
+                    w = doc[word_idx]
+                    i = r_w_indices[w]
+                    if i < self.num_words:
+                        sample_w_counts[doc_idx, i] += 1
+
+            for i in xrange(1, self.num_words):
+                w = w_indices[i]
+                for j in xrange(i):
+                    v = w_indices[j]
+                    doc_freq = 0
+                    joint_doc_freq = 0
+                    for doc_idx in xrange(len(sample)):
+                        if sample_w_counts[doc_idx, j] > 1:
+                            doc_freq += 1
+                            if sample_w_counts[doc_idx, i] > 1:
+                                joint_doc_freq += 1
+                    avg += log(joint_doc_freq + 1.0) - log(doc_freq)
+
+        avg /= self.model.num_topics
+
+        return avg
         
 
 cdef class FirstMomentPLFilter:
@@ -807,8 +890,10 @@ cdef np_long_t[::1] infer_topics(np_uint_t[:, ::1] dt_counts,
 
 cdef void eval_pf(np_uint_t num_topics, ParticleFilter pf,
         list test_sample, list test_labels, list train_labels,
-        np_uint_t test_num_iters, list categories):
+        np_uint_t test_num_iters, list categories,
+        np_uint_t coherence_num_words):
     cdef FirstMomentPLFilter plfilter
+    cdef CoherenceEstimator coherence_est
     cdef GlobalModel model
     cdef GibbsSampler gibbs_sampler
     cdef np_double_t ll
@@ -831,6 +916,9 @@ cdef void eval_pf(np_uint_t num_topics, ParticleFilter pf,
     ll = plfilter.likelihood(test_sample)
     print('out-of-sample log-likelihood: %f' % ll)
     print('out-of-sample perplexity: %f' % perplexity(ll, test_sample))
+
+    coherence_est = CoherenceEstimator(model, coherence_num_words)
+    print('out-of-sample coherence: %f' % coherence_est.coherence(test_sample))
 
 
 def create_pf(GlobalModel model, list init_sample,
@@ -1155,7 +1243,8 @@ def run_lda(data_dir, categories, **kwargs):
 
                 eval_pf(params['num_topics'], pf,
                     test_sample, test_labels, train_labels,
-                    params['test_num_iters'], list(categories))
+                    params['test_num_iters'], list(categories),
+                    params['coherence_num_words'])
                 print(pf.max_posterior_model().to_string(dataset.vocab, 20))
 
             # process current document through pf
@@ -1166,7 +1255,8 @@ def run_lda(data_dir, categories, **kwargs):
             if doc_idx % 50 == 0:
                 eval_pf(params['num_topics'], pf,
                     test_sample, test_labels, train_labels,
-                    params['test_num_iters'], list(categories))
+                    params['test_num_iters'], list(categories),
+                    params['coherence_num_words'])
 
             doc_idx += 1
             num_tokens += len(d[2])
@@ -1182,7 +1272,8 @@ def run_lda(data_dir, categories, **kwargs):
 
     # end of run, do one last eval and print topics
     eval_pf(params['num_topics'], pf, test_sample, test_labels,
-        train_labels, params['test_num_iters'], list(categories))
+        train_labels, params['test_num_iters'], list(categories),
+        params['coherence_num_words'])
 
     print('trained on %d docs (%d tokens)' % (doc_idx, num_tokens))
     print(pf.max_posterior_model().to_string(dataset.vocab, 20))
