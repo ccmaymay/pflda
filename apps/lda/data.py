@@ -70,10 +70,11 @@ class NonAlphaTokenizer(object):
 
 
 class Dataset(object):
-    def __init__(self, data_dir, categories):
+    def __init__(self, data_dir, categories, shuffle=False):
         self.train_dir = os.path.join(data_dir, 'train')
         self.test_dir = os.path.join(data_dir, 'test')
         self.categories = categories
+        self.shuffle = shuffle
 
         word_counts = dict()
 
@@ -113,6 +114,16 @@ class Dataset(object):
             return OOV
 
     def _iterator(self, dir_path):
+        if self.shuffle:
+            items = list(self._raw_iterator(dir_path))
+            random.shuffle(items)
+            for item in items:
+                yield item
+        else:
+            for item in self._raw_iterator(dir_path):
+                yield item
+
+    def _raw_iterator(self, dir_path):
         for path in self._sorted_file_paths(dir_path):
             with gzip.open(path) as f:
                 for line in f:
