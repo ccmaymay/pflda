@@ -120,14 +120,20 @@ cdef long uint_argmax(np_uint_t[::1] xx, np_uint_t n):
     return max_i
 
 
+cdef void swap(np_uint_t[::1] x, np_uint_t i, np_uint_t j):
+    cdef np_uint_t temp
+
+    temp = x[i]
+    x[i] = x[j]
+    x[j] = temp
+
+
 cdef void shuffle(np_uint_t[::1] x):
     cdef np_uint_t n, i, j, temp
     n = len(x)
     for i in xrange(n - 1, 0, -1):
         j = randint(0, i)
-        temp = x[i]
-        x[i] = x[j]
-        x[j] = temp
+        swap(x, i, j)
 
 
 cdef np_uint_t[::1] reverse_sort_uint(np_uint_t[::1] x, np_uint_t req):
@@ -140,17 +146,12 @@ cdef np_uint_t[::1] reverse_sort_uint(np_uint_t[::1] x, np_uint_t req):
         indices[i] = i
 
     for i in xrange(req):
-        for j in xrange(1, n):
+        for j in xrange(i+1, n):
             if x[j] > x[i]:
-                temp = x[i]
-                x[i] = x[j]
-                x[j] = temp
+                swap(x, i, j)
+                swap(indices, i, j)
 
-                temp = indices[i]
-                indices[i] = indices[j]
-                indices[j] = temp
-
-    return indices
+    return indices[:req]
 
 
 cdef np_uint_t[::1] sample_without_replacement(np_uint_t[::1] x,
@@ -397,7 +398,7 @@ cdef class CoherenceEstimator:
         self.num_words = num_words
 
     cdef np_double_t coherence(self, list sample):
-        cdef np_uint_t t, w, i, v, j, c, d, doc_idx, word_idx, doc_freq, joint_doc_freq
+        cdef np_uint_t t, w, i, j, doc_idx, word_idx, doc_freq, joint_doc_freq
         cdef np_double_t avg
         cdef np_uint_t[::1] w_counts, w_indices, r_w_indices
         cdef np_uint_t[:, ::1] sample_w_counts
@@ -412,6 +413,7 @@ cdef class CoherenceEstimator:
         for t in xrange(self.model.num_topics):
             w_counts[:] = self.model.tw_counts[t,:]
             w_indices = reverse_sort_uint(w_counts, self.num_words)
+
             for w in xrange(self.model.vocab_size):
                 r_w_indices[w] = self.num_words
             for i in xrange(self.num_words):
@@ -428,15 +430,13 @@ cdef class CoherenceEstimator:
                         sample_w_counts[doc_idx, i] += 1
 
             for i in xrange(1, self.num_words):
-                w = w_indices[i]
                 for j in xrange(i):
-                    v = w_indices[j]
                     doc_freq = 0
                     joint_doc_freq = 0
                     for doc_idx in xrange(len(sample)):
-                        if sample_w_counts[doc_idx, j] > 1:
+                        if sample_w_counts[doc_idx, j] > 0:
                             doc_freq += 1
-                            if sample_w_counts[doc_idx, i] > 1:
+                            if sample_w_counts[doc_idx, i] > 0:
                                 joint_doc_freq += 1
                     avg += log(joint_doc_freq + 1.0) - log(doc_freq)
 
