@@ -168,7 +168,7 @@ class DatasetWriter(object):
         self.f.close()
 
 
-def transform_tng(train_input_dir, test_input_dir, base_output_dir, split_mode=None, stop_list_path=None, remove_header=False, lower=False):
+def transform_tng(train_input_dir, test_input_dir, base_output_dir, split_mode=None, stop_list_path=None, remove_header=False, remove_walls=False, lower=False):
     train_output_dir = os.path.join(base_output_dir, 'train')
     test_output_dir = os.path.join(base_output_dir, 'test')
 
@@ -195,10 +195,12 @@ def transform_tng(train_input_dir, test_input_dir, base_output_dir, split_mode=N
                 seen_empty_line = False
                 tokens = []
                 for line in f:
-                    if seen_empty_line:
+                    line = line.rstrip()
+                    contains_ws = WHITESPACE_RE.search(line) is not None
+                    if line and (seen_empty_line or not remove_header) and (contains_ws or not remove_walls):
                         tokens.extend(token_filter.filter(tokenizer.tokenize(line)))
                     else:
-                        if not line.strip():
+                        if not line:
                             seen_empty_line = True
                 writer.write(doc_idx, category, tokens)
             doc_idx += 1
