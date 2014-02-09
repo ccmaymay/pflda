@@ -325,7 +325,7 @@ cdef class ParticleLabelStore:
             for j in xrange(rejuv_data.occupied):
                 i = rejuv_data.reservoir_idx_map[j]
                 doc_idx = rejuv_data.doc_ids[j]
-                dt_counts = rejuv_data.dt_counts[i, p, :] # TODO using the right index here?
+                dt_counts = rejuv_data.dt_counts[i, p, :]
                 label = self.compute_label(dt_counts)
                 self.set(p, doc_idx, label)
 
@@ -999,10 +999,13 @@ def init_lda(list init_sample, list init_labels, list categories,
 
     reseed = None
     if params['init_seed'] >= 0:
-        print('fixing prng seed to %d for initialization'
-            % params['init_seed'])
+        print('seed: %u' % params['init_seed'])
         reseed = randint(0, 1e9)
         seed(params['init_seed'])
+    else:
+        rand_seed = randint(0, 1e9)
+        print('seed: %u' % rand_seed)
+        seed(rand_seed)
 
     if params['init_tune_num_runs'] > 1:
         print('initializing from best run of %d' % params['init_tune_num_runs'])
@@ -1178,7 +1181,7 @@ def init_lda(list init_sample, list init_labels, list categories,
         params)
 
     if reseed is not None:
-        print('reseeding prng with %d' % reseed)
+        print('reseed: %u' % reseed)
         seed(reseed)
 
     num_tokens = 0
