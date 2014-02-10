@@ -21,13 +21,13 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
                 filename.in <- paste(experiment.name, '/', dataset.name, '_', stat.name, '.tab', sep='')
                 my.data.raw <- tryCatch(read.table(filename.in, header=T), error=function(ex) {NULL})
                 if (! is.null(my.data.raw)) {
-                    my.data <- data.frame(mean=rowSums(my.data.raw)/dim(my.data.raw)[2])
+                    my.data <- data.frame(mean=rowSums(my.data.raw, na.rm=T)/rowSums(!is.na(my.data.raw)))
                     my.data$experiment <- rep(experiment.name.legend, dim(my.data)[1])
-                    my.data$sd <- apply(my.data.raw, 1, sd)
+                    my.data$sd <- apply(my.data.raw, 1, function(r) { sd(r, na.rm=T) })
                     my.data$idx <- (1:dim(my.data)[1]) - 1
                     my.data$lcl <- my.data$mean - my.data$sd
                     my.data$ucl <- my.data$mean + my.data$sd
-                    my.data <- my.data[!is.na(my.data$mean),]
+                    my.data <- my.data[apply(my.data.raw, 1, function(r) { !all(is.na(r)) }),]
                     data <- rbind(data, my.data)
                 }
             }
