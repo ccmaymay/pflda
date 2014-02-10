@@ -47,10 +47,13 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
 
 plot.experiments('1', c('diff3', 'rel3', 'sim3'), c('1-rs0', '1-rs100', '1-rs1k', '1-rs10k', '1-rs100k', '1-rs500k'), c('reservoir size 0', 'reservoir size 100', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k', 'reservoir size 500k'))
 plot.experiments('2', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs0', '2-rs1k-ibs10', '2-rs1k-ibs30', '2-rs1k-ibs100', '2-rs1k-ibs300', '2-rs1k-ibs1k', '2-rs1k-ibs3k'), c('initialization size 0', 'initialization size 10', 'initialization size 30', 'initialization size 100', 'initialization size 300', 'initialization size 1k', 'initialization size 3k'))
-#plot.experiments('9', c('diff3', 'rel3', 'sim3'), c('9-rs0', '9-rs1k', '9-rs10k', '9-rs100k'), c('reservoir size 0', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k'))
-#plot.experiments('3-ibs10', c('diff3', 'rel3', 'sim3'), c('3-rs0-ibs10', '3-rs1k-ibs10', '3-rs10k-ibs10', '3-rs100k-ibs10'), NULL)
-#plot.experiments('3-ibs100', c('diff3', 'rel3', 'sim3'), c('3-rs0-ibs100', '3-rs1k-ibs100', '3-rs10k-ibs100', '3-rs100k-ibs100'), NULL)
-#plot.experiments('3-ibs1k', c('diff3', 'rel3', 'sim3'), c('3-rs0-ibs1k', '3-rs1k-ibs1k', '3-rs10k-ibs1k', '3-rs100k-ibs1k'), NULL)
+plot.experiments('2_3_4_7', c('diff3', 'rel3', 'sim3'), c('4', '7', '3', '2-rs1k-ibs100'), c('no resample/rejuv', 'resample-propagate', 'resample', 'resample and rejuv'))
+plot.experiments('5', c('diff3', 'rel3', 'sim3'), c('5-ess5', '5-ess10', '5-ess20', '5-ess40'), c('ess 5', 'ess 10', 'ess 20', 'ess 40'))
+plot.experiments('6', c('diff3', 'rel3', 'sim3'), c('6-rs10k-rss10', '6-rs10k-rss30', '6-rs10k-rss100', '6-rs10k-rss300', '6-rs10k-rs1k'), c('rejuv size 10', 'rejuv size 30', 'rejuv size 100', 'rejuv size 300', 'rejuv size 1k'))
+plot.experiments('8', c('diff3', 'rel3', 'sim3'), c('8-t2', '8-t3', '8-t4', '8-t5', '8-t6'), c('num topics 2', 'num topics 3', 'num topics 4', 'num topics 5', 'num topics 6'))
+plot.experiments('9', c('diff3', 'rel3', 'sim3'), c('9-rs1k-ibs10', '9-rs1k-ibs30', '9-rs1k-ibs100', '9-rs1k-ibs300', '9-rs1k-ibs1k', '9-rs1k-ibs3k'), c('initialization size 10', 'initialization size 30', 'initialization size 100', 'initialization size 300', 'initialization size 1k', 'initialization size 1k'))
+plot.experiments('10', c('diff3', 'rel3', 'sim3'), c('10-rs1k-ibs10', '10-rs1k-ibs30', '10-rs1k-ibs100', '10-rs1k-ibs300', '10-rs1k-ibs1k', '10-rs1k-ibs3k'), c('initialization size 10', 'initialization size 30', 'initialization size 100', 'initialization size 300', 'initialization size 1k', 'initialization size 1k'))
+
 #plot.experiments('10_11_12_16', c('diff3', 'rel3', 'sim3'), c('10', '11', '12-rs10k', '16-rs10k'), c('no resampling/rejuv', 'resampling', 'resampling and rejuv', 'resampling and rejuv (pp)'))
 #plot.experiments('13_14_15_17', c('diff3', 'rel3', 'sim3'), c('13', '14', '15-rs10k', '17-rs10k'), c('no resampling/rejuv', 'resampling', 'resampling and rejuv', 'resampling and rejuv (pp)'))
 #plot.experiments('12', c('diff3', 'rel3', 'sim3'), c('12-rs100', '12-rs1k', '12-rs10k', '12-rs100k', '12-rs200k'), NULL)
