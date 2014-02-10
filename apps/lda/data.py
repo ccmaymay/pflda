@@ -196,12 +196,12 @@ def transform_tng(train_input_dir, test_input_dir, base_output_dir, split_mode=N
                 tokens = []
                 for line in f:
                     line = line.rstrip()
-                    contains_ws = WHITESPACE_RE.search(line) is not None
-                    if line and (seen_empty_line or not remove_header) and (contains_ws or not remove_walls):
-                        tokens.extend(token_filter.filter(tokenizer.tokenize(line)))
+                    if line:
+                        contains_ws = WHITESPACE_RE.search(line) is not None
+                        if (seen_empty_line or not remove_header) and (contains_ws or not remove_walls):
+                            tokens.extend(token_filter.filter(tokenizer.tokenize(line)))
                     else:
-                        if not line:
-                            seen_empty_line = True
+                        seen_empty_line = True
                 writer.write(doc_idx, category, tokens)
             doc_idx += 1
         writer.close()
