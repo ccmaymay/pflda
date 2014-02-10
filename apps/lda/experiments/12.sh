@@ -20,25 +20,25 @@ do
         init_seed=867760908
     fi
 
-    #bash qsub.sh $dataset_path $dataset_name 12-rs0 \
-    #    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-    #    "--reservoir_size=0 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
-    #bash qsub.sh $dataset_path $dataset_name 12-rs10 \
-    #    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-    #    "--reservoir_size=10 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
-    #bash qsub.sh $dataset_path $dataset_name 12-rs100 \
-    #    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-    #    "--reservoir_size=100 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
+    bash qsub.sh $dataset_path $dataset_name 12-rs0 \
+        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+        "--reservoir_size=0 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
+    bash qsub.sh $dataset_path $dataset_name 12-rs10 \
+        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+        "--reservoir_size=10 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
+    bash qsub.sh $dataset_path $dataset_name 12-rs100 \
+        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+        "--reservoir_size=100 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
     bash qsub.sh $dataset_path $dataset_name 12-rs1k \
         "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-        "--reservoir_size=1000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
-    #bash qsub.sh $dataset_path $dataset_name 12-rs10k \
-    #    "-q text.q -tc 2 -l num_proc=1,mem_free=500M,h_rt=4:00:00" \
-    #    "--reservoir_size=10000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
-    #bash qsub.sh $dataset_path $dataset_name 12-rs100k \
-    #    "-q text.q -tc 2 -l num_proc=1,mem_free=2G,h_rt=12:00:00" \
-    #    "--reservoir_size=100000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
-    #bash qsub.sh $dataset_path $dataset_name 12-rs500k \
-    #    "-q text.q -tc 2 -l num_proc=1,mem_free=4G,h_rt=12:00:00" \
-    #    "--reservoir_size=500000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
+        "--reservoir_size=1000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
+    bash qsub.sh $dataset_path $dataset_name 12-rs10k \
+        "-q text.q -tc 2 -l num_proc=1,mem_free=500M,h_rt=4:00:00" \
+        "--reservoir_size=10000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
+    bash qsub.sh $dataset_path $dataset_name 12-rs100k \
+        "-q text.q -tc 2 -l num_proc=1,mem_free=2G,h_rt=12:00:00" \
+        "--reservoir_size=100000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
+    bash qsub.sh $dataset_path $dataset_name 12-rs500k \
+        "-q text.q -tc 2 -l num_proc=1,mem_free=4G,h_rt=12:00:00" \
+        "--reservoir_size=500000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
 done
