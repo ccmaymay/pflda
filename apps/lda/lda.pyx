@@ -683,7 +683,7 @@ cdef class ParticleFilterReservoirData:
     # return reservoir unique doc idx for this token.
     #
     # this would be easier if we had a hash map.
-    cdef void insert(self, np_uint_t reservoir_token_idx,
+    cdef np_uint_t insert(self, np_uint_t reservoir_token_idx,
             np_uint_t doc_idx, np_uint_t w, np_uint_t[::1] z,
             np_uint_t[::1] d_counts, np_uint_t[:, ::1] dt_counts):
         cdef np_uint_t i, j
