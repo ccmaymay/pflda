@@ -7,6 +7,7 @@ import re
 import gzip
 
 
+WHITESPACE_RE = re.compile(r'\s+')
 NON_ALPHA_RE = re.compile(r'[^a-zA-Z]+')
 OOV = '_OOV_'
 
@@ -28,22 +29,52 @@ def _increment(table, key):
         table[key] = 1
 
 
-class Tokenizer(object):
-    def __init__(self, stop_set=None):
-        if stop_set is None:
-            self.stop_set = set()
-        else:
-            self.stop_set = stop_set
+class CompoundFilter(object):
+    def __init__(self):
+        self.filters = []
 
+    def add(self, f):
+        self.filters.append(f)
+
+    def filter(self, words):
+        filtered = words
+        for f in self.filters:
+            filtered = f.filter(filtered)
+        return filtered
+
+
+class BlacklistFilter(object):
+    def __init__(self, blacklist=None):
+        if blacklist is None:
+            self.bl_set = set()
+        else:
+            self.bl_set = set(blacklist)
+
+    def filter(self, words):
+        return [w for w in words if w not in self.bl_set]
+
+
+class NonEmptyFilter(object):
+    def filter(self, words):
+        return [w for w in words if w]
+
+
+class WhitespaceTokenizer(object):
     def tokenize(self, s):
-        return [w for w in NON_ALPHA_RE.split(s.lower()) if w and w not in self.stop_set]
+        return [w for w in WHITESPACE_RE.split(s.lower()) if NON_ALPHA_RE.search(w) is None]
+
+
+class NonAlphaTokenizer(object):
+    def tokenize(self, s):
+        return [w for w in NON_ALPHA_RE.split(s.lower())]
 
 
 class Dataset(object):
-    def __init__(self, data_dir, categories):
+    def __init__(self, data_dir, categories, shuffle=False):
         self.train_dir = os.path.join(data_dir, 'train')
         self.test_dir = os.path.join(data_dir, 'test')
         self.categories = categories
+        self.shuffle = shuffle
 
         word_counts = dict()
 
@@ -83,6 +114,16 @@ class Dataset(object):
             return OOV
 
     def _iterator(self, dir_path):
+        if self.shuffle:
+            items = list(self._raw_iterator(dir_path))
+            random.shuffle(items)
+            for item in items:
+                yield item
+        else:
+            for item in self._raw_iterator(dir_path):
+                yield item
+
+    def _raw_iterator(self, dir_path):
         for path in self._sorted_file_paths(dir_path):
             with gzip.open(path) as f:
                 for line in f:
@@ -122,14 +163,21 @@ class DatasetWriter(object):
         self.f.close()
 
 
-def transform_tng(train_input_dir, test_input_dir, base_output_dir, stop_list_path=None):
+def transform_tng(train_input_dir, test_input_dir, base_output_dir, split_mode=None, stop_list_path=None):
     train_output_dir = os.path.join(base_output_dir, 'train')
     test_output_dir = os.path.join(base_output_dir, 'test')
 
-    if stop_list_path is None:
-        tokenizer = Tokenizer()
+    token_filter = CompoundFilter()
+    token_filter.add(NonEmptyFilter())
+    if stop_list_path is not None:
+        token_filter.add(BlacklistFilter(_load_stop_set(stop_list_path)))
+
+    if split_mode is None or split_mode == 'nonalpha':
+        tokenizer = NonAlphaTokenizer()
+    elif split_mode == 'whitespace':
+        tokenizer = WhitespaceTokenizer()
     else:
-        tokenizer = Tokenizer(_load_stop_set(stop_list_path))
+        raise Exception('Unknown split mode %s' % split_mode)
 
     doc_idx = 0
 
@@ -139,7 +187,7 @@ def transform_tng(train_input_dir, test_input_dir, base_output_dir, stop_list_pa
             with open(path) as f:
                 tokens = []
                 for line in f:
-                    tokens.extend(tokenizer.tokenize(line))
+                    tokens.extend(token_filter.filter(tokenizer.tokenize(line)))
                 writer.write(doc_idx, category, tokens)
             doc_idx += 1
         writer.close()

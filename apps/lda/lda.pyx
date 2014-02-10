@@ -14,6 +14,13 @@ from numpy cimport uint_t as np_uint_t, double_t as np_double_t, long_t as np_lo
 
 cdef object DEFAULT_PARAMS
 DEFAULT_PARAMS = dict(
+    # whether to shuffle the data beforehand; note that for TNG at
+    # least, data is pre-shuffled, so the effect of setting this option
+    # to true is simply that every time the program is run you will
+    # receive a different data ordering (NB: this requires loading
+    # all data into memory!!)
+    shuffle_data = False,
+
     # size of reservoir, in tokens, used by particle filter
     reservoir_size = 1000,
 
@@ -1200,9 +1207,14 @@ def run_lda(data_dir, categories, **kwargs):
     for (k, v) in kwargs.items():
         if k in params:
             params[k] = type(params[k])(v)
+
     print('params:')
     for (k, v) in params.items():
         print('\t%s = %s' % (k, str(v)))
+
+    for k in kwargs:
+        if k not in params:
+            print('warning: unknown parameter %s' % k)
 
     print('data dir: %s' % data_dir)
 
@@ -1210,7 +1222,7 @@ def run_lda(data_dir, categories, **kwargs):
     for category in categories:
         print('\t%s' % category)
 
-    dataset = Dataset(data_dir, set(categories))
+    dataset = Dataset(data_dir, set(categories), params['shuffle_data'])
 
     print('vocab size: %d' % len(dataset.vocab))
 
