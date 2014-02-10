@@ -1,24 +1,41 @@
 #!/bin/bash
 
 dataset_path=../../data/txt/tng-whitespace
-#bash qsub_tng3.sh $dataset_path 11-rs1k-ibs0 \
-#    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-#    "--reservoir_size=1000 --init_num_docs=0 --init_num_iters=0"
-#bash qsub_tng3.sh $dataset_path 11-rs1k-ibs10 \
-#    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-#    "--reservoir_size=1000 --init_num_docs=10 --init_num_iters=2000"
-#bash qsub_tng3.sh $dataset_path 11-rs1k-ibs30 \
-#    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-#    "--reservoir_size=1000 --init_num_docs=30 --init_num_iters=2000"
-bash qsub_tng3.sh $dataset_path 11-rs1k-ibs100 \
-    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-    "--reservoir_size=1000 --init_num_docs=100 --init_num_iters=2000"
-#bash qsub_tng3.sh $dataset_path 11-rs1k-ibs300 \
-#    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-#    "--reservoir_size=1000 --init_num_docs=300 --init_num_iters=2000"
-#bash qsub_tng3.sh $dataset_path 11-rs1k-ibs1k \
-#    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-#    "--reservoir_size=1000 --init_num_docs=1000 --init_num_iters=2000"
-#bash qsub_tng3.sh $dataset_path 11-rs1k-ibs3k \
-#    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-#    "--reservoir_size=1000 --init_num_docs=3000 --init_num_iters=2000"
+for dataset_name in diff3 sim3 rel3
+do
+    if [ $dataset_name == diff3 ]
+    then
+        init_num_docs=167
+        init_num_iters=200
+    elif [ $dataset_name == sim3 ]
+    then
+        init_num_docs=177
+        init_num_iters=200
+    elif [ $dataset_name == rel3 ]
+    then
+        init_num_docs=158
+        init_num_iters=200
+    fi
+
+    #bash qsub.sh $dataset_path $dataset_name 1-rs0 \
+    #    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+    #    "--reservoir_size=0 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
+    #bash qsub.sh $dataset_path $dataset_name 1-rs10 \
+    #    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+    #    "--reservoir_size=10 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
+    #bash qsub.sh $dataset_path $dataset_name 1-rs100 \
+    #    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+    #    "--reservoir_size=100 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
+    bash qsub.sh $dataset_path $dataset_name 1-rs1k \
+        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+        "--reservoir_size=1000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
+    #bash qsub.sh $dataset_path $dataset_name 1-rs10k \
+    #    "-q text.q -tc 2 -l num_proc=1,mem_free=500M,h_rt=4:00:00" \
+    #    "--reservoir_size=10000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
+    #bash qsub.sh $dataset_path $dataset_name 1-rs100k \
+    #    "-q text.q -tc 2 -l num_proc=1,mem_free=2G,h_rt=12:00:00" \
+    #    "--reservoir_size=100000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
+    #bash qsub.sh $dataset_path $dataset_name 1-rs500k \
+    #    "-q text.q -tc 2 -l num_proc=1,mem_free=4G,h_rt=12:00:00" \
+    #    "--reservoir_size=500000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
+done
