@@ -1,7 +1,9 @@
 #!/bin/bash
 
-experiment="$1"
-for dataset in diff3 rel3 sim3
+dataset_path="$1"
+experiment="$2"
+
+for dataset_name in diff3 rel3 sim3
 do
-    bash qsub.sh $dataset $experiment "$2" "$3"
+    bash qsub.sh $dataset_path $dataset_name $experiment "$3" "$4"
 done
