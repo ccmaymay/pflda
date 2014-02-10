@@ -7,17 +7,17 @@ do
     then
         init_num_docs=167
         init_num_iters=200
-        init_seed=0
+        init_seed=61212070
     elif [ $dataset_name == sim3 ]
     then
         init_num_docs=177
         init_num_iters=200
-        init_seed=0
+        init_seed=685931430
     elif [ $dataset_name == rel3 ]
     then
         init_num_docs=158
         init_num_iters=200
-        init_seed=0
+        init_seed=326303319
     fi
 
     #bash qsub.sh $dataset_path $dataset_name 13-rs0 \
