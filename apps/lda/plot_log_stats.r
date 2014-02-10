@@ -36,7 +36,7 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
             dir.create(paste('plots', experiment.group.name, sep='/'))
             filename.out <- paste('plots', experiment.group.name, paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
             if (dim(data)[1] > 0) {
-                qplot(idx, mean, data=data, group=experiment) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document number (starting at end of initialization)') + ggtitle(paste(dataset.name, stat.name)) #+ ylim(0,1)
+                qplot(idx, mean, data=data, group=experiment) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name)) #+ ylim(0,1)
                 ggsave(filename.out)
             } else {
                 cat('Data empty for', filename.out, '\n')
