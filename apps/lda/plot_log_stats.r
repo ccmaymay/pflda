@@ -56,6 +56,7 @@ plot.experiments('10', c('diff3', 'rel3', 'sim3'), c('10-rs1k-ibs10', '10-rs1k-i
 plot.experiments('14', c('null'), c('14-t3', '14-t6', '14-t12'), NULL)
 plot.experiments('15', c('null'), c('15-rs1k-ibs0', '15-rs1k-ibs10', '15-rs1k-ibs30', '15-rs1k-ibs100', '15-rs1k-ibs300', '15-rs1k-ibs1k', '15-rs1k-ibs3k'), NULL)
 plot.experiments('16', c('null'), c('16-rs0', '16-rs10', '16-rs100', '16-rs1k', '16-rs10k'), NULL)
+plot.experiments('17', c('null'), c('17-rs0', '17-rs10', '17-rs100', '17-rs1k', '17-rs10k'), NULL)
 
 #plot.experiments('10_11_12_16', c('diff3', 'rel3', 'sim3'), c('10', '11', '12-rs10k', '16-rs10k'), c('no resampling/rejuv', 'resampling', 'resampling and rejuv', 'resampling and rejuv (pp)'))
 #plot.experiments('13_14_15_17', c('diff3', 'rel3', 'sim3'), c('13', '14', '15-rs10k', '17-rs10k'), c('no resampling/rejuv', 'resampling', 'resampling and rejuv', 'resampling and rejuv (pp)'))
