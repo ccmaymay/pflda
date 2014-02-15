@@ -94,6 +94,14 @@ DEFAULT_PARAMS = dict(
     # number of words to use in coherence estimation
     coherence_num_words = 10,
 
+    # number of particles used in left-to-right likelihood estimation
+    ltr_num_particles = 20,
+
+    # controls whether we use the left-to-right algorithm to perform
+    # likelihood estimation, in addition to the first moment PL
+    # approximation; note that this may increase runtime significantly
+    ltr_eval = False,
+
     # controls whether we do resampling and rejuvenation after the
     # state transition, if ess threshold is breached (False),
     # or do resampling (but no rejuvenation) *before* every state
@@ -450,7 +458,7 @@ cdef class CoherenceEstimator:
         avg /= self.model.num_topics
 
         return avg
-        
+
 
 cdef class FirstMomentPLFilter:
     cdef GlobalModel model
@@ -493,6 +501,88 @@ cdef class FirstMomentPLFilter:
                     p = x[t] / s
                     local_dt_counts[t] += p
                     local_d_count += p
+            if i % 100 == 0:
+                PyErr_CheckSignals()
+
+        return ll
+
+
+cdef class LeftToRightEvaluator:
+    cdef GlobalModel model
+    cdef np_uint_t num_particles
+    cdef np_double_t[::1] pmf
+    cdef np_uint_t[:, ::1] local_dt_counts
+    cdef np_uint_t[::1] local_d_counts
+
+    def __cinit__(self, GlobalModel model, np_uint_t num_particles):
+        self.model = model
+        self.num_particles = num_particles
+        self.pmf = zeros((model.num_topics,), dtype=np_double)
+        self.local_d_counts = zeros(
+            (self.num_particles,), dtype=np_uint)
+        self.local_dt_counts = zeros(
+            (self.num_particles, self.model.num_topics,), dtype=np_uint)
+
+    cdef np_uint_t sample_topic(self, np_uint_t r, np_uint_t w):
+        return sample_topic(
+            self.model.tw_counts, self.model.t_counts,
+            self.local_dt_counts[r, :], self.local_d_counts[r],
+            self.model.alpha, self.model.beta,
+            self.model.vocab_size, self.model.num_topics,
+            w, self.pmf)
+
+    cdef np_double_t conditional_posterior(self, np_uint_t r, np_uint_t w,
+            np_uint_t t):
+        return conditional_posterior(
+            self.model.tw_counts[:, w], self.model.t_counts,
+            self.local_dt_counts[r, :], self.local_d_counts[r],
+            self.model.alpha, self.model.beta,
+            self.model.vocab_size, self.model.num_topics,
+            t)
+
+    cdef np_double_t likelihood(self, list sample):
+        cdef np_double_t ll, p
+        cdef np_uint_t[:, ::1] z
+        cdef np_uint_t i, j, k, r, t, m, w, max_doc_size
+
+        max_doc_size = 0
+        for i in xrange(len(sample)):
+            m = len(sample[i])
+            if m > max_doc_size:
+                max_doc_size = m
+
+        z = zeros(
+            (self.num_particles, max_doc_size,), dtype=np_uint)
+
+        ll = 0.0
+
+        for i in xrange(len(sample)):
+            self.local_d_counts[:] = 0
+            self.local_dt_counts[:] = 0
+
+            for j in xrange(len(sample[i])):
+                p = 0.0
+
+                for r in xrange(self.num_particles):
+                    for k in xrange(j):
+                        self.local_dt_counts[r, z[r, k]] -= 1
+                        self.local_d_counts[r] -= 1
+
+                        w = sample[i][k]
+                        z[r, k] = self.sample_topic(r, w)
+
+                        self.local_dt_counts[r, z[r, k]] += 1
+                        self.local_d_counts[r] += 1
+
+                    w = sample[i][j]
+                    for t in xrange(self.model.num_topics):
+                        p += self.conditional_posterior(r, w, t)
+                    z[r, j] = self.sample_topic(r, w)
+                    self.local_dt_counts[r, z[r, j]] += 1
+                    self.local_d_counts[r] += 1
+
+                ll += log(p / self.num_particles)
+
             if i % 100 == 0:
                 PyErr_CheckSignals()
 
@@ -898,8 +988,10 @@ cdef np_long_t[::1] infer_topics(np_uint_t[:, ::1] dt_counts,
 cdef void eval_pf(np_uint_t num_topics, ParticleFilter pf,
         list test_sample, list test_labels, list train_labels,
         np_uint_t test_num_iters, list categories,
-        np_uint_t coherence_num_words):
+        np_uint_t coherence_num_words, bint ltr_eval,
+        np_uint_t ltr_num_particles):
     cdef FirstMomentPLFilter plfilter
+    cdef LeftToRightEvaluator ltr_evaluator
     cdef CoherenceEstimator coherence_est
     cdef GlobalModel model
     cdef GibbsSampler gibbs_sampler
@@ -923,6 +1015,12 @@ cdef void eval_pf(np_uint_t num_topics, ParticleFilter pf,
     ll = plfilter.likelihood(test_sample)
     print('out-of-sample log-likelihood: %f' % ll)
     print('out-of-sample perplexity: %f' % perplexity(ll, test_sample))
+
+    if ltr_eval:
+        ltr_evaluator = LeftToRightEvaluator(model, ltr_num_particles)
+        ll = ltr_evaluator.likelihood(test_sample)
+        print('out-of-sample ltr log-likelihood: %f' % ll)
+        print('out-of-sample ltr perplexity: %f' % perplexity(ll, test_sample))
 
     coherence_est = CoherenceEstimator(model, coherence_num_words)
     print('out-of-sample coherence: %f' % coherence_est.coherence(test_sample))
@@ -1259,7 +1357,8 @@ def run_lda(data_dir, categories, **kwargs):
                 eval_pf(params['num_topics'], pf,
                     test_sample, test_labels, train_labels,
                     params['test_num_iters'], list(categories),
-                    params['coherence_num_words'])
+                    params['coherence_num_words'], params['ltr_eval'],
+                    params['ltr_num_particles'])
                 print(pf.max_posterior_model().to_string(dataset.vocab, 20))
 
             # process current document through pf
@@ -1271,7 +1370,8 @@ def run_lda(data_dir, categories, **kwargs):
                 eval_pf(params['num_topics'], pf,
                     test_sample, test_labels, train_labels,
                     params['test_num_iters'], list(categories),
-                    params['coherence_num_words'])
+                    params['coherence_num_words'], params['ltr_eval'],
+                    params['ltr_num_particles'])
 
             doc_idx += 1
             num_tokens += len(d[2])
@@ -1288,7 +1388,8 @@ def run_lda(data_dir, categories, **kwargs):
     # end of run, do one last eval and print topics
     eval_pf(params['num_topics'], pf, test_sample, test_labels,
         train_labels, params['test_num_iters'], list(categories),
-        params['coherence_num_words'])
+        params['coherence_num_words'], params['ltr_eval'],
+        params['ltr_num_particles'])
 
     print('trained on %d docs (%d tokens)' % (doc_idx, num_tokens))
     print(pf.max_posterior_model().to_string(dataset.vocab, 20))
