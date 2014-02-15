@@ -29,7 +29,7 @@ def _increment(table, key):
         table[key] = 1
 
 
-class CompoundFilter(object):
+class CompoundTokenFilter(object):
     def __init__(self):
         self.filters = []
 
@@ -43,7 +43,7 @@ class CompoundFilter(object):
         return filtered
 
 
-class BlacklistFilter(object):
+class BlacklistTokenFilter(object):
     def __init__(self, blacklist=None):
         if blacklist is None:
             self.bl_set = set()
@@ -54,12 +54,12 @@ class BlacklistFilter(object):
         return [w for w in words if w not in self.bl_set]
 
 
-class NonEmptyFilter(object):
+class NonEmptyTokenFilter(object):
     def filter(self, words):
         return [w for w in words if w]
 
 
-class LowerFilter(object):
+class LowerTokenFilter(object):
     def filter(self, words):
         return [w.lower() for w in words]
 
@@ -168,16 +168,16 @@ class DatasetWriter(object):
         self.f.close()
 
 
-def transform_tng(train_input_dir, test_input_dir, base_output_dir, split_mode=None, stop_list_path=None, lower=False):
+def transform_tng(train_input_dir, test_input_dir, base_output_dir, split_mode=None, stop_list_path=None, remove_header=False, remove_walls=False, lower=False):
     train_output_dir = os.path.join(base_output_dir, 'train')
     test_output_dir = os.path.join(base_output_dir, 'test')
 
-    token_filter = CompoundFilter()
-    token_filter.add(NonEmptyFilter())
+    token_filter = CompoundTokenFilter()
+    token_filter.add(NonEmptyTokenFilter())
     if lower:
-        token_filter.add(LowerFilter())
+        token_filter.add(LowerTokenFilter())
     if stop_list_path is not None:
-        token_filter.add(BlacklistFilter(_load_stop_set(stop_list_path)))
+        token_filter.add(BlacklistTokenFilter(_load_stop_set(stop_list_path)))
 
     if split_mode is None or split_mode == 'nonalpha':
         tokenizer = NonAlphaTokenizer()
@@ -192,9 +192,16 @@ def transform_tng(train_input_dir, test_input_dir, base_output_dir, split_mode=N
         writer = DatasetWriter(os.path.join(output_dir, 'all.gz'))
         for (category, path) in _tng_shuffled_nested_file_paths(input_dir):
             with open(path) as f:
+                seen_empty_line = False
                 tokens = []
                 for line in f:
-                    tokens.extend(token_filter.filter(tokenizer.tokenize(line)))
+                    line = line.rstrip()
+                    contains_ws = WHITESPACE_RE.search(line) is not None
+                    if line and (seen_empty_line or not remove_header) and (contains_ws or not remove_walls):
+                        tokens.extend(token_filter.filter(tokenizer.tokenize(line)))
+                    else:
+                        if not line:
+                            seen_empty_line = True
                 writer.write(doc_idx, category, tokens)
             doc_idx += 1
         writer.close()
@@ -209,10 +216,10 @@ def transform_twitter(input_path, base_output_dir, train_frac=None, stop_list_pa
     else:
         train_frac = float(train_frac)
 
-    token_filter = CompoundFilter()
-    token_filter.add(NonEmptyFilter())
+    token_filter = CompoundTokenFilter()
+    token_filter.add(NonEmptyTokenFilter())
     if stop_list_path is not None:
-        token_filter.add(BlacklistFilter(_load_stop_set(stop_list_path)))
+        token_filter.add(BlacklistTokenFilter(_load_stop_set(stop_list_path)))
 
     tokenizer = WhitespaceTokenizer()
 
