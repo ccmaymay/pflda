@@ -1,44 +1,24 @@
 #!/bin/bash
 
-dataset_path=../../data/txt/tng-nonalpha
-for dataset_name in diff3 sim3 rel3
-do
-    if [ $dataset_name == diff3 ]
-    then
-        init_num_docs=167
-        init_num_iters=200
-        init_seed=174519800
-    elif [ $dataset_name == sim3 ]
-    then
-        init_num_docs=177
-        init_num_iters=200
-        init_seed=823119267
-    elif [ $dataset_name == rel3 ]
-    then
-        init_num_docs=158
-        init_num_iters=200
-        init_seed=867760908
-    fi
-
-    bash qsub.sh $dataset_path $dataset_name 12-rs0 \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-        "--reservoir_size=0 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
-    bash qsub.sh $dataset_path $dataset_name 12-rs10 \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-        "--reservoir_size=10 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
-    bash qsub.sh $dataset_path $dataset_name 12-rs100 \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-        "--reservoir_size=100 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
-    bash qsub.sh $dataset_path $dataset_name 12-rs1k \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-        "--reservoir_size=1000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
-    bash qsub.sh $dataset_path $dataset_name 12-rs10k \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=500M,h_rt=4:00:00" \
-        "--reservoir_size=10000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
-    bash qsub.sh $dataset_path $dataset_name 12-rs100k \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=2G,h_rt=12:00:00" \
-        "--reservoir_size=100000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
-    bash qsub.sh $dataset_path $dataset_name 12-rs500k \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=4G,h_rt=12:00:00" \
-        "--reservoir_size=500000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters --init_seed=$init_seed"
-done
+dataset_path=../../data/txt/twitter
+bash qsub.sh $dataset_path null 12-rs1k-ibs0 \
+    "-q text.q -tc 2 -l num_proc=1,mem_free=1G,h_rt=12:00:00" \
+    "--reservoir_size=1000 --init_num_docs=0 --init_num_iters=0 --num_topics=6"
+bash qsub.sh $dataset_path null 12-rs1k-ibs10 \
+    "-q text.q -tc 2 -l num_proc=1,mem_free=1G,h_rt=12:00:00" \
+    "--reservoir_size=1000 --init_num_docs=10 --init_num_iters=2000 --num_topics=6"
+bash qsub.sh $dataset_path null 12-rs1k-ibs30 \
+    "-q text.q -tc 2 -l num_proc=1,mem_free=1G,h_rt=12:00:00" \
+    "--reservoir_size=1000 --init_num_docs=30 --init_num_iters=2000 --num_topics=6"
+bash qsub.sh $dataset_path null 12-rs1k-ibs100 \
+    "-q text.q -tc 2 -l num_proc=1,mem_free=1G,h_rt=12:00:00" \
+    "--reservoir_size=1000 --init_num_docs=100 --init_num_iters=2000 --num_topics=6"
+bash qsub.sh $dataset_path null 12-rs1k-ibs300 \
+    "-q text.q -tc 2 -l num_proc=1,mem_free=1G,h_rt=12:00:00" \
+    "--reservoir_size=1000 --init_num_docs=300 --init_num_iters=2000 --num_topics=6"
+bash qsub.sh $dataset_path null 12-rs1k-ibs1k \
+    "-q text.q -tc 2 -l num_proc=1,mem_free=1G,h_rt=12:00:00" \
+    "--reservoir_size=1000 --init_num_docs=1000 --init_num_iters=2000 --num_topics=6"
+bash qsub.sh $dataset_path null 12-rs1k-ibs3k \
+    "-q text.q -tc 2 -l num_proc=1,mem_free=1G,h_rt=12:00:00" \
+    "--reservoir_size=1000 --init_num_docs=3000 --init_num_iters=2000 --num_topics=6"

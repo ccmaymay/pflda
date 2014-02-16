@@ -1,20 +1,20 @@
 #!/bin/bash
 
-dataset_path=../../data/txt/tng-nonalpha
+dataset_path=../../data/txt/tng-noheader-nowalls-nonalpha
 for dataset_name in diff3 sim3 rel3
 do
     if [ $dataset_name == diff3 ]
     then
         init_num_docs=167
-        init_num_iters=200
+        init_num_iters=2000
     elif [ $dataset_name == sim3 ]
     then
         init_num_docs=177
-        init_num_iters=200
+        init_num_iters=2000
     elif [ $dataset_name == rel3 ]
     then
         init_num_docs=158
-        init_num_iters=200
+        init_num_iters=2000
     fi
 
     bash qsub.sh $dataset_path $dataset_name 1-rs0 \
