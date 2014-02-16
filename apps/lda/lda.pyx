@@ -180,15 +180,21 @@ cdef np_uint_t[::1] reverse_sort_uint(np_uint_t[::1] x, np_uint_t req):
 
 
 # return an array of size n whose elements are sampled uniformly without
-# replacement from x; if x has fewer than n elements, return x
-cdef np_uint_t[::1] sample_without_replacement(np_uint_t[::1] x,
-        np_uint_t n):
-    cdef np_uint_t[::1] samp
-    if n < len(x):
-        shuffle(x)
-        samp = x[:n]
+# replacement from [0, m); if m <= n, just return [0, m).
+# (integers)
+cdef np_uint_t[::1] sample_without_replacement(np_uint_t m, np_uint_t n):
+    cdef np_uint_t[::1] samp, sample_candidates
+    cdef np_uint_t j
+
+    sample_candidates = zeros(m, dtype=np_uint)
+    for j in xrange(m):
+        sample_candidates[j] = j
+
+    if n < m:
+        shuffle(sample_candidates)
+        samp = sample_candidates[:n]
     else:
-        samp = x
+        samp = sample_candidates
     return samp
 
 
@@ -369,7 +375,7 @@ cdef class ParticleLabelStore:
 
         for p in xrange(self.num_particles):
             for j in xrange(rejuv_data.occupied):
-                i = rejuv_data.reservoir_idx_map[j]
+                i = rejuv_data.reservoir_token_doc_map[j]
                 doc_idx = rejuv_data.doc_ids[j]
                 dt_counts = rejuv_data.dt_counts[i, p, :]
                 label = self.compute_label(dt_counts)
@@ -630,65 +636,97 @@ cdef class LeftToRightEvaluator:
 # compact, dense representation of tokens stored in reservoir and
 # particle filter state corresponding to those tokens
 cdef class ParticleFilterReservoirData:
+    # map from reservoir token idx -> doc id
     cdef np_uint_t[::1] doc_ids
+    # map from reservoir token idx -> word id
     cdef np_uint_t[::1] w
+    # map from (reservoir token idx, particle) -> topic assignment
     cdef np_uint_t[:, ::1] z
-    cdef np_uint_t[::1] reservoir_idx_map
-    cdef np_uint_t[::1] r_reservoir_idx_map
+
+    # map from reservoir token idx -> unique reservoir doc idx
+    cdef np_uint_t[::1] reservoir_token_doc_map
+    # map from unique reservoir doc idx -> count of tokens in
+    # reservoir belonging to that document
+    cdef np_uint_t[::1] reservoir_doc_tokens_map
+
+    # map from (reservoir doc idx, particle) -> document count
     cdef np_uint_t[:, ::1] d_counts
+    # map from (reservoir doc idx, particle, topic) ->
+    # document-topic count
     cdef np_uint_t[:, :, ::1] dt_counts
-    cdef np_uint_t capacity, num_particles, num_topics, occupied
+
+    cdef np_uint_t capacity, occupied, num_particles, num_topics
 
     def __cinit__(self, np_uint_t capacity, np_uint_t num_particles,
             np_uint_t num_topics):
-        self.reservoir_idx_map = zeros((capacity,), dtype=np_uint)
-        self.r_reservoir_idx_map = zeros((capacity,), dtype=np_uint)
         self.doc_ids = zeros((capacity,), dtype=np_uint)
         self.w = zeros((capacity,), dtype=np_uint)
+
+        self.reservoir_token_doc_map = zeros((capacity,), dtype=np_uint)
+        self.reservoir_doc_tokens_map = zeros((capacity,), dtype=np_uint)
+
         self.z = zeros((capacity, num_particles), dtype=np_uint)
         self.d_counts = zeros((capacity, num_particles), dtype=np_uint)
         self.dt_counts = zeros(
             (capacity, num_particles, num_topics), dtype=np_uint)
+
         self.capacity = capacity
         self.num_particles = num_particles
         self.num_topics = num_topics
         self.occupied = 0
 
-    cdef np_uint_t lookup(self, np_uint_t reservoir_idx):
-        return self.reservoir_idx_map[reservoir_idx]
-
-    cdef void insert(self, np_uint_t reservoir_idx,
+    # update corresponding to reservoir insert.  this is non-trivial
+    # because the sufficient statistics for each document in the
+    # reservoir are stored only once, and we have to look up that
+    # location.
+    #
+    # return reservoir unique doc idx for this token.
+    #
+    # this would be easier if we had a hash map.
+    cdef np_uint_t insert(self, np_uint_t reservoir_token_idx,
             np_uint_t doc_idx, np_uint_t w, np_uint_t[::1] z,
             np_uint_t[::1] d_counts, np_uint_t[:, ::1] dt_counts):
         cdef np_uint_t i, j
         cdef bint doc_already_inserted
 
-        self.w[reservoir_idx] = w
-        self.z[reservoir_idx,:] = z
+        self.w[reservoir_token_idx] = w
+        self.z[reservoir_token_idx,:] = z
 
-        if reservoir_idx < self.occupied:
-            self.r_reservoir_idx_map[self.reservoir_idx_map[reservoir_idx]] -= 1
+        # if we are replacing an existing element in the reservoir,
+        # decrement the count on the corresponding document
+        if reservoir_token_idx < self.occupied:
+            self.reservoir_doc_tokens_map[self.reservoir_token_doc_map[reservoir_token_idx]] -= 1
 
+        # determine whether this document (sufficient statistics) is
+        # already in the reservoir.  if so, set doc_already_inserted
+        # to true and update the reservoir idx maps.
         doc_already_inserted = 0
         for i in xrange(self.occupied):
             if self.doc_ids[i] == doc_idx:
-                j = self.reservoir_idx_map[i]
-                self.reservoir_idx_map[reservoir_idx] = j
-                self.r_reservoir_idx_map[j] += 1
+                j = self.reservoir_token_doc_map[i]
+                self.reservoir_token_doc_map[reservoir_token_idx] = j
+                self.reservoir_doc_tokens_map[j] += 1
                 doc_already_inserted = 1
                 break
 
+        # if this document (sufficient statistics) is not already in
+        # the reservoir, find an available position for the unique
+        # document sufficient statistics
         if not doc_already_inserted:
-            for i in xrange(self.occupied):
-                if self.r_reservoir_idx_map[i] == 0:
-                    self.reservoir_idx_map[reservoir_idx] = i
-                    self.r_reservoir_idx_map[i] += 1
-                    self.d_counts[i, :] = d_counts
-                    self.dt_counts[i, :, :] = dt_counts
+            for j in xrange(self.occupied):
+                if self.reservoir_doc_tokens_map[j] == 0:
+                    self.reservoir_token_doc_map[reservoir_token_idx] = j
+                    self.reservoir_doc_tokens_map[j] += 1
+                    self.d_counts[j, :] = d_counts
+                    self.dt_counts[j, :, :] = dt_counts
                     break
 
-        if reservoir_idx >= self.occupied:
+        # if the reservoir was not at capacity before this insert,
+        # increment our copy of the (occupied) size
+        if reservoir_token_idx >= self.occupied:
             self.occupied += 1
+
+        return self.reservoir_token_doc_map[reservoir_token_idx]
 
 
 # particle filter for LDA, with rejuvenation sequence based on reservoir
@@ -803,14 +841,18 @@ cdef class ParticleFilter:
 
     cdef void step(self, np_uint_t doc_idx, list doc):
         cdef lowl_key ejected_token_idx
-        cdef size_t reservoir_idx
-        cdef np_uint_t k, z, i, t
+        cdef size_t reservoir_token_idx
+        cdef np_uint_t reservoir_doc_idx, z, i, t
         cdef np_uint_t[::1] zz
         cdef np_double_t total_weight, prior, _ess
         cdef bint inserted, ejected
 
         zz = zeros((self.num_particles,), dtype=np_uint)
 
+        # initialize document sufficient statistics to zero.  note that
+        # if we add a token from this document to the reservoir, these
+        # members will be changed to point to the (unique) set of
+        # document sufficient statistics in the reservoir data
         self.local_d_counts = zeros(
             (self.num_particles,), dtype=np_uint)
         self.local_dt_counts = zeros(
@@ -847,14 +889,19 @@ cdef class ParticleFilter:
                 self.local_d_counts[i] += 1
 
             if not self.resample_propagate:
-                inserted = self.rs._insert(self.token_idx, &reservoir_idx,
+                inserted = self.rs._insert(self.token_idx, &reservoir_token_idx,
                     &ejected, &ejected_token_idx)
                 if inserted:
-                    self.rejuv_data.insert(reservoir_idx, doc_idx, w, zz,
+                    reservoir_doc_idx = self.rejuv_data.insert(
+                        reservoir_token_idx, doc_idx, w, zz,
                         self.local_d_counts, self.local_dt_counts)
-                    k = self.rejuv_data.lookup(reservoir_idx)
-                    self.local_d_counts = self.rejuv_data.d_counts[k,:]
-                    self.local_dt_counts = self.rejuv_data.dt_counts[k,:,:]
+                    # set local_d_counts and local_dt_counts to point to
+                    # the unique set of sufficient statistics for this
+                    # document in the reservoir data; the rest of the
+                    # particle filter steps performed for this document
+                    # will update these arrays directly
+                    self.local_d_counts = self.rejuv_data.d_counts[reservoir_doc_idx,:]
+                    self.local_dt_counts = self.rejuv_data.dt_counts[reservoir_doc_idx,:,:]
 
                 _ess = self.ess()
                 if _ess < self.ess_threshold:
@@ -873,38 +920,37 @@ cdef class ParticleFilter:
 
     cdef void rejuvenate(self):
         cdef GlobalModel model
-        cdef np_uint_t[::1] sample_candidates, sample
-        cdef np_uint_t p, t, i, j, w, z
+        cdef np_uint_t[::1] sample
+        cdef np_uint_t p, t, j, w, z, reservoir_token_idx, reservoir_doc_idx
 
-        sample_candidates = zeros(self.rs.occupied(), dtype=np_uint)
-        for j in xrange(self.rs.occupied()):
-            sample_candidates[j] = j
-        sample = sample_without_replacement(sample_candidates,
+        sample = sample_without_replacement(self.rs.occupied(),
             self.rejuv_sample_size)
 
         for p in xrange(self.num_particles):
             for t in xrange(self.rejuv_mcmc_steps):
                 for j in xrange(len(sample)):
-                    rd_idx = sample[j]
-                    w = self.rejuv_data.w[rd_idx]
-                    z = self.rejuv_data.z[rd_idx, p]
-                    i = self.rejuv_data.reservoir_idx_map[rd_idx]
+                    reservoir_token_idx = sample[j]
+                    w = self.rejuv_data.w[reservoir_token_idx]
+                    z = self.rejuv_data.z[reservoir_token_idx, p]
+                    reservoir_doc_idx = self.rejuv_data.reservoir_token_doc_map[reservoir_token_idx]
                     self.tw_counts[p, z, w] -= 1
                     self.t_counts[p, z] -= 1
-                    self.rejuv_data.dt_counts[i, p, z] -= 1
-                    self.rejuv_data.d_counts[i, p] -= 1
+                    self.rejuv_data.dt_counts[reservoir_doc_idx, p, z] -= 1
+                    self.rejuv_data.d_counts[reservoir_doc_idx, p] -= 1
+
                     z = sample_topic(
                         self.tw_counts[p, :, :], self.t_counts[p, :],
-                        self.rejuv_data.dt_counts[i, p, :],
-                        self.rejuv_data.d_counts[i, p],
+                        self.rejuv_data.dt_counts[reservoir_doc_idx, p, :],
+                        self.rejuv_data.d_counts[reservoir_doc_idx, p],
                         self.alpha, self.beta,
                         self.vocab_size, self.num_topics,
                         w, self.pmf)
-                    self.rejuv_data.z[rd_idx, p] = z
+                    self.rejuv_data.z[reservoir_token_idx, p] = z
+
                     self.tw_counts[p, z, w] += 1
                     self.t_counts[p, z] += 1
-                    self.rejuv_data.dt_counts[i, p, z] += 1
-                    self.rejuv_data.d_counts[i, p] += 1
+                    self.rejuv_data.dt_counts[reservoir_doc_idx, p, z] += 1
+                    self.rejuv_data.d_counts[reservoir_doc_idx, p] += 1
 
     cdef np_double_t conditional_posterior(self,
             np_uint_t p, np_uint_t w, np_uint_t t):
@@ -1085,7 +1131,7 @@ def create_pf(GlobalModel model, list init_sample,
     cdef ParticleLabelStore label_store
     cdef bint ejected, inserted
     cdef lowl_key ejected_token_idx
-    cdef size_t reservoir_idx
+    cdef size_t reservoir_token_idx
     cdef np_uint_t ret, token_idx
     cdef np_uint_t[::1] particle_d_counts, zz
     cdef np_uint_t[:, ::1] particle_dt_counts
@@ -1101,7 +1147,7 @@ def create_pf(GlobalModel model, list init_sample,
     for doc_idx in xrange(len(init_sample)):
         for j in xrange(len(init_sample[doc_idx])):
             w = init_sample[doc_idx][j]
-            inserted = rs._insert(token_idx, &reservoir_idx,
+            inserted = rs._insert(token_idx, &reservoir_token_idx,
                 &ejected, &ejected_token_idx)
             if inserted:
                 zz = zeros(
@@ -1115,7 +1161,7 @@ def create_pf(GlobalModel model, list init_sample,
                     zz[p] = assignments[token_idx]
                     particle_d_counts[p] = d_counts[doc_idx]
                     particle_dt_counts[p,:] = dt_counts[doc_idx,:]
-                rejuv_data.insert(reservoir_idx, doc_idx, w, zz,
+                rejuv_data.insert(reservoir_token_idx, doc_idx, w, zz,
                     particle_d_counts, particle_dt_counts)
             token_idx += 1
 
