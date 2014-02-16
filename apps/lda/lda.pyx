@@ -110,11 +110,13 @@ DEFAULT_PARAMS = dict(
 )
 
 
-cdef long double_argmax(np_double_t[::1] xx, np_uint_t n):
-    cdef np_uint_t i, max_i
+# compute argmax of array of (assumed non-negative) doubles
+cdef long udouble_argmax(np_double_t[::1] xx):
+    cdef np_uint_t i, max_i, n
     cdef np_double_t x, max_x
     max_x = 0.0
     max_i = 0
+    n = len(xx)
     for i in xrange(n):
         x = xx[i]
         if x > max_x:
@@ -123,10 +125,12 @@ cdef long double_argmax(np_double_t[::1] xx, np_uint_t n):
     return max_i
 
 
-cdef long uint_argmax(np_uint_t[::1] xx, np_uint_t n):
-    cdef np_uint_t i, max_i, x, max_x
+# compute argmax of array of uints
+cdef long uint_argmax(np_uint_t[::1] xx):
+    cdef np_uint_t i, max_i, x, max_x, n
     max_x = 0
     max_i = 0
+    n = len(xx)
     for i in xrange(n):
         x = xx[i]
         if x > max_x:
@@ -135,6 +139,7 @@ cdef long uint_argmax(np_uint_t[::1] xx, np_uint_t n):
     return max_i
 
 
+# swaps elements at indices i and j in the given array
 cdef void swap(np_uint_t[::1] x, np_uint_t i, np_uint_t j):
     cdef np_uint_t temp
 
@@ -143,6 +148,7 @@ cdef void swap(np_uint_t[::1] x, np_uint_t i, np_uint_t j):
     x[j] = temp
 
 
+# shuffle the given array
 cdef void shuffle(np_uint_t[::1] x):
     cdef np_uint_t n, i, j, temp
     n = len(x)
@@ -151,6 +157,10 @@ cdef void shuffle(np_uint_t[::1] x):
         swap(x, i, j)
 
 
+# sort an array of uints, in descending order, partially; that is,
+# reorder the given array so that the largest `req` elements are sorted,
+# descending, at the beginning of the list, and return an array of size
+# `req` whose elements are the original indices of those elements
 cdef np_uint_t[::1] reverse_sort_uint(np_uint_t[::1] x, np_uint_t req):
     cdef np_uint_t[::1] indices
     cdef np_uint_t n, i, j, temp
@@ -169,6 +179,8 @@ cdef np_uint_t[::1] reverse_sort_uint(np_uint_t[::1] x, np_uint_t req):
     return indices[:req]
 
 
+# return an array of size n whose elements are sampled uniformly without
+# replacement from x; if x has fewer than n elements, return x
 cdef np_uint_t[::1] sample_without_replacement(np_uint_t[::1] x,
         np_uint_t n):
     cdef np_uint_t[::1] samp
@@ -180,6 +192,8 @@ cdef np_uint_t[::1] sample_without_replacement(np_uint_t[::1] x,
     return samp
 
 
+# compute per-word perplexity given log-likelihood and list of docs
+# (list of lists of word ids)
 cdef np_double_t perplexity(np_double_t likelihood, list sample):
     cdef np_uint_t num_words, i
     num_words = 0
@@ -188,6 +202,8 @@ cdef np_double_t perplexity(np_double_t likelihood, list sample):
     return exp(-likelihood / num_words)
 
 
+# compute value of unnormalized conditional topic assignment posterior
+# at topic t
 cdef np_double_t conditional_posterior(
         np_uint_t[:] tw_counts, np_uint_t[::1] t_counts,
         np_uint_t[::1] dt_counts, np_uint_t d_count,
@@ -198,6 +214,8 @@ cdef np_double_t conditional_posterior(
         * (dt_counts[t] + alpha) / (d_count + num_topics * alpha))
 
 
+# compute value of unnormalized conditional topic assignment posterior
+# at topic t, where sufficient statistics are double type (fractional)
 cdef np_double_t double_conditional_posterior(
         np_uint_t[:] tw_counts, np_uint_t[::1] t_counts,
         np_double_t[::1] dt_counts, np_double_t d_count,
@@ -208,6 +226,8 @@ cdef np_double_t double_conditional_posterior(
         * (dt_counts[t] + alpha) / (d_count + num_topics * alpha))
 
 
+# sample topic for word id w from conditional posterior, using pmf
+# to store intermediate probabilities
 cdef np_uint_t sample_topic(
         np_uint_t[:, ::1] tw_counts, np_uint_t[::1] t_counts,
         np_uint_t[::1] dt_counts, np_uint_t d_count,
@@ -236,6 +256,8 @@ cdef np_uint_t sample_topic(
     return num_topics - 1
 
 
+# compute entropy of a list of (document) labels, given list of
+# available label types
 cdef np_double_t entropy1(list labels, list label_types):
     cdef np_uint_t i, j
     cdef np_double_t n, count, p, _entropy
@@ -254,6 +276,8 @@ cdef np_double_t entropy1(list labels, list label_types):
     return _entropy
 
 
+# compute entropy of a list of (document) topics, given number of
+# available topics (topic values are assumed to be in [0, num_topics))
 cdef np_double_t entropy2(np_long_t[::1] inferred_topics,
         np_uint_t num_topics):
     cdef np_uint_t i, t
@@ -273,6 +297,8 @@ cdef np_double_t entropy2(np_long_t[::1] inferred_topics,
     return _entropy
 
 
+# compute mutual information between given document labels and
+# inferred topics (assumed to be within [0, num_topics))
 cdef np_double_t mi(list labels, list label_types,
         np_long_t[::1] inferred_topics, np_uint_t num_topics):
     cdef np_uint_t i, t, j
@@ -299,6 +325,8 @@ cdef np_double_t mi(list labels, list label_types,
     return _mi
 
 
+# compute normalized mutual information between given document labels
+# and inferred topics (assumed to be within [0, num_topics))
 cdef np_double_t nmi(list labels, list label_types,
         np_long_t[::1] inferred_topics, np_uint_t num_topics):
     cdef np_double_t _nmi
@@ -309,6 +337,9 @@ cdef np_double_t nmi(list labels, list label_types,
     return _nmi
 
 
+# representation of labels inferred by particle filter for a (growing)
+# sequence of docs (one label per doc per particle); labels are assumed
+# to be in [0, num_topics) (integers)
 cdef class ParticleLabelStore:
     cdef list labels
     cdef np_uint_t num_particles, num_topics
@@ -329,7 +360,7 @@ cdef class ParticleLabelStore:
         self.labels[p][doc_idx] = label
 
     cdef long compute_label(self, np_uint_t[::1] dt_counts):
-        return uint_argmax(dt_counts, self.num_topics)
+        return uint_argmax(dt_counts)
 
     cdef void recompute(self, ParticleFilterReservoirData rejuv_data):
         cdef np_uint_t[::1] dt_counts
@@ -355,6 +386,8 @@ cdef class ParticleLabelStore:
         return view
 
 
+# structure containing hyperparameters and collapsed statistics of
+# LDA model
 cdef class GlobalModel:
     cdef np_double_t alpha, beta
     cdef np_uint_t num_topics, vocab_size
@@ -404,6 +437,7 @@ cdef class GlobalModel:
         return c
         
 
+# estimator of document coherence as defined in Mimno et al. (2011)
 cdef class CoherenceEstimator:
     cdef GlobalModel model
     cdef np_uint_t num_words
@@ -460,6 +494,8 @@ cdef class CoherenceEstimator:
         return avg
 
 
+# held-out likelihood estimator implementing particle learning filter
+# of Scott and Baldridge (2013)
 cdef class FirstMomentPLFilter:
     cdef GlobalModel model
 
@@ -507,6 +543,8 @@ cdef class FirstMomentPLFilter:
         return ll
 
 
+# held-out likelihood estimator implementing left-to-right algorithm
+# of Wallach et al. (2009)
 cdef class LeftToRightEvaluator:
     cdef GlobalModel model
     cdef np_uint_t num_particles
@@ -589,6 +627,8 @@ cdef class LeftToRightEvaluator:
         return ll
 
 
+# compact, dense representation of tokens stored in reservoir and
+# particle filter state corresponding to those tokens
 cdef class ParticleFilterReservoirData:
     cdef np_uint_t[::1] doc_ids
     cdef np_uint_t[::1] w
@@ -651,6 +691,7 @@ cdef class ParticleFilterReservoirData:
             self.occupied += 1
 
 
+# particle filter for LDA, with rejuvenation sequence based on reservoir
 cdef class ParticleFilter:
     cdef GibbsSampler rejuv_sampler
     cdef ReservoirSampler rs
@@ -890,7 +931,7 @@ cdef class ParticleFilter:
 
     cdef np_uint_t max_posterior_particle(self):
         cdef np_uint_t p
-        p = double_argmax(self.weights, self.num_particles)
+        p = udouble_argmax(self.weights)
         return p
 
     cdef GlobalModel max_posterior_model(self):
@@ -901,6 +942,7 @@ cdef class ParticleFilter:
         return model
 
 
+# simple collapsed gibbs sampler for LDA
 cdef class GibbsSampler:
     cdef GlobalModel model
     cdef readonly np_uint_t[:, ::1] dt_counts
@@ -976,15 +1018,21 @@ cdef class GibbsSampler:
         sys.stdout.flush()
 
 
+# given array of document-topic counts, compute array of inferred topics
+# (one per document): the inferred topic for a document is the one that
+# has been assigned to the most tokens in that document
 cdef np_long_t[::1] infer_topics(np_uint_t[:, ::1] dt_counts,
         np_uint_t num_docs, np_uint_t num_topics):
     cdef np_long_t[::1] topics
     cdef np_uint_t i
     topics = zeros((num_docs,), dtype=np_long)
     for i in xrange(num_docs):
-        topics[i] = uint_argmax(dt_counts[i, :], num_topics)
+        topics[i] = uint_argmax(dt_counts[i, :])
     return topics
 
+
+# evaluate particle filter according to a number of metrics, in-sample
+# and out-of-sample, printing results to standard output
 cdef void eval_pf(np_uint_t num_topics, ParticleFilter pf,
         list test_sample, list test_labels, list train_labels,
         np_uint_t test_num_iters, list categories,
@@ -1026,6 +1074,8 @@ cdef void eval_pf(np_uint_t num_topics, ParticleFilter pf,
     print('out-of-sample coherence: %f' % coherence_est.coherence(test_sample))
 
 
+# create particle filter from LDA model (e.g., one initialized by gibbs
+# sampling on a subset of the data)
 def create_pf(GlobalModel model, list init_sample,
         np_uint_t[:, ::1] dt_counts, np_uint_t[::1] d_counts,
         list assignments, dict params):
@@ -1079,6 +1129,16 @@ def create_pf(GlobalModel model, list init_sample,
     return pf
 
 
+# initialize LDA model on a given set of documents, using collapsed
+# Gibbs sampling, and return a four-tuple: a particle filter based
+# on the initialized model, the gold-standard labels of the
+# initialization set, the number of documents in the initialization
+# set, and the number of tokens in the initialization set.
+#
+# depending on the parameters passed to this method, initialization
+# may be performed by simple collapsed Gibbs sampling on the entire
+# sample, or after tuning (by in-sample evaluation, held-out
+# evaluation, or cross-validation)
 def init_lda(list init_sample, list init_labels, list categories,
         np_uint_t vocab_size, dict params):
     cdef np_uint_t[::1] t_counts
@@ -1125,7 +1185,7 @@ def init_lda(list init_sample, list init_labels, list categories,
                 inferred_topics = zeros((len(init_sample),), dtype=np_long)
                 for j in xrange(len(init_sample)):
                     inferred_topics[j] = uint_argmax(
-                        init_gibbs_sampler.dt_counts[j,:], params['num_topics'])
+                        init_gibbs_sampler.dt_counts[j,:])
                 score = nmi(init_labels, categories, inferred_topics,
                     params['num_topics'])
                 print('result: %f' % score)
@@ -1296,6 +1356,8 @@ def init_lda(list init_sample, list init_labels, list categories,
     return (pf, best_init_train_labels, len(best_init_train_sample), num_tokens)
 
 
+# driver: initialize LDA by collapsed Gibbs sampling and run particle
+# filter on the rest of the data
 def run_lda(data_dir, categories, **kwargs):
     cdef ParticleFilter pf
     cdef np_uint_t i, doc_idx, num_tokens, p
