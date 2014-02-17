@@ -10,6 +10,12 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
     }
 
     cat(experiment.group.name, '\n')
+
+    for (experiment.name in experiment.names) {
+        extract.cmd <- paste('python', 'extract_log_stats.py', experiment.name, sep=' ')
+        system(extract.cmd)
+    }
+
     for (dataset.name in dataset.names) {
         cat('*', dataset.name, '\n')
         for (stat.name in stat.names) {

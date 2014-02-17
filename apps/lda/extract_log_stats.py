@@ -8,10 +8,12 @@ import re
 
 PER_DOC_STAT_NAMES = (
     'num words',
+    'init in-sample nmi',
     'in-sample nmi',
     'out-of-sample nmi',
     'out-of-sample perplexity',
     'out-of-sample log-likelihood',
+    'out-of-sample coherence',
 )
 
 PER_DOC_COUNT_NAMES = (
@@ -53,7 +55,6 @@ def process_logs(experiment_path):
     if not os.path.isdir(experiment_path):
         raise Exception(experiment_path + ' is not a directory')
 
-    print(experiment_path)
     for dataset_entry in os.listdir(experiment_path):
         dataset_path = os.path.join(experiment_path, dataset_entry)
         if os.path.isdir(dataset_path):
