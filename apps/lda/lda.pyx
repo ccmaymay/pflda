@@ -380,6 +380,11 @@ cdef class ParticleLabelStore:
                 label = self.compute_label(dt_counts)
                 self.set(p, doc_idx, label)
 
+    cdef void copy_particle(self, np_uint_t old_p, np_uint_t new_p):
+        cdef np_uint_t i
+        for i in xrange(len(self.labels[old_p])):
+            self.labels[new_p][i] = self.labels[old_p][i]
+
     cdef np_long_t[::1] label_view(self, np_uint_t p):
         cdef list particle_labels
         cdef np_long_t[::1] view
@@ -727,6 +732,11 @@ cdef class ParticleFilterReservoirData:
 
         return self.reservoir_token_doc_map[reservoir_token_idx]
 
+    cdef void copy_particle(self, np_uint_t old_p, np_uint_t new_p):
+        self.d_counts[:, new_p] = self.d_counts[:, old_p]
+        self.dt_counts[:, new_p, :] = self.dt_counts[:, old_p, :]
+        self.z[:, new_p] = self.z[:, old_p]
+
 
 # particle filter for LDA, with rejuvenation sequence based on reservoir
 cdef class ParticleFilter:
@@ -822,6 +832,8 @@ cdef class ParticleFilter:
                     j += 1
                 self.tw_counts[j, :, :] = self.tw_counts[i, :, :]
                 self.t_counts[j, :] = self.t_counts[i, :]
+                self.rejuv_data.copy_particle(i, j)
+                self.label_store.copy_particle(i, j)
                 self.local_dt_counts[j, :] = self.local_dt_counts[i, :]
                 self.local_d_counts[j] = self.local_d_counts[i]
                 filled_slots[j] = 1
