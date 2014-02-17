@@ -380,6 +380,11 @@ cdef class ParticleLabelStore:
                 label = self.compute_label(dt_counts)
                 self.set(p, doc_idx, label)
 
+    cdef void copy_particle(self, np_uint_t old_p, np_uint_t new_p):
+        cdef np_uint_t i
+        for i in xrange(len(self.labels[old_p])):
+            self.labels[new_p][i] = self.labels[old_p][i]
+
     cdef np_long_t[::1] label_view(self, np_uint_t p):
         cdef list particle_labels
         cdef np_long_t[::1] view
@@ -727,6 +732,11 @@ cdef class ParticleFilterReservoirData:
 
         return self.reservoir_token_doc_map[reservoir_token_idx]
 
+    cdef void copy_particle(self, np_uint_t old_p, np_uint_t new_p):
+        self.d_counts[:, new_p] = self.d_counts[:, old_p]
+        self.dt_counts[:, new_p, :] = self.dt_counts[:, old_p, :]
+        self.z[:, new_p] = self.z[:, old_p]
+
 
 # particle filter for LDA, with rejuvenation sequence based on reservoir
 cdef class ParticleFilter:
@@ -822,6 +832,8 @@ cdef class ParticleFilter:
                     j += 1
                 self.tw_counts[j, :, :] = self.tw_counts[i, :, :]
                 self.t_counts[j, :] = self.t_counts[i, :]
+                self.rejuv_data.copy_particle(i, j)
+                self.label_store.copy_particle(i, j)
                 self.local_dt_counts[j, :] = self.local_dt_counts[i, :]
                 self.local_d_counts[j] = self.local_d_counts[i]
                 filled_slots[j] = 1
@@ -1082,7 +1094,7 @@ cdef void eval_pf(np_uint_t num_topics, ParticleFilter pf,
         list test_sample, list test_labels, list train_labels,
         np_uint_t test_num_iters, list categories,
         np_uint_t coherence_num_words, bint ltr_eval,
-        np_uint_t ltr_num_particles):
+        np_uint_t ltr_num_particles, np_uint_t init_size):
     cdef FirstMomentPLFilter plfilter
     cdef LeftToRightEvaluator ltr_evaluator
     cdef CoherenceEstimator coherence_est
@@ -1092,6 +1104,10 @@ cdef void eval_pf(np_uint_t num_topics, ParticleFilter pf,
     cdef np_long_t[::1] inferred_topics
 
     model = pf.max_posterior_model()
+
+    inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
+    print('init in-sample nmi: %f'
+        % nmi(train_labels[:init_size], categories, inferred_topics[:init_size],            num_topics))
 
     inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
     print('in-sample nmi: %f'
@@ -1405,7 +1421,7 @@ def init_lda(list init_sample, list init_labels, list categories,
 # filter on the rest of the data
 def run_lda(data_dir, categories, **kwargs):
     cdef ParticleFilter pf
-    cdef np_uint_t i, doc_idx, num_tokens, p
+    cdef np_uint_t i, doc_idx, num_tokens, p, init_size
 
     # load default params and override with contents of kwargs (if any)
     params = DEFAULT_PARAMS.copy()
@@ -1460,12 +1476,13 @@ def run_lda(data_dir, categories, **kwargs):
                 (pf, train_labels, doc_idx, num_tokens) = init_lda(
                     init_sample, init_labels, list(categories),
                     len(dataset.vocab), params)
+                init_size = len(train_labels)
 
                 eval_pf(params['num_topics'], pf,
                     test_sample, test_labels, train_labels,
                     params['test_num_iters'], list(categories),
                     params['coherence_num_words'], params['ltr_eval'],
-                    params['ltr_num_particles'])
+                    params['ltr_num_particles'], init_size)
                 print(pf.max_posterior_model().to_string(dataset.vocab, 20))
 
             # process current document through pf
@@ -1478,7 +1495,7 @@ def run_lda(data_dir, categories, **kwargs):
                     test_sample, test_labels, train_labels,
                     params['test_num_iters'], list(categories),
                     params['coherence_num_words'], params['ltr_eval'],
-                    params['ltr_num_particles'])
+                    params['ltr_num_particles'], init_size)
 
             doc_idx += 1
             num_tokens += len(d[2])
@@ -1491,12 +1508,13 @@ def run_lda(data_dir, categories, **kwargs):
         (pf, train_labels, doc_idx, num_tokens) = init_lda(
             init_sample, init_labels, list(categories),
             len(dataset.vocab), params)
+        init_size = len(train_labels)
 
     # end of run, do one last eval and print topics
     eval_pf(params['num_topics'], pf, test_sample, test_labels,
         train_labels, params['test_num_iters'], list(categories),
         params['coherence_num_words'], params['ltr_eval'],
-        params['ltr_num_particles'])
+        params['ltr_num_particles'], init_size)
 
     print('trained on %d docs (%d tokens)' % (doc_idx, num_tokens))
     print(pf.max_posterior_model().to_string(dataset.vocab, 20))
