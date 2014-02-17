@@ -361,8 +361,7 @@ cdef class ParticleLabelStore:
     cdef void append(self, np_uint_t p, np_uint_t label):
         self.labels[p].append(label)
 
-    cdef void set(self, np_uint_t p, np_uint_t doc_idx,
-            np_uint_t label):
+    cdef void set(self, np_uint_t p, np_uint_t doc_idx, np_uint_t label):
         self.labels[p][doc_idx] = label
 
     cdef long compute_label(self, np_uint_t[::1] dt_counts):
@@ -370,14 +369,14 @@ cdef class ParticleLabelStore:
 
     cdef void recompute(self, ParticleFilterReservoirData rejuv_data):
         cdef np_uint_t[::1] dt_counts
-        cdef np_uint_t p, i, j, doc_idx
+        cdef np_uint_t p, reservoir_doc_idx, j, doc_idx
         cdef long label
 
         for p in xrange(self.num_particles):
             for j in xrange(rejuv_data.occupied):
-                i = rejuv_data.reservoir_token_doc_map[j]
+                reservoir_doc_idx = rejuv_data.reservoir_token_doc_map[j]
                 doc_idx = rejuv_data.doc_ids[j]
-                dt_counts = rejuv_data.dt_counts[i, p, :]
+                dt_counts = rejuv_data.dt_counts[reservoir_doc_idx, p, :]
                 label = self.compute_label(dt_counts)
                 self.set(p, doc_idx, label)
 
