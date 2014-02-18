@@ -12,7 +12,7 @@ do
     then
         init_num_docs=177
         init_num_iters=2000
-        init_seed=937951767 # 0.256156
+        init_seed=225706106 # 0.226941
     elif [ $dataset_name == rel3 ]
     then
         init_num_docs=158
