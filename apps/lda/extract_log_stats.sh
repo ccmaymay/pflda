@@ -4,5 +4,6 @@ do
     if [ -d $d ]
     then
         echo $d
+        python $d
     fi
 done
