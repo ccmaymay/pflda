@@ -33,9 +33,9 @@ do
         "-q text.q -tc 2 -l num_proc=1,mem_free=500M,h_rt=4:00:00" \
         "--reservoir_size=10000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
     bash qsub.sh $dataset_path $dataset_name 1-rs100k \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=2G,h_rt=24:00:00" \
+        "-q text.q -tc 4 -l num_proc=1,mem_free=2G,h_rt=24:00:00" \
         "--reservoir_size=100000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
     bash qsub.sh $dataset_path $dataset_name 1-rs500k \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=4G,h_rt=36:00:00" \
+        "-q text.q -tc 8 -l num_proc=1,mem_free=4G,h_rt=36:00:00" \
         "--reservoir_size=500000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
 done
