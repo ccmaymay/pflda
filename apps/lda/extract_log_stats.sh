@@ -4,6 +4,6 @@ do
     if [ -d $d ]
     then
         echo $d
-        python $d
+        python extract_log_stats.py $d
     fi
 done
