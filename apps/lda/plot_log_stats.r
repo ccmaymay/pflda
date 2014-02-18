@@ -2,7 +2,7 @@ library(ggplot2)
 
 options(warn=1)
 
-stat.names <- c('in_sample_nmi', 'out_of_sample_nmi', 'out_of_sample_log_likelihood', 'out_of_sample_perplexity')
+stat.names <- c('init_in_sample_nmi', 'in_sample_nmi', 'out_of_sample_nmi', 'out_of_sample_log_likelihood', 'out_of_sample_perplexity', 'out_of_sample_coherence')
 
 plot.experiments <- function(experiment.group.name, dataset.names, experiment.names, experiment.names.legend) {
     if (is.null(experiment.names.legend)) {
@@ -36,7 +36,15 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
             dir.create(paste('plots', experiment.group.name, sep='/'))
             filename.out <- paste('plots', experiment.group.name, paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
             if (dim(data)[1] > 0) {
-                qplot(idx, mean, data=data, group=experiment) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name)) #+ ylim(0,1)
+                h <- table(data$experiment)
+                hl <- labels(h)[[1]]
+                for (ex in hl) {
+                    if (h[[ex]] == 1) {
+                        data <- rbind(data, data[ex == data$experiment,])
+                        data$idx[dim(data)[1]] <- min(data$idx)
+                    }
+                }
+                ggplot(aes(x=idx, y=mean), data=data, group=experiment) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name)) #+ ylim(0,1)
                 ggsave(filename.out)
             } else {
                 cat('Data empty for', filename.out, '\n')
