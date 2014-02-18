@@ -13,6 +13,7 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
 
     for (experiment.name in experiment.names) {
         extract.cmd <- paste('python', 'extract_log_stats.py', experiment.name, sep=' ')
+        cat(extract.cmd, '\n')
         system(extract.cmd)
     }
 
