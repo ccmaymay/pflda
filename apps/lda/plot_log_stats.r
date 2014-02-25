@@ -53,7 +53,7 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
     }
 }
 
-plot.experiments('1', c('diff3', 'rel3', 'sim3'), c('1-rs0', '1-rs1k', '1-rs10k', '1-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 500k'))
+plot.experiments('1', c('diff3', 'rel3', 'sim3'), c('1-rs0', '1-rs1k', '1-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 500k'))
 plot.experiments('2', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs0', '2-rs1k-ibs10', '2-rs1k-ibs30', '2-rs1k-ibs100', '2-rs1k-ibs300', '2-rs1k-ibs1k', '2-rs1k-ibs3k'), c('no initialization', 'initialization size 10', 'initialization size 30', 'initialization size 100', 'initialization size 300', 'initialization size 1k', 'initialization size 3k'))
 plot.experiments('2_3_4', c('diff3', 'rel3', 'sim3'), c('4', '3', '2-rs1k-ibs100'), c('no resample/rejuv', 'resample', 'resample and rejuv'))
 plot.experiments('5', c('diff3', 'rel3', 'sim3'), c('5-ess5', '5-ess10', '5-ess20', '5-ess40'), c('ess 5', 'ess 10', 'ess 20', 'ess 40'))
@@ -68,8 +68,8 @@ plot.experiments('2_9_10', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs100', '9-rs1
 plot.experiments('14', c('diff3', 'rel3', 'sim3'), c('14'), c('(ltr)'))
 #plot.experiments('15', c('diff3', 'rel3', 'sim3'), c('15-rs1k-a0.001', '15-rs1k-a0.01', '15-rs1k-a0.1', '15-rs1k-a1', '15-rs1k-a10'), c('alpha 0.001', 'alpha 0.01', 'alpha 0.1', 'alpha 1', 'alpha 10'))
 #plot.experiments('16', c('diff3', 'rel3', 'sim3'), c('16-rs1k-b0.001', '16-rs1k-b0.01', '16-rs1k-b0.1', '16-rs1k-b1', '16-rs1k-b10'), c('beta 0.001', 'beta 0.01', 'beta 0.1', 'beta 1', 'beta 10'))
-plot.experiments('17', c('diff3', 'rel3', 'sim3'), c('17-rs0', '17-rs1k', '17-rs10k', '17-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 500k'))
-plot.experiments('18', c('diff3', 'rel3', 'sim3'), c('18-rs0', '18-rs1k', '18-rs10k', '18-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 500k'))
-plot.experiments('19', c('diff3', 'rel3', 'sim3'), c('19-rs0', '19-rs1k', '19-rs10k', '19-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 500k'))
-plot.experiments('20', c('diff3', 'rel3', 'sim3'), c('20-rs0', '20-rs1k', '20-rs10k', '20-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 500k'))
-plot.experiments('21', c('diff3', 'rel3', 'sim3'), c('21-rs0', '21-rs1k', '21-rs10k', '21-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 10k', 'reservoir size 500k'))
+plot.experiments('17', c('diff3', 'rel3', 'sim3'), c('17-rs0', '17-rs1k', '17-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 500k'))
+plot.experiments('18', c('diff3', 'rel3', 'sim3'), c('18-rs0', '18-rs1k', '18-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 500k'))
+plot.experiments('19', c('diff3', 'rel3', 'sim3'), c('19-rs0', '19-rs1k', '19-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 500k'))
+plot.experiments('20', c('diff3', 'rel3', 'sim3'), c('20-rs0', '20-rs1k', '20-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 500k'))
+plot.experiments('21', c('diff3', 'rel3', 'sim3'), c('21-rs0', '21-rs1k', '21-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 500k'))
