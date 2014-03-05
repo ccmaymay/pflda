@@ -1026,7 +1026,11 @@ cdef class GibbsSampler:
         self.run(sample, num_iters, 0)
 
     cdef run(self, list sample, np_uint_t num_iters, bint update_model):
-        cdef np_uint_t t, i, j, w, m, z, num_docs
+        self.init(sample, update_model)
+        self.iterate(sample, num_iters, update_model)
+
+    cdef init(self, list sample, bint update_model):
+        cdef np_uint_t i, j, w, z, num_docs
 
         num_docs = len(sample)
 
@@ -1047,6 +1051,11 @@ cdef class GibbsSampler:
                 self.d_counts[i] += 1
             if i % 100 == 0:
                 PyErr_CheckSignals()
+
+    cdef iterate(self, list sample, np_uint_t num_iters, bint update_model):
+        cdef np_uint_t t, i, j, w, m, z, num_docs
+
+        num_docs = len(sample)
 
         for t in xrange(num_iters):
             m = 0
@@ -1086,6 +1095,51 @@ cdef np_long_t[::1] infer_topics(np_uint_t[:, ::1] dt_counts,
     for i in xrange(num_docs):
         topics[i] = uint_argmax(dt_counts[i, :])
     return topics
+
+
+# evaluate LDA model (learned by Gibbs sampler) according to a
+# number of metrics, in-sample and out-of-sample, printing results
+# to standard output
+cdef void eval_gibbs(np_uint_t num_topics, GibbsSampler train_gibbs_sampler,
+        list test_sample, list test_labels, list train_labels,
+        np_uint_t test_num_iters, list categories,
+        np_uint_t coherence_num_words, bint ltr_eval,
+        np_uint_t ltr_num_particles, np_uint_t init_size):
+    cdef FirstMomentPLFilter plfilter
+    cdef LeftToRightEvaluator ltr_evaluator
+    cdef CoherenceEstimator coherence_est
+    cdef GlobalModel model
+    cdef GibbsSampler gibbs_sampler
+    cdef np_double_t ll
+    cdef np_long_t[::1] inferred_topics
+
+    model = train_gibbs_sampler.model
+
+    inferred_topics = infer_topics(train_gibbs_sampler.dt_counts,
+        len(train_labels), num_topics)
+    print('in-sample nmi: %f'
+        % nmi(train_labels, categories, inferred_topics, num_topics))
+
+    gibbs_sampler = GibbsSampler(model)
+    gibbs_sampler.infer(test_sample, test_num_iters)
+    inferred_topics = infer_topics(gibbs_sampler.dt_counts, len(test_sample),
+        num_topics)
+    print('out-of-sample nmi: %f'
+        % nmi(test_labels, categories, inferred_topics, num_topics))
+
+    plfilter = FirstMomentPLFilter(model)
+    ll = plfilter.likelihood(test_sample)
+    print('out-of-sample log-likelihood: %f' % ll)
+    print('out-of-sample perplexity: %f' % perplexity(ll, test_sample))
+
+    if ltr_eval:
+        ltr_evaluator = LeftToRightEvaluator(model, ltr_num_particles)
+        ll = ltr_evaluator.likelihood(test_sample)
+        print('out-of-sample ltr log-likelihood: %f' % ll)
+        print('out-of-sample ltr perplexity: %f' % perplexity(ll, test_sample))
+
+    coherence_est = CoherenceEstimator(model, coherence_num_words)
+    print('out-of-sample coherence: %f' % coherence_est.coherence(test_sample))
 
 
 # evaluate particle filter according to a number of metrics, in-sample
@@ -1519,3 +1573,92 @@ def run_lda(data_dir, categories, **kwargs):
 
     print('trained on %d docs (%d tokens)' % (doc_idx, num_tokens))
     print(pf.max_posterior_model().to_string(dataset.vocab, 20))
+
+
+# driver: learn LDA by collapsed Gibbs sampling
+def run_gibbs(data_dir, categories, **kwargs):
+    cdef GibbsSampler gs
+    cdef GlobalModel model
+    cdef np_uint_t doc_idx, num_tokens, iters
+    cdef np_uint_t[::1] t_counts
+    cdef np_uint_t[:, ::1] tw_counts
+
+    # load default params and override with contents of kwargs (if any)
+    params = DEFAULT_PARAMS.copy()
+    for (k, v) in kwargs.items():
+        if k in params:
+            params[k] = type(params[k])(v)
+
+    print('params:')
+    for (k, v) in params.items():
+        print('\t%s = %s' % (k, str(v)))
+
+    for k in kwargs:
+        if k not in params:
+            print('warning: unknown parameter %s' % k)
+
+    print('data dir: %s' % data_dir)
+
+    print('categories:')
+    for category in categories:
+        print('\t%s' % category)
+
+    dataset = Dataset(data_dir, set(categories), params['shuffle_data'])
+
+    print('vocab size: %d' % len(dataset.vocab))
+
+    def preprocess(doc_triple):
+        # replace words with unique ids
+        return doc_triple[:2] + ([dataset.vocab[w] for w in doc_triple[2]],)
+
+    test_data = [preprocess(t) for t in dataset.test_iterator()]
+    test_sample = [t[2] for t in test_data]
+    test_labels = [t[1] for t in test_data]
+
+    train_sample = []
+    train_labels = []
+
+    doc_idx = 0
+    num_tokens = 0
+
+    for doc_triple in dataset.train_iterator():
+        d = preprocess(doc_triple)
+        train_sample.append(d[2])
+        train_labels.append(d[1])
+        doc_idx += 1
+        num_tokens += len(d[2])
+        if doc_idx == params['init_num_docs']:
+            break
+
+    if params['init_seed'] >= 0:
+        print('seed: %u' % params['init_seed'])
+        seed(params['init_seed'])
+    else:
+        rand_seed = randint(0, 1e9)
+        print('seed: %u' % rand_seed)
+        seed(rand_seed)
+
+    tw_counts = zeros((params['num_topics'], len(dataset.vocab)), dtype=np_uint)
+    t_counts = zeros((params['num_topics'],), dtype=np_uint)
+    model = GlobalModel(tw_counts, t_counts, params['alpha'],
+        params['beta'], params['num_topics'], len(dataset.vocab))
+
+    print('gibbs sampling with %d iters' % params['init_num_iters'])
+    gs = GibbsSampler(model)
+    gs.init(train_sample, 1)
+    i = 0
+    while i < params['init_num_iters']:
+        iters = min(params['init_num_iters'] - i, 10)
+
+        gs.iterate(train_sample, iters, 1)
+
+        eval_gibbs(params['num_topics'], gs, test_sample, test_labels,
+            train_labels, params['test_num_iters'], list(categories),
+            params['coherence_num_words'], params['ltr_eval'],
+            params['ltr_num_particles'], len(train_labels))
+        print(model.to_string(dataset.vocab, 20))
+
+        i += iters
+
+    print('trained on %d docs (%d tokens)' % (doc_idx, num_tokens))
+    print(model.to_string(dataset.vocab, 20))

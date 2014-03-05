@@ -26,4 +26,4 @@ for token in sys.argv[3:]:
         v = token[(eq_pos+1):len(token)]
         params[k] = v
 
-lda.run_lda(dataset_path, DATASET_SUBSETS[dataset_subset], **params)
+lda.run_gibbs(dataset_path, DATASET_SUBSETS[dataset_subset], **params)
