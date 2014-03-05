@@ -1655,6 +1655,7 @@ def run_gibbs(data_dir, categories, **kwargs):
             train_labels, params['test_num_iters'], list(categories),
             params['coherence_num_words'], params['ltr_eval'],
             params['ltr_num_particles'], len(train_labels))
+        print(model.to_string(dataset.vocab, 20))
 
         i += iters
 
