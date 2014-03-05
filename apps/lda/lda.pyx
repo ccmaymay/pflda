@@ -1626,6 +1626,8 @@ def run_gibbs(data_dir, categories, **kwargs):
         train_labels.append(d[1])
         doc_idx += 1
         num_tokens += len(d[2])
+        if doc_idx == params['init_num_docs']:
+            break
 
     if params['init_seed'] >= 0:
         print('seed: %u' % params['init_seed'])
