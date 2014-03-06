@@ -1563,6 +1563,7 @@ def run_lda(data_dir, categories, **kwargs):
             init_sample, init_labels, list(categories),
             len(dataset.vocab), params)
         init_size = len(train_labels)
+        print('doc: %d' % doc_idx)
 
     # end of run, do one last eval and print topics
     eval_pf(params['num_topics'], pf, test_sample, test_labels,

@@ -2,7 +2,7 @@ library(ggplot2)
 
 options(warn=1)
 
-stat.names <- c('in_sample_nmi', 'out_of_sample_nmi', 'out_of_sample_perplexity')
+stat.names <- c('init_in_sample_nmi', 'in_sample_nmi', 'out_of_sample_nmi', 'out_of_sample_log_likelihood', 'out_of_sample_perplexity', 'out_of_sample_coherence')
 
 plot.experiments <- function(experiment.group.name, dataset.names, experiment.names, experiment.names.legend) {
     if (is.null(experiment.names.legend)) {

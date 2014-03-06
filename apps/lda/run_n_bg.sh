@@ -1,2 +1,2 @@
 #!/bin/bash
-nohup bash run_n.sh $@ >/dev/null 2>&1 &
+nohup bash run_n.sh "$@" >/dev/null 2>&1 &

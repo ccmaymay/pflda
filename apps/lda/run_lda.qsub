@@ -1,0 +1,8 @@
+#!/bin/sh
+#$ -cwd
+#$ -j y
+#$ -t 1-30
+#$ -V
+#$ -N "slda"
+printenv
+bash run_lda.sh "$@"
