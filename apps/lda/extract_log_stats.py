@@ -8,12 +8,12 @@ import re
 
 PER_DOC_STAT_NAMES = (
     'num words',
-    'init in-sample nmi',
+    #'init in-sample nmi',
     'in-sample nmi',
     'out-of-sample nmi',
     'out-of-sample perplexity',
-    'out-of-sample log-likelihood',
-    'out-of-sample coherence',
+    #'out-of-sample log-likelihood',
+    #'out-of-sample coherence',
 )
 
 PER_DOC_COUNT_NAMES = (
