@@ -6,6 +6,8 @@ import sys
 import re
 
 
+DEFAULT_ITER_KEY = 'doc'
+
 PER_DOC_STAT_NAMES = (
     'num words',
     'init in-sample nmi',
@@ -51,7 +53,10 @@ def dict_increment(d, doc_num, key):
         d[k] = 0
 
 
-def process_logs(experiment_path):
+def process_logs(experiment_path, iter_key=None):
+    if iter_key is None:
+        iter_key = DEFAULT_ITER_KEY
+
     if not os.path.isdir(experiment_path):
         raise Exception(experiment_path + ' is not a directory')
 
@@ -66,7 +71,7 @@ def process_logs(experiment_path):
             for entry in entries:
                 path = os.path.join(dataset_path, entry)
                 if os.path.isfile(path) and not entry.startswith('.'):
-                    (last_doc_num, per_doc_stats) = parse_log(path)
+                    (last_doc_num, per_doc_stats) = parse_log(path, iter_key)
                     if last_doc_num is not None and per_doc_stats:
                         doc_num_bound = max(last_doc_num + 1, doc_num_bound)
                         per_doc_stats_list.append(per_doc_stats)
@@ -86,7 +91,7 @@ def process_logs(experiment_path):
                         f.write('\t'.join([str(dict_count_get(per_doc_stats, doc_num, count_name)) for per_doc_stats in per_doc_stats_list]) + '\n')
 
 
-def parse_log(log_filename):
+def parse_log(log_filename, iter_key):
     doc_num = None
     per_doc_stats = dict()
 
@@ -100,7 +105,7 @@ def parse_log(log_filename):
                 key = None
                 val = None
 
-            if key == 'doc':
+            if key == iter_key:
                 doc_num = int(val)
             elif key in PER_DOC_STAT_NAMES:
                 dict_set(per_doc_stats, doc_num, key, val)

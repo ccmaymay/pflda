@@ -1646,12 +1646,20 @@ def run_gibbs(data_dir, categories, **kwargs):
     print('gibbs sampling with %d iters' % params['init_num_iters'])
     gs = GibbsSampler(model)
     gs.init(train_sample, 1)
+
+    print('iter: 0')
+    eval_gibbs(params['num_topics'], gs, test_sample, test_labels,
+        train_labels, params['test_num_iters'], list(categories),
+        params['coherence_num_words'], params['ltr_eval'],
+        params['ltr_num_particles'], len(train_labels))
+    print(model.to_string(dataset.vocab, 20))
+
     i = 0
     while i < params['init_num_iters']:
         iters = min(params['init_num_iters'] - i, 10)
-
         gs.iterate(train_sample, iters, 1)
 
+        print('iter: %d' % (i + iters))
         eval_gibbs(params['num_topics'], gs, test_sample, test_labels,
             train_labels, params['test_num_iters'], list(categories),
             params['coherence_num_words'], params['ltr_eval'],
