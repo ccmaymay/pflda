@@ -31,7 +31,11 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
                     my.data <- my.data[apply(my.data.raw, 1, function(r) { !all(is.na(r)) }),]
                     data <- rbind(data, my.data)
                     for (j in 1:dim(my.data.raw)[2]) {
-                        my.data.trace <- data.frame(idx=((1:dim(my.data.raw)[1]) - 1), val=my.data.raw[,j], run=rep(as.character(j), dim(my.data.raw)[1]), experiment=rep(experiment.name.legend, dim(my.data.raw)[1]))
+                        my.data.trace <- data.frame(
+                            idx=((1:dim(my.data.raw)[1]) - 1),
+                            val=my.data.raw[,j],
+                            run=rep(paste(as.character(j), experiment.name.legend, sep=':'), dim(my.data.raw)[1]),
+                            experiment=rep(experiment.name.legend, dim(my.data.raw)[1]))
                         my.data.trace <- my.data.trace[apply(my.data.raw, 1, function(r) { !all(is.na(r)) }),]
                         data.trace <- rbind(data.trace, my.data.trace)
                     }
@@ -53,12 +57,12 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
 
                 dir.create(paste('plots', experiment.group.name, 'smooth', sep='/'))
                 filename.out <- paste('plots', experiment.group.name, 'smooth', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
-                ggplot(aes(x=idx, y=mean), data=data, group=experiment) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name))
+                ggplot(aes(x=idx, y=mean, group=experiment), data=data) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name))
                 ggsave(filename.out)
 
                 dir.create(paste('plots', experiment.group.name, 'smooth_ylim', sep='/'))
                 filename.out <- paste('plots', experiment.group.name, 'smooth_ylim', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
-                ggplot(aes(x=idx, y=mean), data=data, group=experiment) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name)) + ylim(0,1)
+                ggplot(aes(x=idx, y=mean, group=experiment), data=data) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name)) + ylim(0,1)
                 ggsave(filename.out)
 
                 dir.create(paste('plots', experiment.group.name, 'trace', sep='/'))
