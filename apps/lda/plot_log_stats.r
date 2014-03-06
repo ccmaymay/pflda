@@ -43,31 +43,27 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
             }
 
             if (dim(data)[1] > 0) {
-                h <- table(data$experiment)
-                hl <- labels(h)[[1]]
-                for (ex in hl) {
-                    if (h[[ex]] == 1) {
-                        data <- rbind(data, data[ex == data$experiment,])
-                        data$idx[dim(data)[1]] <- min(data$idx)
-                    }
-                }
+                #h <- table(data$experiment)
+                #hl <- labels(h)[[1]]
+                #for (ex in hl) {
+                #    i <- min(data$idx[ex == data$experiment])
+                #    if (i > min(data$idx)) {
+                #        data <- rbind(data, data[ex == data$experiment && i == data$idx,])
+                #        data$idx[dim(data)[1]] <- min(data$idx)
+                #    }
+                #}
 
                 dir.create('plots')
                 dir.create(paste('plots', experiment.group.name, sep='/'))
 
                 dir.create(paste('plots', experiment.group.name, 'smooth', sep='/'))
                 filename.out <- paste('plots', experiment.group.name, 'smooth', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
-                ggplot(aes(x=idx, y=mean, group=experiment), data=data) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name))
-                ggsave(filename.out)
-
-                dir.create(paste('plots', experiment.group.name, 'smooth_ylim', sep='/'))
-                filename.out <- paste('plots', experiment.group.name, 'smooth_ylim', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
-                ggplot(aes(x=idx, y=mean, group=experiment), data=data) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name)) + ylim(0,1)
+                ggplot(aes(x=idx, y=mean, group=experiment, shape=experiment), data=data) + geom_point() + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity", alpha=0.2) + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document')
                 ggsave(filename.out)
 
                 dir.create(paste('plots', experiment.group.name, 'trace', sep='/'))
                 filename.out <- paste('plots', experiment.group.name, 'trace', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
-                ggplot(aes(x=idx, y=val, color=experiment, shape=experiment, group=run), data=data.trace) + geom_line() + geom_point() + ylab(stat.name) + xlab('document') + ggtitle(paste(dataset.name, stat.name))
+                ggplot(aes(x=idx, y=val, color=experiment, shape=experiment, group=run), data=data.trace) + geom_line() + ylab(stat.name) + xlab('document')
                 ggsave(filename.out)
             } else {
                 cat('Data empty for', experiment.group.name, dataset.name, '\n')
@@ -77,7 +73,7 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
 }
 
 #plot.experiments('1', c('diff3', 'rel3', 'sim3'), c('1-rs0', '1-rs1k', '1-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 500k'))
-plot.experiments('2', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs0', '2-rs1k-ibs10', '2-rs1k-ibs30', '2-rs1k-ibs100', '2-rs1k-ibs300', '2-rs1k-ibs1k', '2-rs1k-ibs3k'), c('no initialization', 'initialization size 10', 'initialization size 30', 'initialization size 100', 'initialization size 300', 'initialization size 1k', 'initialization size 3k'))
+plot.experiments('2', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs0', '2-rs1k-ibs30', '2-rs1k-ibs100', '2-rs1k-ibs300', '2-rs1k-ibs3k'), c('no initialization', 'initialization size 30', 'initialization size 100', 'initialization size 300', 'batch gibbs'))
 plot.experiments('2_3_4', c('diff3', 'rel3', 'sim3'), c('4', '3', '2-rs1k-ibs100'), c('no resample/rejuv', 'resample', 'resample and rejuv'))
 #plot.experiments('5', c('diff3', 'rel3', 'sim3'), c('5-ess5', '5-ess10', '5-ess20', '5-ess40'), c('ess 5', 'ess 10', 'ess 20', 'ess 40'))
 #plot.experiments('6_3', c('diff3', 'rel3', 'sim3'), c('3', '6-rs10k-rss10', '6-rs10k-rss30', '6-rs10k-rss100', '6-rs10k-rss300', '6-rs10k-rss1k'), c('no rejuv', 'rejuv size 10', 'rejuv size 30', 'rejuv size 100', 'rejuv size 300', 'rejuv size 1k'))
