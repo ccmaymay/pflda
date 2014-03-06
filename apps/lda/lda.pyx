@@ -1578,7 +1578,7 @@ def run_lda(data_dir, categories, **kwargs):
 def run_gibbs(data_dir, categories, **kwargs):
     cdef GibbsSampler gs
     cdef GlobalModel model
-    cdef np_uint_t doc_idx, num_tokens, iters
+    cdef np_uint_t doc_idx, num_tokens, iters, i
     cdef np_uint_t[::1] t_counts
     cdef np_uint_t[:, ::1] tw_counts
 
