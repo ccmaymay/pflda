@@ -14,6 +14,7 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
         cat('*', dataset.name, '\n')
         for (stat.name in stat.names) {
             data <- data.frame()
+            data.trace <- data.frame()
             for (i in 1:length(experiment.names)) {
                 experiment.name <- experiment.names[i]
                 experiment.name.legend <- experiment.names.legend[i]
@@ -29,12 +30,14 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
                     my.data$ucl <- my.data$mean + my.data$sd
                     my.data <- my.data[apply(my.data.raw, 1, function(r) { !all(is.na(r)) }),]
                     data <- rbind(data, my.data)
+                    for (j in 1:dim(my.data.raw)[2]) {
+                        my.data.trace <- data.frame(idx=((1:dim(my.data.raw)[1]) - 1), val=my.data.raw[,j], run=rep(as.character(j), dim(my.data.raw)[1]), experiment=rep(experiment.name.legend, dim(my.data.raw)[1]))
+                        my.data.trace <- my.data.trace[apply(my.data.raw, 1, function(r) { !all(is.na(r)) }),]
+                        data.trace <- rbind(data.trace, my.data.trace)
+                    }
                 }
             }
 
-            dir.create('plots')
-            dir.create(paste('plots', experiment.group.name, sep='/'))
-            filename.out <- paste('plots', experiment.group.name, paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
             if (dim(data)[1] > 0) {
                 h <- table(data$experiment)
                 hl <- labels(h)[[1]]
@@ -44,10 +47,26 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
                         data$idx[dim(data)[1]] <- min(data$idx)
                     }
                 }
-                ggplot(aes(x=idx, y=mean), data=data, group=experiment) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name)) #+ ylim(0,1)
+
+                dir.create('plots')
+                dir.create(paste('plots', experiment.group.name, sep='/'))
+
+                dir.create(paste('plots', experiment.group.name, 'smooth', sep='/'))
+                filename.out <- paste('plots', experiment.group.name, 'smooth', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
+                ggplot(aes(x=idx, y=mean), data=data, group=experiment) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name))
+                ggsave(filename.out)
+
+                dir.create(paste('plots', experiment.group.name, 'smooth_ylim', sep='/'))
+                filename.out <- paste('plots', experiment.group.name, 'smooth_ylim', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
+                ggplot(aes(x=idx, y=mean), data=data, group=experiment) + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity") + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document') + ggtitle(paste(dataset.name, stat.name)) + ylim(0,1)
+                ggsave(filename.out)
+
+                dir.create(paste('plots', experiment.group.name, 'trace', sep='/'))
+                filename.out <- paste('plots', experiment.group.name, 'trace', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
+                ggplot(aes(x=idx, y=val), data=data.trace, color=experiment, shape=experiment, group=run) + ylab(stat.name) + xlab('document') + ggtitle(paste(dataset.name, stat.name))
                 ggsave(filename.out)
             } else {
-                cat('Data empty for', filename.out, '\n')
+                cat('Data empty for', experiment.group.name, dataset.name, '\n')
             }
         }
     }
@@ -73,3 +92,7 @@ plot.experiments('18', c('diff3', 'rel3', 'sim3'), c('18-rs0', '18-rs1k', '18-rs
 plot.experiments('19', c('diff3', 'rel3', 'sim3'), c('19-rs0', '19-rs1k', '19-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 500k'))
 plot.experiments('20', c('diff3', 'rel3', 'sim3'), c('20-rs0', '20-rs1k', '20-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 500k'))
 plot.experiments('21', c('diff3', 'rel3', 'sim3'), c('21-rs0', '21-rs1k', '21-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'reservoir size 500k'))
+plot.experiments('22', c('diff3', 'rel3', 'sim3'), c('22'), c('gibbs (csg init docs)'))
+plot.experiments('23', c('diff3', 'rel3', 'sim3'), c('23'), c('gibbs (200 init docs)'))
+plot.experiments('24', c('diff3', 'rel3', 'sim3'), c('24'), c('gibbs (100 init docs)'))
+plot.experiments('25', c('diff3', 'rel3', 'sim3'), c('25-rs0'), c('no rejuvenation'))
