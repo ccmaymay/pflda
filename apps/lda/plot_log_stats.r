@@ -2,7 +2,8 @@ library(ggplot2)
 
 options(warn=1)
 
-stat.names <- c('init_in_sample_nmi', 'in_sample_nmi', 'out_of_sample_nmi', 'out_of_sample_log_likelihood', 'out_of_sample_perplexity', 'out_of_sample_coherence')
+#stat.names <- c('init_in_sample_nmi', 'in_sample_nmi', 'out_of_sample_nmi', 'out_of_sample_log_likelihood', 'out_of_sample_perplexity', 'out_of_sample_coherence')
+stat.names <- c('in_sample_nmi', 'out_of_sample_nmi', 'out_of_sample_perplexity')
 
 plot.experiments <- function(experiment.group.name, dataset.names, experiment.names, experiment.names.legend) {
     if (is.null(experiment.names.legend)) {
@@ -58,7 +59,7 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
 
                 dir.create(paste('plots', experiment.group.name, 'smooth', sep='/'))
                 filename.out <- paste('plots', experiment.group.name, 'smooth', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
-                ggplot(aes(x=idx, y=mean, group=experiment, shape=experiment), data=data) + geom_point() + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity", alpha=0.2) + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document')
+                ggplot(aes(x=idx, y=mean, group=experiment, shape=experiment), data=data) + geom_point() + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity", alpha=0.5) + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document')
                 ggsave(filename.out)
 
                 dir.create(paste('plots', experiment.group.name, 'trace', sep='/'))
