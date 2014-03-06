@@ -17,7 +17,7 @@ do
         init_num_iters=200
     fi
 
-    nohup bash qsub.sh run_gibbs.sh $dataset_path $dataset_name 23 \
+    nohup bash qsub_local_120.sh run_gibbs.sh $dataset_path $dataset_name 23 \
         "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
         "--init_num_docs=$init_num_docs --init_num_iters=$init_num_iters" \
         >/dev/null 2>&1 &

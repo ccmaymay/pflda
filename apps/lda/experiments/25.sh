@@ -17,26 +17,26 @@ do
         init_num_iters=200
     fi
 
-    nohup bash qsub.sh run_lda.sh $dataset_path $dataset_name 25-rs0 \
+    nohup bash qsub_local_120.sh run_lda.sh $dataset_path $dataset_name 25-rs0 \
         "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
         "--reservoir_size=0 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters" \
         >/dev/null 2>&1 &
-    #bash qsub.sh $dataset_path $dataset_name 25-rs10 \
+    #bash qsub_local_120.sh run_lda.sh $dataset_path $dataset_name 25-rs10 \
     #    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
     #    "--reservoir_size=10 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
-    #bash qsub.sh $dataset_path $dataset_name 25-rs100 \
+    #bash qsub_local_120.sh run_lda.sh $dataset_path $dataset_name 25-rs100 \
     #    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
     #    "--reservoir_size=100 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
-    #bash qsub.sh $dataset_path $dataset_name 25-rs1k \
+    #bash qsub_local_120.sh run_lda.sh $dataset_path $dataset_name 25-rs1k \
     #    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
     #    "--reservoir_size=1000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
-    #bash qsub.sh $dataset_path $dataset_name 25-rs10k \
+    #bash qsub_local_120.sh run_lda.sh $dataset_path $dataset_name 25-rs10k \
     #    "-q text.q -tc 2 -l num_proc=1,mem_free=500M,h_rt=4:00:00" \
     #    "--reservoir_size=10000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
-    #bash qsub.sh $dataset_path $dataset_name 25-rs100k \
+    #bash qsub_local_120.sh run_lda.sh $dataset_path $dataset_name 25-rs100k \
     #    "-q text.q -tc 4 -l num_proc=1,mem_free=2G,h_rt=24:00:00" \
     #    "--reservoir_size=100000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
-    #bash qsub.sh $dataset_path $dataset_name 25-rs500k \
+    #bash qsub_local_120.sh run_lda.sh $dataset_path $dataset_name 25-rs500k \
     #    "-q text.q -tc 8 -l num_proc=1,mem_free=4G,h_rt=36:00:00" \
     #    "--reservoir_size=500000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
 done
