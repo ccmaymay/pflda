@@ -66,4 +66,4 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
 #plot.experiments('22', c('diff3', 'rel3', 'sim3'), c('22'), c('gibbs'))
 #plot.experiments('23', c('diff3', 'rel3', 'sim3'), c('23'), c('gibbs-200'))
 #plot.experiments('24', c('diff3', 'rel3', 'sim3'), c('24'), c('gibbs-100'))
-plot.experiments('25', c('diff3', 'rel3', 'sim3'), c('25-rs0'), c('no rejuvenation'))
+#plot.experiments('25', c('diff3', 'rel3', 'sim3'), c('25-rs0'), c('no rejuvenation'))
