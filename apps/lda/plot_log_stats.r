@@ -63,7 +63,7 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
 
                 dir.create(paste('plots', experiment.group.name, 'trace', sep='/'))
                 filename.out <- paste('plots', experiment.group.name, 'trace', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
-                ggplot(aes(x=idx, y=val), data=data.trace, color=experiment, shape=experiment, group=run) + ylab(stat.name) + xlab('document') + ggtitle(paste(dataset.name, stat.name))
+                ggplot(aes(x=idx, y=val, color=experiment, shape=experiment, group=run), data=data.trace) + geom_line() + geom_point() + ylab(stat.name) + xlab('document') + ggtitle(paste(dataset.name, stat.name))
                 ggsave(filename.out)
             } else {
                 cat('Data empty for', experiment.group.name, dataset.name, '\n')
