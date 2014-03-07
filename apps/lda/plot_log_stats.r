@@ -3,81 +3,73 @@ library(ggplot2)
 options(warn=1)
 
 #stat.names <- c('init_in_sample_nmi', 'in_sample_nmi', 'out_of_sample_nmi', 'out_of_sample_log_likelihood', 'out_of_sample_perplexity', 'out_of_sample_coherence')
-#stat.names <- c('in_sample_nmi', 'out_of_sample_nmi', 'out_of_sample_perplexity')
-stat.names <- c('in_sample_nmi', 'out_of_sample_nmi')
+stat.names <- c('in_sample_nmi', 'out_of_sample_nmi', 'out_of_sample_perplexity')
 
 plot.experiments <- function(experiment.group.name, dataset.names, experiment.names, experiment.names.legend) {
     if (is.null(experiment.names.legend)) {
         experiment.names.legend <- experiment.names
     }
 
-    data <- data.frame()
-    #data.trace <- data.frame()
-
     cat(experiment.group.name, '\n')
     for (dataset.name in dataset.names) {
         cat('*', dataset.name, '\n')
         for (stat.name in stat.names) {
+            data <- data.frame()
+            data.trace <- data.frame()
             for (i in 1:length(experiment.names)) {
                 experiment.name <- experiment.names[i]
                 experiment.name.legend <- experiment.names.legend[i]
                 cat('  -', experiment.name, stat.name, '\n')
-                filename.in <- paste(experiment.name, '/',
-                    dataset.name, '_', stat.name, '.tab', sep='')
-                my.data.raw <- tryCatch(read.table(filename.in, header=T),
-                    error=function(ex) {NULL})
+                filename.in <- paste(experiment.name, '/', dataset.name, '_', stat.name, '.tab', sep='')
+                my.data.raw <- tryCatch(read.table(filename.in, header=T), error=function(ex) {NULL})
                 if (! is.null(my.data.raw)) {
-                    my.data <- data.frame(
-                        mean=rowSums(my.data.raw, na.rm=T)/rowSums(!is.na(my.data.raw)),
-                        dataset=rep(dataset.name, dim(my.data.raw)[1]),
-                        stat=rep(stat.name, dim(my.data.raw)[1]))
+                    my.data <- data.frame(mean=rowSums(my.data.raw, na.rm=T)/rowSums(!is.na(my.data.raw)))
                     my.data$experiment <- rep(experiment.name.legend, dim(my.data)[1])
-                    my.data$sd <- apply(my.data.raw, 1,
-                        function(r) { sd(r, na.rm=T) })
+                    my.data$sd <- apply(my.data.raw, 1, function(r) { sd(r, na.rm=T) })
                     my.data$idx <- (1:dim(my.data)[1]) - 1
                     my.data$lcl <- my.data$mean - my.data$sd
                     my.data$ucl <- my.data$mean + my.data$sd
-                    my.data <- my.data[apply(my.data.raw, 1,
-                        function(r) { !all(is.na(r)) }),]
+                    my.data <- my.data[apply(my.data.raw, 1, function(r) { !all(is.na(r)) }),]
                     data <- rbind(data, my.data)
-                    #for (j in 1:dim(my.data.raw)[2]) {
-                    #    my.data.trace <- data.frame(
-                    #        idx=((1:dim(my.data.raw)[1]) - 1),
-                    #        val=my.data.raw[,j],
-                    #        run=rep(paste(as.character(j), experiment.name.legend, sep=':'), dim(my.data.raw)[1]),
-                    #        experiment=rep(experiment.name.legend, dim(my.data.raw)[1]))
-                    #    my.data.trace <- my.data.trace[apply(my.data.raw, 1, function(r) { !all(is.na(r)) }),]
-                    #    data.trace <- rbind(data.trace, my.data.trace)
-                    #}
+                    for (j in 1:dim(my.data.raw)[2]) {
+                        my.data.trace <- data.frame(
+                            idx=((1:dim(my.data.raw)[1]) - 1),
+                            val=my.data.raw[,j],
+                            run=rep(paste(as.character(j), experiment.name.legend, sep=':'), dim(my.data.raw)[1]),
+                            experiment=rep(experiment.name.legend, dim(my.data.raw)[1]))
+                        my.data.trace <- my.data.trace[apply(my.data.raw, 1, function(r) { !all(is.na(r)) }),]
+                        data.trace <- rbind(data.trace, my.data.trace)
+                    }
                 }
             }
+
+            if (dim(data)[1] > 0) {
+                #h <- table(data$experiment)
+                #hl <- labels(h)[[1]]
+                #for (ex in hl) {
+                #    i <- min(data$idx[ex == data$experiment])
+                #    if (i > min(data$idx)) {
+                #        data <- rbind(data, data[ex == data$experiment && i == data$idx,])
+                #        data$idx[dim(data)[1]] <- min(data$idx)
+                #    }
+                #}
+
+                dir.create('plots')
+                dir.create(paste('plots', experiment.group.name, sep='/'))
+
+                dir.create(paste('plots', experiment.group.name, 'smooth', sep='/'))
+                filename.out <- paste('plots', experiment.group.name, 'smooth', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
+                ggplot(aes(x=idx, y=mean, group=experiment, shape=experiment), data=data) + geom_point() + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity", alpha=0.5) + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document')
+                ggsave(filename.out)
+
+                dir.create(paste('plots', experiment.group.name, 'trace', sep='/'))
+                filename.out <- paste('plots', experiment.group.name, 'trace', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
+                ggplot(aes(x=idx, y=val, color=experiment, shape=experiment, group=run), data=data.trace) + geom_line() + ylab(stat.name) + xlab('document')
+                ggsave(filename.out)
+            } else {
+                cat('Data empty for', experiment.group.name, dataset.name, '\n')
+            }
         }
-    }
-
-    if (dim(data)[1] > 0) {
-        #h <- table(data$experiment)
-        #hl <- labels(h)[[1]]
-        #for (ex in hl) {
-        #    i <- min(data$idx[ex == data$experiment])
-        #    if (i > min(data$idx)) {
-        #        data <- rbind(data, data[ex == data$experiment && i == data$idx,])
-        #        data$idx[dim(data)[1]] <- min(data$idx)
-        #    }
-        #}
-
-        dir.create('plots')
-        dir.create(paste('plots', experiment.group.name, sep='/'))
-
-        filename.out <- paste('plots', experiment.group.name, 'smooth.png', sep='/')
-        ggplot(aes(x=idx, y=mean, group=experiment, shape=experiment), data=data) + geom_point() + geom_smooth(aes(fill=experiment, ymin=lcl, ymax=ucl, color=experiment), data=data, stat="identity", alpha=0.5) + facet_grid(stat ~ dataset) + ylab(paste(stat.name, '(mean +/- stdev)')) + xlab('document')
-        ggsave(filename.out)
-
-        #dir.create(paste('plots', experiment.group.name, 'trace', sep='/'))
-        #filename.out <- paste('plots', experiment.group.name, 'trace', paste(dataset.name, '_', stat.name, '.png', sep=''), sep='/')
-        #ggplot(aes(x=idx, y=val, color=experiment, shape=experiment, group=run), data=data.trace) + geom_line() + ylab(stat.name) + xlab('document')
-        #ggsave(filename.out)
-    } else {
-        cat('Data empty for', experiment.group.name, '\n')
     }
 }
 
