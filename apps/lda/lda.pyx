@@ -1550,6 +1550,7 @@ def run_lda(data_dir, categories, **kwargs):
                     params['test_num_iters'], list(categories),
                     params['coherence_num_words'], params['ltr_eval'],
                     params['ltr_num_particles'], init_size)
+                print(pf.max_posterior_model().to_string(dataset.vocab, 20))
 
             doc_idx += 1
             num_tokens += len(d[2])
