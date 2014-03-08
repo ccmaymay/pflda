@@ -6,7 +6,7 @@ import sys
 import re
 
 
-DEFAULT_ITER_KEY = 'iter'
+DEFAULT_ITER_KEY = 'doc'
 
 PER_ITER_STAT_NAMES = (
     'num words',
