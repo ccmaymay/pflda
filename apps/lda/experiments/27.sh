@@ -17,10 +17,10 @@ do
         init_num_iters=200
     fi
 
-    #nohup bash qsub_local_120.sh run_lda.sh $dataset_path $dataset_name 27-rs0 \
-    #    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
-    #    "--reservoir_size=0 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters" \
-    #    >/dev/null 2>&1 &
+    nohup bash qsub_local_120.sh run_lda.sh $dataset_path $dataset_name 27-rs0 \
+        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+        "--reservoir_size=0 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters" \
+        >/dev/null 2>&1 &
     #nohup bash qsub_local_120.sh run_lda.sh $dataset_path $dataset_name 27-rs10 \
     #    "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
     #    "--reservoir_size=10 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters" \

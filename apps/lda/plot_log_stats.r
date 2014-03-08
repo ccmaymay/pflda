@@ -123,4 +123,5 @@ plot.experiments('22', c('diff3', 'rel3', 'sim3'), c('22'), c('gibbs (csg init d
 plot.experiments('23', c('diff3', 'rel3', 'sim3'), c('23'), c('gibbs (200 init docs)'), c('in_sample_nmi', 'out_of_sample_nmi'), c('in-sample NMI', 'out-of-sample NMI'))
 plot.experiments('24', c('diff3', 'rel3', 'sim3'), c('24'), c('gibbs (100 init docs)'), c('in_sample_nmi', 'out_of_sample_nmi'), c('in-sample NMI', 'out-of-sample NMI'))
 plot.experiments('25', c('diff3', 'rel3', 'sim3'), c('25-rs0'), c('no rejuvenation'), c('in_sample_nmi', 'out_of_sample_nmi'), c('in-sample NMI', 'out-of-sample NMI'))
-plot.experiments('27', c('diff3', 'rel3', 'sim3'), c('27-rs1k'), c('reservoir size 1k'), c('in_sample_nmi', 'out_of_sample_nmi'), c('in-sample NMI', 'out-of-sample NMI'))
+plot.experiments('27-rs0', c('diff3', 'rel3', 'sim3'), c('27-rs0'), c('no rejuvenation'), c('in_sample_nmi', 'out_of_sample_nmi'), c('in-sample NMI', 'out-of-sample NMI'))
+plot.experiments('27-rs1k', c('diff3', 'rel3', 'sim3'), c('27-rs1k'), c('reservoir size 1k'), c('in_sample_nmi', 'out_of_sample_nmi'), c('in-sample NMI', 'out-of-sample NMI'))
