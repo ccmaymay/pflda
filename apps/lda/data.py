@@ -74,6 +74,29 @@ class NonAlphaTokenizer(object):
         return [w for w in NON_ALPHA_RE.split(s)]
 
 
+class TopicList(object):
+    def __init__(self, filename):
+        self.topics = list()
+        with open(filename) as f:
+            for line in f:
+                if line.strip():
+                    tokens_and_counts = line.strip().split()
+                    if len(tokens_and_counts) % 2 != 0:
+                        raise Exception('Topic distribution is malformatted: expected even-length list.')
+                    topic = dict()
+                    for i in xrange(len(tokens_and_counts)/2):
+                        token = tokens_and_counts[2*i]
+                        count = tokens_and_counts[2*i + 1]
+                        topic[token] = int(count)
+                    topics.append(topic)
+
+    def topic(self, i):
+        return self.topics[i]
+
+    def num_topics(self):
+        return len(self.topics)
+
+
 class Dataset(object):
     def __init__(self, data_dir, categories, shuffle=False):
         self.train_dir = os.path.join(data_dir, 'train')
