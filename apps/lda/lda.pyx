@@ -1484,11 +1484,11 @@ def init_lda(list init_sample, list init_labels, list categories,
 def init_topics(np_uint_t[:,::1] tw_counts, np_uint_t[::1] t_counts,
         dict vocab, bytes init_topic_list_filename):
     topic_list = TopicList(init_topic_list_filename)
-    for t in xrange(len(topic_list.num_topics())):
+    for t in xrange(topic_list.num_topics()):
         topic = topic_list.topic(t)
-        for (token, count) in topic:
+        for (token, count) in topic.items():
             if token in vocab:
-                tw_counts[t,vocab[token]] = count
+                tw_counts[t,vocab[token]] += count
                 t_counts[t] += count
 
 

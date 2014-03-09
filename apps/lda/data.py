@@ -88,7 +88,7 @@ class TopicList(object):
                         token = tokens_and_counts[2*i]
                         count = tokens_and_counts[2*i + 1]
                         topic[token] = int(count)
-                    topics.append(topic)
+                    self.topics.append(topic)
 
     def topic(self, i):
         return self.topics[i]
