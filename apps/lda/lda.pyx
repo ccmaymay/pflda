@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from random import random, randint, seed
-from data import Dataset
+from data import Dataset, TopicList
 from pylowl cimport ReservoirSampler, lowl_key, size_t
 import sys
 import numpy
@@ -106,7 +106,13 @@ DEFAULT_PARAMS = dict(
     # state transition, if ess threshold is breached (False),
     # or do resampling (but no rejuvenation) *before* every state
     # transition (True)
-    resample_propagate = False
+    resample_propagate = False,
+
+    # path to file containing initial topic distributions; the
+    # counts in this file are *added* to the counts initialized
+    # by the gibbs sampler or particle filter, so this is a bit of
+    # a hack meant to be used mainly for diagnostics.
+    init_topic_list_filename = '',
 )
 
 
@@ -1255,7 +1261,7 @@ def create_pf(GlobalModel model, list init_sample,
 # sample, or after tuning (by in-sample evaluation, held-out
 # evaluation, or cross-validation)
 def init_lda(list init_sample, list init_labels, list categories,
-        np_uint_t vocab_size, dict params):
+        dict vocab, dict params):
     cdef np_uint_t[::1] t_counts
     cdef np_uint_t[:, ::1] tw_counts
     cdef GlobalModel orig_model, best_model, model
@@ -1267,13 +1273,17 @@ def init_lda(list init_sample, list init_labels, list categories,
     cdef list best_init_train_sample, best_init_train_labels
     cdef list limits
     cdef np_uint_t i, j, r, b, init_train_size, num_tokens, base_fold_size
+    cdef np_uint_t vocab_size
     cdef np_double_t score, best_score
     cdef np_long_t[::1] inferred_topics
     cdef list scores, models, init_gibbs_samplers, init_train_sample_lists
     cdef list init_train_label_lists
 
+    vocab_size = len(vocab)
+
     tw_counts = zeros((params['num_topics'], vocab_size), dtype=np_uint)
     t_counts = zeros((params['num_topics'],), dtype=np_uint)
+    init_topics(tw_counts, t_counts, vocab, params['init_topic_list_filename'])
     orig_model = GlobalModel(tw_counts, t_counts, params['alpha'],
         params['beta'], params['num_topics'], vocab_size)
 
@@ -1471,6 +1481,17 @@ def init_lda(list init_sample, list init_labels, list categories,
     return (pf, best_init_train_labels, len(best_init_train_sample), num_tokens)
 
 
+def init_topics(np_uint_t[:,::1] tw_counts, np_uint_t[::1] t_counts,
+        dict vocab, bytes init_topic_list_filename):
+    topic_list = TopicList(init_topic_list_filename)
+    for t in xrange(len(topic_list.num_topics())):
+        topic = topic_list.topic(t)
+        for (token, count) in topic:
+            if token in vocab:
+                tw_counts[t,vocab[token]] = count
+                t_counts[t] += count
+
+
 # driver: initialize LDA by collapsed Gibbs sampling and run particle
 # filter on the rest of the data
 def run_lda(data_dir, categories, **kwargs):
@@ -1529,7 +1550,7 @@ def run_lda(data_dir, categories, **kwargs):
                 # create pf from results
                 (pf, train_labels, doc_idx, num_tokens) = init_lda(
                     init_sample, init_labels, list(categories),
-                    len(dataset.vocab), params)
+                    dataset.vocab, params)
                 init_size = len(train_labels)
 
                 eval_pf(params['num_topics'], pf,
@@ -1562,7 +1583,7 @@ def run_lda(data_dir, categories, **kwargs):
         # pf just so we can evaluate the model learned by Gibbs
         (pf, train_labels, doc_idx, num_tokens) = init_lda(
             init_sample, init_labels, list(categories),
-            len(dataset.vocab), params)
+            dataset.vocab, params)
         init_size = len(train_labels)
         print('doc: %d' % doc_idx)
 
@@ -1641,6 +1662,9 @@ def run_gibbs(data_dir, categories, **kwargs):
 
     tw_counts = zeros((params['num_topics'], len(dataset.vocab)), dtype=np_uint)
     t_counts = zeros((params['num_topics'],), dtype=np_uint)
+    if params['init_topic_list_filename']:
+        init_topics(tw_counts, t_counts, dataset.vocab,
+            params['init_topic_list_filename'])
     model = GlobalModel(tw_counts, t_counts, params['alpha'],
         params['beta'], params['num_topics'], len(dataset.vocab))
 
