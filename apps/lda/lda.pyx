@@ -1283,7 +1283,9 @@ def init_lda(list init_sample, list init_labels, list categories,
 
     tw_counts = zeros((params['num_topics'], vocab_size), dtype=np_uint)
     t_counts = zeros((params['num_topics'],), dtype=np_uint)
-    init_topics(tw_counts, t_counts, vocab, params['init_topic_list_filename'])
+    if params['init_topic_list_filename']:
+        init_topics(tw_counts, t_counts, vocab,
+            params['init_topic_list_filename'])
     orig_model = GlobalModel(tw_counts, t_counts, params['alpha'],
         params['beta'], params['num_topics'], vocab_size)
 
