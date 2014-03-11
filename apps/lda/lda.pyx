@@ -741,6 +741,47 @@ cdef class ParticleFilterReservoirData:
         self.dt_counts[:, new_p, :] = self.dt_counts[:, old_p, :]
         self.z[:, new_p] = self.z[:, old_p]
 
+    def to_string(self):
+        cdef np_uint_t i, j, k
+
+        s = ''
+
+        s += 'rd_doc_ids:'
+        for i in xrange(self.occupied):
+            s += ' %d' % self.doc_ids[i]
+        s += '\n'
+
+        s += 'rd_w:'
+        for i in xrange(self.occupied):
+            s += ' %d' % self.w[i]
+        s += '\n'
+
+        s += 'rd_z:\n'
+        for i in xrange(self.occupied):
+            s += ' '
+            for j in xrange(self.num_particles):
+                s += ' %d' % self.z[i,j]
+            s += '\n'
+        s += '\n'
+
+        s += 'rd_reservoir_token_doc_map:'
+        for i in xrange(self.occupied):
+            s += ' %d' % self.reservoir_token_doc_map[i]
+        s += '\n'
+
+        s += 'rd_dt_counts:\n'
+        for i in xrange(self.occupied):
+            if self.reservoir_doc_tokens_map[i] > 0:
+                for j in xrange(self.num_particles):
+                    s += ' '
+                    for k in xrange(self.num_topics):
+                        s += ' %d' % self.dt_counts[i, j, k]
+                    s += '\n'
+                s += '\n'
+        s += '\n'
+
+        return s
+
 
 # particle filter for LDA, with rejuvenation sequence based on reservoir
 cdef class ParticleFilter:
@@ -924,6 +965,7 @@ cdef class ParticleFilter:
                 self.resample()
                 self.rejuvenate()
                 self.label_store.recompute(self.rejuv_data)
+                print(self.rejuv_data.to_string())
 
             self.token_idx += 1
             PyErr_CheckSignals()
