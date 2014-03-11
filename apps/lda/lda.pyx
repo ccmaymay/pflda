@@ -895,11 +895,6 @@ cdef class ParticleFilter:
                 _ess = self.ess()
                 print('resampling: ess %f; doc_idx %d, %d; token_idx %d'
                     % (_ess, doc_idx, j, self.token_idx))
-                sys.stdout.write('weights:')
-                for i in xrange(self.num_particles):
-                    sys.stdout.write(' %f' % self.weights[i])
-                sys.stdout.write('\n')
-                sys.stdout.flush()
                 self.resample()
 
             for i in xrange(self.num_particles):
