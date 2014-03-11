@@ -14,6 +14,9 @@ from numpy cimport uint_t as np_uint_t, double_t as np_double_t, long_t as np_lo
 
 cdef object DEFAULT_PARAMS
 DEFAULT_PARAMS = dict(
+    # number of words to print per topic, when printing topics
+    print_num_words_per_topic = 50,
+
     # whether to shuffle the data beforehand; note that for TNG at
     # least, data is pre-shuffled, so the effect of setting this option
     # to true is simply that every time the program is run you will
@@ -418,16 +421,17 @@ cdef class GlobalModel:
     def to_string(self, vocab, num_words_per_topic):
         s = ''
         for t in range(self.num_topics):
-            s += 'TOPIC %d:\n' % t
+            s += 'topic %d:' % t
             pp = [(word, self.tw_counts[t, w]) for (word, w) in vocab.items()]
             pp.sort(key=lambda p: p[1], reverse=True)
             i = 0
             for (word, count) in pp:
                 if count > 0:
-                    s += '\t%s (%d)\n' % (word, count)
+                    s += ' %s (%d)' % (word, count)
                 i += 1
                 if i >= num_words_per_topic:
                     break
+            s += '\n'
         return s
 
     cdef np_double_t conditional_posterior(self,
@@ -878,8 +882,12 @@ cdef class ParticleFilter:
                     prior += self.conditional_posterior(i, w, t)
                 self.weights[i] *= prior
                 total_weight += self.weights[i]
+            sys.stdout.write('weights:')
             for i in xrange(self.num_particles):
                 self.weights[i] /= total_weight
+                sys.stdout.write(' %f' % self.weights[i])
+            sys.stdout.write('\n')
+            sys.stdout.flush()
 
             for i in xrange(self.num_particles):
                 z = self.sample_topic(i, w)
@@ -1543,7 +1551,8 @@ def run_lda(data_dir, categories, **kwargs):
                     params['test_num_iters'], list(categories),
                     params['coherence_num_words'], params['ltr_eval'],
                     params['ltr_num_particles'], init_size)
-                print(pf.max_posterior_model().to_string(dataset.vocab, 20))
+                print(pf.max_posterior_model().to_string(dataset.vocab,
+                    params['print_num_words_per_topic']))
 
             # process current document through pf
             pf.step(doc_idx, d[2])
@@ -1556,7 +1565,8 @@ def run_lda(data_dir, categories, **kwargs):
                     params['test_num_iters'], list(categories),
                     params['coherence_num_words'], params['ltr_eval'],
                     params['ltr_num_particles'], init_size)
-                print(pf.max_posterior_model().to_string(dataset.vocab, 20))
+                print(pf.max_posterior_model().to_string(dataset.vocab,
+                    params['print_num_words_per_topic']))
 
             doc_idx += 1
             num_tokens += len(d[2])
@@ -1579,7 +1589,8 @@ def run_lda(data_dir, categories, **kwargs):
         params['ltr_num_particles'], init_size)
 
     print('trained on %d docs (%d tokens)' % (doc_idx, num_tokens))
-    print(pf.max_posterior_model().to_string(dataset.vocab, 20))
+    print(pf.max_posterior_model().to_string(dataset.vocab,
+        params['print_num_words_per_topic']))
 
 
 # driver: learn LDA by collapsed Gibbs sampling
@@ -1662,7 +1673,7 @@ def run_gibbs(data_dir, categories, **kwargs):
         train_labels, params['test_num_iters'], list(categories),
         params['coherence_num_words'], params['ltr_eval'],
         params['ltr_num_particles'], len(train_labels))
-    print(model.to_string(dataset.vocab, 20))
+    print(model.to_string(dataset.vocab, params['print_num_words_per_topic']))
 
     i = 0
     while i < params['init_num_iters']:
@@ -1674,9 +1685,10 @@ def run_gibbs(data_dir, categories, **kwargs):
             train_labels, params['test_num_iters'], list(categories),
             params['coherence_num_words'], params['ltr_eval'],
             params['ltr_num_particles'], len(train_labels))
-        print(model.to_string(dataset.vocab, 20))
+        print(model.to_string(dataset.vocab,
+            params['print_num_words_per_topic']))
 
         i += iters
 
     print('trained on %d docs (%d tokens)' % (doc_idx, num_tokens))
-    print(model.to_string(dataset.vocab, 20))
+    print(model.to_string(dataset.vocab, params['print_num_words_per_topic']))
