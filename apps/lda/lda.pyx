@@ -939,6 +939,11 @@ cdef class ParticleFilter:
 
         sample = sample_without_replacement(self.rs.occupied(),
             self.rejuv_sample_size)
+        sys.stdout.write('rejuvenating:')
+        for j in xrange(len(sample)):
+            sys.stdout.write(' %d' % sample[j])
+        sys.stdout.write('\n')
+        sys.stdout.flush()
 
         for p in xrange(self.num_particles):
             for t in xrange(self.rejuv_mcmc_steps):
