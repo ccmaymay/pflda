@@ -14,6 +14,9 @@ from numpy cimport uint_t as np_uint_t, double_t as np_double_t, long_t as np_lo
 
 cdef object DEFAULT_PARAMS
 DEFAULT_PARAMS = dict(
+    # whether to print very verbose debugging information
+    debug = False,
+
     # number of words to print per topic, when printing topics
     print_num_words_per_topic = 50,
 
@@ -799,12 +802,14 @@ cdef class ParticleFilter:
     cdef np_uint_t num_topics, vocab_size, num_particles, token_idx
     cdef np_uint_t rejuv_sample_size, rejuv_mcmc_steps
     cdef np_double_t alpha, beta, ess_threshold
+    cdef bint debug
 
     def __cinit__(self, GlobalModel init_model, np_uint_t num_particles,
             np_double_t ess_threshold, ReservoirSampler rs,
             ParticleFilterReservoirData rejuv_data,
             np_uint_t rejuv_sample_size, np_uint_t rejuv_mcmc_steps,
-            np_uint_t next_token_idx, ParticleLabelStore label_store):
+            np_uint_t next_token_idx, ParticleLabelStore label_store,
+            bint debug):
         cdef np_uint_t i
 
         self.alpha = init_model.alpha
@@ -842,6 +847,8 @@ cdef class ParticleFilter:
         self.resample_cmf = zeros((num_particles,), dtype=np_double)
 
         self.label_store = label_store
+
+        self.debug = debug
 
     cdef np_double_t ess(self):
         cdef np_double_t total
@@ -925,12 +932,14 @@ cdef class ParticleFilter:
                     prior += self.conditional_posterior(i, w, t)
                 self.weights[i] *= prior
                 total_weight += self.weights[i]
-            sys.stdout.write('weights:')
             for i in xrange(self.num_particles):
                 self.weights[i] /= total_weight
-                sys.stdout.write(' %f' % self.weights[i])
-            sys.stdout.write('\n')
-            sys.stdout.flush()
+            if self.debug:
+                sys.stdout.write('weights:')
+                for i in xrange(self.num_particles):
+                    sys.stdout.write(' %f' % self.weights[i])
+                sys.stdout.write('\n')
+                sys.stdout.flush()
 
             for i in xrange(self.num_particles):
                 z = self.sample_topic(i, w)
@@ -943,12 +952,13 @@ cdef class ParticleFilter:
             inserted = self.rs._insert(self.token_idx, &reservoir_token_idx,
                 &ejected, &ejected_token_idx)
             if inserted:
-                if ejected:
-                    print('rsvr replace: doc_idx %d, %d; token_idx %d -> %d; r_t_idx %d'
-                        % (doc_idx, j, ejected_token_idx, self.token_idx, reservoir_token_idx))
-                else:
-                    print('rsvr insert: doc_idx %d, %d; token_idx %d; r_t_idx %d'
-                        % (doc_idx, j, self.token_idx, reservoir_token_idx))
+                if self.debug:
+                    if ejected:
+                        print('rsvr replace: doc_idx %d, %d; token_idx %d -> %d; r_t_idx %d'
+                            % (doc_idx, j, ejected_token_idx, self.token_idx, reservoir_token_idx))
+                    else:
+                        print('rsvr insert: doc_idx %d, %d; token_idx %d; r_t_idx %d'
+                            % (doc_idx, j, self.token_idx, reservoir_token_idx))
                 reservoir_doc_idx = self.rejuv_data.insert(
                     reservoir_token_idx, doc_idx, w, zz,
                     self.local_d_counts, self.local_dt_counts)
@@ -967,7 +977,8 @@ cdef class ParticleFilter:
                 self.resample()
                 self.rejuvenate()
                 self.label_store.recompute(self.rejuv_data)
-                print(self.rejuv_data.to_string())
+                if self.debug:
+                    print(self.rejuv_data.to_string())
 
             self.token_idx += 1
             PyErr_CheckSignals()
@@ -983,11 +994,12 @@ cdef class ParticleFilter:
 
         sample = sample_without_replacement(self.rs.occupied(),
             self.rejuv_sample_size)
-        sys.stdout.write('rejuvenating:')
-        for j in xrange(len(sample)):
-            sys.stdout.write(' %d' % sample[j])
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+        if self.debug:
+            sys.stdout.write('rejuvenating:')
+            for j in xrange(len(sample)):
+                sys.stdout.write(' %d' % sample[j])
+            sys.stdout.write('\n')
+            sys.stdout.flush()
 
         for p in xrange(self.num_particles):
             for t in xrange(self.rejuv_mcmc_steps):
@@ -1292,7 +1304,7 @@ def create_pf(GlobalModel model, list init_sample,
 
     pf = ParticleFilter(model, params['num_particles'], params['ess_threshold'],
         rs, rejuv_data, params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
-        token_idx, label_store)
+        token_idx, label_store, params['debug'])
     return pf
 
 
