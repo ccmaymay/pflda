@@ -1265,7 +1265,7 @@ def create_pf(GlobalModel model, list init_sample,
     cdef bint ejected, inserted
     cdef lowl_key ejected_token_idx
     cdef size_t reservoir_token_idx
-    cdef np_uint_t ret, token_idx
+    cdef np_uint_t ret, token_idx, doc_idx, j, w, p
     cdef np_uint_t[::1] particle_d_counts, zz
     cdef np_uint_t[:, ::1] particle_dt_counts
 
