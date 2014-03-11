@@ -729,6 +729,8 @@ cdef class ParticleFilterReservoirData:
                     self.dt_counts[j, :, :] = dt_counts
                     break
 
+        self.doc_ids[reservoir_token_idx] = doc_idx
+
         # if the reservoir was not at capacity before this insert,
         # increment our copy of the (occupied) size
         if reservoir_token_idx >= self.occupied:
