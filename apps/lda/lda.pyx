@@ -34,8 +34,8 @@ DEFAULT_PARAMS = dict(
     # dirichlet hyperparameter on word distributions
     beta = 0.1,
 
-    # threshold for effective sample size over particle weights, when
-    # resample_propagate is False: if computed ess drops below this
+    # threshold for effective sample size over particle weights:
+    # if computed ess drops below this
     # value, the particles will be resampled
     ess_threshold = 20.0,
 
@@ -101,12 +101,6 @@ DEFAULT_PARAMS = dict(
     # likelihood estimation, in addition to the first moment PL
     # approximation; note that this may increase runtime significantly
     ltr_eval = False,
-
-    # controls whether we do resampling and rejuvenation after the
-    # state transition, if ess threshold is breached (False),
-    # or do resampling (but no rejuvenation) *before* every state
-    # transition (True)
-    resample_propagate = False,
 
     # path to file containing initial topic distributions; the
     # counts in this file are *added* to the counts initialized
@@ -758,14 +752,12 @@ cdef class ParticleFilter:
     cdef np_uint_t num_topics, vocab_size, num_particles, token_idx
     cdef np_uint_t rejuv_sample_size, rejuv_mcmc_steps
     cdef np_double_t alpha, beta, ess_threshold
-    cdef bint resample_propagate
 
     def __cinit__(self, GlobalModel init_model, np_uint_t num_particles,
             np_double_t ess_threshold, ReservoirSampler rs,
             ParticleFilterReservoirData rejuv_data,
             np_uint_t rejuv_sample_size, np_uint_t rejuv_mcmc_steps,
-            np_uint_t next_token_idx, ParticleLabelStore label_store,
-            bint resample_propagate):
+            np_uint_t next_token_idx, ParticleLabelStore label_store):
         cdef np_uint_t i
 
         self.alpha = init_model.alpha
@@ -803,8 +795,6 @@ cdef class ParticleFilter:
         self.resample_cmf = zeros((num_particles,), dtype=np_double)
 
         self.label_store = label_store
-
-        self.resample_propagate = resample_propagate
 
     cdef np_double_t ess(self):
         cdef np_double_t total
@@ -891,12 +881,6 @@ cdef class ParticleFilter:
             for i in xrange(self.num_particles):
                 self.weights[i] /= total_weight
 
-            if self.resample_propagate:
-                _ess = self.ess()
-                print('resampling: ess %f; doc_idx %d, %d; token_idx %d'
-                    % (_ess, doc_idx, j, self.token_idx))
-                self.resample()
-
             for i in xrange(self.num_particles):
                 z = self.sample_topic(i, w)
                 zz[i] = z
@@ -905,28 +889,27 @@ cdef class ParticleFilter:
                 self.local_dt_counts[i, z] += 1
                 self.local_d_counts[i] += 1
 
-            if not self.resample_propagate:
-                inserted = self.rs._insert(self.token_idx, &reservoir_token_idx,
-                    &ejected, &ejected_token_idx)
-                if inserted:
-                    reservoir_doc_idx = self.rejuv_data.insert(
-                        reservoir_token_idx, doc_idx, w, zz,
-                        self.local_d_counts, self.local_dt_counts)
-                    # set local_d_counts and local_dt_counts to point to
-                    # the unique set of sufficient statistics for this
-                    # document in the reservoir data; the rest of the
-                    # particle filter steps performed for this document
-                    # will update these arrays directly
-                    self.local_d_counts = self.rejuv_data.d_counts[reservoir_doc_idx,:]
-                    self.local_dt_counts = self.rejuv_data.dt_counts[reservoir_doc_idx,:,:]
+            inserted = self.rs._insert(self.token_idx, &reservoir_token_idx,
+                &ejected, &ejected_token_idx)
+            if inserted:
+                reservoir_doc_idx = self.rejuv_data.insert(
+                    reservoir_token_idx, doc_idx, w, zz,
+                    self.local_d_counts, self.local_dt_counts)
+                # set local_d_counts and local_dt_counts to point to
+                # the unique set of sufficient statistics for this
+                # document in the reservoir data; the rest of the
+                # particle filter steps performed for this document
+                # will update these arrays directly
+                self.local_d_counts = self.rejuv_data.d_counts[reservoir_doc_idx,:]
+                self.local_dt_counts = self.rejuv_data.dt_counts[reservoir_doc_idx,:,:]
 
-                _ess = self.ess()
-                if _ess < self.ess_threshold:
-                    print('resampling: ess %f; doc_idx %d, %d; token_idx %d'
-                        % (_ess, doc_idx, j, self.token_idx))
-                    self.resample()
-                    self.rejuvenate()
-                    self.label_store.recompute(self.rejuv_data)
+            _ess = self.ess()
+            if _ess < self.ess_threshold:
+                print('resampling: ess %f; doc_idx %d, %d; token_idx %d'
+                    % (_ess, doc_idx, j, self.token_idx))
+                self.resample()
+                self.rejuvenate()
+                self.label_store.recompute(self.rejuv_data)
 
             self.token_idx += 1
             PyErr_CheckSignals()
@@ -1246,7 +1229,7 @@ def create_pf(GlobalModel model, list init_sample,
 
     pf = ParticleFilter(model, params['num_particles'], params['ess_threshold'],
         rs, rejuv_data, params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
-        token_idx, label_store, params['resample_propagate'])
+        token_idx, label_store)
     return pf
 
 
