@@ -883,7 +883,7 @@ cdef class ParticleFilter:
                 self.tw_counts[j, :, :] = self.tw_counts[i, :, :]
                 self.t_counts[j, :] = self.t_counts[i, :]
                 self.rejuv_data.copy_particle(i, j)
-                self.label_store.copy_particle(i, j)
+                #self.label_store.copy_particle(i, j)
                 self.local_dt_counts[j, :] = self.local_dt_counts[i, :]
                 self.local_d_counts[j] = self.local_d_counts[i]
                 filled_slots[j] = 1
@@ -919,8 +919,8 @@ cdef class ParticleFilter:
         self.local_dt_counts = zeros(
             (self.num_particles, self.num_topics), dtype=np_uint)
 
-        for i in xrange(self.num_particles):
-            self.label_store.append(i, 0)
+        #for i in xrange(self.num_particles):
+        #    self.label_store.append(i, 0)
 
         for j in xrange(len(doc)):
             w = doc[j]
@@ -976,16 +976,16 @@ cdef class ParticleFilter:
                     % (_ess, doc_idx, j, self.token_idx))
                 self.resample()
                 self.rejuvenate()
-                self.label_store.recompute(self.rejuv_data)
+                #self.label_store.recompute(self.rejuv_data)
                 if self.debug:
                     print(self.rejuv_data.to_string())
 
             self.token_idx += 1
             PyErr_CheckSignals()
 
-        for i in xrange(self.num_particles):
-            self.label_store.set(i, doc_idx,
-                self.label_store.compute_label(self.local_dt_counts[i, :]))
+        #for i in xrange(self.num_particles):
+        #    self.label_store.set(i, doc_idx,
+        #        self.label_store.compute_label(self.local_dt_counts[i, :]))
 
     cdef void rejuvenate(self):
         cdef GlobalModel model
@@ -1223,13 +1223,13 @@ cdef void eval_pf(np_uint_t num_topics, ParticleFilter pf,
 
     model = pf.max_posterior_model()
 
-    inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
-    print('init in-sample nmi: %f'
-        % nmi(train_labels[:init_size], categories, inferred_topics[:init_size],            num_topics))
+    #inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
+    #print('init in-sample nmi: %f'
+    #    % nmi(train_labels[:init_size], categories, inferred_topics[:init_size],            num_topics))
 
-    inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
-    print('in-sample nmi: %f'
-        % nmi(train_labels, categories, inferred_topics, num_topics))
+    #inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
+    #print('in-sample nmi: %f'
+    #    % nmi(train_labels, categories, inferred_topics, num_topics))
 
     gibbs_sampler = GibbsSampler(model)
     gibbs_sampler.infer(test_sample, test_num_iters)
@@ -1265,7 +1265,7 @@ def create_pf(GlobalModel model, list init_sample,
     cdef bint ejected, inserted
     cdef lowl_key ejected_token_idx
     cdef size_t reservoir_token_idx
-    cdef np_uint_t ret, token_idx
+    cdef np_uint_t ret, token_idx, doc_idx, j, w, p
     cdef np_uint_t[::1] particle_d_counts, zz
     cdef np_uint_t[:, ::1] particle_dt_counts
 
@@ -1298,9 +1298,9 @@ def create_pf(GlobalModel model, list init_sample,
                     particle_d_counts, particle_dt_counts)
             token_idx += 1
 
-        for p in xrange(params['num_particles']):
-            label_store.append(p,
-                label_store.compute_label(dt_counts[doc_idx, :]))
+        #for p in xrange(params['num_particles']):
+        #    label_store.append(p,
+        #        label_store.compute_label(dt_counts[doc_idx, :]))
 
     pf = ParticleFilter(model, params['num_particles'], params['ess_threshold'],
         rs, rejuv_data, params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
