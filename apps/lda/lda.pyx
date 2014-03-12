@@ -957,10 +957,10 @@ cdef class ParticleFilter:
                     if ejected:
                         print('rsvr replace: doc_idx %d, %d; token_idx %d -> %d; w %d; r_t_idx %d'
                             % (doc_idx, j, ejected_token_idx, self.token_idx, w, reservoir_token_idx))
-                    print(self.rejuv_data.to_string())
                     else:
                         print('rsvr insert: doc_idx %d, %d; token_idx %d; w %d; r_t_idx %d'
                             % (doc_idx, j, self.token_idx, w, reservoir_token_idx))
+                    print(self.rejuv_data.to_string())
                 reservoir_doc_idx = self.rejuv_data.insert(
                     reservoir_token_idx, doc_idx, w, zz,
                     self.local_d_counts, self.local_dt_counts)
