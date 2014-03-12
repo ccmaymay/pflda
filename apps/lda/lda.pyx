@@ -761,12 +761,12 @@ cdef class ParticleFilterReservoirData:
             s += ' %d' % self.w[i]
         s += '\n'
 
-        s += 'rd_z:\n'
+        s += 'rd_z:'
         for i in xrange(self.occupied):
-            s += ' '
             for j in xrange(self.num_particles):
                 s += ' %d' % self.z[i,j]
-            s += '\n'
+            if i + 1 < self.occupied:
+                s += ','
         s += '\n'
 
         s += 'rd_reservoir_token_doc_map:'
@@ -777,11 +777,12 @@ cdef class ParticleFilterReservoirData:
         s += 'rd_dt_counts:\n'
         for i in xrange(self.occupied):
             if self.reservoir_doc_tokens_map[i] > 0:
+                s += ' '
                 for j in xrange(self.num_particles):
-                    s += ' '
                     for k in xrange(self.num_topics):
                         s += ' %d' % self.dt_counts[i, j, k]
-                    s += '\n'
+                    if j + 1 < self.num_particles:
+                        s += ','
                 s += '\n'
         s += '\n'
 
@@ -954,11 +955,12 @@ cdef class ParticleFilter:
             if inserted:
                 if self.debug:
                     if ejected:
-                        print('rsvr replace: doc_idx %d, %d; token_idx %d -> %d; r_t_idx %d'
-                            % (doc_idx, j, ejected_token_idx, self.token_idx, reservoir_token_idx))
+                        print('rsvr replace: doc_idx %d, %d; token_idx %d -> %d; w %d; r_t_idx %d'
+                            % (doc_idx, j, ejected_token_idx, self.token_idx, w, reservoir_token_idx))
                     else:
-                        print('rsvr insert: doc_idx %d, %d; token_idx %d; r_t_idx %d'
-                            % (doc_idx, j, self.token_idx, reservoir_token_idx))
+                        print('rsvr insert: doc_idx %d, %d; token_idx %d; w %d; r_t_idx %d'
+                            % (doc_idx, j, self.token_idx, w, reservoir_token_idx))
+                    print(self.rejuv_data.to_string())
                 reservoir_doc_idx = self.rejuv_data.insert(
                     reservoir_token_idx, doc_idx, w, zz,
                     self.local_d_counts, self.local_dt_counts)
@@ -1265,7 +1267,7 @@ def create_pf(GlobalModel model, list init_sample,
     cdef bint ejected, inserted
     cdef lowl_key ejected_token_idx
     cdef size_t reservoir_token_idx
-    cdef np_uint_t ret, token_idx
+    cdef np_uint_t ret, token_idx, doc_idx, j, w, p
     cdef np_uint_t[::1] particle_d_counts, zz
     cdef np_uint_t[:, ::1] particle_dt_counts
 
