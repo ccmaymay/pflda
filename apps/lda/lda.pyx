@@ -754,11 +754,13 @@ cdef class ParticleFilterReservoirData:
         s += 'rd_doc_ids:'
         for i in xrange(self.occupied):
             s += ' %d' % self.doc_ids[i]
+
         s += '\n'
 
         s += 'rd_w:'
         for i in xrange(self.occupied):
             s += ' %d' % self.w[i]
+
         s += '\n'
 
         s += 'rd_z:'
@@ -767,11 +769,13 @@ cdef class ParticleFilterReservoirData:
                 s += ' %d' % self.z[i,j]
             if i + 1 < self.occupied:
                 s += ','
+
         s += '\n'
 
         s += 'rd_reservoir_token_doc_map:'
         for i in xrange(self.occupied):
             s += ' %d' % self.reservoir_token_doc_map[i]
+
         s += '\n'
 
         s += 'rd_dt_counts:\n'
@@ -784,7 +788,6 @@ cdef class ParticleFilterReservoirData:
                     if j + 1 < self.num_particles:
                         s += ','
                 s += '\n'
-        s += '\n'
 
         return s
 
@@ -867,12 +870,17 @@ cdef class ParticleFilter:
         for i in xrange(self.num_particles - 1):
             self.resample_cmf[i+1] = self.resample_cmf[i] + self.weights[i+1]
 
+        if self.debug:
+            print('resampling map:')
+
         ids_to_resample = zeros((self.num_particles,), dtype=np_uint)
         filled_slots = zeros((self.num_particles,), dtype=np_uint)
         for i in xrange(self.num_particles):
             j = self.sample_particle_num()
             if filled_slots[j] == 0:
                 filled_slots[j] = 1
+                if self.debug:
+                    print('  %d -> %d' % (j, j))
             else:
                 ids_to_resample[j] += 1
 
@@ -881,6 +889,8 @@ cdef class ParticleFilter:
                 j = 0
                 while filled_slots[j] == 1:
                     j += 1
+                if self.debug:
+                    print('  %d -> %d' % (j, i))
                 self.tw_counts[j, :, :] = self.tw_counts[i, :, :]
                 self.t_counts[j, :] = self.t_counts[i, :]
                 self.rejuv_data.copy_particle(i, j)
@@ -954,13 +964,13 @@ cdef class ParticleFilter:
                 &ejected, &ejected_token_idx)
             if inserted:
                 if self.debug:
+                    print(self.rejuv_data.to_string())
                     if ejected:
                         print('rsvr replace: doc_idx %d, %d; token_idx %d -> %d; w %d; r_t_idx %d'
                             % (doc_idx, j, ejected_token_idx, self.token_idx, w, reservoir_token_idx))
                     else:
                         print('rsvr insert: doc_idx %d, %d; token_idx %d; w %d; r_t_idx %d'
                             % (doc_idx, j, self.token_idx, w, reservoir_token_idx))
-                    print(self.rejuv_data.to_string())
                 reservoir_doc_idx = self.rejuv_data.insert(
                     reservoir_token_idx, doc_idx, w, zz,
                     self.local_d_counts, self.local_dt_counts)
@@ -971,12 +981,18 @@ cdef class ParticleFilter:
                 # will update these arrays directly
                 self.local_d_counts = self.rejuv_data.d_counts[reservoir_doc_idx,:]
                 self.local_dt_counts = self.rejuv_data.dt_counts[reservoir_doc_idx,:,:]
+                if self.debug:
+                    print(self.rejuv_data.to_string())
 
             _ess = self.ess()
             if _ess < self.ess_threshold:
+                if self.debug:
+                    print(self.rejuv_data.to_string())
                 print('resampling: ess %f; doc_idx %d, %d; token_idx %d'
                     % (_ess, doc_idx, j, self.token_idx))
                 self.resample()
+                if self.debug:
+                    print(self.rejuv_data.to_string())
                 self.rejuvenate()
                 self.label_store.recompute(self.rejuv_data)
                 if self.debug:
