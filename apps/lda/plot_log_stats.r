@@ -76,16 +76,15 @@
 # $ python extract_log_stats.py 20-rs1k
 #
 # will read all of the log files nested in the 20-rs1k directory and
-# write .tab files in that directory.  Then, if we copy that directory
-# to the current directory, we can (finally) generate the plots for
-# the paper:
+# write .tab files in that directory.  If the experiment directories
+# are in the current directory then we can (finally) generate the plots
+# for the paper as follows:
 #
 # $ pwd
-# .../streaming-lda-1/data
-# $ cp -r .../20-rs1k .../20-rs1k ./
+# .../littleowl/apps/lda
 # $ R --vanilla -f plot_log_stats.r
 # [...]
-# $ ls ../fig
+# $ ls plots
 # 20_out_of_sample_nmi.png
 
 library(ggplot2)
