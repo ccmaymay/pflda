@@ -99,8 +99,8 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
     }
 }
 
-metrics <- c('in_sample_nmi', 'out_of_sample_nmi')
-metrics.legend <- c('in-sample NMI', 'out-of-sample NMI')
+metrics <- c('out_of_sample_nmi')
+metrics.legend <- c('out-of-sample NMI')
 
 #plot.experiments('1', c('diff3', 'rel3', 'sim3'), c('1-rs0', '1-rs1k', '1-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'full uniform rejuvenation'), metrics, metrics.legend)
 plot.experiments('2', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs0', '2-rs1k-ibs30', '2-rs1k-ibs100', '2-rs1k-ibs300', '2-rs1k-ibs3k'), c('no initialization', 'initialization size 30', 'initialization size 100', 'initialization size 300', 'batch gibbs'), metrics, metrics.legend)
@@ -129,9 +129,9 @@ plot.experiments('21', c('diff3', 'rel3', 'sim3'), c('21-rs0', '21-rs1k', '21-rs
 #plot.experiments('27-rs0', c('diff3', 'rel3', 'sim3'), c('27-rs0'), c('no rejuvenation'), metrics, metrics.legend)
 #plot.experiments('27-rs1k', c('diff3', 'rel3', 'sim3'), c('27-rs1k'), c('reservoir size 1k'), metrics, metrics.legend)
 #plot.experiments('28', c('diff3'), c('28-rs50000-rss5000', '28-rs100000-rss10000', '28-rs500000-rss50000'), c('reservoir size 50k', 'reservoir size 100k', 'reservoir size 500k'), metrics, metrics.legend)
-plot.experiments('29-a0.001', c('diff3'), c('29-a0.001-b0.001', '29-a0.001-b0.01', '29-a0.001-b0.1', '29-a0.001-b1', '29-a0.001-b10'), c('alpha 0.001, beta 0.001', 'alpha 0.001, beta 0.01', 'alpha 0.001, beta 0.1', 'alpha 0.001, beta 1', 'alpha 0.001, beta 10'), metrics, metrics.legend)
-plot.experiments('29-a0.01', c('diff3'), c('29-a0.01-b0.001', '29-a0.01-b0.01', '29-a0.01-b0.1', '29-a0.01-b1', '29-a0.01-b10'), c('alpha 0.01, beta 0.001', 'alpha 0.01, beta 0.01', 'alpha 0.01, beta 0.1', 'alpha 0.01, beta 1', 'alpha 0.01, beta 10'), metrics, metrics.legend)
-plot.experiments('29-a0.1', c('diff3'), c('29-a0.1-b0.001', '29-a0.1-b0.01', '29-a0.1-b0.1', '29-a0.1-b1', '29-a0.1-b10'), c('alpha 0.1, beta 0.001', 'alpha 0.1, beta 0.01', 'alpha 0.1, beta 0.1', 'alpha 0.1, beta 1', 'alpha 0.1, beta 10'), metrics, metrics.legend)
-plot.experiments('29-a1', c('diff3'), c('29-a1-b0.001', '29-a1-b0.01', '29-a1-b0.1', '29-a1-b1', '29-a1-b10'), c('alpha 1, beta 0.001', 'alpha 1, beta 0.01', 'alpha 1, beta 0.1', 'alpha 1, beta 1', 'alpha 1, beta 10'), metrics, metrics.legend)
-plot.experiments('29-a10', c('diff3'), c('29-a10-b0.001', '29-a10-b0.01', '29-a10-b0.1', '29-a10-b1', '29-a10-b10'), c('alpha 10, beta 0.001', 'alpha 10, beta 0.01', 'alpha 10, beta 0.1', 'alpha 10, beta 1', 'alpha 10, beta 10'), metrics, metrics.legend)
-plot.experiments('30', c('diff3'), c('30-rs1k', '30-rs10k', '30-rs100k', '30-rs500k'), c('reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k', 'reservoir size 500k'), metrics, metrics.legend)
+#plot.experiments('29-a0.001', c('diff3'), c('29-a0.001-b0.001', '29-a0.001-b0.01', '29-a0.001-b0.1', '29-a0.001-b1', '29-a0.001-b10'), c('alpha 0.001, beta 0.001', 'alpha 0.001, beta 0.01', 'alpha 0.001, beta 0.1', 'alpha 0.001, beta 1', 'alpha 0.001, beta 10'), metrics, metrics.legend)
+#plot.experiments('29-a0.01', c('diff3'), c('29-a0.01-b0.001', '29-a0.01-b0.01', '29-a0.01-b0.1', '29-a0.01-b1', '29-a0.01-b10'), c('alpha 0.01, beta 0.001', 'alpha 0.01, beta 0.01', 'alpha 0.01, beta 0.1', 'alpha 0.01, beta 1', 'alpha 0.01, beta 10'), metrics, metrics.legend)
+#plot.experiments('29-a0.1', c('diff3'), c('29-a0.1-b0.001', '29-a0.1-b0.01', '29-a0.1-b0.1', '29-a0.1-b1', '29-a0.1-b10'), c('alpha 0.1, beta 0.001', 'alpha 0.1, beta 0.01', 'alpha 0.1, beta 0.1', 'alpha 0.1, beta 1', 'alpha 0.1, beta 10'), metrics, metrics.legend)
+#plot.experiments('29-a1', c('diff3'), c('29-a1-b0.001', '29-a1-b0.01', '29-a1-b0.1', '29-a1-b1', '29-a1-b10'), c('alpha 1, beta 0.001', 'alpha 1, beta 0.01', 'alpha 1, beta 0.1', 'alpha 1, beta 1', 'alpha 1, beta 10'), metrics, metrics.legend)
+#plot.experiments('29-a10', c('diff3'), c('29-a10-b0.001', '29-a10-b0.01', '29-a10-b0.1', '29-a10-b1', '29-a10-b10'), c('alpha 10, beta 0.001', 'alpha 10, beta 0.01', 'alpha 10, beta 0.1', 'alpha 10, beta 1', 'alpha 10, beta 10'), metrics, metrics.legend)
+#plot.experiments('30', c('diff3'), c('30-rs1k', '30-rs10k', '30-rs100k', '30-rs500k'), c('reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k', 'reservoir size 500k'), metrics, metrics.legend)
