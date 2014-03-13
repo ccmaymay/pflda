@@ -69,26 +69,25 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
                 data.raw <- tryCatch(read.table(filename.in, header=T),
                     error=function(ex) {NULL})
                 if (! is.null(data.raw)) {
-                    iter <- (1:dim(data.raw)[1]) - 1
                     data.raw.idx <- apply(data.raw, 1,
                         function(r) { !all(is.na(r)) })
                     data.raw <- data.raw[data.raw.idx,]
-                    iter <- iter[data.raw.idx]
-                    for (j in 1:dim(data.raw)[2]) {
+                    num.nonempty.iters <- dim(data.raw)[1]
+                    for (j in 2:dim(data.raw)[2]) {
                         val <- data.raw[,j]
-                        val.eb <- if (length(iter) == 1) {
+                        val.eb <- if (num.nonempty.iters == 1) {
                                 val
                             } else {
-                                rep(NA, dim(data.raw)[1])
+                                rep(NA, num.nonempty.iters)
                             }
                         d.list[[length(d.list)+1]] <- data.frame(
-                            iter=iter,
+                            iter=data.raw[,1],
                             val=data.raw[,j],
                             val.eb=val.eb,
-                            experiment=rep(experiment.name.legend, dim(data.raw)[1]),
-                            dataset=rep(dataset.name, dim(data.raw)[1]),
-                            run=rep(paste(dataset.name, stat.name, experiment.name, as.character(j), sep='/'), dim(data.raw)[1]),
-                            stat=rep(stat.name.legend, dim(data.raw)[1]))
+                            experiment=rep(experiment.name.legend, num.nonempty.iters),
+                            dataset=rep(dataset.name, num.nonempty.iters),
+                            run=rep(paste(dataset.name, stat.name, experiment.name, as.character(j), sep='/'), num.nonempty.iters),
+                            stat=rep(stat.name.legend, num.nonempty.iters))
                     }
                 }
             }
