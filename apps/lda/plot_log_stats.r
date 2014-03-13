@@ -13,39 +13,34 @@ g_legend <- function(a.gplot) {
     return(legend)
 }
 
-plot.smooth <- function(d) {
-    return(ggplot(aes(x=iter, y=val, group=experiment, shape=experiment, color=experiment, fill=experiment), data=d) +
-        stat_summary(fun.data=mean_sdl, geom='smooth', size=0.5, mult=1) +
-        stat_summary(fun.y=mean, geom='point', size=1) +
+plot.smooth <- function(d, dataset.name) {
+    return(ggplot(aes(x=iter, y=val, group=experiment, color=experiment, fill=experiment), data=d) +
+        stat_summary(fun.data=mean_sdl, geom='smooth', mult=1, size=1) +
         (if (!all(is.na(d$val.eb))) {
-                stat_summary(aes(x=iter, y=val.eb), fun.data=mean_sdl, geom='errorbar', size=0.5, mult=1)
+                stat_summary(aes(x=iter, y=val.eb), fun.data=mean_sdl, geom='errorbar', mult=1, size=1)
             } else {
                 NULL
             }) +
         theme_bw() +
+        ggtitle(dataset.name) +
         ylab('NMI (mean +/- stdev)') +
         xlab('document'))
 }
 
 plot.tng3.smooth <- function(d) {
-    p.diff3 <- plot.smooth(subset(d, dataset == 'diff3'))
-    p.rel3 <- plot.smooth(subset(d, dataset == 'rel3'))
-    p.sim3 <- plot.smooth(subset(d, dataset == 'sim3'))
+    p.diff3 <- plot.smooth(subset(d, dataset == 'diff3'), 'diff3')
+    p.rel3 <- plot.smooth(subset(d, dataset == 'rel3'), 'rel3')
+    p.sim3 <- plot.smooth(subset(d, dataset == 'sim3'), 'sim3')
 
     legend <- g_legend(p.diff3)
     lheight <- sum(legend$height)
 
-    return(grid.arrange(
-        arrangeGrob(
-            p.diff3 + theme(legend.position='none'),
-            p.rel3 + theme(legend.position='none'),
-            p.sim3 + theme(legend.position='none'),
-            nrow=1,
-            main='title',
-            left='y-axis'),
+    grid.arrange(
+        p.diff3 + theme(legend.position='none'),
+        p.rel3 + theme(legend.position='none'),
+        p.sim3 + theme(legend.position='none'),
         legend,
-        heights=unit.c(unit(1, 'npc') - lheight, lheight),
-        nrow=2))
+        nrow=2)
 }
 
 plot.experiments <- function(experiment.group.name, dataset.names, experiment.names, experiment.names.legend, stat.names, stat.names.legend) {
@@ -111,9 +106,10 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
         for (j in 1:length(stat.names)) {
             filename.out <- paste('plots', paste(experiment.group.name, '_', stat.names[j], '.png', sep=''), sep='/')
             d.subset <- subset(d, stat == stat.names.legend[j])
-            p <- plot.tng3.smooth(d.subset)
-            p
-            ggsave(filename.out, units='in', width=width, height=height)
+            png(filename.out, width=5, height=5, pointsize=11, res=300, units='in')
+            plot.tng3.smooth(d.subset)
+            dev.off()
+            #ggsave(filename.out, units='in', width=width, height=height)
         }
 
         #filename.out <- paste('plots', paste(experiment.group.name, '_raw.png', sep=''), sep='/')
