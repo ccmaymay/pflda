@@ -106,6 +106,15 @@ g_legend <- function(a.gplot) {
 dirpath.in <- '.'
 dirpath.out <- 'plots'
 
+plot.raw <- function(d, dataset.name) {
+    return(ggplot(aes(x=iter, y=val, group=run, color=experiment), data=d) +
+        geom_line(alpha=0.3, size=0.5) +
+        theme_bw() +
+        ggtitle(dataset.name) +
+        ylab('NMI') +
+        xlab('document'))
+}
+
 plot.smooth <- function(d, dataset.name) {
     return(ggplot(aes(x=iter, y=val, group=experiment, color=experiment, fill=experiment), data=d) +
         stat_summary(fun.data=mean_sdl, geom='smooth', mult=1, size=1) +
@@ -120,10 +129,10 @@ plot.smooth <- function(d, dataset.name) {
         xlab('document'))
 }
 
-plot.tng3.smooth <- function(d) {
-    p.diff3 <- plot.smooth(subset(d, dataset == 'diff3'), 'diff3')
-    p.rel3 <- plot.smooth(subset(d, dataset == 'rel3'), 'rel3')
-    p.sim3 <- plot.smooth(subset(d, dataset == 'sim3'), 'sim3')
+plot.tng3 <- function(d, plot.fun) {
+    p.diff3 <- plot.fun(subset(d, dataset == 'diff3'), 'diff3')
+    p.rel3 <- plot.fun(subset(d, dataset == 'rel3'), 'rel3')
+    p.sim3 <- plot.fun(subset(d, dataset == 'sim3'), 'sim3')
 
     legend <- g_legend(p.diff3)
     lheight <- sum(legend$height)
@@ -196,27 +205,18 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
         height <- 1.5*length(stat.names) + 2
 
         for (j in 1:length(stat.names)) {
-            filename.out <- paste(dirpath.out, paste(experiment.group.name, '_', stat.names[j], '.png', sep=''), sep='/')
             d.subset <- subset(d, stat == stat.names.legend[j])
-            png(filename.out, width=5, height=5, pointsize=11, res=300, units='in')
-            plot.tng3.smooth(d.subset)
-            dev.off()
-            #ggsave(filename.out, units='in', width=width, height=height)
-        }
 
-        #filename.out <- paste('plots', paste(experiment.group.name, '_raw.png', sep=''), sep='/')
-        #ggplot(aes(x=iter, y=val, group=run, color=experiment, shape=experiment), data=d) +
-        #    (if (length(stat.names) > 1 || length(dataset.names) > 1) {
-        #            facet_grid(stat ~ dataset, scales='free')
-        #        } else {
-        #            NULL
-        #        }) +
-        #    geom_line(alpha=0.3, size=0.5) +
-        #    theme_bw() +
-        #    theme(legend.direction='horizontal', legend.position='bottom') +
-        #    ylab('NMI') +
-        #    xlab('document')
-        #ggsave(filename.out, units='in', width=width, height=height)
+            filename.out <- paste(dirpath.out, paste(experiment.group.name, '_', stat.names[j], '.png', sep=''), sep='/')
+            png(filename.out, width=5, height=5, pointsize=11, res=300, units='in')
+            plot.tng3(d.subset, plot.smooth)
+            dev.off()
+
+            filename.out <- paste(dirpath.out, paste(experiment.group.name, '_', stat.names[j], '_raw.png', sep=''), sep='/')
+            png(filename.out, width=5, height=5, pointsize=11, res=300, units='in')
+            plot.tng3(d.subset, plot.raw)
+            dev.off()
+        }
     } else {
         cat('Data empty for', experiment.group.name, '\n')
     }
