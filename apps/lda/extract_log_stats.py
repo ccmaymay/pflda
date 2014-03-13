@@ -79,16 +79,20 @@ def process_logs(experiment_path, iter_key=None):
             for stat_name in PER_ITER_STAT_NAMES:
                 dataset_tab_path = dataset_path + '_%s.tab' % normalize_stat_name(stat_name)
                 with open(dataset_tab_path, 'w') as f:
-                    f.write('\t'.join(['run.%d' % i for i in range(len(per_iter_stats_list))]) + '\n')
+                    f.write('\t'.join(['iter'] + ['run.%d' % i for i in range(len(per_iter_stats_list))]) + '\n')
                     for iter_num in range(iter_num_bound):
-                        f.write('\t'.join([str(dict_stat_get(per_iter_stats, iter_num, stat_name)) for per_iter_stats in per_iter_stats_list]) + '\n')
+                        vals = [str(dict_stat_get(per_iter_stats, iter_num, stat_name)) for per_iter_stats in per_iter_stats_list]
+                        if vals.count('NA') < len(vals):
+                            f.write('\t'.join([str(iter_num)] + vals) + '\n')
 
             for count_name in PER_ITER_COUNT_NAMES:
                 dataset_tab_path = dataset_path + '_%s.tab' % normalize_stat_name(count_name)
                 with open(dataset_tab_path, 'w') as f:
-                    f.write('\t'.join(['run.%d' % i for i in range(len(per_iter_stats_list))]) + '\n')
+                    f.write('\t'.join(['iter'] + ['run.%d' % i for i in range(len(per_iter_stats_list))]) + '\n')
                     for iter_num in range(iter_num_bound):
-                        f.write('\t'.join([str(dict_count_get(per_iter_stats, iter_num, count_name)) for per_iter_stats in per_iter_stats_list]) + '\n')
+                        vals = [str(dict_count_get(per_iter_stats, iter_num, count_name)) for per_iter_stats in per_iter_stats_list]
+                        if vals.count('0') < len(vals):
+                            f.write('\t'.join([str(iter_num)] + vals) + '\n')
 
 
 def parse_log(log_filename, iter_key):
