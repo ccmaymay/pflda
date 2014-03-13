@@ -724,7 +724,7 @@ cdef class ParticleFilterReservoirData:
         # the reservoir, find an available position for the unique
         # document sufficient statistics
         if not doc_already_inserted:
-            for j in xrange(self.occupied):
+            for j in xrange(self.capacity):
                 if self.reservoir_doc_tokens_map[j] == 0:
                     self.reservoir_token_doc_map[reservoir_token_idx] = j
                     self.reservoir_doc_tokens_map[j] += 1
