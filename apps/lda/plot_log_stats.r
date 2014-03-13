@@ -1,7 +1,17 @@
 library(ggplot2)
+library(gridExtra)
 library(data.table)
 
 options(warn=1)
+
+# The following function downloaded on 2014-03-12 from
+# https://github.com/hadley/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs
+g_legend <- function(a.gplot) {
+    tmp <- ggplot_gtable(ggplot_build(a.gplot))
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+    legend <- tmp$grobs[[leg]]
+    return(legend)
+}
 
 plot.experiments <- function(experiment.group.name, dataset.names, experiment.names, experiment.names.legend, stat.names, stat.names.legend) {
     if (is.null(stat.names.legend)) {
@@ -60,40 +70,54 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
     if (length(dim(d)) > 0 && dim(d)[1] > 0) {
         dir.create('plots')
 
+        width <- 1.5*length(dataset.names) + 1
+        height <- 1.5*length(stat.names) + 2
+
         filename.out <- paste('plots', paste(experiment.group.name, '.png', sep=''), sep='/')
-        ggplot(aes(x=iter, y=val, group=experiment, shape=experiment, color=experiment, fill=experiment), data=d) +
-            (if (length(stat.names) > 1 || length(dataset.names) > 1) {
-                    facet_grid(dataset ~ stat, scales='free', shrink=T)
-                } else {
-                    NULL
-                }) +
-            stat_summary(fun.data=mean_sdl, geom='smooth', size=1, mult=1) +
-            (if (!all(is.na(d$val.eb))) {
-                    stat_summary(aes(x=iter, y=val.eb), fun.data=mean_sdl, geom='errorbar', size=1, mult=1)
-                } else {
-                    NULL
-                }) +
-            theme_bw() +
-            ylab('NMI (mean +/- stdev)') +
-            xlab('document')
-        width <- 1.5*length(stat.names) + 2.5
-        height <- 1.5*length(dataset.names) + 1
+        args <- as.list(rep(0, length(stat.names) * length(dataset.names)))
+        k <- 1
+        for (i in 1:length(dataset.names)) {
+            for (j in 1:length(stat.names)) {
+                d.subset <- subset(d, dataset == dataset.names[i] & stat == stat.names.legend[j])
+                cat(dim(d.subset)[1], '\n')
+                p <- ggplot(aes(x=iter, y=val, group=experiment, shape=experiment, color=experiment, fill=experiment), data=d.subset) +
+                    stat_summary(fun.data=mean_sdl, geom='smooth', size=0.5, mult=1) +
+                    stat_summary(fun.y=mean, geom='point', size=1) +
+                    (if (!all(is.na(d$val.eb))) {
+                            stat_summary(aes(x=iter, y=val.eb), fun.data=mean_sdl, geom='errorbar', size=0.5, mult=1)
+                        } else {
+                            NULL
+                        }) +
+                    theme_bw() +
+                    ylab('NMI (mean +/- stdev)') +
+                    xlab('document')
+                if (k == 1) {
+                    legend <- g_legend(p)
+                    lwidth <- sum(legend$width)
+                }
+                args[[k]] <- p + theme(legend.position='none')
+                k <- k + 1
+            }
+        }
+        args$main='title'
+        args$left='y axis'
+        grid.arrange(do.call('arrangeGrob', args), legend,
+            widths=unit.c(unit(1, 'npc') - lwidth, lwidth), nrow=1)
         ggsave(filename.out, units='in', width=width, height=height)
 
-        filename.out <- paste('plots', paste(experiment.group.name, '_raw.png', sep=''), sep='/')
-        ggplot(aes(x=iter, y=val, group=run, color=experiment), data=d) +
-            (if (length(stat.names) > 1 || length(dataset.names) > 1) {
-                    facet_grid(dataset ~ stat, scales='free', shrink=T)
-                } else {
-                    NULL
-                }) +
-            geom_line(alpha=0.3) +
-            theme_bw() +
-            ylab('NMI') +
-            xlab('document')
-        width <- 1.5*length(stat.names) + 2.5
-        height <- 1.5*length(dataset.names) + 1
-        ggsave(filename.out, units='in', width=width, height=height)
+        #filename.out <- paste('plots', paste(experiment.group.name, '_raw.png', sep=''), sep='/')
+        #ggplot(aes(x=iter, y=val, group=run, color=experiment, shape=experiment), data=d) +
+        #    (if (length(stat.names) > 1 || length(dataset.names) > 1) {
+        #            facet_grid(stat ~ dataset, scales='free')
+        #        } else {
+        #            NULL
+        #        }) +
+        #    geom_line(alpha=0.3, size=0.5) +
+        #    theme_bw() +
+        #    theme(legend.direction='horizontal', legend.position='bottom') +
+        #    ylab('NMI') +
+        #    xlab('document')
+        #ggsave(filename.out, units='in', width=width, height=height)
     } else {
         cat('Data empty for', experiment.group.name, '\n')
     }
@@ -104,7 +128,7 @@ metrics.legend <- c('out-of-sample NMI')
 
 #plot.experiments('1', c('diff3', 'rel3', 'sim3'), c('1-rs0', '1-rs1k', '1-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'full uniform rejuvenation'), metrics, metrics.legend)
 plot.experiments('2', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs0', '2-rs1k-ibs30', '2-rs1k-ibs100', '2-rs1k-ibs300', '2-rs1k-ibs3k'), c('no initialization', 'initialization size 30', 'initialization size 100', 'initialization size 300', 'batch gibbs'), metrics, metrics.legend)
-plot.experiments('2_3_4', c('diff3', 'rel3', 'sim3'), c('4', '3', '2-rs1k-ibs100'), c('no resample/rejuv', 'resample', 'resample and rejuv'), metrics, metrics.legend)
+#plot.experiments('2_3_4', c('diff3', 'rel3', 'sim3'), c('4', '3', '2-rs1k-ibs100'), c('no resample/rejuv', 'resample', 'resample and rejuv'), metrics, metrics.legend)
 #plot.experiments('5', c('diff3', 'rel3', 'sim3'), c('5-ess5', '5-ess10', '5-ess20', '5-ess40'), c('ess 5', 'ess 10', 'ess 20', 'ess 40'), metrics, metrics.legend)
 #plot.experiments('6_3', c('diff3', 'rel3', 'sim3'), c('3', '6-rs10k-rss10', '6-rs10k-rss30', '6-rs10k-rss100', '6-rs10k-rss300', '6-rs10k-rss1k'), c('no rejuv', 'rejuv size 10', 'rejuv size 30', 'rejuv size 100', 'rejuv size 300', 'rejuv size 1k'), metrics, metrics.legend)
 #plot.experiments('8', c('diff3', 'rel3', 'sim3'), c('8-t2', '8-t3', '8-t4', '8-t5', '8-t6'), c('num topics 2', 'num topics 3', 'num topics 4', 'num topics 5', 'num topics 6'), metrics, metrics.legend)
@@ -119,9 +143,9 @@ plot.experiments('2_9_10', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs100', '9-rs1
 #plot.experiments('16', c('diff3', 'rel3', 'sim3'), c('16-rs1k-b0.001', '16-rs1k-b0.01', '16-rs1k-b0.1', '16-rs1k-b1', '16-rs1k-b10'), c('beta 0.001', 'beta 0.01', 'beta 0.1', 'beta 1', 'beta 10'), metrics, metrics.legend)
 #plot.experiments('17', c('diff3', 'rel3', 'sim3'), c('17-rs0', '17-rs1k', '17-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'full uniform rejuvenation'), metrics, metrics.legend)
 #plot.experiments('18', c('diff3', 'rel3', 'sim3'), c('18-rs0', '18-rs1k', '18-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'full uniform rejuvenation'), metrics, metrics.legend)
-plot.experiments('19', c('diff3', 'rel3', 'sim3'), c('19-rs0', '19-rs1k', '19-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'full uniform rejuvenation'), metrics, metrics.legend)
+#plot.experiments('19', c('diff3', 'rel3', 'sim3'), c('19-rs0', '19-rs1k', '19-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'full uniform rejuvenation'), metrics, metrics.legend)
 plot.experiments('20', c('diff3', 'rel3', 'sim3'), c('20-rs0', '20-rs1k', '20-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'full uniform rejuvenation'), metrics, metrics.legend)
-plot.experiments('21', c('diff3', 'rel3', 'sim3'), c('21-rs0', '21-rs1k', '21-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'full uniform rejuvenation'), metrics, metrics.legend)
+#plot.experiments('21', c('diff3', 'rel3', 'sim3'), c('21-rs0', '21-rs1k', '21-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'full uniform rejuvenation'), metrics, metrics.legend)
 #plot.experiments('22', c('diff3', 'rel3', 'sim3'), c('22'), c('gibbs (csg init docs)'), metrics, metrics.legend)
 #plot.experiments('23', c('diff3', 'rel3', 'sim3'), c('23'), c('gibbs (200 init docs)'), metrics, metrics.legend)
 #plot.experiments('24', c('diff3', 'rel3', 'sim3'), c('24'), c('gibbs (100 init docs)'), metrics, metrics.legend)
