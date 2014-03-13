@@ -13,6 +13,41 @@ g_legend <- function(a.gplot) {
     return(legend)
 }
 
+plot.smooth <- function(d) {
+    return(ggplot(aes(x=iter, y=val, group=experiment, shape=experiment, color=experiment, fill=experiment), data=d) +
+        stat_summary(fun.data=mean_sdl, geom='smooth', size=0.5, mult=1) +
+        stat_summary(fun.y=mean, geom='point', size=1) +
+        (if (!all(is.na(d$val.eb))) {
+                stat_summary(aes(x=iter, y=val.eb), fun.data=mean_sdl, geom='errorbar', size=0.5, mult=1)
+            } else {
+                NULL
+            }) +
+        theme_bw() +
+        ylab('NMI (mean +/- stdev)') +
+        xlab('document'))
+}
+
+plot.tng3.smooth <- function(d) {
+    p.diff3 <- plot.smooth(subset(d, dataset == 'diff3'))
+    p.rel3 <- plot.smooth(subset(d, dataset == 'rel3'))
+    p.sim3 <- plot.smooth(subset(d, dataset == 'sim3'))
+
+    legend <- g_legend(p.diff3)
+    lheight <- sum(legend$height)
+
+    return(grid.arrange(
+        arrangeGrob(
+            p.diff3 + theme(legend.position='none'),
+            p.rel3 + theme(legend.position='none'),
+            p.sim3 + theme(legend.position='none'),
+            nrow=1,
+            main='title',
+            left='y-axis'),
+        legend,
+        heights=unit.c(unit(1, 'npc') - lheight, lheight),
+        nrow=2))
+}
+
 plot.experiments <- function(experiment.group.name, dataset.names, experiment.names, experiment.names.legend, stat.names, stat.names.legend) {
     if (is.null(stat.names.legend)) {
         stat.names.legend <- stat.names
@@ -73,37 +108,13 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
         width <- 1.5*length(dataset.names) + 1
         height <- 1.5*length(stat.names) + 2
 
-        filename.out <- paste('plots', paste(experiment.group.name, '.png', sep=''), sep='/')
-        args <- as.list(rep(0, length(stat.names) * length(dataset.names)))
-        k <- 1
-        for (i in 1:length(dataset.names)) {
-            for (j in 1:length(stat.names)) {
-                d.subset <- subset(d, dataset == dataset.names[i] & stat == stat.names.legend[j])
-                cat(dim(d.subset)[1], '\n')
-                p <- ggplot(aes(x=iter, y=val, group=experiment, shape=experiment, color=experiment, fill=experiment), data=d.subset) +
-                    stat_summary(fun.data=mean_sdl, geom='smooth', size=0.5, mult=1) +
-                    stat_summary(fun.y=mean, geom='point', size=1) +
-                    (if (!all(is.na(d$val.eb))) {
-                            stat_summary(aes(x=iter, y=val.eb), fun.data=mean_sdl, geom='errorbar', size=0.5, mult=1)
-                        } else {
-                            NULL
-                        }) +
-                    theme_bw() +
-                    ylab('NMI (mean +/- stdev)') +
-                    xlab('document')
-                if (k == 1) {
-                    legend <- g_legend(p)
-                    lwidth <- sum(legend$width)
-                }
-                args[[k]] <- p + theme(legend.position='none')
-                k <- k + 1
-            }
+        for (j in 1:length(stat.names)) {
+            filename.out <- paste('plots', paste(experiment.group.name, '_', stat.names[j], '.png', sep=''), sep='/')
+            d.subset <- subset(d, stat == stat.names.legend[j])
+            p <- plot.tng3.smooth(d.subset)
+            p
+            ggsave(filename.out, units='in', width=width, height=height)
         }
-        args$main='title'
-        args$left='y axis'
-        grid.arrange(do.call('arrangeGrob', args), legend,
-            widths=unit.c(unit(1, 'npc') - lwidth, lwidth), nrow=1)
-        ggsave(filename.out, units='in', width=width, height=height)
 
         #filename.out <- paste('plots', paste(experiment.group.name, '_raw.png', sep=''), sep='/')
         #ggplot(aes(x=iter, y=val, group=run, color=experiment, shape=experiment), data=d) +
