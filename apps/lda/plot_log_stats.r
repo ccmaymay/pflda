@@ -13,6 +13,9 @@ g_legend <- function(a.gplot) {
     return(legend)
 }
 
+dirpath.in <- '.'
+dirpath.out <- 'plots'
+
 plot.smooth <- function(d, dataset.name) {
     return(ggplot(aes(x=iter, y=val, group=experiment, color=experiment, fill=experiment), data=d) +
         stat_summary(fun.data=mean_sdl, geom='smooth', mult=1, size=1) +
@@ -64,7 +67,7 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
                 experiment.name <- experiment.names[i]
                 experiment.name.legend <- experiment.names.legend[i]
                 cat('  -', experiment.name, stat.name, '\n')
-                filename.in <- paste(experiment.name, '/',
+                filename.in <- paste(dirpath.in, '/', experiment.name, '/',
                     dataset.name, '_', stat.name, '.tab', sep='')
                 data.raw <- tryCatch(read.table(filename.in, header=T),
                     error=function(ex) {NULL})
@@ -97,13 +100,13 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
     d <- rbindlist(d.list)
 
     if (length(dim(d)) > 0 && dim(d)[1] > 0) {
-        dir.create('plots')
+        dir.create(dirpath.out)
 
         width <- 1.5*length(dataset.names) + 1
         height <- 1.5*length(stat.names) + 2
 
         for (j in 1:length(stat.names)) {
-            filename.out <- paste('plots', paste(experiment.group.name, '_', stat.names[j], '.png', sep=''), sep='/')
+            filename.out <- paste(dirpath.out, paste(experiment.group.name, '_', stat.names[j], '.png', sep=''), sep='/')
             d.subset <- subset(d, stat == stat.names.legend[j])
             png(filename.out, width=5, height=5, pointsize=11, res=300, units='in')
             plot.tng3.smooth(d.subset)
