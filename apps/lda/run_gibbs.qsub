@@ -1,0 +1,11 @@
+#!/bin/sh
+#$ -cwd
+#$ -j y
+#$ -t 1-120
+#$ -V
+#$ -N "cglda"
+#$ -q text.q
+#$ -tc 2
+#$ -l num_proc=1,mem_free=400M,h_rt=2:00:00
+printenv
+bash run_gibbs.sh "$@"
