@@ -1585,11 +1585,11 @@ def run_lda(data_dir, categories, **kwargs):
                     params['print_num_words_per_topic']))
 
             # process current document through pf
-            pf.step(doc_idx, d[2])
-            train_labels.append(d[1])
             print('doc: %d' % doc_idx)
             print('num words: %d' % len(d[2]))
             print('token: %d' % num_tokens)
+            pf.step(doc_idx, d[2])
+            train_labels.append(d[1])
             if doc_idx % 50 == 0:
                 eval_pf(params['num_topics'], pf,
                     test_sample, test_labels, train_labels,
@@ -1611,6 +1611,7 @@ def run_lda(data_dir, categories, **kwargs):
             init_sample, init_labels, list(categories),
             dataset.vocab, params)
         init_size = len(train_labels)
+        # this is a hack so we can parse the log more easily
         print('doc: %d' % doc_idx)
 
     # end of run, do one last eval and print topics
