@@ -52,6 +52,8 @@ DEFAULT_PARAMS = dict(
 
     # whether to subtract counts from the word distributions when
     # a document is ejected from the reservoir (or not inserted)
+    # TODO this still causes an underflow somewhere, at least with
+    # several particles, maybe with only one
     forget_stats = False,
 
     # total number of docs to use to initialize model (via gibbs
