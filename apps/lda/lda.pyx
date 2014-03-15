@@ -52,8 +52,6 @@ DEFAULT_PARAMS = dict(
 
     # whether to subtract counts from the word distributions when
     # a document is ejected from the reservoir (or not inserted)
-    # TODO this still causes an underflow somewhere, at least with
-    # several particles, maybe with only one
     forget_stats = False,
 
     # total number of docs to use to initialize model (via gibbs
@@ -780,7 +778,7 @@ cdef class ParticleFilter:
     cdef ParticleFilterReservoirData rejuv_data
     cdef ParticleLabelStore label_store
     cdef np_uint_t[::1] local_d_counts
-    cdef np_uint_t[:, ::1] local_dt_counts
+    cdef np_uint_t[:, ::1] local_dt_counts, local_z
     cdef np_uint_t[:, :, ::1] tw_counts
     cdef np_uint_t[:, ::1] t_counts
     cdef np_double_t[::1] weights, pmf, resample_cmf
@@ -879,6 +877,7 @@ cdef class ParticleFilter:
                 self.label_store.copy_particle(i, j)
                 self.local_dt_counts[j, :] = self.local_dt_counts[i, :]
                 self.local_d_counts[j] = self.local_d_counts[i]
+                self.local_z[j, :] = self.local_z[i, :]
                 filled_slots[j] = 1
                 ids_to_resample[i] -= 1
 
@@ -897,12 +896,11 @@ cdef class ParticleFilter:
         cdef lowl_key ejected_doc_idx
         cdef size_t reservoir_idx
         cdef np_uint_t z, i, t, w, num_tokens
-        cdef np_uint_t[:, ::1] zz
         cdef np_double_t total_weight, prior, _ess
         cdef bint inserted, ejected
 
         num_tokens = len(doc)
-        zz = zeros((self.num_particles, num_tokens), dtype=np_uint)
+        self.local_z = zeros((self.num_particles, num_tokens), dtype=np_uint)
 
         inserted = self.rs._insert(doc_idx, &reservoir_idx,
             &ejected, &ejected_doc_idx)
@@ -974,7 +972,7 @@ cdef class ParticleFilter:
 
             for i in xrange(self.num_particles):
                 z = self.sample_topic(i, w)
-                zz[i, j] = z
+                self.local_z[i, j] = z
                 if inserted:
                     self.rejuv_data.transition_z(reservoir_idx, i, z)
                 self.tw_counts[i, z, w] += 1
@@ -1026,7 +1024,7 @@ cdef class ParticleFilter:
             for j in xrange(num_tokens):
                 w = doc[j]
                 for i in xrange(self.num_particles):
-                    z = zz[i, j]
+                    z = self.local_z[i, j]
                     self.tw_counts[i, z, w] -= 1
                     self.t_counts[i, z] -= 1
 
