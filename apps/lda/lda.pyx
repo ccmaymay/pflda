@@ -1349,6 +1349,7 @@ def create_pf(GlobalModel model, list init_sample,
         for reservoir_idx in xrange(rejuv_data.occupied):
             doc_idx = rejuv_data.doc_ids[reservoir_idx]
             docs_in_reservoir.add(doc_idx)
+        token_idx = 0
         for doc_idx in xrange(len(init_sample)):
             doc = init_sample[doc_idx]
             num_tokens = len(doc)
