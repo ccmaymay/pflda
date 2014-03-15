@@ -45,6 +45,11 @@ DEFAULT_PARAMS = dict(
     # value, the particles will be resampled
     ess_threshold = 20.0,
 
+    # whether to check ess and (conditionally) resample and
+    # rejuvenate after every token, or only at the end of each
+    # document
+    resample_per_token = False,
+
     # total number of docs to use to initialize model (via gibbs
     # sampling) for particle filter
     init_num_docs = 100,
@@ -762,13 +767,14 @@ cdef class ParticleFilter:
     cdef np_uint_t num_topics, vocab_size, num_particles
     cdef np_uint_t rejuv_sample_size, rejuv_mcmc_steps
     cdef np_double_t alpha, beta, ess_threshold
-    cdef bint debug
+    cdef bint debug, resample_per_token
 
     def __cinit__(self, GlobalModel init_model, np_uint_t num_particles,
             np_double_t ess_threshold, ReservoirSampler rs,
             ParticleFilterReservoirData rejuv_data,
             np_uint_t rejuv_sample_size, np_uint_t rejuv_mcmc_steps,
-            ParticleLabelStore label_store, bint debug):
+            ParticleLabelStore label_store, bint resample_per_token,
+            bint debug):
         cdef np_uint_t i
 
         self.alpha = init_model.alpha
@@ -806,6 +812,7 @@ cdef class ParticleFilter:
 
         self.label_store = label_store
 
+        self.resample_per_token = resample_per_token
         self.debug = debug
 
     cdef np_double_t ess(self):
@@ -936,7 +943,7 @@ cdef class ParticleFilter:
                 self.local_d_counts[i] += 1
 
             _ess = self.ess()
-            if _ess < self.ess_threshold:
+            if self.resample_per_token and (_ess < self.ess_threshold):
                 if self.debug:
                     print(self.rejuv_data.to_string())
                 print('resampling: ess %f; doc_idx %d, %d' % (_ess, doc_idx, j))
@@ -949,6 +956,19 @@ cdef class ParticleFilter:
                     print(self.rejuv_data.to_string())
 
             PyErr_CheckSignals()
+
+        _ess = self.ess()
+        if (not self.resample_per_token) and (_ess < self.ess_threshold):
+            if self.debug:
+                print(self.rejuv_data.to_string())
+            print('resampling: ess %f; doc_idx %d, %d' % (_ess, doc_idx, j))
+            self.resample()
+            if self.debug:
+                print(self.rejuv_data.to_string())
+            self.rejuvenate()
+            self.label_store.recompute(self.rejuv_data)
+            if self.debug:
+                print(self.rejuv_data.to_string())
 
         for i in xrange(self.num_particles):
             self.label_store.set(i, doc_idx,
@@ -1267,7 +1287,7 @@ def create_pf(GlobalModel model, list init_sample,
 
     pf = ParticleFilter(model, params['num_particles'], params['ess_threshold'],
         rs, rejuv_data, params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
-        label_store, params['debug'])
+        label_store, params['resample_per_token'], params['debug'])
     return pf
 
 
