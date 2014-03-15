@@ -50,6 +50,10 @@ DEFAULT_PARAMS = dict(
     # document
     resample_per_token = False,
 
+    # whether to subtract counts from the word distributions when
+    # a document is ejected from the reservoir (or not inserted)
+    forget_stats = False,
+
     # total number of docs to use to initialize model (via gibbs
     # sampling) for particle filter
     init_num_docs = 100,
@@ -767,14 +771,14 @@ cdef class ParticleFilter:
     cdef np_uint_t num_topics, vocab_size, num_particles
     cdef np_uint_t rejuv_sample_size, rejuv_mcmc_steps
     cdef np_double_t alpha, beta, ess_threshold
-    cdef bint debug, resample_per_token
+    cdef bint debug, resample_per_token, forget_stats
 
     def __cinit__(self, GlobalModel init_model, np_uint_t num_particles,
             np_double_t ess_threshold, ReservoirSampler rs,
             ParticleFilterReservoirData rejuv_data,
             np_uint_t rejuv_sample_size, np_uint_t rejuv_mcmc_steps,
             ParticleLabelStore label_store, bint resample_per_token,
-            bint debug):
+            bint forget_stats, bint debug):
         cdef np_uint_t i
 
         self.alpha = init_model.alpha
@@ -813,6 +817,7 @@ cdef class ParticleFilter:
         self.label_store = label_store
 
         self.resample_per_token = resample_per_token
+        self.forget_stats = forget_stats
         self.debug = debug
 
     cdef np_double_t ess(self):
@@ -875,9 +880,13 @@ cdef class ParticleFilter:
     cdef void step(self, np_uint_t doc_idx, list doc):
         cdef lowl_key ejected_doc_idx
         cdef size_t reservoir_idx
-        cdef np_uint_t z, i, t
+        cdef np_uint_t z, i, t, num_tokens
+        cdef np_uint_t[:, ::1] zz
         cdef np_double_t total_weight, prior, _ess
         cdef bint inserted, ejected
+
+        num_tokens = len(doc)
+        zz = zeros((self.num_particles, num_tokens), dtype=np_uint)
 
         inserted = self.rs._insert(doc_idx, &reservoir_idx,
             &ejected, &ejected_doc_idx)
@@ -890,6 +899,15 @@ cdef class ParticleFilter:
                 else:
                     print('rsvr insert: doc_idx %d; reservoir_idx %d'
                         % (doc_idx, reservoir_idx))
+
+            if ejected and self.forget_stats:
+                for j in xrange(len(self.rejuv_data.w[reservoir_idx])):
+                    w = self.rejuv_data.w[reservoir_idx][j]
+                    for i in xrange(self.num_particles):
+                        z = self.rejuv_data.z[reservoir_idx][i][j]
+                        self.tw_counts[i, z, w] -= 1
+                        self.t_counts[i, z] -= 1
+
             self.rejuv_data.insert(reservoir_idx, doc_idx, doc)
 
             # set local_d_counts and local_dt_counts to point to
@@ -899,6 +917,7 @@ cdef class ParticleFilter:
             # will update these arrays directly
             self.local_d_counts = self.rejuv_data.d_counts[reservoir_idx,:]
             self.local_dt_counts = self.rejuv_data.dt_counts[reservoir_idx,:,:]
+
             if self.debug:
                 print(self.rejuv_data.to_string())
         else:
@@ -914,7 +933,7 @@ cdef class ParticleFilter:
         for i in xrange(self.num_particles):
             self.label_store.append(i, 0)
 
-        for j in xrange(len(doc)):
+        for j in xrange(num_tokens):
             w = doc[j]
 
             total_weight = 0
@@ -935,6 +954,7 @@ cdef class ParticleFilter:
 
             for i in xrange(self.num_particles):
                 z = self.sample_topic(i, w)
+                zz[i, j] = z
                 if inserted:
                     self.rejuv_data.transition_z(reservoir_idx, i, z)
                 self.tw_counts[i, z, w] += 1
@@ -969,6 +989,14 @@ cdef class ParticleFilter:
             self.label_store.recompute(self.rejuv_data)
             if self.debug:
                 print(self.rejuv_data.to_string())
+
+        if self.forget_stats and not inserted:
+            for j in xrange(num_tokens):
+                w = doc[j]
+                for i in xrange(self.num_particles):
+                    z = zz[i, j] = z
+                    self.tw_counts[i, z, w] -= 1
+                    self.t_counts[i, z] -= 1
 
         for i in xrange(self.num_particles):
             self.label_store.set(i, doc_idx,
@@ -1011,7 +1039,6 @@ cdef class ParticleFilter:
                             self.alpha, self.beta,
                             self.vocab_size, self.num_topics,
                             w, self.pmf)
-                        # TODO does this affect rejuv_data?
                         zz[j] = z
 
                         self.tw_counts[p, z, w] += 1
@@ -1257,7 +1284,7 @@ def create_pf(GlobalModel model, list init_sample,
     cdef bint ejected, inserted
     cdef lowl_key ejected_doc_idx
     cdef size_t reservoir_idx
-    cdef np_uint_t ret, doc_idx, j, w, p, token_idx, z
+    cdef np_uint_t ret, doc_idx, j, w, p, token_idx, z, num_tokens
 
     label_store = ParticleLabelStore(params['num_particles'],
         params['num_topics'])
@@ -1270,24 +1297,32 @@ def create_pf(GlobalModel model, list init_sample,
 
     for doc_idx in xrange(len(init_sample)):
         doc = init_sample[doc_idx]
+        num_tokens = len(doc)
         inserted = rs._insert(doc_idx, &reservoir_idx,
             &ejected, &ejected_doc_idx)
         if inserted:
+            if ejected and params['forget_stats']:
+                for j in xrange(len(rejuv_data.w[reservoir_idx])):
+                    w = rejuv_data.w[reservoir_idx][j]
+                    z = rejuv_data.z[reservoir_idx][0][j]
+                    model.tw_counts[z, w] -= 1
+                    model.t_counts[z] -= 1
             rejuv_data.insert(reservoir_idx, doc_idx, doc)
-            for j in xrange(len(doc)):
+            for j in xrange(num_tokens):
                 for p in xrange(params['num_particles']):
                     z = assignments[token_idx]
                     rejuv_data.transition_z(reservoir_idx, p, z)
                 token_idx += 1
         else:
-            token_idx += len(doc)
+            token_idx += num_tokens
         for p in xrange(params['num_particles']):
             label_store.append(p,
                 label_store.compute_label(dt_counts[doc_idx, :]))
 
     pf = ParticleFilter(model, params['num_particles'], params['ess_threshold'],
         rs, rejuv_data, params['rejuv_sample_size'], params['rejuv_mcmc_steps'],
-        label_store, params['resample_per_token'], params['debug'])
+        label_store, params['resample_per_token'], params['forget_stats'],
+        params['debug'])
     return pf
 
 
