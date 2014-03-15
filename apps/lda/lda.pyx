@@ -447,6 +447,20 @@ cdef class GlobalModel:
             s += '\n'
         return s
 
+    def to_string_raw(self):
+        s = 'topics:\n'
+        for t in range(self.num_topics):
+            s += ' '
+            pp = [(w, self.tw_counts[t, w]) for w in range(self.vocab_size)]
+            pp.sort(key=lambda p: p[1], reverse=True)
+            for (w, count) in pp:
+                if count > 0:
+                    s += ' %s (%d)' % (w, count)
+                else:
+                    break
+            s += '\n'
+        return s
+
     cdef np_double_t conditional_posterior(self,
             np_uint_t[::1] dt_counts, np_uint_t d_count,
             np_uint_t w, np_uint_t t):
@@ -894,6 +908,8 @@ cdef class ParticleFilter:
             &ejected, &ejected_doc_idx)
         if inserted:
             if self.debug:
+                for i in xrange(self.num_particles):
+                    print(self.model_for_particle(i).to_string_raw())
                 print(self.rejuv_data.to_string())
                 if ejected:
                     print('rsvr replace: doc_idx %d -> %d; reservoir_idx %d'
@@ -921,6 +937,8 @@ cdef class ParticleFilter:
             self.local_dt_counts = self.rejuv_data.dt_counts[reservoir_idx,:,:]
 
             if self.debug:
+                for i in xrange(self.num_particles):
+                    print(self.model_for_particle(i).to_string_raw())
                 print(self.rejuv_data.to_string())
         else:
             # initialize document sufficient statistics to zero.  note that
@@ -967,14 +985,20 @@ cdef class ParticleFilter:
             _ess = self.ess()
             if self.resample_per_token and (_ess < self.ess_threshold):
                 if self.debug:
+                    for i in xrange(self.num_particles):
+                        print(self.model_for_particle(i).to_string_raw())
                     print(self.rejuv_data.to_string())
                 print('resampling: ess %f; doc_idx %d, %d' % (_ess, doc_idx, j))
                 self.resample()
                 if self.debug:
+                    for i in xrange(self.num_particles):
+                        print(self.model_for_particle(i).to_string_raw())
                     print(self.rejuv_data.to_string())
                 self.rejuvenate()
                 self.label_store.recompute(self.rejuv_data)
                 if self.debug:
+                    for i in xrange(self.num_particles):
+                        print(self.model_for_particle(i).to_string_raw())
                     print(self.rejuv_data.to_string())
 
             PyErr_CheckSignals()
@@ -982,14 +1006,20 @@ cdef class ParticleFilter:
         _ess = self.ess()
         if (not self.resample_per_token) and (_ess < self.ess_threshold):
             if self.debug:
+                for i in xrange(self.num_particles):
+                    print(self.model_for_particle(i).to_string_raw())
                 print(self.rejuv_data.to_string())
             print('resampling: ess %f; doc_idx %d, %d' % (_ess, doc_idx, j))
             self.resample()
             if self.debug:
+                for i in xrange(self.num_particles):
+                    print(self.model_for_particle(i).to_string_raw())
                 print(self.rejuv_data.to_string())
             self.rejuvenate()
             self.label_store.recompute(self.rejuv_data)
             if self.debug:
+                for i in xrange(self.num_particles):
+                    print(self.model_for_particle(i).to_string_raw())
                 print(self.rejuv_data.to_string())
 
         if self.forget_stats and not inserted:
@@ -1651,8 +1681,12 @@ def run_lda(data_dir, categories, **kwargs):
                     params['test_num_iters'], list(categories),
                     params['coherence_num_words'], params['ltr_eval'],
                     params['ltr_num_particles'], init_size)
-                print(pf.max_posterior_model().to_string(dataset.vocab,
-                    params['print_num_words_per_topic']))
+                if params['debug']:
+                    for p in xrange(params['num_particles']):
+                        print(pf.model_for_particle(p).to_string_raw())
+                else:
+                    print(pf.max_posterior_model().to_string(dataset.vocab,
+                        params['print_num_words_per_topic']))
 
             # process current document through pf
             print('doc: %d' % doc_idx)
@@ -1666,8 +1700,12 @@ def run_lda(data_dir, categories, **kwargs):
                     params['test_num_iters'], list(categories),
                     params['coherence_num_words'], params['ltr_eval'],
                     params['ltr_num_particles'], init_size)
-                print(pf.max_posterior_model().to_string(dataset.vocab,
-                    params['print_num_words_per_topic']))
+                if params['debug']:
+                    for p in xrange(params['num_particles']):
+                        print(pf.model_for_particle(p).to_string_raw())
+                else:
+                    print(pf.max_posterior_model().to_string(dataset.vocab,
+                        params['print_num_words_per_topic']))
 
             doc_idx += 1
             num_tokens += len(d[2])
@@ -1691,8 +1729,12 @@ def run_lda(data_dir, categories, **kwargs):
         params['ltr_num_particles'], init_size)
 
     print('trained on %d docs (%d tokens)' % (doc_idx, num_tokens))
-    print(pf.max_posterior_model().to_string(dataset.vocab,
-        params['print_num_words_per_topic']))
+    if params['debug']:
+        for p in xrange(params['num_particles']):
+            print(pf.model_for_particle(p).to_string_raw())
+    else:
+        print(pf.max_posterior_model().to_string(dataset.vocab,
+            params['print_num_words_per_topic']))
 
 
 # driver: learn LDA by collapsed Gibbs sampling
@@ -1775,7 +1817,10 @@ def run_gibbs(data_dir, categories, **kwargs):
         train_labels, params['test_num_iters'], list(categories),
         params['coherence_num_words'], params['ltr_eval'],
         params['ltr_num_particles'], len(train_labels))
-    print(model.to_string(dataset.vocab, params['print_num_words_per_topic']))
+    if params['debug']:
+        print(model.to_string_raw())
+    else:
+        print(model.to_string(dataset.vocab, params['print_num_words_per_topic']))
 
     i = 0
     while i < params['init_num_iters']:
@@ -1787,10 +1832,16 @@ def run_gibbs(data_dir, categories, **kwargs):
             train_labels, params['test_num_iters'], list(categories),
             params['coherence_num_words'], params['ltr_eval'],
             params['ltr_num_particles'], len(train_labels))
-        print(model.to_string(dataset.vocab,
-            params['print_num_words_per_topic']))
+        if params['debug']:
+            print(model.to_string_raw())
+        else:
+            print(model.to_string(dataset.vocab,
+                params['print_num_words_per_topic']))
 
         i += iters
 
     print('trained on %d docs (%d tokens)' % (doc_idx, num_tokens))
-    print(model.to_string(dataset.vocab, params['print_num_words_per_topic']))
+    if params['debug']:
+        print(model.to_string_raw())
+    else:
+        print(model.to_string(dataset.vocab, params['print_num_words_per_topic']))
