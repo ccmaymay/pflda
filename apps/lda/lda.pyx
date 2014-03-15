@@ -156,7 +156,7 @@ cdef void swap(np_uint_t[::1] x, np_uint_t i, np_uint_t j):
 
 # shuffle the given array
 cdef void shuffle(np_uint_t[::1] x):
-    cdef np_uint_t n, i, j, temp
+    cdef np_uint_t n, i, j
     n = len(x)
     for i in xrange(n - 1, 0, -1):
         j = randint(0, i)
@@ -169,7 +169,7 @@ cdef void shuffle(np_uint_t[::1] x):
 # `req` whose elements are the original indices of those elements
 cdef np_uint_t[::1] reverse_sort_uint(np_uint_t[::1] x, np_uint_t req):
     cdef np_uint_t[::1] indices
-    cdef np_uint_t n, i, j, temp
+    cdef np_uint_t n, i, j
 
     n = len(x)
     indices = zeros((n,), dtype=np_uint)
