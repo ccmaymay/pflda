@@ -994,7 +994,7 @@ cdef class ParticleFilter:
             for j in xrange(num_tokens):
                 w = doc[j]
                 for i in xrange(self.num_particles):
-                    z = zz[i, j] = z
+                    z = zz[i, j]
                     self.tw_counts[i, z, w] -= 1
                     self.t_counts[i, z] -= 1
 
