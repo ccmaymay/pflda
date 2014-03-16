@@ -1,6 +1,6 @@
 # vim: ft=python
 
-Import('env')
-Export('env')
+Import('env', 'pylowl')
+Export('env', 'pylowl')
 
 SConscript('lda/SConscript')

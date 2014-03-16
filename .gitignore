@@ -2,5 +2,7 @@
 build
 lib
 bin
+.*.swp
+.*.swo
 *.pyc
 .sconsign.dblite

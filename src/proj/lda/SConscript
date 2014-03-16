@@ -1,5 +1,7 @@
 # vim: ft=python
 
-Import('env')
-Export('env')
+Import('env', 'pylowl')
+
+lda = env.PyExt(target='lda', source=['lda', pylowl, 'pylowl.pxd'])
+Alias('lda', lda)
 

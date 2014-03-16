@@ -2,28 +2,7 @@
 
 Import('env', 'lowl')
 
-import os
-
-def generate_py_ext(source, target, env, for_signature):
-    (source_dir, source_filename) = os.path.split(env.GetBuildPath(source[0]))
-    Depends(target, lowl)
-    Depends(target, os.path.join(source_dir, 'setup.py'))
-    Depends(target, os.path.join(source_dir, 'lowl.pxd'))
-
-    def _action(source, target, env):
-        import subprocess
-        p = subprocess.Popen(['python', 'setup.py', 'build_ext', '--inplace'],
-            cwd=source_dir)
-        p.wait()
-        return p.returncode
-
-    return _action
-
-py_ext = Builder(generator=generate_py_ext,
-    suffix='$SHLIBSUFFIX', src_suffix='.pyx')
-env.Append(BUILDERS = {'PyExt' : py_ext})
-
-pylowl = env.PyExt(target='pylowl', source='pylowl')
+pylowl = env.PyExt(target='pylowl', source=['pylowl', lowl, 'lowl.pxd'])
 Alias('pylowl', pylowl)
 
 Return('pylowl')
