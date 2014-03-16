@@ -1,0 +1,13 @@
+env = Environment(CCFLAGS=['-O0', '-g', '-Wall', '-Wextra', '-std=gnu99'])
+
+sources = [
+    'lowl_sample.c',
+    'lowl_hash.c',
+    'lowl_math.c',
+    'lowl_sketch.c',
+    'lowl_types.c',
+    'lowl_vectors.c',
+]
+
+lowl = env.SharedLibrary(target='lowl', source=sources, LIBS=['m'])
+tests = env.Program(target='tests', source=['tests.c'], LIBS=['lowl', 'm'], LIBPATH='.')

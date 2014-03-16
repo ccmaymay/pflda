@@ -1,0 +1,11 @@
+env = Environment()
+
+py_ext = Builder(action='python $SOURCE build_ext --inplace')
+env.Append(BUILDERS = {'PyExt' : py_ext})
+
+#CFLAGS="-I." LDFLAGS="-L. -Wl,-rpath -Wl,."
+pylowl = env.PyExt(target='pylowl.so', source='setup.py')
+Depends(pylowl, '#build/lowl/liblowl.so')
+Depends(pylowl, 'setup.py')
+Depends(pylowl, 'lowl.pxd')
+Depends(pylowl, 'pylowl.pyx')
