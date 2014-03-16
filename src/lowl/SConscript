@@ -34,4 +34,4 @@ run_tests = test_env.NoTargetLocalRunner('lowl-tests', [tests[0].abspath], [test
 install_lowl = env.AlwaysBuild(env.Install('$INSTALL_PREFIX/lib', lowl))
 env.Alias('lowl-install', install_lowl)
 
-Return('lowl')
+Return('lowl', 'install_lowl')
