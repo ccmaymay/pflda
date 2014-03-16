@@ -5,10 +5,17 @@ Import('env')
 Export('env')
 
 
+Help('''
+        install         Install lowl and pylowl
+'''.lstrip('\r\n'))
+
+
 lowl, install_lowl = env.SConscript('lowl/SConscript')
 Export('lowl', 'install_lowl')
 
 pylowl, install_pylowl = env.SConscript('pylowl/SConscript')
 Export('pylowl', 'install_pylowl')
+
+install = Alias('install', [install_lowl, install_pylowl])
 
 env.SConscript('proj/SConscript')
