@@ -42,8 +42,6 @@ Usage:
 INSTALL_PREFIX = GetOption('install_prefix')
 if INSTALL_PREFIX:
     INSTALL_PREFIX = os.path.abspath(INSTALL_PREFIX)
-else:
-    INSTALL_PREFIX = '/'
 
 INSTALL_USER = GetOption('install_user')
 
@@ -131,7 +129,7 @@ def distutils_install(env, alias, source, deps=None, args=None):
 
     if INSTALL_USER:
         args.append('--user')
-    else:
+    elif INSTALL_PREFIX:
         args.append(env.subst('--prefix=$INSTALL_PREFIX'))
 
     my_source = (_list_add_ext(Flatten(source), env.subst('$SHLIBSUFFIX'))
