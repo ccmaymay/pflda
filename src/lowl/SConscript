@@ -25,4 +25,7 @@ test_env.Append(ENV = {'LD_LIBRARY_PATH': os.path.split(lowl[0].abspath)[0]})
 run_tests = test_env.UntargetedLocalRunner([tests], [tests[0].abspath], '.')
 env.Alias('lowl-tests', run_tests)
 
+install_lowl = env.Install('$PREFIX/lib', lowl)
+env.Alias('lowl-install', install_lowl)
+
 Return('lowl')

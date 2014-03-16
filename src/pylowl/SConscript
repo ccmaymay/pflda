@@ -14,4 +14,7 @@ run_tests = test_env.UntargetedLocalRunner([pylowl],
     os.path.split(pylowl[0].abspath)[0])
 env.Alias('pylowl-tests', run_tests)
 
+install_pylowl = env.Install('$PREFIX/lib', pylowl)
+env.Alias('pylowl-install', install_pylowl)
+
 Return('pylowl')

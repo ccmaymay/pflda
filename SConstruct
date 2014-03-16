@@ -3,7 +3,21 @@
 import os
 import subprocess
 
-env = Environment(ENV = os.environ)
+AddOption('--prefix',
+          dest='prefix',
+          type='string',
+          nargs=1,
+          action='store',
+          metavar='DIR',
+          help='installation (prefix) dir')
+
+PREFIX = GetOption('prefix')
+if PREFIX:
+    PREFIX = os.path.abspath(PREFIX)
+else:
+    PREFIX = '/'
+
+env = Environment(ENV=os.environ, PREFIX=PREFIX)
 
 
 def py_ext_generator(source, target, env, for_signature):
