@@ -3,6 +3,6 @@
 Import('env')
 Export('env')
 
-env.SConscript('lowl/SConscript')
-env.SConscript('pylowl/SConscript')
+lowl = env.SConscript('lowl/SConscript')
+pylowl = env.SConscript('pylowl/SConscript')
 env.SConscript('proj/SConscript')

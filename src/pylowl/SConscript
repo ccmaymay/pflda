@@ -26,3 +26,5 @@ env.Append(BUILDERS = {'PyExt' : py_ext})
 
 pylowl = env.PyExt(target='pylowl', source='pylowl')
 Alias('pylowl-lib', pylowl)
+
+Return('pylowl')
