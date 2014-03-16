@@ -1,6 +1,9 @@
 # vim: ft=python
 
-env = Environment(CCFLAGS=['-O0', '-g', '-Wall', '-Wextra', '-std=gnu99'])
+Import('env')
+Export('env')
+
+env.Append(CCFLAGS=['-O0', '-g', '-Wall', '-Wextra', '-std=gnu99'])
 
 sources = [
     'lowl_sample.c',
@@ -13,5 +16,6 @@ sources = [
 
 lowl = env.SharedLibrary(target='lowl', source=sources, LIBS=['m'])
 env.Alias('lowl-lib', lowl)
-tests = env.Program(target='tests', source=['tests.c'], LIBS=['lowl', 'm'], LIBPATH='.')
+tests = env.Program(target='tests', source=['tests.c'], LIBS=['lowl', 'm'],
+    LIBPATH='.')
 env.Alias('lowl-tests', tests)

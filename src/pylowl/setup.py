@@ -6,7 +6,8 @@ ext_modules = [
     Extension("pylowl", ["pylowl.pyx"],
         libraries=["lowl"],
         include_dirs=['../lowl'],
-        library_dirs=['../lowl'])
+        library_dirs=['../lowl'],
+    ),
 ]
 
 def main():

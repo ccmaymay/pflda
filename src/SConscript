@@ -1,5 +1,8 @@
 # vim: ft=python
 
-SConscript('lowl/SConscript')
-SConscript('pylowl/SConscript')
-SConscript('proj/SConscript')
+Import('env')
+Export('env')
+
+env.SConscript('lowl/SConscript')
+env.SConscript('pylowl/SConscript')
+env.SConscript('proj/SConscript')

@@ -1,2 +1,5 @@
 # vim: ft=python
 
+Import('env')
+Export('env')
+
