@@ -2,7 +2,16 @@
 
 Import('env', 'lowl')
 
+import os
+
 pylowl = env.PyExt(target='pylowl', source=['pylowl', lowl, 'lowl.pxd'])
 Alias('pylowl', pylowl)
+
+test_env = env.Clone()
+test_env.Append(ENV = {'LD_LIBRARY_PATH': os.path.split(lowl[0].abspath)[0]})
+run_tests = test_env.UntargetedLocalRunner([pylowl],
+    'python -m doctest --doctest-extension=pyx -v pylowl.pyx'.split(),
+    os.path.split(pylowl[0].abspath)[0])
+env.Alias('pylowl-tests', run_tests)
 
 Return('pylowl')
