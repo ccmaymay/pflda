@@ -2,6 +2,8 @@
 
 Import('env')
 
+import os
+
 env.Append(CCFLAGS=['-O0', '-g', '-Wall', '-Wextra', '-std=gnu99'])
 
 sources = [
@@ -15,8 +17,14 @@ sources = [
 
 lowl = env.SharedLibrary(target='lowl', source=sources, LIBS=['m'])
 env.Alias('lowl', lowl)
+
 tests = env.Program(target='tests', source=['tests.c'], LIBS=['lowl', 'm'],
     LIBPATH='.')
-env.Alias('lowl-tests', tests)
+test_env = env.Clone()
+test_env.Append(ENV = {'LD_LIBRARY_PATH': os.path.split(lowl[0].abspath)[0]})
+run_tests = test_env.Alias(target='tests', source=[tests],
+    action=tests[0].abspath)
+env.AlwaysBuild(run_tests)
+env.Alias('lowl-tests', run_tests)
 
 Return('lowl')
