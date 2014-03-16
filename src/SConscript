@@ -2,4 +2,4 @@
 
 SConscript('lowl/SConscript')
 SConscript('pylowl/SConscript')
-SConscript('apps/SConscript')
+SConscript('proj/SConscript')
