@@ -44,6 +44,10 @@ def _list_add_ext(x, ext):
 
 
 def _make_local_runner(args):
+    '''
+    Return action (function) that runs specified command in current
+    build dir.
+    '''
     run_dir = Dir('.').path
     def local_runner(target, source, env):
         print('%s$ %s' % (run_dir, ' '.join(args)))
@@ -79,7 +83,7 @@ def distutils_install(env, alias, source, deps=None, args=None):
     Run python setup.py install in the current build dir with the
     provided args.  Add extension .pyx to source
     (non-.pyx dependencies such as .pxd files should be specified in
-    deps).
+    deps).  Set specified alias to command.
     '''
     if deps is None:
         deps = []
@@ -95,6 +99,10 @@ env.AddMethod(distutils_install, 'DistutilsInstall')
 
 
 def no_target_local_runner(env, alias, args, source):
+    '''
+    Run specified command (that does not produce any output) from the
+    current build dir.  Set specified alias to command.
+    '''
     local_runner = _make_local_runner(args)
     ret = env.Alias(target=alias, source=source, action=local_runner)
     return env.AlwaysBuild(ret)
