@@ -1,13 +1,12 @@
 # vim: ft=python
 
-Import('env')
-Export('env')
+Import('env', 'lowl')
 
 import os
 
 def generate_py_ext(source, target, env, for_signature):
     (source_dir, source_filename) = os.path.split(env.GetBuildPath(source[0]))
-    Depends(target, env['BUILD_DIR'] + '/lowl/liblowl.so')
+    Depends(target, lowl)
     Depends(target, os.path.join(source_dir, 'setup.py'))
     Depends(target, os.path.join(source_dir, 'lowl.pxd'))
 
@@ -25,6 +24,6 @@ py_ext = Builder(generator=generate_py_ext,
 env.Append(BUILDERS = {'PyExt' : py_ext})
 
 pylowl = env.PyExt(target='pylowl', source='pylowl')
-Alias('pylowl-lib', pylowl)
+Alias('pylowl', pylowl)
 
 Return('pylowl')

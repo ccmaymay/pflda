@@ -1,7 +1,6 @@
 # vim: ft=python
 
 Import('env')
-Export('env')
 
 env.Append(CCFLAGS=['-O0', '-g', '-Wall', '-Wextra', '-std=gnu99'])
 
@@ -15,7 +14,7 @@ sources = [
 ]
 
 lowl = env.SharedLibrary(target='lowl', source=sources, LIBS=['m'])
-env.Alias('lowl-lib', lowl)
+env.Alias('lowl', lowl)
 tests = env.Program(target='tests', source=['tests.c'], LIBS=['lowl', 'm'],
     LIBPATH='.')
 env.Alias('lowl-tests', tests)
