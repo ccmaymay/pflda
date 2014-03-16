@@ -3,6 +3,7 @@
 import os
 import subprocess
 
+
 AddOption('--prefix',
           dest='prefix',
           type='string',
@@ -20,61 +21,101 @@ else:
 env = Environment(ENV=os.environ, PREFIX=PREFIX)
 
 
-def build_py_ext_generator(source, target, env, for_signature):
-    source_dir = os.path.split(env.GetBuildPath(source[0]))[0]
-    target_dir = os.path.split(env.GetBuildPath(target[0]))[0]
-
-    setup_path = os.path.join(source_dir, 'setup.py')
-    Depends(target, setup_path)
-
-    def build_py_ext(source, target, env):
-        args = 'python setup.py build_ext --inplace'.split()
-        print('%s$ %s' % (target_dir, ' '.join(args)))
-        p = subprocess.Popen(args, cwd=target_dir, env=env['ENV'])
-        p.wait()
-        return p.returncode
-
-    return build_py_ext
-
-build_ext = Builder(generator=build_py_ext_generator,
-    suffix='$SHLIBSUFFIX', src_suffix='.pyx')
-
-env.Append(BUILDERS = {'BuildExt' : build_ext})
+def _str_add_ext(x, ext):
+    '''
+    If x is a string that does not end in ext then return x + ext,
+    else return x.
+    '''
+    if isinstance(x, str):
+        if x.endswith(ext):
+            return x
+        else:
+            return x + ext
+    else:
+        return x
 
 
-def install_py_ext_generator(source, target, env, for_signature):
-    source_dir = os.path.split(env.GetBuildPath(source[0]))[0]
-
-    def install_py_ext(source, target, env):
-        args = 'python setup.py install --user'.split()
-        print('%s$ %s' % (source_dir, ' '.join(args)))
-        p = subprocess.Popen(args, cwd=source_dir, env=env['ENV'])
-        p.wait()
-        return p.returncode
-
-    return install_py_ext
-
-install_ext = Builder(generator=install_py_ext_generator)
-
-env.Append(BUILDERS = {'InstallExt' : install_ext})
+def _list_add_ext(x, ext):
+    '''
+    Return list whose elements are the elements of x with extension
+    ext appended (where appropriate).
+    '''
+    return [_str_add_ext(elt, ext) for elt in x]
 
 
-def untargeted_local_runner(env, source, args, run_dir):
-    target = 'PHONY'
-
-    Depends(target, source)
-
-    def run(source, target, env):
+def _make_local_runner(args):
+    run_dir = Dir('.').path
+    def local_runner(target, source, env):
         print('%s$ %s' % (run_dir, ' '.join(args)))
         p = subprocess.Popen(args, cwd=run_dir, env=env['ENV'])
         p.wait()
         return p.returncode
+    return local_runner
 
-    pseudo = env.Pseudo(env.Command(target='PHONY', source=source, action=run))
-    env.AlwaysBuild(pseudo)
-    return pseudo
 
-env.AddMethod(untargeted_local_runner, 'UntargetedLocalRunner')
+def distutils_setup(_env, _target, args, _source, pseudo=False):
+    '''
+    Run python setup.py in the current build dir with the provided args.
+    If pseudo is true, also specify that target is phony and should
+    always be built.
+    '''
+
+    # Specify dependency on setup.py manually;
+    # other dependencies are implicitly specified in _source
+    Depends(_target, 'setup.py')
+
+    run_distutils_setup = _make_local_runner(['python', 'setup.py'] + args)
+
+    ret = _env.Command(target=_target, source=_source,
+        action=run_distutils_setup)
+    if pseudo:
+        return _env.Pseudo(_env.AlwaysBuild(ret))
+    else:
+        return ret
+
+env.AddMethod(distutils_setup, 'DistutilsSetup')
+
+
+def distutils_build_ext(env, target, source, deps=None):
+    '''
+    Run python setup.py build_ext --inplace in the current build dir
+    Add extension .pyx to source (non-.pyx dependencies such as .pxd
+    files should be specified in deps).  Add shared library extension
+    (e.g., .so) to target.
+    '''
+    if deps is None:
+        deps = []
+    my_target = _list_add_ext(Flatten(target), env.subst('$SHLIBSUFFIX'))
+    my_source = _list_add_ext(Flatten(source), '.pyx') + deps
+    return env.DistutilsSetup(my_target, ['build_ext', '--inplace'], my_source)
+
+env.AddMethod(distutils_build_ext, 'DistutilsBuildExt')
+
+
+def distutils_install(env, target, source, deps=None, args=None):
+    '''
+    Run python setup.py install in the current build dir with the
+    provided args.  Set phony target.  Add extension .pyx to source
+    (non-.pyx dependencies such as .pxd files should be specified in
+    deps).
+    '''
+    if deps is None:
+        deps = []
+    if args is None:
+        args = []
+    my_source = _list_add_ext(Flatten(source), '.pyx') + deps
+    return env.DistutilsSetup(target, ['install'] + args, my_source,
+        pseudo=True)
+
+env.AddMethod(distutils_install, 'DistutilsInstall')
+
+
+def no_target_local_runner(env, target, args, source):
+    local_runner = _make_local_runner(args)
+    ret = env.Alias(target=target, source=source, action=local_runner)
+    return env.AlwaysBuild(ret)
+
+env.AddMethod(no_target_local_runner, 'NoTargetLocalRunner')
 
 
 Export('env')

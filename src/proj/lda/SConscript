@@ -2,6 +2,6 @@
 
 Import('env', 'pylowl')
 
-lda = env.BuildExt(target='lda', source=['lda', pylowl, 'pylowl.pxd'])
-Alias('lda', lda)
+lda = env.DistutilsBuildExt('lda', 'lda', deps=[pylowl, 'pylowl.pxd'])
+env.Alias('lda', lda)
 
