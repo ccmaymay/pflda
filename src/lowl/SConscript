@@ -22,9 +22,7 @@ tests = env.Program(target='tests', source=['tests.c'], LIBS=['lowl', 'm'],
     LIBPATH='.')
 test_env = env.Clone()
 test_env.Append(ENV = {'LD_LIBRARY_PATH': os.path.split(lowl[0].abspath)[0]})
-run_tests = test_env.Alias(target='tests', source=[tests],
-    action=tests[0].abspath)
-env.AlwaysBuild(run_tests)
+run_tests = test_env.UntargetedLocalRunner([tests], tests[0].abspath, '.')
 env.Alias('lowl-tests', run_tests)
 
 Return('lowl')
