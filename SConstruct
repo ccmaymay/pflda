@@ -1,5 +1,6 @@
 # vim: ft=python
 
+
 import os
 import subprocess
 
@@ -43,6 +44,8 @@ INSTALL_USER = GetOption('install_user')
 env = Environment(ENV=os.environ,
     INSTALL_PREFIX=INSTALL_PREFIX,
     INSTALL_USER=INSTALL_USER)
+
+env.Append(CCFLAGS=['-O0', '-g', '-Wall', '-Wextra', '-std=gnu99'])
 
 
 def _str_add_ext(x, ext):

@@ -1,14 +1,17 @@
 # vim: ft=python
 
+
 Import('env', 'lowl')
 
 import os
+
 
 Help('''
         pylowl          Build pylowl
         pylowl-tests    Build and run tests for pylowl
         pylowl-install  Install pylowl
 '''.lstrip('\r\n'))
+
 
 pylowl = env.DistutilsBuildExt('pylowl', 'pylowl', deps=[lowl, 'lowl.pxd'])
 env.Alias('pylowl', pylowl)

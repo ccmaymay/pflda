@@ -1,11 +1,14 @@
 # vim: ft=python
 
+
 Import('env', 'pylowl')
+
 
 Help('''
         lda             Build lda
         lda-install     Install lda
 '''.lstrip('\r\n'))
+
 
 lda = env.DistutilsBuildExt('lda', 'lda', deps=[pylowl, 'pylowl.pxd'])
 env.Alias('lda', lda)

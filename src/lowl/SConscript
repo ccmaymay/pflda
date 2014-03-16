@@ -1,8 +1,10 @@
 # vim: ft=python
 
+
 Import('env')
 
 import os
+
 
 Help('''
         lowl            Build liblowl
@@ -10,7 +12,6 @@ Help('''
         lowl-install    Install liblowl
 '''.lstrip('\r\n'))
 
-env.Append(CCFLAGS=['-O0', '-g', '-Wall', '-Wextra', '-std=gnu99'])
 
 sources = [
     'lowl_sample.c',
