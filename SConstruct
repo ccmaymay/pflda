@@ -5,20 +5,44 @@ import subprocess
 
 
 AddOption('--prefix',
-          dest='prefix',
+          dest='install_prefix',
           type='string',
           nargs=1,
           action='store',
           metavar='DIR',
-          help='installation (prefix) dir')
+          help='install prefix dir')
 
-PREFIX = GetOption('prefix')
-if PREFIX:
-    PREFIX = os.path.abspath(PREFIX)
+AddOption('--user',
+          dest='install_user',
+          action='store_true',
+          help='use user install scheme for Python modules (overrides prefix)')
+
+Help('''
+Usage:
+    scons [option ...] [target ...]
+
+    (To clean do: scons -c)
+
+    Options:
+        --prefix  install prefix dir
+        --user    use user install scheme for Python modules (overrides prefix)
+
+    Targets:
+''')
+
+
+INSTALL_PREFIX = GetOption('install_prefix')
+if INSTALL_PREFIX:
+    INSTALL_PREFIX = os.path.abspath(INSTALL_PREFIX)
 else:
-    PREFIX = '/'
+    INSTALL_PREFIX = '/'
 
-env = Environment(ENV=os.environ, PREFIX=PREFIX)
+INSTALL_USER = GetOption('install_user')
+
+
+env = Environment(ENV=os.environ,
+    INSTALL_PREFIX=INSTALL_PREFIX,
+    INSTALL_USER=INSTALL_USER)
 
 
 def _str_add_ext(x, ext):
@@ -89,6 +113,12 @@ def distutils_install(env, alias, source, deps=None, args=None):
         deps = []
     if args is None:
         args = []
+
+    if INSTALL_USER:
+        args.append('--user')
+    else:
+        args.append(env.subst('--prefix=$INSTALL_PREFIX'))
+
     my_source = (_list_add_ext(Flatten(source), env.subst('$SHLIBSUFFIX'))
         + deps + ['setup.py'])
     return env.NoTargetLocalRunner(alias,

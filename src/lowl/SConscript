@@ -4,6 +4,12 @@ Import('env')
 
 import os
 
+Help('''
+        lowl            Build liblowl
+        lowl-tests      Build and run tests for liblowl
+        lowl-install    Install liblowl
+'''.lstrip('\r\n'))
+
 env.Append(CCFLAGS=['-O0', '-g', '-Wall', '-Wextra', '-std=gnu99'])
 
 sources = [
@@ -24,7 +30,7 @@ test_env = env.Clone()
 test_env.Append(ENV = {'LD_LIBRARY_PATH': lowl[0].dir.abspath})
 run_tests = test_env.NoTargetLocalRunner('lowl-tests', [tests[0].abspath], [tests])
 
-install_lowl = env.AlwaysBuild(env.Install('$PREFIX/lib', lowl))
+install_lowl = env.AlwaysBuild(env.Install('$INSTALL_PREFIX/lib', lowl))
 env.Alias('lowl-install', install_lowl)
 
 Return('lowl')
