@@ -11,7 +11,14 @@ ext_modules = [
 ]
 
 def main():
-    setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
+    setup(
+        name='pylowl',
+        version='0.0',
+        description='Randomized Algorithms Library',
+        url='https://gitlab.hltcoe.jhu.edu/klevin/littleowl',
+        cmdclass={'build_ext': build_ext},
+        ext_modules=ext_modules
+    )
 
 if __name__ == '__main__':
     main()

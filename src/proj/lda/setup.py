@@ -11,7 +11,14 @@ ext_modules = [
 ]
 
 def main():
-    setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
+    setup(
+        name='pylowl_lda',
+        version='0.0',
+        description='Particle Filter for LDA',
+        url='https://gitlab.hltcoe.jhu.edu/klevin/littleowl',
+        cmdclass={'build_ext': build_ext},
+        ext_modules=ext_modules
+    )
 
 if __name__ == '__main__':
     main()
