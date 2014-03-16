@@ -4,7 +4,7 @@ Import('env', 'lowl')
 
 import os
 
-pylowl = env.PyExt(target='pylowl', source=['pylowl', lowl, 'lowl.pxd'])
+pylowl = env.BuildExt(target='pylowl', source=['pylowl', lowl, 'lowl.pxd'])
 Alias('pylowl', pylowl)
 
 test_env = env.Clone()
@@ -14,7 +14,7 @@ run_tests = test_env.UntargetedLocalRunner([pylowl],
     os.path.split(pylowl[0].abspath)[0])
 env.Alias('pylowl-tests', run_tests)
 
-install_pylowl = env.Install('$PREFIX/lib', pylowl)
+install_pylowl = env.Pseudo(env.InstallExt(target='PHONY', source=[pylowl]))
 env.Alias('pylowl-install', install_pylowl)
 
 Return('pylowl')

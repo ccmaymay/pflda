@@ -2,6 +2,6 @@
 
 Import('env', 'pylowl')
 
-lda = env.PyExt(target='lda', source=['lda', pylowl, 'pylowl.pxd'])
+lda = env.BuildExt(target='lda', source=['lda', pylowl, 'pylowl.pxd'])
 Alias('lda', lda)
 

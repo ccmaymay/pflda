@@ -20,7 +20,7 @@ else:
 env = Environment(ENV=os.environ, PREFIX=PREFIX)
 
 
-def py_ext_generator(source, target, env, for_signature):
+def build_py_ext_generator(source, target, env, for_signature):
     source_dir = os.path.split(env.GetBuildPath(source[0]))[0]
     target_dir = os.path.split(env.GetBuildPath(target[0]))[0]
 
@@ -36,10 +36,27 @@ def py_ext_generator(source, target, env, for_signature):
 
     return build_py_ext
 
-py_ext = Builder(generator=py_ext_generator,
+build_ext = Builder(generator=build_py_ext_generator,
     suffix='$SHLIBSUFFIX', src_suffix='.pyx')
 
-env.Append(BUILDERS = {'PyExt' : py_ext})
+env.Append(BUILDERS = {'BuildExt' : build_ext})
+
+
+def install_py_ext_generator(source, target, env, for_signature):
+    source_dir = os.path.split(env.GetBuildPath(source[0]))[0]
+
+    def install_py_ext(source, target, env):
+        args = 'python setup.py install --user'.split()
+        print('%s$ %s' % (source_dir, ' '.join(args)))
+        p = subprocess.Popen(args, cwd=source_dir, env=env['ENV'])
+        p.wait()
+        return p.returncode
+
+    return install_py_ext
+
+install_ext = Builder(generator=install_py_ext_generator)
+
+env.Append(BUILDERS = {'InstallExt' : install_ext})
 
 
 def untargeted_local_runner(env, source, args, run_dir):
