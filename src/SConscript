@@ -1,3 +1,5 @@
+# vim: ft=python
+
 SConscript('lowl/SConscript')
 SConscript('pylowl/SConscript')
 SConscript('apps/SConscript')

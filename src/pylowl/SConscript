@@ -1,3 +1,5 @@
+# vim: ft=python
+
 import os
 
 env = Environment()
