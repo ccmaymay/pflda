@@ -1,11 +1,40 @@
+import os
+
 env = Environment()
 
-py_ext = Builder(action='python $SOURCE build_ext --inplace')
+def generate_py_ext(source, target, env, for_signature):
+    (source_dir, source_filename) = os.path.split(env.GetBuildPath(source[0]))
+    #my_env = env.Clone()
+    #my_env.Append(CFLAGS=['-I../lowl'], LDFLAGS=['-L../lowl', '-Wl,-rpath', '-Wl,.'])
+    Depends(target, '#build/lowl/liblowl.so')
+    Depends(target, os.path.join(source_dir, 'setup.py'))
+    Depends(target, os.path.join(source_dir, 'lowl.pxd'))
+
+    #my_env_dict = dict()
+    #for (k, v) in my_env.items():
+    #    my_env_dict[k] = my_env.subst('$' + k)
+
+    #my_env_dict = dict()
+    #my_env_dict['CFLAGS'] = '-I../lowl'
+    #my_env_dict['LDFLAGS'] = '-L../lowl -Wl,-rpath -Wl,.'
+
+    def _action(source, target, env):
+        import subprocess
+        p = subprocess.Popen(['python', 'setup.py', 'build_ext', '--inplace'],
+            cwd=source_dir)
+        p.wait()
+        return p.returncode
+
+    return _action
+
+py_ext = Builder(generator=generate_py_ext, suffix='.so', src_suffix='.pyx')
 env.Append(BUILDERS = {'PyExt' : py_ext})
 
 #CFLAGS="-I." LDFLAGS="-L. -Wl,-rpath -Wl,."
-pylowl = env.PyExt(target='pylowl.so', source='setup.py')
-Depends(pylowl, '#build/lowl/liblowl.so')
-Depends(pylowl, 'setup.py')
-Depends(pylowl, 'lowl.pxd')
-Depends(pylowl, 'pylowl.pyx')
+pylowl = env.PyExt(target='pylowl', source='pylowl')
+Alias('pylowl-lib', pylowl)
+
+# TODO
+# load setup with guard
+# read name (target), deps (sources) from setup
+# pushd build... && python setup.py && popd

@@ -10,4 +10,6 @@ sources = [
 ]
 
 lowl = env.SharedLibrary(target='lowl', source=sources, LIBS=['m'])
+env.Alias('lowl-lib', lowl)
 tests = env.Program(target='tests', source=['tests.c'], LIBS=['lowl', 'm'], LIBPATH='.')
+env.Alias('lowl-tests', tests)
