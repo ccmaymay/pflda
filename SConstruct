@@ -5,31 +5,38 @@ import os
 import subprocess
 
 
+install_prefix_help = 'install prefix dir'
 AddOption('--prefix',
           dest='install_prefix',
           type='string',
           nargs=1,
           action='store',
           metavar='DIR',
-          help='install prefix dir')
+          help=install_prefix_help)
 
+install_user_help = 'use user install scheme for Python modules (overrides prefix)'
 AddOption('--user',
           dest='install_user',
           action='store_true',
-          help='use user install scheme for Python modules (overrides prefix)')
+          help=install_user_help)
+
+debug_help = 'compile with debugging symbols'
+AddOption('--dbg',
+          dest='debug',
+          action='store_true',
+          help=debug_help)
 
 Help('''
 Usage:
     scons [option ...] [target ...]
 
-    (To clean do: scons -c)
-
     Options:
-        --prefix  install prefix dir
-        --user    use user install scheme for Python modules (overrides prefix)
+        --prefix  %(install_prefix_help)s
+        --user    %(install_user_help)s
+        --dbg     %(debug_help)s
 
     Targets:
-''')
+''' % locals())
 
 
 INSTALL_PREFIX = GetOption('install_prefix')
@@ -40,12 +47,17 @@ else:
 
 INSTALL_USER = GetOption('install_user')
 
+DEBUG = GetOption('debug')
+
 
 env = Environment(ENV=os.environ,
     INSTALL_PREFIX=INSTALL_PREFIX,
     INSTALL_USER=INSTALL_USER)
-
-env.Append(CCFLAGS=['-O0', '-g', '-Wall', '-Wextra', '-std=gnu99'])
+env.Append(CCFLAGS=['-std=gnu99'])
+if DEBUG:
+    env.Append(CCFLAGS=['-O0', '-g', '-Wall', '-Wextra'])
+else:
+    env.Append(CCFLAGS=['-O2'])
 
 
 def _str_add_ext(x, ext):
