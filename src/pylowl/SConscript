@@ -7,14 +7,14 @@ import os
 pylowl = env.DistutilsBuildExt('pylowl', 'pylowl', deps=[lowl, 'lowl.pxd'])
 env.Alias('pylowl', pylowl)
 
-test_env = env.Clone()
-test_env.Append(ENV = {'LD_LIBRARY_PATH': os.path.split(lowl[0].abspath)[0]})
-run_tests = test_env.NoTargetLocalRunner(pylowl,
-    'python -m doctest --doctest-extension=pyx -v pylowl.pyx'.split(),
-    [pylowl, 'pylowl.pyx'])
-env.Alias('pylowl-tests', run_tests)
+#test_env = env.Clone()
+#test_env.Append(ENV = {'LD_LIBRARY_PATH': lowl[0].dir.abspath})
+#run_tests = test_env.NoTargetLocalRunner(pylowl[0].path,
+#    'python -m doctest --doctest-extension=pyx -v pylowl.pyx'.split(),
+#    [pylowl, 'pylowl.pyx'])
+#env.Alias('pylowl-tests', run_tests)
 
-install_pylowl = env.DistutilsInstall('install_pylowl_phony', 'pylowl', args=['--user'])
+install_pylowl = env.DistutilsInstall(pylowl, args=['--user'])
 env.Alias('pylowl-install', install_pylowl)
 
 Return('pylowl')

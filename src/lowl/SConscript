@@ -22,7 +22,7 @@ tests = env.Program(target='tests', source=['tests.c'], LIBS=['lowl', 'm'],
     LIBPATH='.')
 test_env = env.Clone()
 test_env.Append(ENV = {'LD_LIBRARY_PATH': lowl[0].dir.abspath})
-run_tests = test_env.NoTargetLocalRunner('tests', tests[0].abspath, [tests])
+run_tests = test_env.NoTargetLocalRunner('tests', [tests[0].abspath], [tests])
 env.Alias('lowl-tests', run_tests)
 
 install_lowl = env.AlwaysBuild(env.Install('$PREFIX/lib', lowl))
