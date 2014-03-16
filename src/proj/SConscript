@@ -1,1 +1,6 @@
+# vim: ft=python
+
+Import('env')
+Export('env')
+
 SConscript('lda/SConscript')
