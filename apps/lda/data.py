@@ -12,6 +12,16 @@ NON_ALPHA_RE = re.compile(r'[^a-zA-Z]+')
 OOV = '_OOV_'
 
 
+def _sorted_file_paths(dir_path, ext):
+    paths = []
+    for filename in os.listdir(dir_path):
+        path = os.path.join(dir_path, filename)
+        if os.path.isfile(path) and not filename.startswith('.') and filename.endswith(ext):
+            paths.append(path)
+    paths.sort()
+    return paths
+
+
 def _load_stop_set(filename):
     stop_set = set()
     with open(filename) as f:
@@ -106,7 +116,7 @@ class Dataset(object):
 
         word_counts = dict()
 
-        for path in self._sorted_file_paths(self.train_dir):
+        for path in _sorted_file_paths(self.train_dir, '.gz'):
             with gzip.open(path) as f:
                 for line in f:
                     (doc_idx, category, words) = self._parse_doc(line)
@@ -126,15 +136,6 @@ class Dataset(object):
         words = tokens[2:]
         return (doc_idx, category, words)
 
-    def _sorted_file_paths(self, dir_path):
-        paths = []
-        for filename in os.listdir(dir_path):
-            path = os.path.join(dir_path, filename)
-            if os.path.isfile(path) and not filename.startswith('.') and filename.endswith('.gz'):
-                paths.append(path)
-        paths.sort()
-        return paths
-
     def _replace_oov(self, word):
         if word in self.vocab:
             return word
@@ -152,7 +153,7 @@ class Dataset(object):
                 yield item
 
     def _raw_iterator(self, dir_path):
-        for path in self._sorted_file_paths(dir_path):
+        for path in _sorted_file_paths(dir_path, '.gz'):
             with gzip.open(path) as f:
                 for line in f:
                     (doc_idx, category, words) = self._parse_doc(line)
@@ -260,6 +261,64 @@ def transform_twitter(input_path, base_output_dir, train_frac=None, stop_list_pa
             else:
                 test_writer.write(doc_idx, category, tokens)
             doc_idx += 1
+
+    train_writer.close()
+    test_writer.close()
+
+
+def transform_gigaword(input_dir, base_output_dir, train_frac=None, split_mode=None, stop_list_path=None, lower=False):
+    if train_frac is None:
+        train_frac = 0.8
+    else:
+        train_frac = float(train_frac)
+
+    train_output_dir = os.path.join(base_output_dir, 'train')
+    test_output_dir = os.path.join(base_output_dir, 'test')
+
+    token_filter = CompoundTokenFilter()
+    token_filter.add(NonEmptyTokenFilter())
+    if lower:
+        token_filter.add(LowerTokenFilter())
+    if stop_list_path is not None:
+        token_filter.add(BlacklistTokenFilter(_load_stop_set(stop_list_path)))
+
+    if split_mode is None or split_mode == 'nonalpha':
+        tokenizer = NonAlphaTokenizer()
+    elif split_mode == 'whitespace':
+        tokenizer = WhitespaceTokenizer()
+    else:
+        raise Exception('Unknown split mode %s' % split_mode)
+
+    category = 'null'
+    doc_idx = 0
+
+    train_writer = DatasetWriter(os.path.join(train_output_dir, 'all.gz'))
+    test_writer = DatasetWriter(os.path.join(test_output_dir, 'all.gz'))
+
+    for path in _sorted_file_paths(input_dir, '.gz'):
+        with gzip.open(path) as f:
+            in_doc = False
+            in_p = False
+            for line in f:
+                line = line.rstrip()
+                if line:
+                    if line.lower().startswith('<doc'):
+                        in_doc = True
+                        tokens = []
+                    elif line.lower().startswith('</doc'):
+                        in_doc = False
+                        if tokens:
+                            if random.random() < train_frac:
+                                train_writer.write(doc_idx, category, tokens)
+                            else:
+                                test_writer.write(doc_idx, category, tokens)
+                            doc_idx += 1
+                    elif line.lower().startswith('<p'):
+                        in_p = True
+                    elif line.lower().startswith('</p'):
+                        in_p = False
+                    elif in_doc and in_p:
+                        tokens.extend(token_filter.filter(tokenizer.tokenize(line)))
 
     train_writer.close()
     test_writer.close()
