@@ -3,7 +3,7 @@
 import os
 import subprocess
 
-env = Environment()
+env = Environment(ENV = os.environ)
 
 
 def py_ext_generator(source, target, env, for_signature):
