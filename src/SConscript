@@ -1,0 +1,14 @@
+# vim: ft=python
+
+
+Import('env')
+Export('env')
+
+
+lowl = env.SConscript('lowl/SConscript')
+Export('lowl')
+
+pylowl = env.SConscript('pylowl/SConscript')
+Export('pylowl')
+
+env.SConscript('proj/SConscript')

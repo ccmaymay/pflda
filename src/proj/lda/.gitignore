@@ -1,0 +1,3 @@
+*.pyc
+lda.c
+slda.o*

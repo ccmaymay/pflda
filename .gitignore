@@ -1,1 +1,8 @@
 .DS_Store
+build
+lib
+bin
+.*.swp
+.*.swo
+*.pyc
+.sconsign.dblite

@@ -1,8 +1,0 @@
-tests
-*.o
-.*.swp
-.*.swo
-*.so
-pylowl.c
-build
-*.dSYM

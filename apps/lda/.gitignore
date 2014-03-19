@@ -1,4 +1,0 @@
-*.pyc
-build
-lda.c
-slda.o*
