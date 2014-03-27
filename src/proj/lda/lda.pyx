@@ -1228,17 +1228,18 @@ cdef void eval_gibbs(np_uint_t num_topics, GibbsSampler train_gibbs_sampler,
 
     model = train_gibbs_sampler.model
 
-    inferred_topics = infer_topics(train_gibbs_sampler.dt_counts,
-        len(train_labels), num_topics)
-    print('in-sample nmi: %f'
-        % nmi(train_labels, categories, inferred_topics, num_topics))
+    if len(categories) > 1:
+        inferred_topics = infer_topics(train_gibbs_sampler.dt_counts,
+            len(train_labels), num_topics)
+        print('in-sample nmi: %f'
+            % nmi(train_labels, categories, inferred_topics, num_topics))
 
-    gibbs_sampler = GibbsSampler(model)
-    gibbs_sampler.infer(test_sample, test_num_iters)
-    inferred_topics = infer_topics(gibbs_sampler.dt_counts, len(test_sample),
-        num_topics)
-    print('out-of-sample nmi: %f'
-        % nmi(test_labels, categories, inferred_topics, num_topics))
+        gibbs_sampler = GibbsSampler(model)
+        gibbs_sampler.infer(test_sample, test_num_iters)
+        inferred_topics = infer_topics(gibbs_sampler.dt_counts,
+            len(test_sample), num_topics)
+        print('out-of-sample nmi: %f'
+            % nmi(test_labels, categories, inferred_topics, num_topics))
 
     plfilter = FirstMomentPLFilter(model)
     ll = plfilter.likelihood(test_sample)
@@ -1272,20 +1273,22 @@ cdef void eval_pf(np_uint_t num_topics, ParticleFilter pf,
 
     model = pf.max_posterior_model()
 
-    inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
-    print('init in-sample nmi: %f'
-        % nmi(train_labels[:init_size], categories, inferred_topics[:init_size],            num_topics))
+    if len(categories) > 1:
+        inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
+        print('init in-sample nmi: %f'
+            % nmi(train_labels[:init_size], categories,
+                inferred_topics[:init_size], num_topics))
 
-    inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
-    print('in-sample nmi: %f'
-        % nmi(train_labels, categories, inferred_topics, num_topics))
+        inferred_topics = pf.label_store.label_view(pf.max_posterior_particle())
+        print('in-sample nmi: %f'
+            % nmi(train_labels, categories, inferred_topics, num_topics))
 
-    gibbs_sampler = GibbsSampler(model)
-    gibbs_sampler.infer(test_sample, test_num_iters)
-    inferred_topics = infer_topics(gibbs_sampler.dt_counts, len(test_sample),
-        num_topics)
-    print('out-of-sample nmi: %f'
-        % nmi(test_labels, categories, inferred_topics, num_topics))
+        gibbs_sampler = GibbsSampler(model)
+        gibbs_sampler.infer(test_sample, test_num_iters)
+        inferred_topics = infer_topics(gibbs_sampler.dt_counts,
+            len(test_sample), num_topics)
+        print('out-of-sample nmi: %f'
+            % nmi(test_labels, categories, inferred_topics, num_topics))
 
     plfilter = FirstMomentPLFilter(model)
     ll = plfilter.likelihood(test_sample)
