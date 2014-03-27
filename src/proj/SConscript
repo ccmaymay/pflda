@@ -5,4 +5,4 @@ Import('env', 'lowl', 'install_lowl', 'pylowl', 'install_pylowl')
 Export('env', 'lowl', 'install_lowl', 'pylowl', 'install_pylowl')
 
 
-SConscript('lda/SConscript')
+SConscript('pflda/SConscript')
