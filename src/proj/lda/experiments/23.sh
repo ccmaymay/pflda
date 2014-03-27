@@ -17,7 +17,7 @@ do
         init_num_iters=200
     fi
 
-    bash qsub_gibbs.sh $dataset_path $dataset_name 23 \
+    bash run_gibbs_qsub_wrapper.sh $dataset_path $dataset_name 23 \
         "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=2:00:00" \
         "--init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
 done

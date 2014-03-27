@@ -6,4 +6,4 @@ experiment="$3"
 d="$experiment/$dataset_name"
 
 mkdir -p "$d"
-qsub -o "$d/\$TASK_ID.log" $4 run_lda.qsub $dataset_path $dataset_name $5
+qsub -o "$d/\$TASK_ID.log" $4 run_pf.qsub $dataset_path $dataset_name $5

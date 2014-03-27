@@ -8,4 +8,4 @@
 #$ -tc 2
 #$ -l num_proc=1,mem_free=400M,h_rt=2:00:00
 printenv
-python run_lda.py "$@"
+python run_pf.py "$@"

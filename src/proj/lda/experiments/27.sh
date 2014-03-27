@@ -17,10 +17,10 @@ do
         init_num_iters=200
     fi
 
-    bash qsub.sh $dataset_path $dataset_name 27-rs0 \
+    bash run_pf_qsub_wrapper.sh $dataset_path $dataset_name 27-rs0 \
         "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=2:00:00" \
         "--reservoir_size=0 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters" \
-    bash qsub.sh $dataset_path $dataset_name 27-rs1k \
+    bash run_pf_qsub_wrapper.sh $dataset_path $dataset_name 27-rs1k \
         "-q text.q -tc 2 -l num_proc=1,mem_free=400M,h_rt=4:00:00" \
         "--reservoir_size=1000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters" \
 done
