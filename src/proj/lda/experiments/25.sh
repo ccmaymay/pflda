@@ -18,6 +18,6 @@ do
     fi
 
     bash run_pf_qsub_wrapper.sh $dataset_path $dataset_name 25-rs0 \
-        "-q text.q -tc 2 -t 1-120 -l num_proc=1,mem_free=200M,h_rt=2:00:00" \
+        "-q text.q -t 1-120 -tc 2 -l num_proc=1,mem_free=200M,h_rt=2:00:00" \
         "--reservoir_size=0 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
 done

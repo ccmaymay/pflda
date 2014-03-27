@@ -18,24 +18,24 @@ do
     fi
 
     bash run_pf_qsub_wrapper.sh $dataset_path $dataset_name 21-rs0 \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+        "-q text.q -t 1-30 -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
         "--reservoir_size=0 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
     bash run_pf_qsub_wrapper.sh $dataset_path $dataset_name 21-rs10 \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+        "-q text.q -t 1-30 -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
         "--reservoir_size=10 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
     bash run_pf_qsub_wrapper.sh $dataset_path $dataset_name 21-rs100 \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+        "-q text.q -t 1-30 -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
         "--reservoir_size=100 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
     bash run_pf_qsub_wrapper.sh $dataset_path $dataset_name 21-rs1k \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
+        "-q text.q -t 1-30 -tc 2 -l num_proc=1,mem_free=200M,h_rt=1:00:00" \
         "--reservoir_size=1000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
     bash run_pf_qsub_wrapper.sh $dataset_path $dataset_name 21-rs10k \
-        "-q text.q -tc 2 -l num_proc=1,mem_free=500M,h_rt=4:00:00" \
+        "-q text.q -t 1-30 -tc 2 -l num_proc=1,mem_free=500M,h_rt=4:00:00" \
         "--reservoir_size=10000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
     bash run_pf_qsub_wrapper.sh $dataset_path $dataset_name 21-rs100k \
-        "-q text.q -tc 4 -l num_proc=1,mem_free=2G,h_rt=24:00:00" \
+        "-q text.q -t 1-30 -tc 4 -l num_proc=1,mem_free=2G,h_rt=24:00:00" \
         "--reservoir_size=100000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
     bash run_pf_qsub_wrapper.sh $dataset_path $dataset_name 21-rs500k \
-        "-q text.q -tc 8 -l num_proc=1,mem_free=4G,h_rt=36:00:00" \
+        "-q text.q -t 1-30 -tc 8 -l num_proc=1,mem_free=4G,h_rt=36:00:00" \
         "--reservoir_size=500000 --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters"
 done
