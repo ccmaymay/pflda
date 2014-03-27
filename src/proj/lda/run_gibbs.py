@@ -5,6 +5,7 @@ import lda
 import sys
 
 DATASET_SUBSETS = dict(
+    null=('null',),
     diff3=('alt.atheism', 'rec.sport.baseball', 'sci.space'),
     sim3=('comp.graphics', 'comp.os.ms-windows.misc', 'comp.windows.x'),
     rel3=('talk.politics.guns', 'talk.politics.mideast', 'talk.politics.misc'),
