@@ -1619,7 +1619,7 @@ def init_topics(np_uint_t[:,::1] tw_counts, np_uint_t[::1] t_counts,
 
 # driver: initialize LDA by collapsed Gibbs sampling and run particle
 # filter on the rest of the data
-def run_lda(data_dir, categories, **kwargs):
+def run_pf(data_dir, categories, **kwargs):
     cdef ParticleFilter pf
     cdef np_uint_t i, doc_idx, num_tokens, p, init_size
 

@@ -4,7 +4,7 @@ from Cython.Distutils import build_ext
 import numpy
 
 ext_modules = [
-    Extension("lda", ["lda.pyx"],
+    Extension("pflda", ["pflda.pyx"],
         include_dirs=[numpy.get_include(), '../../pylowl', '../../lowl'],
         library_dirs=['../../pylowl', '../../lowl'],
     ),
@@ -12,7 +12,7 @@ ext_modules = [
 
 def main():
     setup(
-        name='pylowl_lda',
+        name='pflda',
         version='0.0',
         description='Particle Filter for LDA',
         url='https://gitlab.hltcoe.jhu.edu/klevin/littleowl',

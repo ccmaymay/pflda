@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-import lda
+import pflda
 import sys
 
 DATASET_SUBSETS = dict(
@@ -27,4 +27,4 @@ for token in sys.argv[3:]:
         v = token[(eq_pos+1):len(token)]
         params[k] = v
 
-lda.run_gibbs(dataset_path, DATASET_SUBSETS[dataset_subset], **params)
+pflda.run_gibbs(dataset_path, DATASET_SUBSETS[dataset_subset], **params)

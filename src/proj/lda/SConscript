@@ -5,12 +5,12 @@ Import('env', 'pylowl')
 
 
 Help('''
-        lda             Build lda
-        lda-install     Install lda
+        pflda           Build pflda
+        pflda-install   Install pflda
 '''.lstrip('\r\n'))
 
 
-lda = env.DistutilsBuildExt('lda', 'lda', deps=[pylowl, 'pylowl.pxd'])
-env.Alias('lda', lda)
+pflda = env.DistutilsBuildExt('pflda', 'pflda', deps=[pylowl, 'pylowl.pxd'])
+env.Alias('pflda', pflda)
 
-install_lda = env.DistutilsInstall('lda-install', lda)
+install_pflda = env.DistutilsInstall('pflda-install', pflda)
