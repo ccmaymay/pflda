@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dataset_path=../../data/txt/tng-noheader-nowalls-nonalpha.1
+dataset_path=../../../data/txt/tng-noheader-nowalls-nonalpha.1
 for dataset_name in diff3 sim3 rel3
 do
     if [ $dataset_name == diff3 ]

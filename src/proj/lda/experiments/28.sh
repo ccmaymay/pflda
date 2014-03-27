@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dataset_path=../../data/txt/tng-noheader-nowalls-nonalpha
+dataset_path=../../../data/txt/tng-noheader-nowalls-nonalpha
 dataset_name=diff3
 init_seed=980044224
 init_num_docs=200

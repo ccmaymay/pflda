@@ -6,4 +6,4 @@
 #$ -q text.q
 #$ -l num_proc=1,mem_free=2G,h_rt=24:00:00
 printenv
-python data.py transform_gigaword /export/common/data/corpora/LDC/LDC2011T07/data/nyt_eng ../../data/txt/gigaword --split_mode=nonalpha --stop_list_path=../../data/txt/stop_list.txt --lower=t
+python data.py transform_gigaword /export/common/data/corpora/LDC/LDC2011T07/data/nyt_eng ../../../data/txt/gigaword --split_mode=nonalpha --stop_list_path=../../../data/txt/stop_list.txt --lower=t

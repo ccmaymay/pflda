@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dataset_path=../../data/txt/twitter
+dataset_path=../../../data/txt/twitter
 bash qsub.sh $dataset_path null 12-rs1k-ibs0 \
     "-q text.q -tc 2 -l num_proc=1,mem_free=1G,h_rt=12:00:00" \
     "--reservoir_size=1000 --init_num_docs=0 --init_num_iters=0 --num_topics=6"
