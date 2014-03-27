@@ -24,7 +24,7 @@ do
             fi
 
             log_filename=find_seed.${dataset_filename}.${dataset_name}.log
-            bash run_lda.sh ../../data/txt/$dataset_filename $dataset_name --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters >> "$log_filename" &
+            python run_lda.py ../../data/txt/$dataset_filename $dataset_name --init_num_docs=$init_num_docs --init_num_iters=$init_num_iters >> "$log_filename" &
             sleep $startup_interval
             pkill -f run_lda
             sleep $shutdown_interval
