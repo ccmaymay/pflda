@@ -110,7 +110,13 @@ def parse_log(log_filename, iter_key):
                 val = None
 
             if key == iter_key:
-                iter_num = int(val)
+                try:
+                    v = int(val)
+                except ValueError:
+                    print 'Warning: invalid iter_num value'
+                    break
+                else:
+                    iter_num = v
             elif key in PER_ITER_STAT_NAMES:
                 dict_set(per_iter_stats, iter_num, key, val)
             elif key in PER_ITER_COUNT_NAMES:
