@@ -192,6 +192,24 @@ class DatasetWriter(object):
         self.f.close()
 
 
+def _parse_comm(comm):
+    tokens = []
+    if comm.sectionSegmentations is not None:
+        for sectionSegmentation in comm.sectionSegmentations:
+            if sectionSegmentation.sectionList is not None:
+                for section in sectionSegmentation.sectionList:
+                    if section.sentenceSegmentation is not None:
+                        for sentenceSegmentation in section.sentenceSegmentation:
+                            if sentenceSegmentation.sentenceList is not None:
+                                for sentence in sentenceSegmentation.sentenceList:
+                                    if sentence.tokenizationList is not None:
+                                        for tokenization in sentence.tokenizationList:
+                                            if tokenization.tokenList is not None:
+                                                for token in tokenization.tokenList:
+                                                    tokens.append(token.text)
+    return tokens
+
+
 def transform_tng(train_input_dir, test_input_dir, base_output_dir, split_mode=None, stop_list_path=None, remove_header=False, remove_walls=False, lower=False):
     train_output_dir = os.path.join(base_output_dir, 'train')
     test_output_dir = os.path.join(base_output_dir, 'test')
@@ -354,23 +372,7 @@ def transform_concrete(input_dir, base_output_dir, train_frac=None, stop_list_pa
             protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
             comm = Communication()
             comm.read(protocolIn)
-
-            tokens = []
-
-            if comm.sectionSegmentations is not None:
-                for sectionSegmentation in comm.sectionSegmentations:
-                    if sectionSegmentation.sectionList is not None:
-                        for section in sectionSegmentation.sectionList:
-                            if section.sentenceSegmentation is not None:
-                                for sentenceSegmentation in section.sentenceSegmentation:
-                                    if sentenceSegmentation.sentenceList is not None:
-                                        for sentence in sentenceSegmentation.sentenceList:
-                                            if sentence.tokenizationList is not None:
-                                                for tokenization in sentence.tokenizationList:
-                                                    if tokenization.tokenList is not None:
-                                                        for token in tokenization.tokenList:
-                                                            tokens.append(token.text)
-
+            tokens = _parse_comm(comm)
             if tokens:
                 if random.random() < train_frac:
                     train_writer.write(doc_idx, category, tokens)
