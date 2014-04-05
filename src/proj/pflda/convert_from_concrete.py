@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
 
+import sys
+
 from thrift.transport import TSocket, TTransport
 from thrift.protocol import TBinaryProtocol
-
-#import sys
-#sys.path.append('gen-py')
 
 from concrete.communication import *
 from concrete.communication.ttypes import *
@@ -36,6 +35,9 @@ protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
 newComm = Communication()
 newComm.read(protocolIn)
 
+category = u'null'
+
+sys.stdout.write(category)
 if newComm.sectionSegmentations is not None:
     for sectionSegmentation in newComm.sectionSegmentations:
         if sectionSegmentation.sectionList is not None:
@@ -48,4 +50,5 @@ if newComm.sectionSegmentations is not None:
                                     for tokenization in sentence.tokenizationList:
                                         if tokenization.tokenList is not None:
                                             for token in tokenization.tokenList:
-                                                print token.text
+                                                sys.stdout.write(u' %s' % token.text)
+sys.stdout.write(u'\n')
