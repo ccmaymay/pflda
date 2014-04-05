@@ -12,11 +12,11 @@ NON_ALPHA_RE = re.compile(r'[^a-zA-Z]+')
 OOV = '_OOV_'
 
 
-def _sorted_file_paths(dir_path, ext):
+def _sorted_file_paths(dir_path, ext=None):
     paths = []
     for filename in os.listdir(dir_path):
         path = os.path.join(dir_path, filename)
-        if os.path.isfile(path) and not filename.startswith('.') and filename.endswith(ext):
+        if os.path.isfile(path) and not filename.startswith('.') and (ext is None or filename.endswith(ext)):
             paths.append(path)
     paths.sort()
     return paths
@@ -319,6 +319,64 @@ def transform_gigaword(input_dir, base_output_dir, train_frac=None, split_mode=N
                         in_p = False
                     elif in_doc and in_p:
                         tokens.extend(token_filter.filter(tokenizer.tokenize(line)))
+
+    train_writer.close()
+    test_writer.close()
+
+
+def transform_concrete(input_dir, base_output_dir, train_frac=None, stop_list_path=None):
+    from thrift.transport import TSocket, TTransport
+    from thrift.protocol import TBinaryProtocol
+    from concrete.communication.ttypes import Communication
+
+    if train_frac is None:
+        train_frac = 0.8
+    else:
+        train_frac = float(train_frac)
+
+    train_output_dir = os.path.join(base_output_dir, 'train')
+    test_output_dir = os.path.join(base_output_dir, 'test')
+
+    token_filter = CompoundTokenFilter()
+    token_filter.add(NonEmptyTokenFilter())
+    if stop_list_path is not None:
+        token_filter.add(BlacklistTokenFilter(_load_stop_set(stop_list_path)))
+
+    category = 'null'
+    doc_idx = 0
+
+    train_writer = DatasetWriter(os.path.join(train_output_dir, 'all.gz'))
+    test_writer = DatasetWriter(os.path.join(test_output_dir, 'all.gz'))
+
+    for path in _sorted_file_paths(input_dir):
+        with open(path, 'rb') as f:
+            transportIn = TTransport.TFileObjectTransport(f)
+            protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
+            comm = Communication()
+            comm.read(protocolIn)
+
+            tokens = []
+
+            if comm.sectionSegmentations is not None:
+                for sectionSegmentation in comm.sectionSegmentations:
+                    if sectionSegmentation.sectionList is not None:
+                        for section in sectionSegmentation.sectionList:
+                            if section.sentenceSegmentation is not None:
+                                for sentenceSegmentation in section.sentenceSegmentation:
+                                    if sentenceSegmentation.sentenceList is not None:
+                                        for sentence in sentenceSegmentation.sentenceList:
+                                            if sentence.tokenizationList is not None:
+                                                for tokenization in sentence.tokenizationList:
+                                                    if tokenization.tokenList is not None:
+                                                        for token in tokenization.tokenList:
+                                                            tokens.append(token.text)
+
+            if tokens:
+                if random.random() < train_frac:
+                    train_writer.write(doc_idx, category, tokens)
+                else:
+                    test_writer.write(doc_idx, category, tokens)
+                doc_idx += 1
 
     train_writer.close()
     test_writer.close()
