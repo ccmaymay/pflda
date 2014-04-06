@@ -342,7 +342,7 @@ def transform_gigaword(input_dir, base_output_dir, train_frac=None, split_mode=N
     test_writer.close()
 
 
-def transform_concrete(input_dir, base_output_dir, train_frac=None, stop_list_path=None):
+def transform_concrete(input_dir, base_output_dir, train_frac=None, stop_list_path=None, lower=False):
     from thrift.transport import TSocket, TTransport
     from thrift.protocol import TBinaryProtocol
     from concrete.communication.ttypes import Communication
@@ -357,6 +357,8 @@ def transform_concrete(input_dir, base_output_dir, train_frac=None, stop_list_pa
 
     token_filter = CompoundTokenFilter()
     token_filter.add(NonEmptyTokenFilter())
+    if lower:
+        token_filter.add(LowerTokenFilter())
     if stop_list_path is not None:
         token_filter.add(BlacklistTokenFilter(_load_stop_set(stop_list_path)))
 
