@@ -32,7 +32,7 @@ def make_comm(tokens):
 
 def main(output_dir, data_dir, categories):
     os.mkdir(output_dir)
-    dataset = Dataset(data_dir, categories)
+    dataset = Dataset(data_dir, categories, oov_max_count=0, test_in_vocab=True)
     for it in (dataset.train_iterator, dataset.test_iterator):
         for (doc_idx, category, tokens) in it():
             comm = make_comm(tokens)

@@ -108,26 +108,34 @@ class TopicList(object):
 
 
 class Dataset(object):
-    def __init__(self, data_dir, categories, shuffle=False):
+    def __init__(self, data_dir, categories, shuffle=False, oov_max_count=None,
+            test_in_vocab=False):
+        if oov_max_count is None:
+            oov_max_count = 1
+
         self.train_dir = os.path.join(data_dir, 'train')
         self.test_dir = os.path.join(data_dir, 'test')
         self.categories = categories
         self.shuffle = shuffle
 
         word_counts = dict()
+        self._increment_word_counts(word_counts, self.train_dir, categories)
+        if test_in_vocab:
+            self._increment_word_counts(word_counts, self.test_dir, categories)
 
-        for path in _sorted_file_paths(self.train_dir, '.gz'):
+        self.vocab = {OOV: 0}
+        for (word, count) in word_counts.items():
+            if count > oov_max_count:
+                self.vocab[word] = len(self.vocab)
+
+    def _increment_word_counts(self, word_counts, split_dir, categories):
+        for path in _sorted_file_paths(split_dir, '.gz'):
             with gzip.open(path) as f:
                 for line in f:
                     (doc_idx, category, words) = self._parse_doc(line)
                     if category in categories:
                         for word in words:
                             _increment(word_counts, word)
-
-        self.vocab = {OOV: 0}
-        for (word, count) in word_counts.items():
-            if count > 1:
-                self.vocab[word] = len(self.vocab)
 
     def _parse_doc(self, line):
         tokens = line.split()
