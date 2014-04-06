@@ -200,24 +200,6 @@ class DatasetWriter(object):
         self.f.close()
 
 
-def _parse_comm(comm):
-    tokens = []
-    if comm.sectionSegmentations is not None:
-        for sectionSegmentation in comm.sectionSegmentations:
-            if sectionSegmentation.sectionList is not None:
-                for section in sectionSegmentation.sectionList:
-                    if section.sentenceSegmentation is not None:
-                        for sentenceSegmentation in section.sentenceSegmentation:
-                            if sentenceSegmentation.sentenceList is not None:
-                                for sentence in sentenceSegmentation.sentenceList:
-                                    if sentence.tokenizationList is not None:
-                                        for tokenization in sentence.tokenizationList:
-                                            if tokenization.tokenList is not None:
-                                                for token in tokenization.tokenList:
-                                                    tokens.append(token.text)
-    return tokens
-
-
 def transform_tng(train_input_dir, test_input_dir, base_output_dir, split_mode=None, stop_list_path=None, remove_header=False, remove_walls=False, lower=False):
     train_output_dir = os.path.join(base_output_dir, 'train')
     test_output_dir = os.path.join(base_output_dir, 'test')
@@ -354,9 +336,26 @@ def transform_gigaword(input_dir, base_output_dir, train_frac=None, split_mode=N
 
 
 def transform_concrete(input_dir, base_output_dir, train_frac=None, stop_list_path=None, lower=False):
-    from thrift.transport import TSocket, TTransport
+    from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
     from concrete.communication.ttypes import Communication
+
+    def parse_comm(comm):
+        tokens = []
+        if comm.sectionSegmentations is not None:
+            for sect_seg in comm.sectionSegmentations:
+                if sect_seg.sectionList is not None:
+                    for sect in sect_seg.sectionList:
+                        if sect.sentenceSegmentation is not None:
+                            for sent_seg in sect.sentenceSegmentation:
+                                if sent_seg.sentenceList is not None:
+                                    for sent in sent_seg.sentenceList:
+                                        if sent.tokenizationList is not None:
+                                            for tokzn in sent.tokenizationList:
+                                                if tokzn.tokenList is not None:
+                                                    for tok in tokzn.tokenList:
+                                                        tokens.append(tok.text)
+        return tokens
 
     if train_frac is None:
         train_frac = 0.8
@@ -385,7 +384,7 @@ def transform_concrete(input_dir, base_output_dir, train_frac=None, stop_list_pa
             protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
             comm = Communication()
             comm.read(protocolIn)
-            tokens = _parse_comm(comm)
+            tokens = parse_comm(comm)
             if tokens:
                 if random.random() < train_frac:
                     train_writer.write(doc_idx, category, tokens)
@@ -395,6 +394,46 @@ def transform_concrete(input_dir, base_output_dir, train_frac=None, stop_list_pa
 
     train_writer.close()
     test_writer.close()
+
+
+def transform_to_concrete(data_dir, output_dir, categories_str):
+    from thrift.transport import TTransport
+    from thrift.protocol import TBinaryProtocol
+    from concrete.communication.ttypes import Communication
+    from concrete.structure.ttypes import (
+        SectionSegmentation, Section,
+        SentenceSegmentation, Sentence,
+        Tokenization, Token
+    )
+
+    def make_comm(tokens):
+        comm = Communication()
+        comm.text = ' '.join(tokens)
+        sectionSegmentation = SectionSegmentation()
+        section = Section()
+        sentenceSegmentation = SentenceSegmentation()
+        sentence = Sentence()
+        tokenization = Tokenization()
+        tokenization.tokenList = [Token(text=t) for t in tokens]
+        sentence.tokenizationList = [tokenization]
+        sentenceSegmentation.sentenceList = [sentence]
+        section.sentenceSegmentation = [sentenceSegmentation] # TODO typo?
+        sectionSegmentation.sectionList = [section]
+        comm.sectionSegmentations = [sectionSegmentation]
+        return comm
+
+    categories = set(categories_str.split(','))
+
+    os.makedirs(output_dir)
+    dataset = Dataset(data_dir, categories, oov_max_count=0, test_in_vocab=True)
+    for it in (dataset.train_iterator, dataset.test_iterator):
+        for (doc_idx, category, tokens) in it():
+            comm = make_comm(tokens)
+            output_filename = os.path.join(output_dir, '%d.dat' % doc_idx)
+            with open(output_filename, 'wb') as out_f:
+                transport = TTransport.TFileObjectTransport(out_f)
+                protocol = TBinaryProtocol.TBinaryProtocol(transport)
+                comm.write(protocol)
 
 
 if __name__ == '__main__':
