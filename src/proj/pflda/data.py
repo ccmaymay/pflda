@@ -244,8 +244,10 @@ def transform_tng(train_input_dir, test_input_dir, base_output_dir, split_mode=N
                             tokens.extend(token_filter.filter(tokenizer.tokenize(line)))
                     else:
                         seen_empty_line = True
-                writer.write(doc_idx, category, tokens)
-            doc_idx += 1
+
+                if tokens:
+                    writer.write(doc_idx, category, tokens)
+                    doc_idx += 1
         writer.close()
 
 
@@ -274,11 +276,12 @@ def transform_twitter(input_path, base_output_dir, train_frac=None, stop_list_pa
         for line in f:
             first_split = line.find(' ') + 1
             tokens = token_filter.filter(tokenizer.tokenize(line[first_split:]))
-            if random.random() < train_frac:
-                train_writer.write(doc_idx, category, tokens)
-            else:
-                test_writer.write(doc_idx, category, tokens)
-            doc_idx += 1
+            if tokens:
+                if random.random() < train_frac:
+                    train_writer.write(doc_idx, category, tokens)
+                else:
+                    test_writer.write(doc_idx, category, tokens)
+                doc_idx += 1
 
     train_writer.close()
     test_writer.close()
