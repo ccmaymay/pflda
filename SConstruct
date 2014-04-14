@@ -60,6 +60,11 @@ else:
 
 if platform.system() == 'Darwin':
     env['LD_LIB_PATH_ENV_VAR'] = 'DYLD_LIBRARY_PATH'
+    # (TODO) temporary hack because OS X is dumb
+    if 'ARCHFLAGS' in env['ENV']:
+        env['ENV']['ARCHFLAGS'] += ' -Wno-error=unused-command-line-argument-hard-error-in-future'
+    else:
+        env['ENV']['ARCHFLAGS'] = '-Wno-error=unused-command-line-argument-hard-error-in-future'
 else:
     env['LD_LIB_PATH_ENV_VAR'] = 'LD_LIBRARY_PATH'
 
@@ -114,6 +119,8 @@ def distutils_build_ext(env, target, source, deps=None, args=None):
         args = []
     my_target = _list_add_ext(Flatten(target), env.subst('$SHLIBSUFFIX'))
     my_source = _list_add_ext(Flatten(source), '.pyx') + deps + ['setup.py']
+    for (k, v) in env.items():
+        print '\t', k, v
     full_args = 'python setup.py build_ext --inplace'.split() + args
     local_runner = _make_local_runner(full_args)
     return env.Command(target=my_target, source=my_source, action=local_runner)
