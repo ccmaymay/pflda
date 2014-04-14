@@ -2,6 +2,7 @@
 
 
 import os
+import platform
 import subprocess
 
 
@@ -56,6 +57,11 @@ if DEBUG:
     env.Append(CCFLAGS=['-O0', '-g', '-Wall', '-Wextra'])
 else:
     env.Append(CCFLAGS=['-O2'])
+
+if platform.system() == 'Darwin':
+    env['LD_LIB_PATH_ENV_VAR'] = 'DYLD_LIBRARY_PATH'
+else:
+    env['LD_LIB_PATH_ENV_VAR'] = 'LD_LIBRARY_PATH'
 
 
 def _str_add_ext(x, ext):
