@@ -436,6 +436,89 @@ def transform_to_concrete(data_dir, output_dir, categories_str):
                 comm.write(protocol)
 
 
+def generate(base_output_dir, train_frac=None,
+        num_words=None, num_docs=None, alpha=None, num_topics=None,
+        vocab_size=None, beta=None):
+    from numpy import zeros, ones, argmax, double as np_double, uint as np_uint
+    from numpy.random import dirichlet, multinomial
+
+    if train_frac is None:
+        train_frac = 0.6
+    else:
+        train_frac = float(train_frac)
+
+    if num_topics is None:
+        _num_topics = 10
+    else:
+        _num_topics = int(num_topics)
+        if _num_topics % 2 != 0:
+            raise ValueError('num_topics must be even')
+
+    if num_docs is None:
+        _num_docs = 2000
+    else:
+        _num_docs = int(num_docs)
+
+    if vocab_size is None:
+        _vocab_size = 100
+    else:
+        _vocab_size = int(vocab_size)
+
+    if beta is None:
+        _beta = 0.1
+    else:
+        _beta = float(beta)
+
+    if num_words is None:
+        _num_words = 100
+    else:
+        _num_words = int(num_words)
+
+    if alpha is None:
+        _alpha = 0.1
+    else:
+        _alpha = float(alpha)
+
+    alpha_vec = ones(_num_topics, dtype=np_double) * _alpha
+    theta_matrix = dirichlet(alpha_vec, _num_docs)
+
+    beta_vec = ones(_vocab_size, dtype=np_double) * _beta
+    phi_matrix = dirichlet(beta_vec, _num_topics)
+
+    train_output_dir = os.path.join(base_output_dir, 'train')
+    test_output_dir = os.path.join(base_output_dir, 'test')
+
+    train_writer = DatasetWriter(os.path.join(train_output_dir, 'all.gz'))
+    test_writer = DatasetWriter(os.path.join(test_output_dir, 'all.gz'))
+
+    for i in xrange(_num_docs):
+        theta = theta_matrix[i,]
+        z = multinomial(_num_words, theta)
+        tokens = []
+        topic_counts = zeros(_num_topics, np_uint)
+        for t in xrange(_num_topics):
+            w = multinomial(z[t], phi_matrix[t,])
+            topic_counts[t] = sum(w)
+            for word in xrange(_num_words):
+                for j in xrange(w[word]):
+                    tokens.append(str(word))
+        category = str(argmax(topic_counts))
+        random.shuffle(tokens)
+
+        if random.random() < train_frac:
+            train_writer.write(i, category, tokens)
+        else:
+            test_writer.write(i, category, tokens)
+
+    train_writer.close()
+    test_writer.close()
+
+
+
+
+
+
+
 if __name__ == '__main__':
     import sys
 
