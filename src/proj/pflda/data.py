@@ -451,8 +451,6 @@ def generate(base_output_dir, train_frac=None,
         _num_topics = 10
     else:
         _num_topics = int(num_topics)
-        if _num_topics % 2 != 0:
-            raise ValueError('num_topics must be even')
 
     if num_docs is None:
         _num_docs = 2000

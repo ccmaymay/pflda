@@ -18,7 +18,12 @@ DATASET_SUBSETS = dict(
 )
 
 dataset_path = sys.argv[1]
-dataset_subset = sys.argv[2]
+dataset_subset_name = sys.argv[2]
+try:
+    dataset_subset = tuple([str(t) for t in xrange(int(dataset_subset_name))])
+except ValueError:
+    dataset_subset = DATASET_SUBSETS[dataset_subset_name]
+
 params = dict()
 for token in sys.argv[3:]:
     eq_pos = token.find('=')
@@ -27,4 +32,4 @@ for token in sys.argv[3:]:
         v = token[(eq_pos+1):len(token)]
         params[k] = v
 
-pflda.run_pf(dataset_path, DATASET_SUBSETS[dataset_subset], **params)
+pflda.run_pf(dataset_path, dataset_subset, **params)
