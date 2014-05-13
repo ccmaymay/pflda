@@ -1,0 +1,16 @@
+# vim: ft=python
+
+
+Import('env', 'pylowl')
+
+
+Help('''
+        bglda           Build bglda
+        bglda-install   Install bglda
+'''.lstrip('\r\n'))
+
+
+bglda = env.DistutilsBuildExt('bglda', 'bglda', deps=[pylowl, 'pylowl.pxd'])
+env.Alias('bglda', bglda)
+
+install_bglda = env.DistutilsInstall('bglda-install', bglda)
