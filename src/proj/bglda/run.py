@@ -8,7 +8,7 @@ if __name__ == '__main__':
     dataset_path = sys.argv[1]
 
     params = dict()
-    for token in sys.argv[3:]:
+    for token in sys.argv[2:]:
         eq_pos = token.find('=')
         if token.startswith('--') and eq_pos >= 0:
             k = token[len('--'):eq_pos]

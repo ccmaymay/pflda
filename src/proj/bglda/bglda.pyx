@@ -38,7 +38,7 @@ DEFAULT_PARAMS = dict(
     beta = 0.1,
 
     # number of docs to sample
-    num_docs = 100,
+    num_docs = -1,
 
     # number of gibbs sweeps to perform
     num_iters = 100,
@@ -51,9 +51,6 @@ DEFAULT_PARAMS = dict(
 
     # number of topics
     num_topics = 3,
-
-    # number of words to use in coherence estimation
-    coherence_num_words = 10,
 
     # number of particles used in left-to-right likelihood estimation
     ltr_num_particles = 20,
@@ -283,63 +280,6 @@ cdef class GlobalModel:
         return c
         
 
-# estimator of document coherence as defined in Mimno et al. (2011)
-cdef class CoherenceEstimator:
-    cdef GlobalModel model
-    cdef np_uint_t num_words
-
-    def __cinit__(self, GlobalModel model, np_uint_t num_words):
-        self.model = model
-        self.num_words = num_words
-
-    cdef np_double_t coherence(self, list sample):
-        cdef np_uint_t t, w, i, j, doc_idx, word_idx, doc_freq, joint_doc_freq
-        cdef np_double_t avg
-        cdef np_uint_t[::1] w_counts, w_indices, r_w_indices
-        cdef np_uint_t[:, ::1] sample_w_counts
-        cdef list doc
-
-        w_counts = zeros((self.model.vocab_size,), dtype=np_uint)
-        r_w_indices = zeros((self.model.vocab_size,), dtype=np_uint)
-        sample_w_counts = zeros((len(sample), self.num_words), dtype=np_uint)
-
-        avg = 0.0
-
-        for t in xrange(self.model.num_topics):
-            w_counts[:] = self.model.tw_counts[t,:]
-            w_indices = reverse_sort_uint(w_counts, self.num_words)
-
-            for w in xrange(self.model.vocab_size):
-                r_w_indices[w] = self.num_words
-            for i in xrange(self.num_words):
-                r_w_indices[w_indices[i]] = i
-
-            for doc_idx in xrange(len(sample)):
-                for i in xrange(self.num_words):
-                    sample_w_counts[doc_idx, i] = 0
-                doc = sample[doc_idx]
-                for word_idx in xrange(len(doc)):
-                    w = doc[word_idx]
-                    i = r_w_indices[w]
-                    if i < self.num_words:
-                        sample_w_counts[doc_idx, i] += 1
-
-            for i in xrange(1, self.num_words):
-                for j in xrange(i):
-                    doc_freq = 0
-                    joint_doc_freq = 0
-                    for doc_idx in xrange(len(sample)):
-                        if sample_w_counts[doc_idx, j] > 0:
-                            doc_freq += 1
-                            if sample_w_counts[doc_idx, i] > 0:
-                                joint_doc_freq += 1
-                    avg += log(joint_doc_freq + 1.0) - log(doc_freq)
-
-        avg /= self.model.num_topics
-
-        return avg
-
-
 # held-out likelihood estimator implementing particle learning filter
 # of Scott and Baldridge (2013)
 cdef class FirstMomentPLFilter:
@@ -564,11 +504,10 @@ cdef class GibbsSampler:
 cdef void eval_model(np_uint_t num_topics, GibbsSampler train_gibbs_sampler,
         list test_sample,
         np_uint_t test_num_iters,
-        np_uint_t coherence_num_words, bint ltr_eval,
+        bint ltr_eval,
         np_uint_t ltr_num_particles):
     cdef FirstMomentPLFilter plfilter
     cdef LeftToRightEvaluator ltr_evaluator
-    cdef CoherenceEstimator coherence_est
     cdef GlobalModel model
     cdef GibbsSampler gibbs_sampler
     cdef np_double_t ll
@@ -587,12 +526,9 @@ cdef void eval_model(np_uint_t num_topics, GibbsSampler train_gibbs_sampler,
         print('out-of-sample ltr log-likelihood: %f' % ll)
         print('out-of-sample ltr perplexity: %f' % perplexity(ll, test_sample))
 
-    coherence_est = CoherenceEstimator(model, coherence_num_words)
-    print('out-of-sample coherence: %f' % coherence_est.coherence(test_sample))
-
 
 # driver: learn LDA by collapsed Gibbs sampling
-def run_gibbs(data_dir, **kwargs):
+def run(data_dir, **kwargs):
     cdef GibbsSampler gs
     cdef GlobalModel model
     cdef np_uint_t doc_idx, num_tokens
@@ -634,7 +570,7 @@ def run_gibbs(data_dir, **kwargs):
         train_sample.append(d)
         doc_idx += 1
         num_tokens += len(d)
-        if doc_idx == params['num_docs']:
+        if params['num_docs'] >= 0 and doc_idx == params['num_docs']:
             break
 
     if params['init_seed'] >= 0:
@@ -650,14 +586,14 @@ def run_gibbs(data_dir, **kwargs):
     model = GlobalModel(tw_counts, t_counts, params['alpha'],
         params['beta'], params['num_topics'], len(dataset.vocab))
 
-    print('gibbs sampling with %d iters' % params['init_num_iters'])
+    print('gibbs sampling with %d iters' % params['num_iters'])
     gs = GibbsSampler(model)
     gs.init(train_sample, 1)
 
     print('iter: 0')
     eval_model(params['num_topics'], gs, test_sample,
         params['test_num_iters'],
-        params['coherence_num_words'], params['ltr_eval'],
+        params['ltr_eval'],
         params['ltr_num_particles'])
     if params['debug']:
         print(model.to_string_raw())
@@ -668,7 +604,7 @@ def run_gibbs(data_dir, **kwargs):
 
     eval_model(params['num_topics'], gs, test_sample,
         params['test_num_iters'],
-        params['coherence_num_words'], params['ltr_eval'],
+        params['ltr_eval'],
         params['ltr_num_particles'])
     if params['debug']:
         print(model.to_string_raw())
