@@ -39,7 +39,7 @@ $ python scons.py --user pylowl-install
 To build the Python extension module implementing a particle filter for LDA:
 
 ```
-$ python scons.py lda
+$ python scons.py pflda
 ```
 
 See the help for more details:
