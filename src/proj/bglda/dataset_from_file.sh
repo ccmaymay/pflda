@@ -2,6 +2,12 @@
 
 TRAIN_FRAC=0.6
 
+if [ $# -ne 2 ]
+then
+    echo 'Specify input filename and output dataset path.' >&2
+    exit 1
+fi
+
 filename="$1"
 dataset_path="$2"
 
