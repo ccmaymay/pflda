@@ -13,4 +13,4 @@ Help('''
 pflda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', 'data.py'])
 env.Alias('pflda', pflda)
 
-install_pflda = env.DistutilsInstall('pflda-install', pflda, deps=['data.py', '__init__.py'])
+install_pflda = env.DistutilsInstall('pflda-install', pflda, deps=['run_pf.py', 'run_gibbs.py', 'data.py', '__init__.py'])

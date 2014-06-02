@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
 
-import pflda
-import sys
-
 DATASET_SUBSETS = dict(
     null=('null',),
     diff3=('alt.atheism', 'rec.sport.baseball', 'sci.space'),
@@ -17,19 +14,24 @@ DATASET_SUBSETS = dict(
         'talk.politics.mideast', 'talk.politics.misc', 'talk.religion.misc'),
 )
 
-dataset_path = sys.argv[1]
-dataset_subset_name = sys.argv[2]
-try:
-    dataset_subset = tuple([str(t) for t in xrange(int(dataset_subset_name))])
-except ValueError:
-    dataset_subset = DATASET_SUBSETS[dataset_subset_name]
 
-params = dict()
-for token in sys.argv[3:]:
-    eq_pos = token.find('=')
-    if token.startswith('--') and eq_pos >= 0:
-        k = token[len('--'):eq_pos]
-        v = token[(eq_pos+1):len(token)]
-        params[k] = v
+if __name__ == '__main__':
+    from pflda.core import run_gibbs as _run
+    import sys
 
-pflda.run_gibbs(dataset_path, dataset_subset, **params)
+    dataset_path = sys.argv[1]
+    dataset_subset_name = sys.argv[2]
+    try:
+        dataset_subset = tuple([str(t) for t in xrange(int(dataset_subset_name))])
+    except ValueError:
+        dataset_subset = DATASET_SUBSETS[dataset_subset_name]
+
+    params = dict()
+    for token in sys.argv[3:]:
+        eq_pos = token.find('=')
+        if token.startswith('--') and eq_pos >= 0:
+            k = token[len('--'):eq_pos]
+            v = token[(eq_pos+1):len(token)]
+            params[k] = v
+
+    _run(dataset_path, dataset_subset, **params)

@@ -20,7 +20,7 @@ def main():
         package_dir = {'pflda': ''},
         packages=['pflda'],
         ext_modules=ext_modules,
-        py_modules=['pflda.data'],
+        py_modules=['pflda.data', 'pflda.run_pf', 'pflda.run_gibbs'],
     )
 
 if __name__ == '__main__':
