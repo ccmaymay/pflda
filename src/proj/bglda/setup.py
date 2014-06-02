@@ -17,7 +17,8 @@ def main():
         description='Batch Gibbs Sampler for LDA',
         url='https://gitlab.hltcoe.jhu.edu/klevin/littleowl',
         cmdclass={'build_ext': build_ext},
-        ext_modules=ext_modules
+        ext_modules=ext_modules,
+        py_modules=['data'],
     )
 
 if __name__ == '__main__':

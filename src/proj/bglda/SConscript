@@ -10,7 +10,7 @@ Help('''
 '''.lstrip('\r\n'))
 
 
-bglda = env.DistutilsBuildExt('bglda', 'bglda', deps=[pylowl, 'pylowl.pxd'])
+bglda = env.DistutilsBuildExt('bglda', 'bglda', deps=[pylowl, 'pylowl.pxd', 'data.py'])
 env.Alias('bglda', bglda)
 
 install_bglda = env.DistutilsInstall('bglda-install', bglda)
