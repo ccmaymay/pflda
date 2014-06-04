@@ -11,7 +11,7 @@ Help('''
 '''.lstrip('\r\n'))
 
 
-bglda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), 'bglda_run'])
+bglda = env.DistutilsBuildExt('bglda/core', 'bglda/core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), Glob('bglda/*.py'), 'bglda_run'])
 env.Alias('bglda', bglda)
 
 bglda_fat_lowl = env.Command(lowl[0].name, lowl, Copy('$TARGET', '$SOURCE'))

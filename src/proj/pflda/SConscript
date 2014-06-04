@@ -11,7 +11,7 @@ Help('''
 '''.lstrip('\r\n'))
 
 
-pflda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), Glob('*.r'), Glob('*.sh'), Glob('*.qsub'), Glob('experiments/*.sh'), 'pflda_run_pf', 'pflda_run_gibbs'])
+pflda = env.DistutilsBuildExt('pflda/core', 'pflda/core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), Glob('*.r'), Glob('*.sh'), Glob('*.qsub'), Glob('experiments/*.sh'), Glob('pflda/*.py'), 'pflda_run_pf', 'pflda_run_gibbs'])
 env.Alias('pflda', pflda)
 
 pflda_fat_lowl = env.Command(lowl[0].name, lowl, Copy('$TARGET', '$SOURCE'))
