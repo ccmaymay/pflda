@@ -1,0 +1,11 @@
+LOWL_SRC_DIR = $(SRC_DIR)/lowl
+LOWL_BLD_DIR = $(BLD_DIR)/lowl
+include $(LOWL_SRC_DIR)/Makefile.in
+
+PYLOWL_SRC_DIR = $(SRC_DIR)/pylowl
+PYLOWL_BLD_DIR = $(BLD_DIR)/pylowl
+include $(PYLOWL_SRC_DIR)/Makefile.in
+
+PROJ_SRC_DIR = $(SRC_DIR)/proj
+PROJ_BLD_DIR = $(BLD_DIR)/proj
+include $(PROJ_SRC_DIR)/Makefile.in
