@@ -18,4 +18,4 @@ pflda_fat_lowl = env.Command(lowl[0].name, lowl, Copy('$TARGET', '$SOURCE'))
 pflda_fat_pylowl = env.Command(pylowl[0].name, pylowl, Copy('$TARGET', '$SOURCE'))
 pflda_fat = env.Alias('pflda-fat', [pflda_fat_lowl, pflda_fat_pylowl, pflda])
 
-install_pflda = env.DistutilsInstall('pflda-install', pflda, deps=['pflda_run_pf', 'pflda_run_gibbs', 'data.py', '__init__.py'])
+install_pflda = env.DistutilsInstall('pflda-install', pflda, deps=[Glob('pflda/*.py'), 'pflda_run_pf', 'pflda_run_gibbs'])
