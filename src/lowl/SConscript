@@ -13,14 +13,7 @@ Help('''
 '''.lstrip('\r\n'))
 
 
-sources = [
-    'lowl_sample.c',
-    'lowl_hash.c',
-    'lowl_math.c',
-    'lowl_sketch.c',
-    'lowl_types.c',
-    'lowl_vectors.c',
-]
+sources = [f for f in Glob('*.c') if f.name != 'tests.c']
 
 lowl = env.SharedLibrary(target='lowl', source=sources, LIBS=['m'])
 env.Alias('lowl', lowl)
