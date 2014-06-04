@@ -1,11 +1,14 @@
 # vim: ft=python
 
 
+import os
+
 Import('env', 'lowl', 'install_lowl', 'lowl_env', 'pylowl', 'install_pylowl', 'pylowl_env')
 
 run_env = lowl_env.copy()
 run_env.update(pylowl_env)
-run_env_text = ' '.join('%s="%s"' % (k, v) for (k, v) in run_env.items())
+run_env[env['PY_PATH_ENV_VAR']] += ':%s' % os.path.pardir
+run_env_text = ' '.join('%s="%s:$%s"' % (k, v, k) for (k, v) in run_env.items())
 run_sh_text = r'''#!/bin/bash
 
 %s "$@"
