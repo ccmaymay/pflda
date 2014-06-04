@@ -15,7 +15,7 @@ $(LOWL_BLD_DIR)/%.o: $(LOWL_SRC_DIR)/%.c $(LOWL_SRC_DIR)/%.h
 
 $(LOWL_LIB): $(LOWL_OBJECTS)
 	@mkdir -p $(LOWL_BLD_DIR)
-	$(CC) -std=gnu99 -shared -Wl,-soname,$(LOWL_LIB_NAME) -o $(LOWL_LIB) $(LOWL_OBJECTS) -lm
+	$(CC) -std=gnu99 -shared -Wl,$(SHLIB_NAME_FLAG),$(LOWL_LIB_NAME) -o $(LOWL_LIB) $(LOWL_OBJECTS) -lm
 
 $(LOWL_TESTS): $(LOWL_TESTS_SOURCE) $(LOWL_LIB)
 	@mkdir -p $(LOWL_BLD_DIR)
