@@ -1,0 +1,14 @@
+PFLDA_LIB = $(PFLDA_PROJ_BLD_DIR)/pflda
+
+PFLDA_SOURCES = $(wildcard $(PFLDA_PROJ_SRC_DIR)/*) $(wildcard $(PFLDA_PROJ_SRC_DIR)/bglda_run_*)
+
+$(PFLDA_LIB): $(PFLDA_PROJ_SRC_DIR)/setup.py $(PFLDA_SOURCES) $(LOWL_LIB) $(PYLOWL_LIB)
+	cd $(PFLDA_PROJ_SRC_DIR) && $(PYTHON) setup.py build_ext --build-lib $(CURDIR)/$(PFLDA_PROJ_BLD_DIR) --build-temp $(CURDIR)/$(PFLDA_PROJ_BLD_DIR) --library-dirs $(CURDIR)/$(LOWL_BLD_DIR):$(CURDIR)/$(PYLOWL_BLD_DIR) --include-dirs $(CURDIR)/$(LOWL_SRC_DIR):$(CURDIR)/$(PYLOWL_SRC_DIR)
+
+.PHONY: pflda
+pflda: $(PFLDA_LIB)
+
+.PHONY: pflda-fat
+pflda-fat: $(PFLDA_LIB)
+	cp $(LOWL_LIB) $(PFLDA_PROJ_BLD_DIR)/
+	cp $(PYLOWL_LIB) $(PFLDA_PROJ_BLD_DIR)/

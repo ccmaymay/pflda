@@ -5,8 +5,7 @@ import numpy
 
 ext_modules = [
     Extension('pflda.core', ['pflda/core.pyx'],
-        include_dirs=[numpy.get_include(), '../../pylowl', '../../lowl'],
-        library_dirs=['../../pylowl', '../../lowl'],
+        include_dirs=[numpy.get_include()],
     ),
 ]
 
