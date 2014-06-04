@@ -6,17 +6,12 @@ Import('env', 'lowl', 'pylowl', 'lowl_env', 'pylowl_env', 'write_run_sh')
 
 Help('''
         bglda           Build bglda
-        bglda-fat       Build bglda, copy dependencies into build dir
         bglda-install   Install bglda
 '''.lstrip('\r\n'))
 
 
 bglda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', Glob('*.py')])
 env.Alias('bglda', bglda)
-
-bglda_fat_lowl = env.Command(lowl[0].name, lowl, Copy('$TARGET', '$SOURCE'))
-bglda_fat_pylowl = env.Command(pylowl[0].name, pylowl, Copy('$TARGET', '$SOURCE'))
-bglda_fat = env.Alias('bglda-fat', [bglda_fat_lowl, bglda_fat_pylowl, bglda])
 
 install_bglda = env.DistutilsInstall('bglda-install', bglda, deps=['bglda_run', 'data.py', '__init__.py'])
 
