@@ -21,7 +21,7 @@ def main():
         packages=['pflda'],
         ext_modules=ext_modules,
         py_modules=['pflda.data'],
-        scripts=['run_pf', 'run_gibbs'],
+        scripts=['pflda_run_pf', 'pflda_run_gibbs'],
     )
 
 if __name__ == '__main__':
