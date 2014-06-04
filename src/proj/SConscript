@@ -1,29 +1,8 @@
 # vim: ft=python
 
 
-import os
-
-
-Import('env', 'lowl', 'install_lowl', 'lowl_env', 'pylowl', 'install_pylowl', 'pylowl_env')
-
-run_env = lowl_env.copy()
-run_env.update(pylowl_env)
-py_path_env_var = env['PY_PATH_ENV_VAR']
-if py_path_env_var in run_env:
-    run_env[py_path_env_var] += os.path.pathsep + Dir('.').abspath
-else:
-    run_env[py_path_env_var] = Dir('.').abspath
-run_env_text = ' '.join('%s="%s:$%s"' % (k, v, k) for (k, v) in run_env.items())
-run_sh_text = r'''#!/bin/bash
-
-%s "$@"
-''' % run_env_text
-def write_run_sh(env, target, source):
-    with open(target[0].abspath, 'w') as f:
-        f.write(run_sh_text)
-
-Export('env', 'lowl', 'install_lowl', 'lowl_env', 'pylowl', 'install_pylowl', 'pylowl_env', 'write_run_sh')
-
+Import('env', 'lowl', 'install_lowl', 'pylowl', 'install_pylowl')
+Export('env', 'lowl', 'install_lowl', 'pylowl', 'install_pylowl')
 
 SConscript('pflda/SConscript')
 SConscript('bglda/SConscript')

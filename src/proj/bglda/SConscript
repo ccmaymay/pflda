@@ -1,7 +1,7 @@
 # vim: ft=python
 
 
-Import('env', 'lowl', 'pylowl', 'lowl_env', 'pylowl_env', 'write_run_sh')
+Import('env', 'lowl', 'pylowl')
 
 
 Help('''
@@ -10,9 +10,7 @@ Help('''
 '''.lstrip('\r\n'))
 
 
-run_sh = env.Command('run.sh', [], write_run_sh)
-
-bglda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), 'bglda_run', run_sh])
+bglda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), 'bglda_run'])
 env.Alias('bglda', bglda)
 
 install_bglda = env.DistutilsInstall('bglda-install', bglda, deps=['bglda_run', 'data.py', '__init__.py'])

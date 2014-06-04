@@ -1,7 +1,7 @@
 # vim: ft=python
 
 
-Import('env', 'lowl', 'pylowl', 'lowl_env', 'pylowl_env', 'write_run_sh')
+Import('env', 'lowl', 'pylowl')
 
 
 Help('''
@@ -10,9 +10,7 @@ Help('''
 '''.lstrip('\r\n'))
 
 
-run_sh = env.Command('run.sh', [], write_run_sh)
-
-pflda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), Glob('*.r'), Glob('*.sh'), Glob('*.qsub'), Glob('experiments/*.sh'), 'pflda_run_pf', 'pflda_run_gibbs', run_sh])
+pflda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), Glob('*.r'), Glob('*.sh'), Glob('*.qsub'), Glob('experiments/*.sh'), 'pflda_run_pf', 'pflda_run_gibbs'])
 env.Alias('pflda', pflda)
 
 install_pflda = env.DistutilsInstall('pflda-install', pflda, deps=['pflda_run_pf', 'pflda_run_gibbs', 'data.py', '__init__.py'])
