@@ -68,6 +68,8 @@ if platform.system() == 'Darwin':
 else:
     env['LD_LIB_PATH_ENV_VAR'] = 'LD_LIBRARY_PATH'
 
+env['PY_PATH_ENV_VAR'] = 'PYTHONPATH'
+
 
 def _str_add_ext(x, ext):
     '''

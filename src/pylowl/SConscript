@@ -1,7 +1,7 @@
 # vim: ft=python
 
 
-Import('env', 'lowl')
+Import('env', 'lowl', 'lowl_env')
 
 import os
 
@@ -16,12 +16,13 @@ Help('''
 pylowl = env.DistutilsBuildExt('pylowl', 'pylowl', deps=[lowl, 'lowl.pxd'])
 env.Alias('pylowl', pylowl)
 
+pylowl_env = {env['PY_PATH_ENV_VAR']: pylowl[0].dir.abspath}
 test_env = env.Clone()
-test_env.Append(ENV = {env['LD_LIB_PATH_ENV_VAR']: lowl[0].dir.abspath})
+test_env.Append(ENV=lowl_env)
 run_tests = test_env.NoTargetLocalRunner('pylowl-tests',
     'python -m doctest --doctest-extension=pyx -v pylowl.pyx'.split(),
     [pylowl, 'pylowl.pyx'])
 
 install_pylowl = env.DistutilsInstall('pylowl-install', pylowl)
 
-Return('pylowl', 'install_pylowl')
+Return('pylowl', 'install_pylowl', 'pylowl_env')
