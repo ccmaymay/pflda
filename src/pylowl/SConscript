@@ -16,6 +16,9 @@ Help('''
 pylowl = env.DistutilsBuildExt('pylowl', 'pylowl', deps=[lowl, 'lowl.pxd'])
 env.Alias('pylowl', pylowl)
 
+pylowl_fat = env.Command(lowl[0].name, [lowl, pylowl], Copy('$TARGET', lowl[0]))
+env.Alias('pylowl-fat', pylowl_fat)
+
 pylowl_env = {env['PY_PATH_ENV_VAR']: pylowl[0].dir.abspath}
 test_env = env.Clone()
 test_env.Append(ENV=lowl_env)
