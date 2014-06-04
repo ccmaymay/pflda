@@ -11,20 +11,20 @@ LOWL_OBJECTS = $(patsubst $(LOWL_SRC_DIR)/%.c,$(LOWL_BLD_DIR)/%.o,$(LOWL_SOURCES
 
 $(LOWL_BLD_DIR)/%.o: $(LOWL_SRC_DIR)/%.c $(LOWL_SRC_DIR)/%.h
 	@mkdir -p $(LOWL_BLD_DIR)
-	$(CC) -std=gnu99 -fPIC -o $@ -c $<
+	$(CC) $(CFLAGS) -fPIC -o $@ -c $<
 
 $(LOWL_LIB): $(LOWL_OBJECTS)
 	@mkdir -p $(LOWL_BLD_DIR)
-	$(CC) -std=gnu99 -shared -Wl,$(SHLIB_NAME_FLAG),$(LOWL_LIB_NAME) -o $(LOWL_LIB) $(LOWL_OBJECTS) -lm
+	$(LD) $(LDFLAGS) -shared -Wl,$(SHLIB_NAME_FLAG),$(LOWL_LIB_NAME) -o $(LOWL_LIB) $(LOWL_OBJECTS) -lm
 
 $(LOWL_TESTS): $(LOWL_TESTS_SOURCE) $(LOWL_LIB)
 	@mkdir -p $(LOWL_BLD_DIR)
-	$(CC) -std=gnu99 -o $@ $< -L$(LOWL_BLD_DIR) -l$(LOWL_LIB_SHORTNAME) -lm
+	$(CC) $(CFLAGS) -o $@ $< -L$(LOWL_BLD_DIR) -l$(LOWL_LIB_SHORTNAME) -lm
 
 .PHONY: lowl
 lowl: $(LOWL_LIB)
 
 .PHONY: lowl-tests
-lowl-tests: export LD_LIBRARY_PATH=$(LOWL_BLD_DIR)
+lowl-tests: export $(SHLIB_PATH_ENV_VAR)=$(LOWL_BLD_DIR)
 lowl-tests: $(LOWL_TESTS)
 	./$(LOWL_TESTS)

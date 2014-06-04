@@ -11,7 +11,7 @@ $(PYLOWL_LIB): $(PYLOWL_SRC_DIR)/setup.py $(PYLOWL_SOURCES) $(LOWL_LIB)
 pylowl: $(PYLOWL_LIB)
 
 .PHONY: pylowl-tests
-pylowl-tests: export LD_LIBRARY_PATH=$(LOWL_BLD_DIR)
+pylowl-tests: export $(SHLIB_PATH_ENV_VAR)=$(LOWL_BLD_DIR)
 pylowl-tests: export PYTHONPATH=$(PYLOWL_BLD_DIR)
 pylowl-tests: $(PYLOWL_LIB) $(PYLOWL_PYX)
 	$(PYTHON) -m doctest --doctest-extension=pyx -v $(PYLOWL_PYX)
