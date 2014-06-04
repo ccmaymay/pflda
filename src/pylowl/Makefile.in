@@ -5,7 +5,8 @@ PYLOWL_PYX = $(PYLOWL_SRC_DIR)/pylowl.pyx
 PYLOWL_SOURCES = $(PYLOWL_SRC_DIR)/lowl.pxd $(PYLOWL_PYX)
 
 $(PYLOWL_LIB): $(PYLOWL_SRC_DIR)/setup.py $(PYLOWL_SOURCES) $(LOWL_LIB)
-	cd $(PYLOWL_SRC_DIR) && $(PYTHON) setup.py build_ext --build-lib $(CURDIR)/$(PYLOWL_BLD_DIR) --build-temp $(CURDIR)/$(PYLOWL_BLD_DIR) --library-dirs $(CURDIR)/$(LOWL_BLD_DIR) --include-dirs $(CURDIR)/$(LOWL_SRC_DIR)
+	mkdir -p $(PYLOWL_BLD_DIR)
+	cd $(PYLOWL_SRC_DIR) && $(PYTHON) setup.py build_ext --build-lib $(CURDIR)/$(PYLOWL_BLD_DIR) --build-temp $(CURDIR)/$(PYLOWL_BLD_DIR) --cython-c-in-temp --library-dirs $(CURDIR)/$(LOWL_BLD_DIR) --include-dirs $(CURDIR)/$(LOWL_SRC_DIR)
 
 .PHONY: pylowl
 pylowl: $(PYLOWL_LIB)

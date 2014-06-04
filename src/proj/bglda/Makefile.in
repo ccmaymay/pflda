@@ -3,7 +3,8 @@ BGLDA_LIB = $(BGLDA_PROJ_BLD_DIR)/bglda
 BGLDA_SOURCES = $(wildcard $(BGLDA_PROJ_SRC_DIR)/*) $(wildcard $(BGLDA_PROJ_SRC_DIR)/bglda_run_*)
 
 $(BGLDA_LIB): $(BGLDA_PROJ_SRC_DIR)/setup.py $(BGLDA_SOURCES) $(LOWL_LIB) $(PYLOWL_LIB)
-	cd $(BGLDA_PROJ_SRC_DIR) && $(PYTHON) setup.py build_ext --build-lib $(CURDIR)/$(BGLDA_PROJ_BLD_DIR) --build-temp $(CURDIR)/$(BGLDA_PROJ_BLD_DIR) --library-dirs $(CURDIR)/$(LOWL_BLD_DIR):$(CURDIR)/$(PYLOWL_BLD_DIR) --include-dirs $(CURDIR)/$(LOWL_SRC_DIR):$(CURDIR)/$(PYLOWL_SRC_DIR)
+	mkdir -p $(BGLDA_PROJ_BLD_DIR)
+	cd $(BGLDA_PROJ_SRC_DIR) && $(PYTHON) setup.py build_ext --build-lib $(CURDIR)/$(BGLDA_PROJ_BLD_DIR) --build-temp $(CURDIR)/$(BGLDA_PROJ_BLD_DIR) --cython-c-in-temp --library-dirs $(CURDIR)/$(LOWL_BLD_DIR):$(CURDIR)/$(PYLOWL_BLD_DIR) --include-dirs $(CURDIR)/$(LOWL_SRC_DIR):$(CURDIR)/$(PYLOWL_SRC_DIR)
 
 .PHONY: bglda
 bglda: $(BGLDA_LIB)
