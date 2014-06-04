@@ -10,7 +10,7 @@ Help('''
 '''.lstrip('\r\n'))
 
 
-pflda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', 'data.py'])
+pflda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), Glob('*.r'), Glob('*.sh'), Glob('*.qsub'), Glob('experiments/*.sh')])
 env.Alias('pflda', pflda)
 
 install_pflda = env.DistutilsInstall('pflda-install', pflda, deps=['pflda_run_pf', 'pflda_run_gibbs', 'data.py', '__init__.py'])
