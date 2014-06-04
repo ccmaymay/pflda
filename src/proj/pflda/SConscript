@@ -6,6 +6,7 @@ Import('env', 'lowl', 'pylowl', 'lowl_env', 'pylowl_env', 'write_run_sh')
 
 Help('''
         pflda           Build pflda
+        pflda-fat       Build pflda, copy dependencies into build dir
         pflda-install   Install pflda
 '''.lstrip('\r\n'))
 
@@ -13,9 +14,9 @@ Help('''
 pflda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), Glob('*.r'), Glob('*.sh'), Glob('*.qsub'), Glob('experiments/*.sh')])
 env.Alias('pflda', pflda)
 
-pflda_fat = env.Command([lowl[0].name, pylowl[0].name], [lowl, pylowl, pflda],
-    [Copy(lowl[0].name, lowl[0]), Copy(pylowl[0].name, pylowl[0])])
-env.Alias('pflda-fat', pflda_fat)
+pflda_fat_lowl = env.Command(lowl[0].name, lowl, Copy('$TARGET', '$SOURCE'))
+pflda_fat_pylowl = env.Command(pylowl[0].name, pylowl, Copy('$TARGET', '$SOURCE'))
+pflda_fat = env.Alias('pflda-fat', [pflda_fat_lowl, pflda_fat_pylowl, pflda])
 
 install_pflda = env.DistutilsInstall('pflda-install', pflda, deps=['pflda_run_pf', 'pflda_run_gibbs', 'data.py', '__init__.py'])
 

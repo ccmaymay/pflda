@@ -8,6 +8,7 @@ import os
 
 Help('''
         pylowl          Build pylowl
+        pylowl-fat      Build pylowl, copy dependencies into build dir
         pylowl-tests    Build and run tests for pylowl
         pylowl-install  Install pylowl
 '''.lstrip('\r\n'))
@@ -16,8 +17,8 @@ Help('''
 pylowl = env.DistutilsBuildExt('pylowl', 'pylowl', deps=[lowl, 'lowl.pxd'])
 env.Alias('pylowl', pylowl)
 
-pylowl_fat = env.Command(lowl[0].name, [lowl, pylowl], Copy('$TARGET', lowl[0]))
-env.Alias('pylowl-fat', pylowl_fat)
+pylowl_fat_lowl = env.Command(lowl[0].name, lowl, Copy('$TARGET', '$SOURCE'))
+pylowl_fat = env.Alias('pylowl-fat', [pylowl_fat_lowl, pylowl])
 
 pylowl_env = {env['PY_PATH_ENV_VAR']: pylowl[0].dir.abspath}
 test_env = env.Clone()
