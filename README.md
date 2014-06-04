@@ -41,7 +41,7 @@ To install `pylowl` in the user installation scheme (location in home directory 
 $ python scons.py --user pylowl-install
 ```
 
-(The `pylowl-install` target also accepts the `--prefix` flag; its semantics and those of `--user` are defined by `distutils`.)
+The `pylowl-install` target also accepts the `--prefix` flag; its semantics and those of `--user` are defined by `distutils`.
 
 To build the Python extension module implementing a particle filter for LDA:
 
@@ -54,7 +54,7 @@ To run the particle filter from the build directory, after you have imported the
 ```
 $ python scons.py pflda-fat
 $ pushd build/proj/pflda
-$ ./pflda_run_pf /path/to/20-newsgroups/dataset
+$ ./pflda_run_pf /path/to/20-newsgroups/dataset tng
 $ popd
 ```
 
