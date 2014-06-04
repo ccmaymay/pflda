@@ -47,11 +47,11 @@ To build the Python extension module implementing a particle filter for LDA:
 $ python scons.py pflda
 ```
 
-To run the particle filter from the build directory, after you have built it and imported the twenty newsgroups dataset:
+To run the particle filter from the build directory, after you have built it and imported the twenty newsgroups dataset (see the documentation in `src/proj/pflda` for details):
 
 ```
-$ pushd build/src/proj/pflda
-$ bash run.sh ./pflda_run_pf /path/to/20-newsgroups/dataset tng --num_topics=20
+$ pushd build/proj/pflda
+$ bash run.sh ./pflda_run_pf /path/to/20-newsgroups/dataset
 $ popd
 ```
 

@@ -10,10 +10,9 @@ Help('''
 '''.lstrip('\r\n'))
 
 
-bglda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', Glob('*.py')])
+run_sh = env.Command('run.sh', [], write_run_sh)
+
+bglda = env.DistutilsBuildExt('core', 'core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), 'bglda_run', run_sh])
 env.Alias('bglda', bglda)
 
 install_bglda = env.DistutilsInstall('bglda-install', bglda, deps=['bglda_run', 'data.py', '__init__.py'])
-
-run_sh = env.Command('run.sh', [], write_run_sh)
-env.Alias('bglda-run-sh', run_sh)
