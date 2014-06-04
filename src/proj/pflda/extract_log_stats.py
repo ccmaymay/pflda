@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-import os.path
+import os
 import sys
 import re
 

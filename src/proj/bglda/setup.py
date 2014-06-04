@@ -4,7 +4,7 @@ from Cython.Distutils import build_ext
 import numpy
 
 ext_modules = [
-    Extension("bglda", ["bglda.pyx"],
+    Extension('bglda.core', ['bglda/core.pyx'],
         include_dirs=[numpy.get_include(), '../../pylowl', '../../lowl'],
         library_dirs=['../../pylowl', '../../lowl'],
     ),
@@ -13,11 +13,13 @@ ext_modules = [
 def main():
     setup(
         name='bglda',
-        version='0.0',
+        version='0.1',
         description='Batch Gibbs Sampler for LDA',
         url='https://gitlab.hltcoe.jhu.edu/klevin/littleowl',
         cmdclass={'build_ext': build_ext},
-        ext_modules=ext_modules
+        ext_modules=ext_modules,
+        py_modules=['bglda.data'],
+        scripts=['bglda_run'],
     )
 
 if __name__ == '__main__':

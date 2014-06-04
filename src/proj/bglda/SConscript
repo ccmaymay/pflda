@@ -1,16 +1,21 @@
 # vim: ft=python
 
 
-Import('env', 'pylowl')
+Import('env', 'lowl', 'pylowl')
 
 
 Help('''
         bglda           Build bglda
+        bglda-fat       Build bglda, copy dependencies into build dir
         bglda-install   Install bglda
 '''.lstrip('\r\n'))
 
 
-bglda = env.DistutilsBuildExt('bglda', 'bglda', deps=[pylowl, 'pylowl.pxd'])
+bglda = env.DistutilsBuildExt('bglda/core', 'bglda/core', deps=[pylowl, 'pylowl.pxd', Glob('*.py'), Glob('bglda/*.py'), 'bglda_run'])
 env.Alias('bglda', bglda)
 
-install_bglda = env.DistutilsInstall('bglda-install', bglda)
+bglda_fat_lowl = env.Command(lowl[0].name, lowl, Copy('$TARGET', '$SOURCE'))
+bglda_fat_pylowl = env.Command(pylowl[0].name, pylowl, Copy('$TARGET', '$SOURCE'))
+bglda_fat = env.Alias('bglda-fat', [bglda_fat_lowl, bglda_fat_pylowl, bglda])
+
+install_bglda = env.DistutilsInstall('bglda-install', bglda, deps=[Glob('bglda/*.py'), 'bglda_run'])
