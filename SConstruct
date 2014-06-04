@@ -15,7 +15,7 @@ AddOption('--prefix',
           metavar='DIR',
           help=install_prefix_help)
 
-install_user_help = 'use user install scheme for Python modules (overrides prefix)'
+install_user_help = 'set user install scheme for Python and set prefix dir to home (overrides prefix)'
 AddOption('--user',
           dest='install_user',
           action='store_true',
@@ -40,11 +40,13 @@ Usage:
 ''' % locals())
 
 
-INSTALL_PREFIX = GetOption('install_prefix')
-if INSTALL_PREFIX:
-    INSTALL_PREFIX = os.path.abspath(INSTALL_PREFIX)
-
 INSTALL_USER = GetOption('install_user')
+
+INSTALL_PREFIX = GetOption('install_prefix')
+if INSTALL_USER:
+    INSTALL_PREFIX = os.path.expanduser('~')
+elif INSTALL_PREFIX:
+    INSTALL_PREFIX = os.path.abspath(INSTALL_PREFIX)
 
 DEBUG = GetOption('debug')
 
