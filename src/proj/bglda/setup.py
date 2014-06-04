@@ -20,7 +20,8 @@ def main():
         package_dir = {'bglda': ''},
         packages=['bglda'],
         ext_modules=ext_modules,
-        py_modules=['bglda.data', 'bglda.run'],
+        py_modules=['bglda.data'],
+        scripts=['bglda_run'],
     )
 
 if __name__ == '__main__':

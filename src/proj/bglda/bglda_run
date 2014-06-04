@@ -2,7 +2,7 @@
 
 
 if __name__ == '__main__':
-    from bglda.core import run as _run
+    from bglda.core import run
     import sys
 
     dataset_path = sys.argv[1]
@@ -15,4 +15,4 @@ if __name__ == '__main__':
             v = token[(eq_pos+1):len(token)]
             params[k] = v
 
-    _run(dataset_path, **params)
+    run(dataset_path, **params)
