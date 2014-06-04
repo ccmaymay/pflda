@@ -121,8 +121,6 @@ def distutils_build_ext(env, target, source, deps=None, args=None):
         args = []
     my_target = _list_add_ext(Flatten(target), env.subst('$SHLIBSUFFIX'))
     my_source = _list_add_ext(Flatten(source), '.pyx') + deps + ['setup.py']
-    for (k, v) in env.items():
-        print '\t', k, v
     full_args = 'python setup.py build_ext --inplace'.split() + args
     local_runner = _make_local_runner(full_args)
     return env.Command(target=my_target, source=my_source, action=local_runner)
