@@ -17,17 +17,22 @@ The projects under `proj` have varying dependencies; however, most of them depen
 Building and Installing
 -----------------------
 
-We use `scons` as a build system.  This requires only a modern Python distribution; `scons` itself is provided with `littleowl` for your convenience.  To build and test `lowl` and `pylowl`:
+We use `scons` as a build system.  This requires only a modern Python distribution; `scons` itself is provided with `littleowl` for your convenience.  To build and test `lowl` and `pylowl` (from the repository root):
 
 ```
-$ python scons.py lowl-tests
-$ python scons.py pylowl-tests
+$ python scons.py lowl-tests pylowl-tests
 ```
 
 To install `lowl` locally:
 
 ```
 $ python scons.py --prefix=$HOME lowl-install
+```
+
+The `--user` flag is identical in this context:
+
+```
+$ python scons.py --user lowl-install
 ```
 
 To install `pylowl` in the user installation scheme (location in home directory that is automatically in your Python module search path):
@@ -42,7 +47,23 @@ To build the Python extension module implementing a particle filter for LDA:
 $ python scons.py pflda
 ```
 
-See the help for more details:
+The installation targets are decoupled; they do not depend on one another.  Thus, to install `lowl`, `pylowl`, and `pflda` locally, you would need to do:
+
+```
+$ python scons.py --user lowl-install pylowl-install pflda-install
+```
+
+Scons expects to be run from the root of the repository; however, you may run from a subdirectory by passing the `-u` flag to scons.  E.g., building `pflda` from the `src/proj/pflda` subdirectory:
+
+```
+$ pushd src/proj/pflda
+$ python ../../../scons.py -u pflda
+$ popd
+```
+
+(This makes more sense if you have [installed scons](http://scons.org/download.php) on your machine.)
+
+For a complete listing of targets and options refer to the help:
 
 ```
 $ python scons.py -h
