@@ -24,6 +24,6 @@ $(LOWL_TESTS): $(LOWL_TESTS_SOURCE) $(LOWL_LIB)
 lowl: $(LOWL_LIB)
 
 .PHONY: lowl-tests
-lowl-tests: LD_LIBRARY_PATH=$(LOWL_BLD_DIR)
+lowl-tests: export LD_LIBRARY_PATH=$(LOWL_BLD_DIR)
 lowl-tests: $(LOWL_TESTS)
-	$(LOWL_TESTS)
+	./$(LOWL_TESTS)

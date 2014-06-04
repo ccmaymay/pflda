@@ -1,0 +1,18 @@
+PYLOWL_LIB_NAME = pylowl
+PYLOWL_LIB_FILENAME = $(PYLOWL_LIB_NAME)$(SHLIB_SUFFIX)
+PYLOWL_LIB = $(PYLOWL_BLD_DIR)/$(PYLOWL_LIB_FILENAME)
+
+PYLOWL_PYX = $(PYLOWL_SRC_DIR)/pylowl.pyx
+PYLOWL_SOURCES = $(PYLOWL_SRC_DIR)/lowl.pxd $(PYLOWL_PYX)
+
+$(PYLOWL_LIB): $(PYLOWL_SRC_DIR)/setup.py $(PYLOWL_SOURCES) $(LOWL_LIB)
+	cd $(PYLOWL_SRC_DIR) && $(PYTHON) setup.py build_ext --build-lib $(CURDIR)/$(PYLOWL_BLD_DIR) --build-temp $(CURDIR)/$(PYLOWL_BLD_DIR) --library-dirs $(CURDIR)/$(LOWL_BLD_DIR) --include-dirs $(CURDIR)/$(LOWL_SRC_DIR)
+
+.PHONY: pylowl
+pylowl: $(PYLOWL_LIB)
+
+.PHONY: pylowl-tests
+pylowl-tests: export LD_LIBRARY_PATH=$(LOWL_BLD_DIR)
+pylowl-tests: export PYTHONPATH=$(PYLOWL_BLD_DIR)
+pylowl-tests: $(PYLOWL_LIB) $(PYLOWL_PYX)
+	$(PYTHON) -m doctest --doctest-extension=pyx -v $(PYLOWL_PYX)

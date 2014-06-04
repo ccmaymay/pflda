@@ -1,4 +1,5 @@
 CC = gcc
+PYTHON = python
 
 ifeq ($(shell uname -s),Darwin)
 	# TODO check

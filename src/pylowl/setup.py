@@ -5,8 +5,6 @@ from Cython.Distutils import build_ext
 ext_modules = [
     Extension('pylowl', ['pylowl.pyx'],
         libraries=['lowl'],
-        include_dirs=['../lowl'],
-        library_dirs=['../lowl'],
     ),
 ]
 
