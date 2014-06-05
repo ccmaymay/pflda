@@ -1,8 +1,15 @@
-SRC_FILES += $(wildcard $(PFLDA_PROJ_SRC_DIR)/*)
+.PHONY: pflda-help
+pflda-help:
+	@echo 'pflda targets:'
+	@echo '  pflda:           build optimized batch Gibbs algorithm for LDA'
+	@echo '  pflda-fat:       copy dependencies to "$(PFLDA_PROJ_BLD_DIR)"'
+	@echo '                   (for in-place invocation)'
+	@echo '  pflda-install:   install pflda'
+	@echo
 
-PFLDA_LIB = $(PFLDA_PROJ_BLD_DIR)/pflda
+PFLDA_LIB := $(PFLDA_PROJ_BLD_DIR)/pflda
 
-PFLDA_SOURCES = $(wildcard $(PFLDA_PROJ_BLD_DIR)/pflda/*) $(wildcard $(PFLDA_PROJ_BLD_DIR)/pflda_run_*)
+PFLDA_SOURCES := $(wildcard $(PFLDA_PROJ_BLD_DIR)/pflda/*) $(wildcard $(PFLDA_PROJ_BLD_DIR)/pflda_run_*)
 
 $(PFLDA_LIB): $(PFLDA_PROJ_BLD_DIR)/setup.py $(PFLDA_SOURCES) $(LOWL_LIB) $(PYLOWL_LIB)
 	cd $(PFLDA_PROJ_BLD_DIR) && $(PYTHON) setup.py build_ext --inplace

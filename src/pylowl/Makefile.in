@@ -1,11 +1,19 @@
-SRC_FILES += $(wildcard $(PYLOWL_SRC_DIR)/*)
+.PHONY: pylowl-help
+pylowl-help:
+	@echo 'pylowl targets:'
+	@echo '  pylowl:          build lib$(LOWL_LIB_SHORTNAME) Cython interface'
+	@echo '  pylowl-fat:      copy dependencies to "$(PYLOWL_BLD_DIR)"'
+	@echo '                   (for in-place invocation)'
+	@echo '  pylowl-tests:    build and run pylowl tests'
+	@echo '  pylowl-install:  install pylowl'
+	@echo
 
-PYLOWL_LIB_FILENAME = pylowl$(SHLIB_SUFFIX)
-PYLOWL_LIB = $(PYLOWL_BLD_DIR)/$(PYLOWL_LIB_FILENAME)
+PYLOWL_LIB_FILENAME := pylowl$(SHLIB_SUFFIX)
+PYLOWL_LIB := $(PYLOWL_BLD_DIR)/$(PYLOWL_LIB_FILENAME)
 
-PYLOWL_PYX = $(PYLOWL_BLD_DIR)/pylowl.pyx
-PYLOWL_LOWL_PXD = $(PYLOWL_BLD_DIR)/lowl.pxd
-PYLOWL_SOURCES = $(PYLOWL_LOWL_PXD) $(PYLOWL_PYX)
+PYLOWL_PYX := $(PYLOWL_BLD_DIR)/pylowl.pyx
+PYLOWL_LOWL_PXD := $(PYLOWL_BLD_DIR)/lowl.pxd
+PYLOWL_SOURCES := $(PYLOWL_LOWL_PXD) $(PYLOWL_PYX)
 
 $(PYLOWL_LIB): $(PYLOWL_BLD_DIR)/setup.py $(PYLOWL_SOURCES) $(LOWL_LIB)
 	cd $(PYLOWL_BLD_DIR) && $(PYTHON) setup.py build_ext --inplace

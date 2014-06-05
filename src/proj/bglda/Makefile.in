@@ -1,8 +1,15 @@
-SRC_FILES += $(wildcard $(BGLDA_PROJ_SRC_DIR)/*)
+.PHONY: bglda-help
+bglda-help:
+	@echo 'bglda targets:'
+	@echo '  bglda:           build optimized batch Gibbs algorithm for LDA'
+	@echo '  bglda-fat:       copy dependencies to "$(BGLDA_PROJ_BLD_DIR)"'
+	@echo '                   (for in-place invocation)'
+	@echo '  bglda-install:   install bglda'
+	@echo
 
-BGLDA_LIB = $(BGLDA_PROJ_BLD_DIR)/bglda
+BGLDA_LIB := $(BGLDA_PROJ_BLD_DIR)/bglda
 
-BGLDA_SOURCES = $(wildcard $(BGLDA_PROJ_BLD_DIR)/bglda/*) $(wildcard $(BGLDA_PROJ_BLD_DIR)/bglda_run)
+BGLDA_SOURCES := $(wildcard $(BGLDA_PROJ_BLD_DIR)/bglda/*) $(wildcard $(BGLDA_PROJ_BLD_DIR)/bglda_run)
 
 $(BGLDA_LIB): $(BGLDA_PROJ_BLD_DIR)/setup.py $(BGLDA_SOURCES) $(LOWL_LIB) $(PYLOWL_LIB)
 	cd $(BGLDA_PROJ_BLD_DIR) && $(PYTHON) setup.py build_ext --inplace

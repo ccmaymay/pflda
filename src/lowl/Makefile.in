@@ -1,32 +1,41 @@
-SRC_FILES += $(wildcard $(LOWL_SRC_DIR)/*)
+.PHONY: lowl-help
+lowl-help:
+	@echo 'lowl targets:'
+	@echo '  lowl:            build core C library (lib$(LOWL_LIB_SHORTNAME))'
+	@echo '  lowl-tests:      build and run lib$(LOWL_LIB_SHORTNAME) tests'
+	@echo '  lowl-install:    install lib$(LOWL_LIB_SHORTNAME)'
+	@echo
 
-LOWL_LIB_SHORTNAME = lowl
-LOWL_LIB_NAME = lib$(LOWL_LIB_SHORTNAME)$(SHLIB_SUFFIX)
-LOWL_LIB_FILENAME = $(LOWL_LIB_NAME)
-LOWL_LIB = $(LOWL_BLD_DIR)/$(LOWL_LIB_FILENAME)
+LOWL_LIB_SHORTNAME := lowl
+LOWL_LIB_NAME := lib$(LOWL_LIB_SHORTNAME)$(SHLIB_SUFFIX)
+LOWL_LIB_FILENAME := $(LOWL_LIB_NAME)
+LOWL_LIB := $(LOWL_BLD_DIR)/$(LOWL_LIB_FILENAME)
 
-LOWL_TESTS_SOURCE = $(LOWL_BLD_DIR)/tests.c
-LOWL_TESTS = $(LOWL_BLD_DIR)/tests
+LOWL_TESTS_FILENAME := tests
+LOWL_TESTS := $(LOWL_BLD_DIR)/$(LOWL_TESTS_FILENAME)
+LOWL_TESTS_SOURCE_FILENAME := $(LOWL_TESTS_FILENAME).c
 
-LOWL_SOURCES = $(filter-out $(LOWL_TESTS_SOURCE),$(wildcard $(LOWL_BLD_DIR)/*.c))
-LOWL_OBJECTS = $(patsubst $(LOWL_BLD_DIR)/%.c,$(LOWL_BLD_DIR)/%.o,$(LOWL_SOURCES))
+LOWL_SRC_SOURCES := $(filter-out $(LOWL_SRC_DIR)/$(LOWL_TESTS_SOURCE_FILENAME),$(wildcard $(LOWL_SRC_DIR)/*.c))
+LOWL_BLD_SOURCES := $(patsubst $(LOWL_SRC_DIR)/%,$(LOWL_BLD_DIR)/%,$(LOWL_SRC_SOURCES))
+LOWL_SRC_HEADERS := $(wildcard $(LOWL_SRC_DIR)/*.h)
+LOWL_BLD_HEADERS := $(patsubst $(LOWL_SRC_DIR)/%,$(LOWL_BLD_DIR)/%,$(LOWL_SRC_HEADERS))
+LOWL_OBJECTS := $(patsubst %.c,%.o,$(LOWL_BLD_SOURCES))
 
-$(LOWL_BLD_DIR)/%.o: $(LOWL_BLD_DIR)/%.c $(LOWL_BLD_DIR)/%.h
+$(LOWL_BLD_DIR)/%.o: $(LOWL_BLD_DIR)/%.c $(LOWL_BLD_DIR)/%.h $(LOWL_BLD_HEADERS)
 	$(CC) $(CFLAGS) -fPIC -o $@ -c $<
 
 $(LOWL_LIB): $(LOWL_OBJECTS)
 	$(LD) $(LDFLAGS) -shared -Wl,$(SHLIB_NAME_FLAG),$(LOWL_LIB_NAME) -o $(LOWL_LIB) $(LOWL_OBJECTS) -lm
 
-$(LOWL_TESTS): $(LOWL_TESTS_SOURCE) $(LOWL_LIB)
+$(LOWL_TESTS): $(LOWL_BLD_DIR)/$(LOWL_TESTS_SOURCE_FILENAME) $(LOWL_LIB)
 	$(CC) $(CFLAGS) -o $@ $< -L$(LOWL_BLD_DIR) -l$(LOWL_LIB_SHORTNAME) -lm
 
 .PHONY: lowl
 lowl: $(LOWL_LIB)
 
 .PHONY: lowl-tests
-lowl-tests: export $(SHLIB_PATH_ENV_VAR)=$(LOWL_BLD_DIR)
 lowl-tests: $(LOWL_TESTS)
-	./$(LOWL_TESTS)
+	cd $(LOWL_BLD_DIR) && ./$(LOWL_TESTS_FILENAME)
 
 .PHONY: lowl-install
 lowl-install: $(LOWL_LIB)
