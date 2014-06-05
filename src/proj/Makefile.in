@@ -1,8 +1,7 @@
 BGLDA_PROJ_SRC_DIR = $(PROJ_SRC_DIR)/bglda
+BGLDA_PROJ_BLD_DIR = $(PROJ_BLD_DIR)/bglda
 include $(BGLDA_PROJ_SRC_DIR)/Makefile.in
 
 PFLDA_PROJ_SRC_DIR = $(PROJ_SRC_DIR)/pflda
+PFLDA_PROJ_BLD_DIR = $(PROJ_BLD_DIR)/pflda
 include $(PFLDA_PROJ_SRC_DIR)/Makefile.in
-
-.PHONY: proj-clean
-proj-clean: bglda-clean pflda-clean

@@ -1,30 +1,27 @@
-PYLOWL_LIB_FILENAME = pylowl$(SHLIB_SUFFIX)
-PYLOWL_LIB = $(PYLOWL_SRC_DIR)/$(PYLOWL_LIB_FILENAME)
+SRC_FILES += $(wildcard $(PYLOWL_SRC_DIR)/*)
 
-PYLOWL_PYX = $(PYLOWL_SRC_DIR)/pylowl.pyx
-PYLOWL_LOWL_PXD = $(PYLOWL_SRC_DIR)/lowl.pxd
+PYLOWL_LIB_FILENAME = pylowl$(SHLIB_SUFFIX)
+PYLOWL_LIB = $(PYLOWL_BLD_DIR)/$(PYLOWL_LIB_FILENAME)
+
+PYLOWL_PYX = $(PYLOWL_BLD_DIR)/pylowl.pyx
+PYLOWL_LOWL_PXD = $(PYLOWL_BLD_DIR)/lowl.pxd
 PYLOWL_SOURCES = $(PYLOWL_LOWL_PXD) $(PYLOWL_PYX)
 
-$(PYLOWL_LIB): $(PYLOWL_SRC_DIR)/setup.py $(PYLOWL_SOURCES) $(LOWL_LIB)
-	cd $(PYLOWL_SRC_DIR) && $(PYTHON) setup.py build_ext --inplace
+$(PYLOWL_LIB): $(PYLOWL_BLD_DIR)/setup.py $(PYLOWL_SOURCES) $(LOWL_LIB)
+	cd $(PYLOWL_BLD_DIR) && $(PYTHON) setup.py build_ext --inplace
 
 .PHONY: pylowl
 pylowl: $(PYLOWL_LIB)
 
 .PHONY: pylowl-fat
 pylowl-fat: $(PYLOWL_LIB)
-	cp $(LOWL_LIB) $(PYLOWL_SRC_DIR)/
+	cp $(LOWL_LIB) $(PYLOWL_BLD_DIR)/
 
 .PHONY: pylowl-tests
 pylowl-tests: export $(SHLIB_PATH_ENV_VAR)=../lowl
 pylowl-tests: $(PYLOWL_LIB) $(PYLOWL_PYX)
-	cd $(PYLOWL_SRC_DIR) && $(PYTHON) -m doctest --doctest-extension=pyx -v $(PYLOWL_PYX)
+	cd $(PYLOWL_BLD_DIR) && $(PYTHON) -m doctest --doctest-extension=pyx -v $(PYLOWL_PYX)
 
 .PHONY: pylowl-install
 pylowl-install: $(PYLOWL_LIB)
-	cd $(PYLOWL_SRC_DIR) && $(PYTHON) setup.py install $(DISTUTILS_INSTALL_FLAGS)
-
-.PHONY: pylowl-clean
-pylowl-clean:
-	rm -f $(PYLOWL_SRC_DIR)/pylowl.c
-	rm -f $(PYLOWL_SRC_DIR)/pylowl$(SHLIB_SUFFIX)
+	cd $(PYLOWL_BLD_DIR) && $(PYTHON) setup.py install $(DISTUTILS_INSTALL_FLAGS)

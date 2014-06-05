@@ -1,23 +1,20 @@
-PFLDA_LIB = $(PFLDA_PROJ_SRC_DIR)/pflda
+SRC_FILES += $(wildcard $(PFLDA_PROJ_SRC_DIR)/*)
 
-PFLDA_SOURCES = $(wildcard $(PFLDA_PROJ_SRC_DIR)/pflda/*) $(wildcard $(PFLDA_PROJ_SRC_DIR)/pflda_run_*)
+PFLDA_LIB = $(PFLDA_PROJ_BLD_DIR)/pflda
 
-$(PFLDA_LIB): $(PFLDA_PROJ_SRC_DIR)/setup.py $(PFLDA_SOURCES) $(LOWL_LIB) $(PYLOWL_LIB)
-	cd $(PFLDA_PROJ_SRC_DIR) && $(PYTHON) setup.py build_ext --inplace
+PFLDA_SOURCES = $(wildcard $(PFLDA_PROJ_BLD_DIR)/pflda/*) $(wildcard $(PFLDA_PROJ_BLD_DIR)/pflda_run_*)
+
+$(PFLDA_LIB): $(PFLDA_PROJ_BLD_DIR)/setup.py $(PFLDA_SOURCES) $(LOWL_LIB) $(PYLOWL_LIB)
+	cd $(PFLDA_PROJ_BLD_DIR) && $(PYTHON) setup.py build_ext --inplace
 
 .PHONY: pflda
 pflda: $(PFLDA_LIB)
 
 .PHONY: pflda-fat
 pflda-fat: $(PFLDA_LIB)
-	cp $(LOWL_LIB) $(PFLDA_PROJ_SRC_DIR)/
-	cp $(PYLOWL_LIB) $(PFLDA_PROJ_SRC_DIR)/
+	cp $(LOWL_LIB) $(PFLDA_PROJ_BLD_DIR)/
+	cp $(PYLOWL_LIB) $(PFLDA_PROJ_BLD_DIR)/
 
 .PHONY: pflda-install
 pflda-install: pflda-fat
-	cd $(PFLDA_PROJ_SRC_DIR) && $(PYTHON) setup.py install $(DISTUTILS_INSTALL_FLAGS)
-
-.PHONY: pflda-clean
-pflda-clean:
-	rm -f $(PFLDA_PROJ_SRC_DIR)/pflda/core.c
-	rm -f $(PFLDA_PROJ_SRC_DIR)/pflda/core$(SHLIB_SUFFIX)
+	cd $(PFLDA_PROJ_BLD_DIR) && $(PYTHON) setup.py install $(DISTUTILS_INSTALL_FLAGS)

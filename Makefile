@@ -29,11 +29,20 @@ else
 endif
 
 SRC_DIR = src
+BLD_DIR = build
+
+SRC_FILES =
+SRC_BLD_FILES = $(patsubst $(SRC_DIR)/%,$(BLD_DIR)/%,$(SRC_FILES))
 
 .PHONY: all
 all: lowl pylowl
 
 .PHONY: clean
-clean: src-clean
+clean:
+	find build -type f -delete
+
+$(SRC_BLD_FILES): $(BLD_DIR)/%: $(SRC_DIR)/%
+	mkdir -p `dirname $<`
+	cp -dp $< $@
 
 include $(SRC_DIR)/Makefile.in
