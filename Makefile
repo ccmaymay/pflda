@@ -29,13 +29,11 @@ else
 endif
 
 SRC_DIR = src
-BLD_DIR = build
 
 .PHONY: all
 all: lowl pylowl
 
 .PHONY: clean
-clean:
-	rm -rf $(BLD_DIR)
+clean: src-clean
 
 include $(SRC_DIR)/Makefile.in
