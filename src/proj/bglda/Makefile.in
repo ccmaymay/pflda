@@ -9,9 +9,10 @@ bglda-help:
 
 BGLDA_LIB := $(BGLDA_PROJ_BLD_DIR)/bglda
 
-BGLDA_SOURCES := $(wildcard $(BGLDA_PROJ_BLD_DIR)/bglda/*) $(wildcard $(BGLDA_PROJ_BLD_DIR)/bglda_run)
+BGLDA_PROJ_SRC_SOURCES := $(wildcard $(BGLDA_PROJ_SRC_DIR)/bglda/*) $(BGLDA_PROJ_SRC_DIR)/pylowl.pxd $(BGLDA_PROJ_SRC_DIR)/bglda_run
+BGLDA_PROJ_BLD_SOURCES := $(patsubst $(BGLDA_PROJ_SRC_DIR)/%,$(BGLDA_PROJ_BLD_DIR)/%,$(BGLDA_PROJ_SRC_SOURCES))
 
-$(BGLDA_LIB): $(BGLDA_PROJ_BLD_DIR)/setup.py $(BGLDA_SOURCES) $(LOWL_LIB) $(PYLOWL_LIB)
+$(BGLDA_LIB): $(BGLDA_PROJ_BLD_DIR)/setup.py $(BGLDA_PROJ_BLD_SOURCES) $(PYLOWL_LIB)
 	cd $(BGLDA_PROJ_BLD_DIR) && $(PYTHON) setup.py build_ext --inplace
 
 .PHONY: bglda

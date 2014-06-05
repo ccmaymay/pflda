@@ -28,6 +28,8 @@ LD := gcc
 CFLAGS += -std=gnu99 -g -O0 -Wall -Wextra
 LDFLAGS +=
 
+DISTUTILS_INSTALL_FLAGS += --skip-build
+
 ifdef INSTALL_USER
 	DISTUTILS_INSTALL_FLAGS += --user
 	INSTALL_PREFIX := $(HOME)
@@ -41,12 +43,10 @@ ifeq ($(shell uname -s),Darwin)
 	# TODO check
 	SHLIB_SUFFIX := .dylib
 	SHLIB_NAME_FLAG := -install_name
-	SHLIB_PATH_ENV_VAR := DYLD_LIBRARY_PATH
 	ARCHFLAGS += -Wno-error=unused-command-line-argument-hard-error-in-future
 else
 	SHLIB_SUFFIX := .so
 	SHLIB_NAME_FLAG := -soname
-	SHLIB_PATH_ENV_VAR := LD_LIBRARY_PATH
 endif
 
 INCLUDE_MAKEFILE_FILENAME := Makefile.in
