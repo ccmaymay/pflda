@@ -23,8 +23,6 @@ pylowl-tests: $(PYLOWL_LIB) $(PYLOWL_PYX)
 	$(PYTHON) -m doctest --doctest-extension=pyx -v $(PYLOWL_PYX)
 
 .PHONY: pylowl-install
-pylowl-install: export C_INCLUDE_PATH=$(CURDIR)/$(LOWL_SRC_DIR)
-pylowl-install: export LIBRARY_PATH=$(CURDIR)/$(LOWL_BLD_DIR)
 pylowl-install: $(PYLOWL_LIB)
 	cp $(PYLOWL_PYX) $(PYLOWL_BLD_DIR)/
 	cd $(PYLOWL_BLD_DIR) && $(PYTHON) $(CURDIR)/$(PYLOWL_SRC_DIR)/setup.py install $(DISTUTILS_INSTALL_FLAGS)

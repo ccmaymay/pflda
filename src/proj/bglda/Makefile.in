@@ -15,8 +15,6 @@ bglda-fat: $(BGLDA_LIB)
 	cp $(PYLOWL_LIB) $(BGLDA_PROJ_BLD_DIR)/
 
 .PHONY: bglda-install
-bglda-install: export C_INCLUDE_PATH=$(CURDIR)/$(LOWL_SRC_DIR)
-bglda-install: export LIBRARY_PATH=$(CURDIR)/$(LOWL_BLD_DIR)
 bglda-install: bglda-fat
 	cp $(BGLDA_PROJ_SRC_DIR)/bglda_run $(BGLDA_PROJ_BLD_DIR)/
 	cp $(BGLDA_PROJ_SRC_DIR)/bglda/* $(BGLDA_PROJ_BLD_DIR)/bglda/

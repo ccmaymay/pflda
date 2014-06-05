@@ -15,8 +15,6 @@ pflda-fat: $(PFLDA_LIB)
 	cp $(PYLOWL_LIB) $(PFLDA_PROJ_BLD_DIR)/
 
 .PHONY: pflda-install
-pflda-install: export C_INCLUDE_PATH=$(CURDIR)/$(LOWL_SRC_DIR)
-pflda-install: export LIBRARY_PATH=$(CURDIR)/$(LOWL_BLD_DIR)
 pflda-install: pflda-fat
 	cp $(PFLDA_PROJ_SRC_DIR)/pflda_run_gibbs $(PFLDA_PROJ_BLD_DIR)/
 	cp $(PFLDA_PROJ_SRC_DIR)/pflda_run_pf $(PFLDA_PROJ_BLD_DIR)/
