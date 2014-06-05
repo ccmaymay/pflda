@@ -1,7 +1,7 @@
 .PHONY: pflda-help
 pflda-help:
 	@echo 'pflda targets:'
-	@echo '  pflda:           build optimized batch Gibbs algorithm for LDA'
+	@echo '  pflda:           build particle filter algorithm for LDA'
 	@echo '  pflda-fat:       copy dependencies to "$(PFLDA_PROJ_BLD_DIR)"'
 	@echo '                   (for in-place invocation)'
 	@echo '  pflda-install:   install pflda'
