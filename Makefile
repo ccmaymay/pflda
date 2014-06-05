@@ -6,6 +6,16 @@ LD = gcc
 CFLAGS += -std=gnu99 -g -O0 -Wall -Wextra
 LDFLAGS +=
 
+ifdef INSTALL_USER
+	DISTUTILS_INSTALL_FLAGS = --user
+else ifdef INSTALL_PREFIX
+	DISTUTILS_INSTALL_FLAGS = --prefix=$(INSTALL_PREFIX)
+endif
+
+ifndef INSTALL_PREFIX
+	INSTALL_PREFIX = /
+endif
+
 ifeq ($(shell uname -s),Darwin)
 	# TODO check
 	SHLIB_SUFFIX = .dylib
