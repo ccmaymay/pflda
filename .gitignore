@@ -5,4 +5,3 @@ bin
 .*.swp
 .*.swo
 *.pyc
-.sconsign.dblite
