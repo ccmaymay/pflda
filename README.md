@@ -17,42 +17,46 @@ The projects under `proj` have varying dependencies; however, most of them depen
 Building and Installing
 -----------------------
 
-We use `scons` as a build system.  This requires only a modern Python distribution; `scons` itself is provided with `littleowl` for your convenience.  To build and test `lowl` and `pylowl` (from the repository root):
+We use `make` as a build system.  Note that `make` must always be run from the top-level directory.  To build and test `lowl` and `pylowl`:
 
 ```
-$ python scons.py lowl-tests pylowl-tests
+$ make lowl-tests pylowl-tests
 ```
 
 To install `lowl` locally:
 
 ```
-$ python scons.py --prefix=$HOME lowl-install
+$ make lowl-install INSTALL_PREFIX=$HOME
 ```
 
-The `--user` flag is identical in this context:
+The `INSTALL_USER` flag is identical for the `lowl-install` target:
 
 ```
-$ python scons.py --user lowl-install
+$ make lowl-install INSTALL_USER=1
+```
+
+To install `pylowl` to your home directory:
+
+```
+$ make pylowl-install INSTALL_PREFIX=$HOME
 ```
 
 To install `pylowl` in the user installation scheme (location in home directory that is automatically in your Python module search path):
 
 ```
-$ python scons.py --user pylowl-install
+$ make pylowl-install INSTALL_USER=1
 ```
-
-The `pylowl-install` target also accepts the `--prefix` flag; its semantics and those of `--user` are defined by `distutils`.
 
 To build the Python extension module implementing a particle filter for LDA:
 
 ```
-$ python scons.py pflda
+$ make pflda
 ```
 
 To run the particle filter from the build directory, after you have imported the twenty newsgroups dataset (see the documentation in `src/proj/pflda` for details):
 
 ```
-$ python scons.py pflda-fat
+$ make pflda-fat
 $ pushd build/proj/pflda
 $ ./pflda_run_pf /path/to/20-newsgroups/dataset tng
 $ popd
@@ -63,28 +67,18 @@ The `pflda-fat` target depends on `pflda` and also copies over the `lowl` and `p
 The installation targets are decoupled; they do not depend on one another.  Thus, to run `pflda` from outside the build directory you must explicitly install `lowl`, `pylowl`, and `pflda`.  E.g.:
 
 ```
-$ python scons.py --user lowl-install pylowl-install pflda-install
+$ make lowl-install pylowl-install pflda-install INSTALL_USER=1
 $ pushd /place/where/you/like/to/run/your/things
-$ pflda_run_pf /path/to/20-newsgroups/dataset
+$ pflda_run_pf /path/to/20-newsgroups/dataset tng
 $ popd
 ```
 
 This assumes you have added the local Python library path and executable path to your environment.  The library path is likely searched by default but the executable path (where `pflda_run_pf` was installed) is likely not.
 
-Scons expects to be run from the root of the repository; however, you may run from a subdirectory by passing the `-u` flag to scons.  E.g., building `pflda` from the `src/proj/pflda` subdirectory:
-
-```
-$ pushd src/proj/pflda
-$ python ../../../scons.py -u pflda
-$ popd
-```
-
-This makes more sense if you have [installed scons](http://scons.org/download.php) on your machine, in which case you can run scons simply as `scons`.
-
 For a complete listing of targets and options refer to the help:
 
 ```
-$ python scons.py -h
+$ make help
 ```
 
 Finally, if you don't have a recent version of Cython installed the `pylowl` targets above (and other targets that depend on them) will fail.  To install a known compatible version of Cython in your home directory, do the following:
