@@ -11,6 +11,10 @@ $(PYLOWL_LIB): $(PYLOWL_SRC_DIR)/setup.py $(PYLOWL_SOURCES) $(LOWL_LIB)
 .PHONY: pylowl
 pylowl: $(PYLOWL_LIB)
 
+.PHONY: pylowl-fat
+pylowl-fat: $(PYLOWL_LIB)
+	cp $(LOWL_LIB) $(PYLOWL_BLD_DIR)/
+
 .PHONY: pylowl-tests
 pylowl-tests: export $(SHLIB_PATH_ENV_VAR)=$(LOWL_BLD_DIR)
 pylowl-tests: export PYTHONPATH=$(PYLOWL_BLD_DIR)
