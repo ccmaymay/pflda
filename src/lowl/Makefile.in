@@ -21,7 +21,7 @@ LOWL_SRC_HEADERS := $(wildcard $(LOWL_SRC_DIR)/*.h)
 LOWL_BLD_HEADERS := $(patsubst $(LOWL_SRC_DIR)/%,$(LOWL_BLD_DIR)/%,$(LOWL_SRC_HEADERS))
 LOWL_OBJECTS := $(patsubst %.c,%.o,$(LOWL_BLD_SOURCES))
 
-$(LOWL_BLD_DIR)/%.o: $(LOWL_BLD_DIR)/%.c $(LOWL_BLD_DIR)/%.h $(LOWL_BLD_HEADERS)
+$(LOWL_BLD_DIR)/%.o: $(LOWL_BLD_DIR)/%.c $(LOWL_BLD_HEADERS)
 	$(CC) $(CFLAGS) -fPIC -o $@ -c $<
 
 $(LOWL_LIB): $(LOWL_OBJECTS)

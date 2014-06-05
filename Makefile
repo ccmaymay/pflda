@@ -47,12 +47,10 @@ else
 	SHLIB_NAME_FLAG := -soname
 endif
 
-INCLUDE_MAKEFILE_FILENAME := Makefile.in
-
 SRC_DIR := src
 BLD_DIR := build
 
-ALL_SRC_FILES := $(shell find $(SRC_DIR) -type f -not -name $(INCLUDE_MAKEFILE_FILENAME))
+ALL_SRC_FILES := $(shell find $(SRC_DIR) -type f -not -name Makefile.in)
 ALL_SRC_BLD_FILES := $(patsubst $(SRC_DIR)/%,$(BLD_DIR)/%,$(ALL_SRC_FILES))
 
 .PHONY: clean
@@ -63,4 +61,4 @@ $(ALL_SRC_BLD_FILES): $(BLD_DIR)/%: $(SRC_DIR)/%
 	@mkdir -p $(@D)
 	@cp -dp $< $@
 
-include $(SRC_DIR)/$(INCLUDE_MAKEFILE_FILENAME)
+include $(SRC_DIR)/Makefile.in
