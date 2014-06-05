@@ -39,4 +39,5 @@ lowl-tests: $(LOWL_TESTS)
 
 .PHONY: lowl-install
 lowl-install: $(LOWL_LIB)
-	install -m 0755 $(LOWL_LIB) $(INSTALL_PREFIX)/lib
+	mkdir -p $(INSTALL_PREFIX)/lib
+	install -m 0755 $(LOWL_LIB) $(INSTALL_PREFIX)/lib/
