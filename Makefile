@@ -28,8 +28,6 @@ LD := gcc
 CFLAGS += -std=gnu99 -g -O0 -Wall -Wextra
 LDFLAGS +=
 
-DISTUTILS_INSTALL_FLAGS += --skip-build
-
 ifdef INSTALL_USER
 	DISTUTILS_INSTALL_FLAGS += --user
 	INSTALL_PREFIX := $(HOME)
