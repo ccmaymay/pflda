@@ -62,7 +62,11 @@ $ bash run.sh ./pflda_run_pf /path/to/20-newsgroups/dataset tng
 $ popd
 ```
 
-The `pflda-fat` target depends on `pflda` and also copies over the `lowl` and `pylowl` to facilitate running directly from `build/proj/pflda`.  `run.sh` is a wrapper script that ensures the linker checks the current directory for libraries.
+The `pflda-fat` target depends on `pflda` and also copies over the `lowl` and `pylowl` to facilitate running directly from `build/proj/pflda`.  `run.sh` is a wrapper script that ensures the linker checks the current directory for libraries.  To avoid typing `bash run.sh` thousands of times, you may wish to add the following to your `bash` profile (or similar for other shells):
+
+```
+export LD_LIBRARY_PATH=".:$LD_LIBRARY_PATH"
+```
 
 The installation targets are decoupled; they do not depend on one another.  Thus, to run `pflda` from outside the build directory you must explicitly install `lowl`, `pylowl`, and `pflda`.  E.g.:
 

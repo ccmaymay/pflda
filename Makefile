@@ -59,6 +59,6 @@ clean:
 
 $(ALL_SRC_BLD_FILES): $(BLD_DIR)/%: $(SRC_DIR)/%
 	@mkdir -p $(@D)
-	cp -dp $< $@
+	cp -a $< $@
 
 include $(SRC_DIR)/Makefile.in
