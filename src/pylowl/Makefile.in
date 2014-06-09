@@ -24,10 +24,11 @@ pylowl: $(PYLOWL_LIB)
 .PHONY: pylowl-fat
 pylowl-fat: $(PYLOWL_LIB)
 	cp $(LOWL_LIB) $(PYLOWL_BLD_DIR)/
+	cp $(PYLOWL_SRC_DIR)/run.sh $(PYLOWL_BLD_DIR)/
 
 .PHONY: pylowl-tests
 pylowl-tests: pylowl-fat
-	cd $(PYLOWL_BLD_DIR) && $(PYTHON) -m doctest --doctest-extension=pyx -v $(PYLOWL_PYX_FILENAME)
+	cd $(PYLOWL_BLD_DIR) && bash run.sh $(PYTHON) -m doctest --doctest-extension=pyx -v $(PYLOWL_PYX_FILENAME)
 
 .PHONY: pylowl-install
 pylowl-install: $(PYLOWL_LIB)

@@ -24,6 +24,7 @@ pflda: $(PFLDA_LIB)
 pflda-fat: $(PFLDA_LIB) $(PFLDA_PROJ_BLD_SUPPORT)
 	cp $(LOWL_LIB) $(PFLDA_PROJ_BLD_DIR)/
 	cp $(PYLOWL_LIB) $(PFLDA_PROJ_BLD_DIR)/
+	cp $(PFLDA_PROJ_SRC_DIR)/run.sh $(PFLDA_PROJ_BLD_DIR)/
 
 .PHONY: pflda-install
 pflda-install: pflda-fat

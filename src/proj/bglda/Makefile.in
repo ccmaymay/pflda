@@ -24,6 +24,7 @@ bglda: $(BGLDA_LIB)
 bglda-fat: $(BGLDA_LIB) $(BGLDA_PROJ_BLD_SUPPORT)
 	cp $(LOWL_LIB) $(BGLDA_PROJ_BLD_DIR)/
 	cp $(PYLOWL_LIB) $(BGLDA_PROJ_BLD_DIR)/
+	cp $(BGLDA_PROJ_SRC_DIR)/run.sh $(BGLDA_PROJ_BLD_DIR)/
 
 .PHONY: bglda-install
 bglda-install: bglda-fat
