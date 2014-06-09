@@ -38,12 +38,14 @@ else
 endif
 
 ifeq ($(shell uname -s),Darwin)
-	# TODO check
+	# now I remember why I hate os x
 	SHLIB_SUFFIX := .dylib
+	PY_SHLIB_SUFFIX := .so
 	SHLIB_NAME_FLAG := -install_name
-	ARCHFLAGS += -Wno-error=unused-command-line-argument-hard-error-in-future
+	ARCHFLAGS += -Wno-error=unused-command-line-argument-hard-error-in-future -arch x86_64
 else
 	SHLIB_SUFFIX := .so
+	PY_SHLIB_SUFFIX := .so
 	SHLIB_NAME_FLAG := -soname
 endif
 

@@ -8,7 +8,7 @@ pylowl-help:
 	@echo '  pylowl-install:  install pylowl'
 	@echo
 
-PYLOWL_LIB_FILENAME := pylowl$(SHLIB_SUFFIX)
+PYLOWL_LIB_FILENAME := pylowl$(PY_SHLIB_SUFFIX)
 PYLOWL_LIB := $(PYLOWL_BLD_DIR)/$(PYLOWL_LIB_FILENAME)
 
 PYLOWL_PYX_FILENAME := pylowl.pyx
