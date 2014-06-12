@@ -1,4 +1,5 @@
 cimport lowl
+from libc.stddef cimport size_t
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 from cPickle import load, dump
 
@@ -179,12 +180,10 @@ cdef class BloomFilter:
     That newline was magical.
     """
 
-    cdef lowl.bloomfilter* _bf
-
     def __cinit__(self):
         self._bf = NULL
 
-    cpdef int init(self, lowl.size_t size, unsigned int k) except -1:
+    cpdef int init(self, size_t size, unsigned int k) except -1:
         cdef int ret
 
         self._bf = <lowl.bloomfilter *>PyMem_Malloc(sizeof(lowl.bloomfilter))
@@ -197,10 +196,10 @@ cdef class BloomFilter:
 
         return 0
 
-    cpdef insert(self, const char* x, lowl.size_t n):
+    cpdef insert(self, const char* x, size_t n):
         lowl.bloomfilter_insert(self._bf, x, n)
 
-    cpdef bint query(self, const char* x, lowl.size_t n):
+    cpdef bint query(self, const char* x, size_t n):
         return lowl.bloomfilter_query(self._bf, x, n)
 
     cpdef prnt(self):
@@ -355,12 +354,10 @@ cdef class CountMinSketch:
     It's important to take (line)breaks.
     """
 
-    cdef lowl.cmsketch* _cm
-
     def __cinit__(self):
         self._cm = NULL
 
-    cpdef int init(self, lowl.size_t w, lowl.size_t d) except -1:
+    cpdef int init(self, size_t w, size_t d) except -1:
         cdef int ret
 
         self._cm = <lowl.cmsketch *>PyMem_Malloc(sizeof(lowl.cmsketch))
@@ -373,10 +370,10 @@ cdef class CountMinSketch:
 
         return 0
 
-    cpdef add(self, const char* x, lowl.size_t n, lowl.lowl_count delta):
+    cpdef add(self, const char* x, size_t n, lowl.lowl_count delta):
         lowl.cmsketch_add(self._cm, x, n, delta)
 
-    cpdef lowl.lowl_count query(self, const char* x, lowl.size_t n):
+    cpdef lowl.lowl_count query(self, const char* x, size_t n):
         return lowl.cmsketch_query(self._cm, x, n)
 
     cpdef prnt(self):
@@ -597,12 +594,10 @@ cdef class ReservoirSampler:
     Newlines keep the compiler happy.
     """
 
-    cdef lowl.reservoirsampler* _rs
-
     def __cinit__(self):
         self._rs = NULL
 
-    cpdef int init(self, lowl.size_t capacity) except -1:
+    cpdef int init(self, size_t capacity) except -1:
         cdef int ret
 
         self._rs = <lowl.reservoirsampler *>PyMem_Malloc(sizeof(lowl.reservoirsampler))
@@ -615,14 +610,14 @@ cdef class ReservoirSampler:
 
         return 0
 
-    cdef bint _insert(self, lowl.lowl_key k, lowl.size_t* idx, bint* ejected, lowl.lowl_key* ejected_key):
+    cdef bint _insert(self, lowl.lowl_key k, size_t* idx, bint* ejected, lowl.lowl_key* ejected_key):
         cdef bint inserted
         inserted = lowl.reservoirsampler_insert(self._rs, k, idx, ejected, ejected_key)
         return inserted
 
     def insert(self, lowl.lowl_key k):
         cdef bint inserted
-        cdef lowl.size_t idx
+        cdef size_t idx
         cdef bint ejected
         cdef lowl.lowl_key ejected_key
         inserted = self._insert(k, &idx, &ejected, &ejected_key)
@@ -665,10 +660,10 @@ cdef class ReservoirSampler:
 
         return 0
 
-    cpdef lowl.size_t capacity(self):
+    cpdef size_t capacity(self):
         return lowl.reservoirsampler_capacity(self._rs)
 
-    cpdef lowl.size_t occupied(self):
+    cpdef size_t occupied(self):
         return lowl.reservoirsampler_occupied(self._rs)
 
     cpdef prnt(self):
@@ -686,7 +681,7 @@ cdef class ReservoirSampler:
 
     cpdef lowl.lowl_key [::1] sample(self):
         cdef lowl.lowl_key [::1] xx_view
-        cdef lowl.size_t occupied
+        cdef size_t occupied
         occupied = self.occupied()
         xx_view = <lowl.lowl_key[:occupied]> self._sample()
         return xx_view
@@ -870,7 +865,7 @@ class ValuedReservoirSampler(object):
 
     This newline is valued transitively.
     """
-    def __init__(self, lowl.size_t capacity):
+    def __init__(self, size_t capacity):
         self.rs = ReservoirSampler()
         if capacity > 0:
             self.rs.init(capacity)
@@ -930,7 +925,7 @@ class ValuedReservoirSampler(object):
     def sample(self):
         return self.values[:self.occupied()]
 
-    def get(self, lowl.size_t idx):
+    def get(self, size_t idx):
         if idx >= self.occupied():
             raise IndexError()
         return self.values[idx]
