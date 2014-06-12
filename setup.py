@@ -25,6 +25,7 @@ def main():
         cmdclass={'build_ext': build_ext},
         package_dir={'': 'src'},
         packages=['pylowl'],
+        build_dir='build',
         ext_modules=ext_modules,
         scripts=['src/pylowl/proj/bglda/bglda_run', 'src/pylowl/proj/pflda/pflda_run_pf', 'src/pylowl/proj/pflda/pflda_run_gibbs'],
     )
