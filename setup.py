@@ -5,7 +5,9 @@ from glob import glob
 import numpy
 
 ext_modules = [
-    Extension('pylowl', ['src/pylowl.pyx'] + glob('src/lowl/lowl_*.c'),
+    Extension('pylowl',
+        ['src/pylowl.pyx']
+            + [p for p in glob('src/lowl/*.c') if not p.endswith('/tests.c')],
         include_dirs=['src/lowl'],
     ),
     Extension('pylowl.proj.pflda.core', ['src/pylowl/proj/pflda/core.pyx'],
