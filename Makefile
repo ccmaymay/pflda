@@ -1,26 +1,22 @@
 .PHONY: help
-help: initial-help src-help
-	@echo 'Global command-line options:'
-	@echo '  DEBUG:           not implemented'
-	@echo '  INSTALL_PREFIX:  path to installation base directory'
-	@echo '  INSTALL_USER:    boolean: if defined, use user installation scheme'
-	@echo '                   in distutils (Python) and set installation base'
-	@echo '                   directory to home for non-distutils targets'
-	@echo '                   (e.g., lib$(LOWL_LIB_SHORTNAME))'
-	@echo '                   (overrides INSTALL_PREFIX)'
+help:
+	@echo 'Build process occurs entirely in "$(BUILD_DIR)".'
+	@echo 'Sources are copied to "$(BUILD_DIR)" as needed.'
+	@echo
+	@echo 'Targets:'
+	@echo '  lowl:     build core C library (lib$(LIB_SHORTNAME))'
+	@echo '  tests:    build and run lib$(LIB_SHORTNAME) tests'
+	@echo '  install:  install lib$(LIB_SHORTNAME)'
+	@echo '  clean:    remove all files in build directory'
+	@echo
+	@echo 'Command-line options:'
+	@echo '  DEBUG:    not implemented'
+	@echo '  PREFIX:   path to installation prefix directory'
 	@echo
 	@echo 'Hoot.'
 
-.PHONY: initial-help
-initial-help:
-	@echo 'Build process occurs entirely in "$(BLD_DIR)".'
-	@echo 'Sources are copied from "$(SRC_DIR)" to "$(BLD_DIR)" as needed.'
-	@echo
-	@echo 'Global targets:'
-	@echo '  clean:  remove all files in build directory'
-	@echo
-
-PYTHON := python
+SOURCE_DIR := src/lowl
+BUILD_DIR := build/lowl
 
 CC := gcc
 LD := gcc
@@ -28,39 +24,53 @@ LD := gcc
 CFLAGS += -std=gnu99 -g -O0 -Wall -Wextra
 LDFLAGS +=
 
-ifdef INSTALL_USER
-	DISTUTILS_INSTALL_FLAGS += --user
-	INSTALL_PREFIX := $(HOME)
-else ifdef INSTALL_PREFIX
-	DISTUTILS_INSTALL_FLAGS += --prefix=$(INSTALL_PREFIX)
-else
-	INSTALL_PREFIX := /
-endif
-
 ifeq ($(shell uname -s),Darwin)
-	# now I remember why I hate os x
+	SHLIB_LIB_PATH_ENV_VAR := DYLD_LIBRARY_PATH
 	SHLIB_SUFFIX := .dylib
-	PY_SHLIB_SUFFIX := .so
 	SHLIB_NAME_FLAG := -install_name
-	ARCHFLAGS += -Wno-error=unused-command-line-argument-hard-error-in-future -arch x86_64
 else
+	SHLIB_LIB_PATH_ENV_VAR := LD_LIBRARY_PATH
 	SHLIB_SUFFIX := .so
-	PY_SHLIB_SUFFIX := .so
 	SHLIB_NAME_FLAG := -soname
 endif
 
-SRC_DIR := src
-BLD_DIR := build
+LIB_SHORTNAME := lowl
+LIB_NAME := lib$(LIB_SHORTNAME)$(SHLIB_SUFFIX)
+LIB_FILENAME := $(LIB_NAME)
+LIB_PATH := $(BUILD_DIR)/$(LIB_FILENAME)
 
-ALL_SRC_FILES := $(shell find $(SRC_DIR) -type f -not -name Makefile.in)
-ALL_SRC_BLD_FILES := $(patsubst $(SRC_DIR)/%,$(BLD_DIR)/%,$(ALL_SRC_FILES))
+TESTS_OBJECT := $(BUILD_DIR)/tests
+TESTS_SOURCE := $(SOURCE_DIR)/tests.c
+
+SOURCES := $(filter-out $(TESTS_SOURCE),$(wildcard $(SOURCE_DIR)/*.c))
+HEADERS := $(wildcard *.h)
+OBJECTS := $(patsubst $(SOURCE_DIR)/%.c,$(BUILD_DIR)/%.o,$(SOURCES))
+
+$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c $(HEADERS)
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -fPIC -o $@ -c $<
+
+$(LIB_PATH): $(OBJECTS)
+	@mkdir -p $(@D)
+	$(LD) $(LDFLAGS) -shared -Wl,$(SHLIB_NAME_FLAG),$(LIB_NAME) -o $@ $^ -lm
+
+$(TESTS_OBJECT): $(TESTS_SOURCE) $(LIB_PATH)
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -o $@ $< -L$(BUILD_DIR) -l$(LIB_SHORTNAME) -lm
+
+.PHONY: lowl
+lowl: $(LIB_PATH)
+
+.PHONY: install
+install: $(LIB_PATH)
+	mkdir -p $(PREFIX)/lib
+	install -m 0755 $(LIB_PATH) $(PREFIX)/lib/
+
+.PHONY: tests
+test: export $(SHLIB_LIB_PATH_ENV_VAR) += $(BUILD_DIR)
+test: $(TESTS_OBJECT)
+	$(TESTS_OBJECT)
 
 .PHONY: clean
 clean:
-	-@find build -type f -delete
-
-$(ALL_SRC_BLD_FILES): $(BLD_DIR)/%: $(SRC_DIR)/%
-	@mkdir -p $(@D)
-	cp -a $< $@
-
-include $(SRC_DIR)/Makefile.in
+	rm -rf $(BUILD_DIR)
