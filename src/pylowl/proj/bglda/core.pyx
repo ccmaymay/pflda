@@ -2,7 +2,7 @@
 
 from random import random, randint, seed
 from data import Dataset
-from pylowl cimport ReservoirSampler, lowl_key, size_t
+from pylowl.core cimport ReservoirSampler, lowl_key, size_t
 import sys
 import numpy
 cimport numpy
