@@ -16,7 +16,7 @@ DATASET_SUBSETS = dict(
 
 
 if __name__ == '__main__':
-    from pflda.core import run_pf
+    from pylowl.proj.pflda.core import run_pf
     import sys
 
     dataset_path = sys.argv[1]

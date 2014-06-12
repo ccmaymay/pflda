@@ -2,7 +2,7 @@
 
 
 if __name__ == '__main__':
-    from bglda.core import run
+    from pylowl.proj.bglda.core import run
     import sys
 
     dataset_path = sys.argv[1]
