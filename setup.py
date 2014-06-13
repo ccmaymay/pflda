@@ -66,13 +66,13 @@ def make_run(superclass):
 
 
 class selective_build(build):
-    user_options = USER_OPTIONS
+    user_options = build.user_options + USER_OPTIONS
     initialize_options = make_initialize_options(build)
     run = make_run(build)
 
 
 class selective_install(install):
-    user_options = USER_OPTIONS
+    user_options = install.user_options + USER_OPTIONS
     initialize_options = make_initialize_options(install)
     run = make_run(install)
 
