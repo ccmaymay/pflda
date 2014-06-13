@@ -19,10 +19,10 @@ ext_modules = [
 
 scripts = []
 
+selected_proj = set()
 
-PROJECTS = ('bglda', 'pflda')
 
-def select_bglda():
+def select_proj_bglda():
     packages.append('pylowl.proj.bglda')
     ext_modules.append(
         Extension('pylowl.proj.bglda.core',
@@ -31,7 +31,7 @@ def select_bglda():
         ))
     scripts.append('src/pylowl/proj/bglda/bglda_run')
 
-def select_pflda():
+def select_proj_pflda():
     packages.append('pylowl.proj.pflda')
     ext_modules.append(
         Extension('pylowl.proj.pflda.core',
@@ -41,13 +41,16 @@ def select_pflda():
     scripts.append('src/pylowl/proj/pflda/pflda_run_gibbs', 'src/pylowl/proj/pflda/pflda_run_pf')
 
 
-USER_OPTIONS = [('with-' + p, None, 'Install ' + p) for p in PROJECTS]
+k = None
+PROJECTS = [k[len('select_proj_'):] for k in globals() if k.startswith('select_proj_')]
+
+USER_OPTIONS = [('with-proj-' + p, None, 'Install ' + p) for p in PROJECTS]
 
 
 def make_initialize_options(superclass):
     def initialize_options(o):
         for p in PROJECTS:
-            attr_name = 'with_' + p
+            attr_name = 'with_proj_' + p
             setattr(o, attr_name, False)
         superclass.initialize_options(o)
     return initialize_options
@@ -56,11 +59,12 @@ def make_initialize_options(superclass):
 def make_run(superclass):
     def run(o):
         for p in PROJECTS:
-            attr_name = 'with_' + p
-            if getattr(o, attr_name):
-                selector_name = 'select_' + p
+            attr_name = 'with_proj_' + p
+            if getattr(o, attr_name) and p not in selected_proj:
+                selector_name = 'select_proj_' + p
                 selector = globals()[selector_name]
                 selector()
+                selected_proj.add(p)
         superclass.run(o)
     return run
 
