@@ -5,6 +5,7 @@ from glob import glob
 import numpy
 
 from distutils.command.build import build
+from distutils.command.install import install
 
 
 packages=['pylowl', 'pylowl.proj']
@@ -19,38 +20,62 @@ ext_modules = [
 scripts = []
 
 
+PROJECTS = ('bglda', 'pflda')
+
+def select_bglda():
+    packages.append('pylowl.proj.bglda')
+    ext_modules.append(
+        Extension('pylowl.proj.bglda.core',
+            ['src/pylowl/proj/bglda/core.pyx'],
+            include_dirs=['src/pylowl', 'src/lowl', numpy.get_include()],
+        ))
+    scripts.append('src/pylowl/proj/bglda/bglda_run')
+
+def select_pflda():
+    packages.append('pylowl.proj.pflda')
+    ext_modules.append(
+        Extension('pylowl.proj.pflda.core',
+            ['src/pylowl/proj/pflda/core.pyx'],
+            include_dirs=['src/pylowl', 'src/lowl', numpy.get_include()],
+        ))
+    scripts.append('src/pylowl/proj/pflda/pflda_run_gibbs', 'src/pylowl/proj/pflda/pflda_run_pf')
+
+
+USER_OPTIONS = [('with-' + p, None, 'Install ' + p) for p in PROJECTS]
+
+
+def make_initialize_options(superclass):
+    def initialize_options(o):
+        for p in PROJECTS:
+            attr_name = 'with_' + p
+            setattr(o, attr_name, False)
+        superclass.initialize_options(o)
+    return initialize_options
+
+
+def make_run(superclass):
+    def run(o):
+        for p in PROJECTS:
+            attr_name = 'with_' + p
+            if getattr(o, attr_name):
+                selector_name = 'select_' + p
+                selector = globals()[selector_name]
+                selector()
+        superclass.run(o)
+    return run
+
+
 class selective_build(build):
-    user_options = [
-        ('with-bglda', None, 'Build bglda.'),
-        ('with-pflda', None, 'Build pflda.'),
-    ]
+    user_options = USER_OPTIONS
+    initialize_options = make_initialize_options(build)
+    run = make_run(build)
 
-    def initialize_options(self):
-        self.with_bglda = False
-        self.with_pflda = False
-        build.initialize_options(self)
 
-    def run(self):
-        if self.with_bglda:
-            packages.append('pylowl.proj.bglda')
-            ext_modules.append(
-                Extension('pylowl.proj.bglda.core',
-                    ['src/pylowl/proj/bglda/core.pyx'],
-                    include_dirs=['src/pylowl', 'src/lowl', numpy.get_include()],
-                ))
-            scripts.append('src/pylowl/proj/bglda/bglda_run')
+class selective_install(install):
+    user_options = USER_OPTIONS
+    initialize_options = make_initialize_options(install)
+    run = make_run(install)
 
-        if self.with_pflda:
-            packages.append('pylowl.proj.pflda')
-            ext_modules.append(
-                Extension('pylowl.proj.pflda.core',
-                    ['src/pylowl/proj/pflda/core.pyx'],
-                    include_dirs=['src/pylowl', 'src/lowl', numpy.get_include()],
-                ))
-            scripts.append('src/pylowl/proj/pflda/pflda_run_pf')
-            scripts.append('src/pylowl/proj/pflda/pflda_run_gibbs')
-
-        build.run(self)
 
 def main():
     setup(
@@ -58,12 +83,13 @@ def main():
         version='0.0',
         description='Randomized Algorithms Library',
         url='https://gitlab.hltcoe.jhu.edu/klevin/littleowl',
-        cmdclass={'build_ext': build_ext, 'build': selective_build},
+        cmdclass={'build_ext': build_ext, 'build': selective_build, 'install': selective_install},
         package_dir={'': 'src'},
         packages=packages,
         ext_modules=ext_modules,
         scripts=scripts,
     )
+
 
 if __name__ == '__main__':
     main()
