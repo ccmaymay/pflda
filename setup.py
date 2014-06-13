@@ -1,8 +1,10 @@
+import os
+
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 from glob import glob
-import numpy
+from importlib import import_module
 
 from distutils.command.build import build
 from distutils.command.install import install
@@ -21,36 +23,25 @@ scripts = []
 
 selected_proj = set()
 
+projects = []
 
-def select_proj_bglda():
-    packages.append('pylowl.proj.bglda')
-    ext_modules.append(
-        Extension('pylowl.proj.bglda.core',
-            ['src/pylowl/proj/bglda/core.pyx'],
-            include_dirs=['src/pylowl', 'src/lowl', numpy.get_include()],
-        ))
-    scripts.append('src/pylowl/proj/bglda/bglda_run')
-
-def select_proj_pflda():
-    packages.append('pylowl.proj.pflda')
-    ext_modules.append(
-        Extension('pylowl.proj.pflda.core',
-            ['src/pylowl/proj/pflda/core.pyx'],
-            include_dirs=['src/pylowl', 'src/lowl', numpy.get_include()],
-        ))
-    scripts.append('src/pylowl/proj/pflda/pflda_run_gibbs', 'src/pylowl/proj/pflda/pflda_run_pf')
+for proj_dir in glob('src/pylowl/proj/*'):
+    if os.path.isdir(proj_dir):
+        include_file = os.path.join(proj_dir, '_setup_include.py')
+        if os.path.isfile(include_file):
+            proj_name = os.path.basename(proj_dir)
+            proj_include_package_name = 'src.pylowl.proj.%s.%s' % (proj_name, '_setup_include')
+            m = import_module(proj_include_package_name)
+            projects.append((proj_name, m.select))
 
 
-k = None
-PROJECTS = [k[len('select_proj_'):] for k in globals() if k.startswith('select_proj_')]
-
-USER_OPTIONS = [('with-proj-' + p, None, 'Install ' + p) for p in PROJECTS]
+USER_OPTIONS = [('with-proj-' + p[0], None, 'Install ' + p[0]) for p in projects]
 
 
 def make_initialize_options(superclass):
     def initialize_options(o):
-        for p in PROJECTS:
-            attr_name = 'with_proj_' + p
+        for p in projects:
+            attr_name = 'with_proj_' + p[0]
             setattr(o, attr_name, False)
         superclass.initialize_options(o)
     return initialize_options
@@ -58,13 +49,11 @@ def make_initialize_options(superclass):
 
 def make_run(superclass):
     def run(o):
-        for p in PROJECTS:
-            attr_name = 'with_proj_' + p
-            if getattr(o, attr_name) and p not in selected_proj:
-                selector_name = 'select_proj_' + p
-                selector = globals()[selector_name]
-                selector()
-                selected_proj.add(p)
+        for p in projects:
+            attr_name = 'with_proj_' + p[0]
+            if getattr(o, attr_name) and p[0] not in selected_proj:
+                p[1](packages, ext_modules, scripts)
+                selected_proj.add(p[0])
         superclass.run(o)
     return run
 
