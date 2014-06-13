@@ -1,5 +1,8 @@
 .PHONY: help
 help:
+	@echo 'This Makefile defines an isolated build process'
+	@echo 'for the littleowl C library.'
+	@echo
 	@echo 'Build process occurs entirely in "$(BUILD_DIR)".'
 	@echo 'Sources are copied to "$(BUILD_DIR)" as needed.'
 	@echo
@@ -7,7 +10,7 @@ help:
 	@echo '  lowl:     build core C library (lib$(LIB_SHORTNAME))'
 	@echo '  tests:    build and run lib$(LIB_SHORTNAME) tests'
 	@echo '  install:  install lib$(LIB_SHORTNAME)'
-	@echo '  clean:    remove all files in build directory'
+	@echo '  clean:    remove "$(BUILD_DIR)"
 	@echo
 	@echo 'Command-line options:'
 	@echo '  DEBUG:    not implemented'
