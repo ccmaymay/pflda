@@ -16,6 +16,7 @@ ext_modules = [
     Extension('pylowl.core', ['src/pylowl/core.pyx']
             + [p for p in glob('src/lowl/*.c') if not p.endswith('/tests.c')],
         include_dirs=['src', 'src/lowl'],
+        extra_compile_args=['-std=gnu99'],
     ),
 ]
 
