@@ -1,0 +1,562 @@
+\documentclass[draft]{article}
+
+\usepackage[fleqn]{amsmath}
+\usepackage{amsfonts}
+\usepackage{xspace}
+
+\newcommand{\Beta}{\ensuremath{\mathrm{Beta}}}
+\newcommand{\Dirichlet}{\ensuremath{\mathrm{Dirichlet}}}
+\newcommand{\Discrete}{\ensuremath{\mathrm{Discrete}}}
+\newcommand{\Normal}{\ensuremath{\mathcal{N}}}
+\newcommand{\DP}{\ensuremath{\mathrm{DP}}}
+\newcommand{\nCRP}{\ensuremath{\mathrm{nCRP}}}
+\newcommand{\GEM}{\ensuremath{\mathrm{GEM}}}
+\newcommand{\T}{\ensuremath{\mathcal{T}}}
+\newcommand{\V}{\ensuremath{\mathcal{V}}}
+\newcommand{\I}{\ensuremath{\mathbb{I}}}
+\newcommand{\R}{\ensuremath{\mathcal{R}}}
+\newcommand{\one}{\ensuremath{\mathbf{1}}}
+\newcommand{\digamma}[1]{\ensuremath{\psi\left(#1\right)}}
+\newcommand{\trigamma}[1]{\ensuremath{\psi^{(1)}\left(#1\right)}}
+\newcommand{\Elogdirichlet}[2]{\ensuremath{\digamma{#1} - \digamma{#2}}}
+\newcommand{\Elogbeta}[3]{\Elogdirichlet{\ifnum#3=1\relax#1\else#2\fi}{#1 + #2}}
+\newcommand{\Eq}{\ensuremath{\mathbb{E}_q\xspace}}
+\newcommand{\Lq}{\ensuremath{\mathcal{L}(q)}}
+\newcommand{\LqMVB}{\ensuremath{\mathcal{L}_{\mathrm{MVB}}(q)}}
+\newcommand{\leftsibling}{\ensuremath{<}}
+\newcommand{\leftsiblingeq}{\ensuremath{\le}}
+\newcommand{\ancestor}{\ensuremath{\subset}}
+\newcommand{\ancestoreq}{\ensuremath{\subseteq}}
+\newcommand{\parent}[1]{\ensuremath{p\left(#1\right)}}
+\newcommand{\level}[1]{\ensuremath{\ell\left(#1\right)}}
+\newcommand{\pd}[1]{\ensuremath{\frac{\partial}{\partial #1}}}
+
+\begin{document}
+
+
+\section*{nHDP (M0)}
+
+
+\subsection*{True model}
+
+The following are notes on the nHDP model, in the notation of previous work \cite{paisley2013}.
+
+\begin{itemize}
+\item $\displaystyle G_0 = \Dirichlet\left(\lambda_0 \one_\V\right)$ global distribution over words (cardinality $\V$)
+\item $\displaystyle i_1, \ldots, i_\ell$ path from child of root $i_1$ to node $i_\ell$ (note: syntax is overloaded)
+\item In general subscript $(i,j)$ denotes child $j$ of node $i$; subscript $i$ simply denotes node $i$
+\item $\displaystyle G_{i_\ell} = \sum_{j=1}^{\infty}{ V_{i_\ell,j} \prod_{m=1}^{j-1}{ \left(1 - V_{i_\ell,m}\right) \delta_{\theta_{(i_\ell,j)}} }}$ each node $i_\ell$ is DP
+\item $\displaystyle V_{i_\ell,j} \sim \Beta(1, \alpha)$ i.i.d.
+\item $\displaystyle \theta_{(i_\ell,j)} \sim G_0$ i.i.d. topic (distribution over words)
+\item $\displaystyle G_{i_\ell}^{(d)} \sim \DP\left(\beta G_{i_\ell}\right)$, i.e.
+    \begin{itemize}
+    \item $\displaystyle G_{i_\ell}^{(d)} = \sum_{j=1}^{\infty}{ V_{i_\ell,j}^{(d)} \prod_{m=1}^{j-1}{ \left(1 - V_{i_\ell,m}^{(d)}\right) \delta_{\phi_{(i_\ell,j)}} }}$
+    \item $\displaystyle V_{i_\ell,j}^{(d)} \sim \Beta(1, \beta)$ i.i.d.
+    \item $\displaystyle \phi_{(i_\ell,j)} \sim G_{i_\ell}$ i.i.d.
+    \item $\phi_{(i_\ell,j)}$ does \emph{not} correspond to $\theta_{(i_\ell,j)}$.  In particular, node $i_\ell$ in $\T_d$ corresponds to node $i_\ell$ in $\T$, but child $j$ of that node in $\T_d$ does not correspond to child $j$ in $\T$:
+        \begin{align*}
+            G_{i_\ell}^{(d)}\left(\left\{\theta_{(i_\ell,j)}\right\}\right) = \sum_m{G_{i_\ell}^{(d)}\left(\left\{\phi_{(i_\ell,m)}^{(d)}\right\}\right) \I\left\{\phi_{(i_\ell,m)}^{(d)} = \theta_{(i_\ell,j)}\right\}}
+        \end{align*}
+    \end{itemize}
+\item $W_{d,n}$ is word (token) $n$ in document $d$
+\item $\displaystyle U_{d,i_\ell} \sim \Beta(\gamma_1, \gamma_2)$ i.i.d.\ switch probability for whether each word in document $d$ chooses topic $i_\ell$ or continues down the tree
+\item $\displaystyle \Pr\left(\varphi_{d,n} = \theta_{i_\ell} \mid \T_d, U_d\right) = \left[\prod_{m=0}^{l-1}{G_{i_m}^{(d)}\left(\left\{\theta_{i_{m+1}}\right\}\right)}\right] \left[U_{d,i_\ell} \prod_{m=1}^{l-1}{\left(1 - U_{d,i_m}\right)}\right]$ is probability that word $W_{d,n}$ is assigned topic $\varphi_{d,n}$
+    \begin{itemize}
+    \item Left term: Probability that we take the path $i_\ell$
+    \item Right term: Probability that we terminate at node $i_\ell$ in the path
+    \end{itemize}
+\item $c_{d,n}$ is topic indicator for word $W_{d,n}$ (how does this compare to $\varphi$?)
+\item $z_{i,j}^{(d)}$ is pointer to atom in $G_i$ associated with $j$th break in $G_i^{(d)}$ (i.e., points to $\theta_{(i,m)}$ corresponding to $\phi_{(i,j)}^{(d)}$?)
+\end{itemize}
+
+
+\subsection*{Variational model}
+
+Global variables:
+\begin{itemize}
+\item $\displaystyle q(\theta_i) = \Dirichlet(\theta_i \mid \lambda_{i,1}, \ldots, \lambda_{i,\V})$ topic (probability vector on words) for node $i$
+\item $\displaystyle q(V_{i,j}) = \Beta(V_{i,j} \mid \tau_{i,j}^{(1)}, \tau_{i,j}^{(1)})$
+\end{itemize}
+Local variables:
+\begin{itemize}
+\item $\displaystyle q(V_{i,j}^{(d)}) = \Beta(V_{i,j}^{(d)} \mid u_{i,j}^{(d)}, v_{i,j}^{(d)})$
+\item $\displaystyle q(z_{i,j}^{(d)}) = \delta_{z_{i,j}^{(d)}}(k)$ for $k = 1, 2, \ldots$ pointer to atom in $G_i$ corresponding to $j$th break in $G_i^{(d)}$
+\item $\displaystyle q(U_{d,i}) = \Beta(U_{d,i} \mid a_{d,i}, b_{d,i})$ switch probability for node $i$ in $\T_d$
+\item $\displaystyle q(c_{d,n}) = \Discrete(c_{d,n} \mid \nu_{d,n})$ topic indicator for $W_{d,n}$
+\end{itemize}
+
+
+\subsection*{ELBO}
+
+In this subsection we use a variation of the previous notation:
+
+\begin{tabular}{ll}
+    $d$ & document \\
+    $n$ & token \\
+    $w$ & type \\
+    $i, i', i''$ & local node \\
+    $j, j', j''$ & global node \\
+    $\level{i}$ & tree level (zero at root) \\
+    $i' \leftsibling i$ & left sibling \\
+    $i' \leftsiblingeq i$ & left sibling or self \\
+    $i' \ancestor i$ & ancestor \\
+    $i' \ancestoreq i$ & ancestor or self \\
+    $\parent{i}$ & parent \\
+    $D$ & number of documents \\
+    $N_d$ & number of tokens \\
+    $V$ & number of types \\
+    $L$ & maximum level \\
+\end{tabular}
+
+The (log) evidence is given by
+\begin{align*}
+    \log \Pr\left(W \mid \alpha, \beta, \gamma_1, \gamma_2, \lambda_0\right);
+\end{align*}
+the evidence lower bound (ELBO) is
+\begin{align*}
+    \Lq &= \Eq \Bigg[
+            \log \Pr\left(W, c, z^{(\cdot)}, V^{(\cdot)}, U, \theta, V \mid \alpha, \beta, \gamma_1, \gamma_2, \lambda_0\right) \\
+            &\qquad\quad - \log q\left(c, z^{(\cdot)}, V^{(\cdot)}, U, \theta, V\right)
+        \Bigg] \\
+    &= \sum_d \Eq \Bigg[
+            \log \Pr\left(W_d, c_d, z^{(d)}, V^{(d)}, U_d \mid \theta, V, \alpha, \beta, \gamma_1, \gamma_2, \lambda_0\right) \\
+            &\qquad\qquad - \log q\left(c_d, z^{(d)}, V^{(d)}, U_d\right)
+        \Bigg] \\
+        &\quad + \Eq \left[
+            \log \Pr\left(\theta, V \mid \alpha, \lambda_0\right)
+            - \log q\left(\theta, V\right)
+        \right] \\
+    &= \sum_d \Eq \Bigg[
+            \log \Pr\left(W_d \mid c_d, z^{(d)}, \theta\right)
+            + \log \Pr\left(c_d \mid V^{(d)}, U_d\right) \\
+            &\qquad\qquad + \log \Pr\left(z^{(d)} \mid V\right)
+            + \log \Pr\left(V^{(d)} \mid \beta\right)
+            + \log \Pr\left(U_d \mid \gamma_1, \gamma_2\right) \\
+            &\qquad\qquad - \log q\left(c_d\right)
+            - \log q\left(z^{(d)}\right)
+            - \log q\left(V^{(d)}\right)
+            - \log q\left(U_d\right)
+        \Bigg] \\
+        &\quad + \Eq \left[
+            \log \Pr\left(\theta \mid \lambda_0\right)
+            + \log \Pr\left(V \mid \alpha\right)
+            - \log q\left(\theta\right)
+            - \log q\left(V\right)
+        \right] .
+\end{align*}
+
+We now derive components of the ELBO.
+
+\begin{align*}
+    &\Eq \log \Pr\left(W_d \mid c_d, z^{(d)}, \theta\right) \\
+    &= \sum_n \Eq \log \Pr\left(W_{dn} \mid c_{dn}, z^{(d)}, \theta\right) \\
+    &= \sum_n \Eq \log \theta_{z_{c_{dn}}^{(d)} W_{dn}} \\
+    &= \sum_n \sum_i \nu_{dn}(i) \Eq \log \theta_{z_i^{(d)} W_{dn}} \\
+    &= \sum_n \sum_i \nu_{dn}(i) \sum_j \delta_{z_i^{(d)}}(j) \Eq \log \theta_{j W_{dn}} \\
+    &= \sum_n \sum_i \nu_{dn}(i) \sum_j \delta_{z_i^{(d)}}(j) \left[ \Elogdirichlet{\lambda_{j W_{dn}}}{\sum_{w}{\lambda_{jw}}} \right] .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr\left(c_d \mid V^{(d)}, U_d\right) \\
+    &= \sum_n \Eq \log \Pr\left(c_{dn} \mid V^{(d)}, U_d\right) \\
+    &= \sum_n \sum_i \nu_{dn}(i) \Eq \log \Pr\left(c_{dn} = i \mid V^{(d)}, U_d\right) \\
+    &= \sum_n \sum_i \nu_{dn}(i) \Eq \log \pi_i^{(d)}
+\end{align*}
+where
+\begin{align*}
+    \pi_i^{(d)} = \left[ U_{di} \prod_{i' \ancestor i}{\left(1 - U_{di'}\right)} \right] \left[ \prod_{i' \ancestoreq i} V_{i'}^{(d)} \prod_{i'' \leftsibling i'} \left(1 - V_{i''}^{(d)}\right) \right]
+\end{align*}
+is the local tree-structured prior and
+\begin{align*}
+    &\Eq \log \pi_i^{(d)} \\
+    &= \Eq \Bigg[ \log U_{di} + \sum_{i' \ancestor i}{\log \left(1 - U_{di'}\right)} \\
+    &\qquad\quad + \sum_{i' \ancestoreq i}{\left[ \log V_{i'}^{(d)} + \sum_{i'' \leftsibling i'} \log \left(1 - V_{i''}^{(d)}\right) \right]} \Bigg] \\
+    &= \Elogbeta{a_{di}}{b_{di}}{1} + \sum_{i' \ancestor i}{\left(\Elogbeta{a_{di'}}{b_{di'}}{2}\right)} \\
+    &\quad + \sum_{i' \ancestoreq i} \Bigg[ \Elogbeta{u_{i'}^{(d)}}{v_{i'}^{(d)}}{1} \\
+    &\qquad\qquad + \sum_{i'' \leftsibling i'} \left(\Elogbeta{u_{i''}^{(d)}}{v_{i''}^{(d)}}{2}\right) \Bigg] .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr\left(z^{(d)} \mid V\right) \\
+    &= \sum_i \Eq \log \Pr\left(z_i^{(d)} \mid V\right) \\
+    &= \sum_i \sum_j \Eq \I\left\{z_i^{(d)} = j\right\} \left[ \log V_j + \sum_{j' < j} \log{(1 - V_{j'})} \right] \\
+    &= \sum_i \sum_j \delta_{z_i^{(d)}}(j) \Bigg[ \Elogbeta{\tau_j^{(1)}}{\tau_j^{(2)}}{1} \\
+    &\qquad\qquad\qquad\qquad + \sum_{j' < j}\left( \Elogbeta{\tau_{j'}^{(1)}}{\tau_{j'}^{(2)}}{2} \right)\Bigg] .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr\left(V^{(d)} \mid \beta\right) \\
+    &= \sum_i \Eq \log \Pr\left(V_i^{(d)} \mid \beta\right) \\
+    &= \sum_i \Eq \left[ (\beta - 1) \log \left(1 - V_i^{(d)}\right) - \log B(1, \beta) \right] \\
+    &= \sum_i \left[ (\beta - 1) \left(\Elogbeta{u_i^{(d)}}{v_i^{(d)}}{2}\right) + \log \Gamma(1 + \beta) - \log \Gamma(\beta) \right] .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr\left(U_d \mid \gamma_1, \gamma_2\right) \\
+    &= \sum_i \Eq \log \Pr\left(U_{di} \mid \gamma_1, \gamma_2\right) \\
+    &= \sum_i \Eq \left[ (\gamma_1 - 1) \log U_{di} + (\gamma_2 - 1) \log \left(1 - U_{di}\right) - \log B(\gamma_1, \gamma_2) \right] \\
+    &= \sum_i \Big[ (\gamma_1 - 1) \left(\Elogbeta{a_{di}}{b_{di}}{1}\right) \\
+    &\qquad\qquad + (\gamma_2 - 1) \left(\Elogbeta{a_{di}}{b_{di}}{2}\right) \\
+    &\qquad\qquad + \log \Gamma(\gamma_1 + \gamma_2) - \log \Gamma(\gamma_1) - \log \Gamma(\gamma_2) \Big] .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr\left(\theta \mid \lambda_0\right) \\
+    &= \sum_j \Eq \log \Pr\left(\theta_j \mid \lambda_0\right) \\
+    &= \sum_j \Eq \left[ (\lambda_0 - 1) \sum_w \left( \log \theta_{jw} \right) - \log B\left(\lambda_0 \one_V\right) \right] \\
+    &= \sum_j \Bigg[ (\lambda_0 - 1) \sum_w \left( \Elogdirichlet{\lambda_{jw}}{\sum_{w'}{\lambda_{jw'}}} \right) \\
+    &\qquad\qquad + \log{\Gamma \left( V \lambda_0 \right)} - V \log \Gamma(\lambda_0) \Bigg] .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr\left(V \mid \alpha\right) \\
+    &= \sum_j \Eq \log \Pr\left(V_j \mid \alpha\right) \\
+    &= \sum_j \Eq \left[ (\alpha - 1) \log \left(1 - V_j\right) - \log B(1, \alpha) \right] \\
+    &= \sum_j \left[ (\alpha - 1) \left(\Elogbeta{\tau_j^{(1)}}{\tau_j^{(2)}}{2}\right) + \log \Gamma(1 + \alpha) - \log \Gamma(\alpha) \right] .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q\left(c_d\right) \\
+    &= \sum_n \Eq \log q\left(c_{dn}\right) \\
+    &= \sum_n \sum_i q\left(c_{dn}(i)\right) \log q\left(c_{dn}(i)\right) \\
+    &= \sum_n \sum_i \nu_{dn}(i) \log \nu_{dn}(i) .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q\left(z^{(d)}\right) \\
+    &= \sum_i \Eq \log q\left(z_i^{(d)}\right) \\
+    &= 0 .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q\left(V^{(d)}\right) \\
+    &= \sum_i \Eq \log q\left(V_i^{(d)}\right) \\
+    &= \sum_i \Bigg[ (u_i^{(d)} - 1) \psi\left(u_i^{(d)}\right) + (v_i^{(d)} - 1) \psi\left(v_i^{(d)}\right) \\
+    &\qquad\qquad - (u_i^{(d)} + v_i^{(d)} - 2) \psi\left(u_i^{(d)} + v_i^{(d)}\right) \\
+    &\qquad\qquad - \log B\left(u_i^{(d)}, v_i^{(d)}\right) \Bigg] \\
+    &= \sum_i \Bigg[ (u_i^{(d)} - 1) \psi\left(u_i^{(d)}\right) + (v_i^{(d)} - 1) \psi\left(v_i^{(d)}\right) \\
+    &\qquad\qquad - (u_i^{(d)} + v_i^{(d)} - 2) \psi\left(u_i^{(d)} + v_i^{(d)}\right) \\
+    &\qquad\qquad + \log \Gamma\left(u_i^{(d)} + v_i^{(d)}\right) - \log\Gamma\left(u_i^{(d)}\right) - \log\Gamma\left(v_i^{(d)}\right) \Bigg] .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q\left(U_d\right) \\
+    &= \sum_i \Eq \log q\left(U_{di}\right) \\
+    &= \sum_i \Bigg[ (a_{di} - 1) \psi\left(a_{di}\right) + (b_{di} - 1) \psi\left(b_{di}\right) \\
+    &\qquad\qquad - (a_{di} + b_{di} - 2) \psi\left(a_{di} + b_{di}\right) \\
+    &\qquad\qquad - \log B\left(a_{di}, b_{di}\right) \Bigg] \\
+    &= \sum_i \Bigg[ (a_{di} - 1) \psi\left(a_{di}\right) + (b_{di} - 1) \psi\left(b_{di}\right) \\
+    &\qquad\qquad - (a_{di} + b_{di} - 2) \psi\left(a_{di} + b_{di}\right) \\
+    &\qquad\qquad + \log \Gamma\left(a_{di} + b_{di}\right) - \log\Gamma\left(a_{di}\right) - \log\Gamma\left(b_{di}\right) \Bigg] .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q\left(\theta\right) \\
+    &= \sum_j \Eq \log q\left(\theta_j\right) \\
+    &= \sum_j \Bigg[ \sum_w{\left(\left(\lambda_{jw} - 1\right) \psi\left(\lambda_{jw}\right)\right)} \\
+    &\qquad\qquad - \left(\sum_{w}{\left(\lambda_{jw}\right)} - V\right) \psi\left(\sum_{w} \lambda_{jw}\right) \\
+    &\qquad\qquad - \log B\left(\lambda_j\right) \Bigg] \\
+    &= \sum_j \Bigg[ \sum_w{\left(\left(\lambda_{jw} - 1\right) \psi\left(\lambda_{jw}\right)\right)} \\
+    &\qquad\qquad - \left(\sum_{w}{\left(\lambda_{jw}\right)} - V\right) \psi\left(\sum_{w} \lambda_{jw}\right) \\
+    &\qquad\qquad + \log \Gamma\left(\sum_w \lambda_{jw}\right) - \sum_w \log \Gamma\left(\lambda_{jw}\right) \Bigg] .
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q\left(V\right) \\
+    &= \sum_j \Eq \log q\left(V_j\right) \\
+    &= \sum_j \Bigg[ (\tau_j^{(1)} - 1) \psi\left(\tau_j^{(1)}\right) + (\tau_j^{(2)} - 1) \psi\left(\tau_j^{(2)}\right) \\
+    &\qquad\qquad - (\tau_j^{(1)} + \tau_j^{(2)} - 2) \psi\left(\tau_j^{(1)} + \tau_j^{(2)}\right) \\
+    &\qquad\qquad - \log B\left(\tau_j^{(1)}, \tau_j^{(2)}\right) \Bigg] \\
+    &= \sum_j \Bigg[ (\tau_j^{(1)} - 1) \psi\left(\tau_j^{(1)}\right) + (\tau_j^{(2)} - 1) \psi\left(\tau_j^{(2)}\right) \\
+    &\qquad\qquad - (\tau_j^{(1)} + \tau_j^{(2)} - 2) \psi\left(\tau_j^{(1)} + \tau_j^{(2)}\right) \\
+    &\qquad\qquad + \log \Gamma\left(\tau_j^{(1)} + \tau_j^{(2)}\right) - \log\Gamma\left(\tau_j^{(1)}\right) - \log\Gamma\left(\tau_j^{(2)}\right) \Bigg] .
+\end{align*}
+
+
+\subsubsection*{ELBO components for general Dirichlet}
+
+In general, if $X_i \mid \alpha, \beta \sim \Beta(\alpha, \beta)$ conditionally i.i.d.\ and $X_i \sim \Beta(a_i, b_i)$ under the mean-field variational approximation, then
+\begin{align*}
+    &\Eq \log \Pr(X \mid \alpha, \beta) \\
+    &= \sum_i \Eq \log \Pr(X_i \mid \alpha, \beta) \\
+    &= \sum_i \Bigg[ (\alpha - 1) (\psi(a_i) - \psi(a_i + b_i)) \\
+    &\qquad\qquad + (\beta - 1) (\psi(b_i) - \psi(a_i + b_i)) \\
+    &\qquad\qquad - \log B(\alpha, \beta) \Bigg] \\
+    &= \sum_i \Bigg[ (\alpha - 1) (\psi(a_i) - \psi(a_i + b_i)) \\
+    &\qquad\qquad + (\beta - 1) (\psi(b_i) - \psi(a_i + b_i)) \\
+    &\qquad\qquad + \log \Gamma(\alpha + \beta) - \log \Gamma(\alpha) - \log \Gamma(\beta) \Bigg]
+\end{align*}
+and
+\begin{align*}
+    &\Eq \log q(X) \\
+    &= \sum_i \Eq \log q(X_i) \\
+    &= \sum_i \Bigg[ (a_i - 1) (\psi(a_i) - \psi(a_i + b_i)) \\
+    &\qquad\qquad + (b_i - 1) (\psi(b_i) - \psi(a_i + b_i)) \\
+    &\qquad\qquad - \log B(a_i, b_i) \Bigg] \\
+    &= \sum_i \Bigg[ (a_i - 1) (\psi(a_i) - \psi(a_i + b_i)) \\
+    &\qquad\qquad + (b_i - 1) (\psi(b_i) - \psi(a_i + b_i)) \\
+    &\qquad\qquad + \log \Gamma(a_i + b_i) - \log \Gamma(a_i) - \log \Gamma(b_i) \Bigg]
+\end{align*}
+so we have
+\begin{align*}
+    &\Eq \left[ \log \Pr(X \mid \alpha, \beta) - \log q(X) \right] \\
+    &= \sum_i \Eq \left[ \log \Pr(X_i \mid \alpha, \beta) - \log q(X_i) \right] \\
+    &= \sum_i \Bigg[ (\alpha - a_i) (\psi(a_i) - \psi(a_i + b_i)) \\
+    &\qquad\qquad + (\beta - b_i) (\psi(b_i) - \psi(a_i + b_i)) \\
+    &\qquad\qquad + \log \Gamma(\alpha + \beta) - \log \Gamma(\alpha) - \log \Gamma(\beta) \\
+    &\qquad\qquad - \log \Gamma(a_i + b_i) + \log \Gamma(a_i) + \log \Gamma(b_i) \Bigg] .
+\end{align*}
+If now $X_i \mid \alpha \sim \Dirichlet(\alpha)$ conditionally i.i.d.\ and $X_i \sim \Dirichlet(a_i)$ under the mean-field variational approximation, where $\alpha, a_i \in \R^D$ and $\alpha, a_i \ge 0$, then
+\begin{align*}
+    &\Eq \log \Pr(X \mid \alpha) \\
+    &= \sum_i \Eq \log \Pr(X_i \mid \alpha) \\
+    &= \sum_i \Bigg[ \sum_j (\alpha_j - 1) \left( \psi(a_{ij}) - \psi\left(\sum_j a_{ij}\right) \right) \\
+    &\qquad\qquad + \log \Gamma\left( \sum_j \alpha_j \right) - \sum_j \log \Gamma\left( \alpha_j \right) \Bigg]
+\end{align*}
+and
+\begin{align*}
+    &\Eq \log q(X) \\
+    &= \sum_i \Eq \log q(X_i) \\
+    &= \sum_i \Bigg[ \sum_j (a_{ij} - 1) \left( \psi(a_{ij}) - \psi\left(\sum_j a_{ij}\right) \right) \\
+    &\qquad\qquad + \log \Gamma\left( \sum_j a_{ij} \right) - \sum_j \log \Gamma\left( a_{ij} \right) \Bigg]
+\end{align*}
+so we have
+\begin{align*}
+    &\Eq \left[ \log \Pr(X \mid \alpha) - \log q(X) \right] \\
+    &= \sum_i \Eq \left[ \log \Pr(X_i \mid \alpha) - \log q(X_i) \right] \\
+    &= \sum_i \Bigg[ \sum_j (\alpha_j - a_{ij}) \left( \psi(a_{ij}) - \psi\left(\sum_j a_{ij}\right) \right) \\
+    &\qquad\qquad + \log \Gamma\left( \sum_j \alpha_j \right) - \sum_j \log \Gamma\left( \alpha_j \right) \\
+    &\qquad\qquad - \log \Gamma\left( \sum_j a_{ij} \right) + \sum_j \log \Gamma\left( a_{ij} \right) \Bigg] .
+\end{align*}
+
+
+\subsection*{Coordinate ascent updates}
+
+
+Here we derive the coordinate ascent updates for the variational parameters.  Note that many of the results in this subsection follow from a general form derived at the end.
+
+\begin{align*}
+    &\pd{\lambda_{jw}} \Eq \left[ \log \Pr(\theta_j \mid \lambda_0) - \log q(\theta_j) + \log \Pr(W \mid c, z, \theta_j) \right] \\
+    &= \pd{\lambda_{jw}} \Bigg[
+        \Eq \left[ \log \Pr(\theta_j \mid \lambda_0) - \log q(\theta_j) \right] \\
+        &\qquad\qquad + \sum_d \sum_n \sum_i \delta_{z_i^{(d)}}(j) \nu_{dn}(i) \left[ \Elogdirichlet{\lambda_{j W_{dn}}}{\sum_{w'}{\lambda_{jw'}}} \right] 
+    \Bigg] \\
+    &= (\lambda_0 - \lambda_{jw}) \trigamma{\lambda_{jw}} - \sum_{w'} (\lambda_0 - \lambda_{jw'}) \trigamma{\sum_{w''}{\lambda_{jw''}}} \\
+        &\qquad + \sum_d \sum_n \sum_i \delta_{z_i^{(d)}}(j) \nu_{dn}(i) \left[ \delta_{W_{dn}}(w) \trigamma{\lambda_{j w}} - \trigamma{\sum_{w'}{\lambda_{jw'}}} \right]
+\end{align*}
+so, setting the partial derivative equal to zero and using the fact that the trigamma is positive in this context, we obtain
+\begin{align*}
+    \boxed{ \lambda_{jw} = \lambda_0 + \sum_d \sum_n \sum_i \delta_{z_i^{(d)}}(j) \delta_{W_{dn}}(w) \nu_{dn}(i) \trigamma{\lambda_{j w}} }.
+\end{align*}
+
+\begin{align*}
+    &\pd{\tau_{j}^{(1)}} \Eq \left[ \log \Pr(V_j \mid \alpha) - \log q(V_j) + \log \Pr(z \mid V) \right] \\
+    &= \pd{\tau_{j}^{(1)}} \Bigg[ \Eq \left[ \log \Pr(V_j \mid \alpha) - \log q(V_j) \right] \\
+        &\qquad\qquad + \sum_d \sum_i \sum_{j'} \delta_{z_i^{(d)}}({j'}) \Bigg[ \Elogbeta{\tau_{j'}^{(1)}}{\tau_{j'}^{(2)}}{1} \\
+        &\qquad\qquad\qquad\qquad\qquad\qquad + \sum_{j'' < j'}\left( \Elogbeta{\tau_{j''}^{(1)}}{\tau_{j''}^{(2)}}{2} \right)\Bigg] \Bigg] \\
+    &= (1 - \tau^{(1)}_j) \trigamma{\tau^{(1)}_j} - (1 + \alpha - \tau^{(1)}_j - \tau^{(2)}_j) \trigamma{\tau^{(1)}_j + \tau^{(2)}_j} \\
+        &\qquad + \sum_d \sum_i \delta_{z_i^{(d)}}({j}) \Bigg[ \trigamma{\tau_{j}^{(1)}} - \trigamma{\tau_{j}^{(1)} + \tau_{j}^{(2)}} \\
+        &\qquad\qquad\qquad\qquad - \sum_{j \leftsibling j'} \trigamma{\tau_{j'}^{(1)} + \tau_{j'}^{(2)}} \Bigg]
+\end{align*}
+so, setting the partial derivative equal to zero and using the fact that the trigamma is positive in this context, we obtain
+\begin{align*}
+    \boxed{ \tau^{(1)}_j = 1 + \sum_d \sum_i \delta_{z_i^{(d)}}({j}) }.
+\end{align*}
+Similarly,
+\begin{align*}
+    &\pd{\tau_{j}^{(2)}} \Eq \left[ \log \Pr(V_j \mid \alpha) - \log q(V_j) + \log \Pr(z \mid V) \right] \\
+    &= (\alpha - \tau^{(2)}_j) \trigamma{\tau^{(2)}_j} - (1 + \alpha - \tau^{(1)}_j - \tau^{(2)}_j) \trigamma{\tau^{(1)}_j + \tau^{(2)}_j} \\
+        &\qquad + \sum_d \sum_i \delta_{z_i^{(d)}}({j}) \Bigg[ - \trigamma{\tau_{j}^{(1)} + \tau_{j}^{(2)}} \\
+        &\qquad\qquad\qquad\qquad + \sum_{j \leftsibling j'} \left[ \trigamma{\tau_{j'}^{(2)}} - \trigamma{\tau_{j'}^{(1)} + \tau_{j'}^{(2)}} \right] \Bigg]
+\end{align*}
+so
+\begin{align*}
+    \boxed{ \tau^{(2)}_j = \alpha + \sum_d \sum_i \sum_{j \leftsibling j'} \delta_{z_i^{(d)}}({j'}) }.
+\end{align*}
+
+\begin{align*}
+    &\pd{u_{i}^{(d)}} \Eq \left[ \log \Pr(V_i^{(d)} \mid \beta) - \log q(V_i^{(d)}) + \log \Pr(c_d \mid V^{(d)}, U_d) \right] \\
+    &= \pd{u_{i}^{(d)}} \Bigg[ \Eq \left[ \log \Pr(V_i^{(d)} \mid \beta) - \log q(V_i^{(d)}) \right] \\
+    &\qquad\qquad + \sum_n \sum_{i'} \nu_{dn}(i') \Eq \log \pi_{i'}^{(d)} \Bigg] \\
+    &= (1 - u^{(d)}_i) \trigamma{u^{(d)}_i} - (1 + \beta - u^{(d)}_i - v^{(d)}_i) \trigamma{u^{(d)}_i + v^{(d)}_i} \\
+    &\qquad + \sum_n \Bigg[ \sum_{i \ancestoreq i'} \nu_{dn}(i') \left[ \trigamma{u^{(d)}_i} - \trigamma{u^{(d)}_i + v^{(d)}_i} \right] \\
+    &\qquad\qquad - \sum_{i \leftsibling i'} \sum_{i' \ancestoreq i''} \nu_{dn}(i'') \trigamma{u^{(d)}_i + v^{(d)}_i} \Bigg]
+\end{align*}
+so, setting the partial derivative equal to zero and using the fact that the trigamma is positive in this context, we obtain
+\begin{align*}
+    \boxed{ u^{(d)}_i = 1 + \sum_n \sum_{i \ancestoreq i'} \nu_{dn}(i') }.
+\end{align*}
+Similarly,
+\begin{align*}
+    &\pd{v_{i}^{(d)}} \Eq \left[ \log \Pr(V_i^{(d)} \mid \beta) - \log q(V_i^{(d)}) + \log \Pr(c_d \mid V^{(d)}, U_d) \right] \\
+    &= (\beta - v^{(d)}_i) \trigamma{v^{(d)}_i} - (1 + \beta - u^{(d)}_i - v^{(d)}_i) \trigamma{u^{(d)}_i + v^{(d)}_i} \\
+    &\qquad + \sum_n \Bigg[ - \sum_{i \ancestoreq i'} \nu_{dn}(i') \trigamma{u^{(d)}_i + v^{(d)}_i} \\
+    &\qquad\qquad + \sum_{i \leftsibling i'} \sum_{i' \ancestoreq i''} \nu_{dn}(i'') \left[ \trigamma{v^{(d)}_i} - \trigamma{u^{(d)}_i + v^{(d)}_i} \right] \Bigg]
+\end{align*}
+so
+\begin{align*}
+    \boxed{ v^{(d)}_i = \beta + \sum_n \sum_{i \leftsibling i'} \sum_{i' \ancestoreq i''} \nu_{dn}(i'') }.
+\end{align*}
+
+\begin{align*}
+    &\pd{a_{di}} \Eq \left[ \log \Pr(U_{di} \mid \gamma_1, \gamma_2) - \log q(U_{di}) + \log \Pr(c_d \mid V^{(d)}, U_d) \right] \\
+    &= \pd{a_{di}} \Bigg[ \Eq \left[ \log \Pr(U_{di} \mid \gamma_1, \gamma_2) - \log q(U_{di}) \right] \\
+    &\qquad\qquad + \sum_n \sum_{i'} \nu_{dn}(i') \Eq \log \pi_{i'}^{(d)} \Bigg] \\
+    &= (\gamma_1 - a_{di}) \trigamma{a_{di}} - (\gamma_1 + \gamma_2 - a_{di} - b_{di}) \trigamma{a_{di} + b_{di}} \\
+    &\qquad + \sum_n \Bigg[ \nu_{dn}(i) \left[ \trigamma{a_{di}} - \trigamma{a_{di} + b_{di}} \right] \\
+    &\qquad\qquad - \sum_{i \ancestor i'} \nu_{dn}(i') \trigamma{a_{di} + b_{di}} \Bigg]
+\end{align*}
+so, setting the partial derivative equal to zero and using the fact that the trigamma is positive in this context, we obtain
+\begin{align*}
+    \boxed{ a_{di} = \gamma_1 + \sum_n \nu_{dn}(i) }.
+\end{align*}
+Similarly,
+\begin{align*}
+    &\pd{b_{di}} \Eq \left[ \log \Pr(U_{di} \mid \gamma_1, \gamma_2) - \log q(U_{di}) + \log \Pr(c_d \mid V^{(d)}, U_d) \right] \\
+    &= (\gamma_2 - b_{di}) \trigamma{b_{di}} - (\gamma_1 + \gamma_2 - a_{di} - b_{di}) \trigamma{a_{di} + b_{di}} \\
+    &\qquad + \sum_n \Bigg[ - \nu_{dn}(i) \trigamma{a_{di} + b_{di}} \\
+    &\qquad\qquad + \sum_{i \ancestor i'} \nu_{dn}(i') \left[ \trigamma{b_{di}} - \trigamma{a_{di} + b_{di}} \right] \Bigg]
+\end{align*}
+so
+\begin{align*}
+    \boxed{ b_{di} = \gamma_2 + \sum_n \sum_{i \ancestor i'} \nu_{dn}(i') }.
+\end{align*}
+
+\begin{align*}
+    &\pd{\nu_{dn}} \Eq \left[ \log \Pr(c_{dn} \mid V^{(d)}, U_d) - \log q(c_{dn}) + \log \Pr(W_{dn} \mid c_{dn}, z^{(d)}, \theta) \right] \\
+    &= \pd{\nu_{dn}} \Bigg[
+        \sum_i \nu_{dn}(i) \Bigg[ \Eq \log \pi_i^{(d)} - \log \nu_{dn}(i) \\
+        &\qquad\qquad\qquad\qquad + \sum_j \delta_{z_i^{(d)}}(j) \left[ \Elogdirichlet{\lambda_{j W_{dn}}}{\sum_w \lambda_{j w}} \right] \Bigg] \Bigg] \\
+    &= \pd{\nu_{dn}} \Bigg[ \sum_i \nu_{dn}(i) \Bigg[ \Eq \log \pi_i^{(d)} + \sum_j \delta_{z_i^{(d)}}(j) \Eq \log \theta_{j W_{dn}} - \log \nu_{dn}(i) \Bigg] \Bigg] .
+\end{align*}
+To find the critical point with respect to $\nu_{dn}$ while constraining $\nu_{dn}$ to be a probability vector we use the method of Lagrange.  We define
+\begin{align*}
+    J(\nu_{dn}) &= \sum_i \nu_{dn}(i) \Bigg[ \Eq \log \pi_i^{(d)} + \sum_j \delta_{z_i^{(d)}}(j) \Eq \log \theta_{j W_{dn}} - \log \nu_{dn}(i) \Bigg] \\
+    &\quad + \mu \sum_i \nu_{dn}(i)
+\end{align*}
+and then differentiate with respect to $\nu_{dn}(i)$ and equate to zero, obtaining
+\begin{align*}
+    0 &= \pd{\nu_{dn}(i)} J(\nu_{dn}) \\
+      &= \Eq \log \pi_i^{(d)} + \sum_j \delta_{z_i^{(d)}}(j) \Eq \log \theta_{j W_{dn}} - \log \nu_{dn}(i) - 1 + \mu .
+\end{align*}
+Thus
+\begin{align*}
+    \nu_{dn}(i) &= \exp \left[ \Eq \log \pi_i^{(d)} + \sum_j \delta_{z_i^{(d)}}(j) \Eq \log \theta_{j W_{dn}} - 1 + \mu \right] ,
+\end{align*}
+i.e.
+\begin{align*}
+    \boxed{ \nu_{dn}(i) \propto \exp \left[ \Eq \log \pi_i^{(d)} + \sum_j \delta_{z_i^{(d)}}(j) \Eq \log \theta_{j W_{dn}} \right] }.
+\end{align*}
+
+
+\subsubsection*{Coordinate ascent updates for general Dirichlet}
+
+In general, if $X_i \mid \Dirichlet(\alpha)$ conditionally i.i.d.\ and $X_i \mid \Dirichlet(a_i)$ under the mean-field variational approximation, where $\alpha, a_i \in \R^D$ and $\alpha, a_i \ge 0$, then
+
+\begin{align*}
+    &\pd{a_{ij}} \Eq \left[ \log \Pr(X_i \mid \alpha) - \log q(X_i) \right] \\
+    &= \pd{a_{ij}} \Bigg[
+        \sum_{j'} (\alpha_{j'} - 1) \left[ \Elogdirichlet{a_{ij'}}{\sum_{j''}{a_{ij''}}} \right] - \log B(\alpha) \\
+        &\qquad\qquad - \sum_{j'} (a_{ij'} - 1) \left[ \Elogdirichlet{a_{ij'}}{\sum_{j''}{a_{ij''}}} \right] + \log B(a_i)
+    \Bigg] \\
+    &= \pd{a_{ij}} \Bigg[
+        \sum_{j'} (\alpha_{j'} - a_{ij'}) \left[ \Elogdirichlet{a_{ij'}}{\sum_{j''}{a_{ij''}}} \right] \\
+        &\qquad\qquad - \log B(\alpha) + \log B(a_i)
+    \Bigg] \\
+    &= \pd{a_{ij}} \Bigg[
+        \sum_{j'} (\alpha_{j'} - a_{ij'}) \left[ \Elogdirichlet{a_{ij'}}{\sum_{j''}{a_{ij''}}} \right] \\
+        &\qquad\qquad + \sum_{j'} \log \Gamma(a_{ij'}) - \log \Gamma\left( \sum_{j'} a_{ij'} \right)
+    \Bigg] \\
+    &= (\alpha_{j} - a_{ij}) \trigamma{a_{ij}} - \sum_{j'} (\alpha_{j'} - a_{ij'}) \trigamma{\sum_{j''}{a_{ij''}}} \\
+        &\qquad - \left[ \Elogdirichlet{a_{ij}}{\sum_{j'}{a_{ij'}}} \right] \\
+        &\qquad + \Elogdirichlet{a_{ij}}{\sum_{j'}{a_{ij'}}} \\
+    &= (\alpha_{j} - a_{ij}) \trigamma{a_{ij}} - \sum_{j'} (\alpha_{j'} - a_{ij'}) \trigamma{\sum_{j''}{a_{ij''}}} .
+\end{align*}
+
+Thus, if $X_i \mid \alpha, \beta \sim \Beta(\alpha, \beta)$ conditionally i.i.d.\ and $X_i \sim \Beta(a_i, b_i)$ under the mean-field variational approximation, then
+\begin{align*}
+    &\pd{a_i} \Eq \left[ \log \Pr(X_i \mid \alpha, \beta) - \log q(X_i) \right] \\
+    &= (\alpha - a_i) \trigamma{a_i} - (\alpha + \beta - a_i - b_i) \trigamma{a_i + b_i}
+\end{align*}
+and
+\begin{align*}
+    &\pd{b_i} \Eq \left[ \log \Pr(X_i \mid \alpha, \beta) - \log q(X_i) \right] \\
+    &= (\beta - b_i) \trigamma{b_i} - (\alpha + \beta - a_i - b_i) \trigamma{a_i + b_i} .
+\end{align*}
+
+\subsection*{Predictive likelihood}
+
+To estimate the (log) predictive likelihood of a collection of documents given an nHDP model, we infer a local variational distribution for each document (including selecting the subtree and placing a delta distribution on each $z_i^{(d)}$) using the first e.g. 90\% of tokens in that document, and then estimate the likelihood of the remaining 10\% using the model at the mean of the variational distribution \cite{wang2009a,teh2008,beal2003}:
+\begin{align*}
+    \LqMVB &= \sum_d \sum_n \log \left( \sum_i \Eq \left[ \pi_i^{(d)} \right] \sum_j \delta_{z_i^{(d)}}(j) \Eq \left[ \theta_{j W_{dn}} \right] \right)
+\end{align*}
+where
+\begin{align*}
+    \Eq \left[ \theta_{j W_{dn}} \right] &= \frac{\lambda_{j W_{dn}}}{\sum_w \lambda_{j w}}
+\end{align*}
+and
+\begin{align*}
+    \Eq \left[ \pi_i^{(d)} \right] &= \Eq \left[ \left[ U_{di} \prod_{i' \ancestor i}{\left(1 - U_{di'}\right)} \right] \left[ \prod_{i' \ancestoreq i} V_{i'}^{(d)} \prod_{i'' \leftsibling i'} \left(1 - V_{i''}^{(d)}\right) \right] \right] \\
+        &= \left[ \frac{a_{di}}{a_{di} + b_{di}} \prod_{i' \ancestor i} \frac{b_{di'}}{a_{di'} + b_{di'}} \right] \left[ \prod_{i' \ancestoreq i} \frac{u^{(d)}_{i'}}{u^{(d)}_{i'} + v^{(d)}_{i'}} \prod_{i'' \leftsibling i'} \frac{v^{(d)}_{i''}}{u^{(d)}_{i''} + v^{(d)}_{i''}} \right] .
+\end{align*}
+
+
+\subsection*{Extension: Cascaded topics}
+
+The nested Chinese restaurant franchise \cite{ahmed2013,ahmed2013a}, or nCRF, is an identical nonparametric tree-structured prior to the nHDP.  However, in the exposition of the nCRF the node parameters are cascaded down the tree instead of being drawn i.i.d.  Gibbs sampling was used to learn this variant of the model.
+
+Specifically, in the nCRF topic model we have $\theta_0 \sim \Dirichlet\left(\lambda_0\right)$ for the root and $\theta_j \sim \Dirichlet\left(\omega \theta_{\parent{j}}\right)$ for the remaining nodes, where $\omega$ is a hyperparameter.  The negative entropy $\Eq \log q\left(\theta\right)$ is the same as in the nHDP formulation but for non-root nodes the variational expectation of the likelihood is
+\begin{align*}
+    &\Eq \log \Pr\left(\theta \mid \lambda_0\right) \\
+    &= \sum_j \Eq \log \Pr\left(\theta_j \mid \theta_{\parent{j}}, \lambda_0\right) \\
+    &= \sum_j \Eq \left[ \sum_w \left[ (\theta_{\parent{j} w} - 1) \log \theta_{jw} \right] - \log B\left(\theta_{\parent{j}}\right) \right] \\
+    &= \sum_j \left[
+        \sum_w \left[ (\lambda_{\parent{j} w} - 1) \left( \Elogdirichlet{\lambda_{jw}}{\sum_{w'}{\lambda_{jw'}}} \right) \right]
+        - \Eq \log B\left(\theta_{\parent{j}}\right)
+    \right]
+\end{align*}
+where the expectation of the normalizer does not have an obvious closed form.
+
+
+\section*{nHDP/nCRP hybrid topic model (M1)}
+
+\subsection*{True model}
+
+In the generative story, we draw the global topics $\theta$ and stick-breaking weights $V_{\cdot}$, for each user we draw user-specific topics $\phi$ and stick-breaking weights $V_{\cdot}^{(u)}$, for each document of that user we draw a path $c_d$ from the tree and proportions over the levels $U_{\cdot} \sim \GEM(m, \pi)$ (relative stick lengths $U'_{\ell} \sim \Beta(m \pi, (1 - m) \pi)$ i.i.d.), and for each token in the document we draw a topic indicator $\zeta$ according to the level proportions $U$ and finally draw the word type $W$ from the corresponding $\phi$ (hence, $\theta$).  On the surface, the difference from the nHDP (M0), using the user--document metaphor, is that tokens for a user are drawn in a two-stage process from the local tree (the intermediate stage being documents), instead of being drawn directly from the local tree.
+
+\ldots
+
+
+\subsection*{Variational model}
+
+
+
+\section*{Joint hierarchical geolocation-language models}
+
+There are a number of ways to formulate a joint model of geolocation and language based on the nHDP.  The first, M2, comes from prior work under the nCRF moniker \cite{ahmed2013,ahmed2013a}.  However, the attribute cascade makes this model a challenge for inference.
+
+\subsection*{nCRF model with flat global topics, attribute cascade (M2)}
+
+\subsubsection*{True model}
+
+In the nHDP, each document is a tree drawn using the global tree as a base distribution; in particular, each document defines a distribution over nodes and each word in a given document is assigned a topic according to that document's distribution.  In the joint model (nCRF application), each user is a tree (drawn using the global tree as a base distribution) and each document emitted by that user is allocated one of the nodes (joint geolocation-language variables) according to the user's distribution over nodes.  In the nHDP, each node in the global tree is endowed with a topic; in the nCRF, each node in the global tree is endowed with a mean location, regional topic, and topic distribution.
+
+Specifically, instead of just endowing each node with a topic $\theta$ (locally: $\phi$), we endow each node with a mean location $\mu$, regional topic $\phi$, and topic proportion vector $\theta$ (locally: same variable name with a superscript $(d)$).  Note, the local attributes are just copies of global attributes, but the indices are permuted due to exchangeability(?) in the stick-breaking construction.  This is in contrast to nHDP, in which
+
+However, whereas in nHDP we draw $\theta$ from $G_0$ i.i.d., in the nCRF we want to cascade $\mu$, $\phi$, and $\theta$ down the (global) tree, i.e.\ we want to draw $\mu_{i_\ell,j}$ from $\Normal(\mu_{i_\ell}, \Sigma_{i_\ell})$, draw $\phi_{i_\ell,j}$ from $\Dirichlet(\omega \phi_{i_\ell})$, and draw $\theta_{i_\ell,j}$ from $\Dirichlet(\lambda \theta_{i_\ell})$.
+
+Is there a similar discrepancy in the local node attributes?  It seems in the nCRF each node in a user's tree corresponds directly to a node in the global tree.  Does the nHDP have the same configuration?  Specifically, are the attributes (topics) of the children of a given node simply permuted in the document trees, or are they actually drawn from the global distribution, so that two children of the node may be endowed with the same topic?  (I suspect the latter.)
+
+In the nHDP we draw the atoms of a node in a document's tree i.i.d.\ from the parent node (a DP).  In the nCRF, in contrast,
+
+\ldots
+
+
+\subsubsection*{Variational model}
+
+
+
+\bibliographystyle{plain}
+\bibliography{model}
+
+\end{document}
