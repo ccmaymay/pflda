@@ -89,7 +89,7 @@ class Corpus(object):
 
     def __init__(self, docs, num_docs):
         self.docs = docs
-        self.num_docs = len(self.docs)
+        self.num_docs = num_docs
 
     @classmethod
     def from_data(cls, filename):

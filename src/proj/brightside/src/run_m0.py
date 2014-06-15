@@ -135,13 +135,14 @@ def run_m0():
         m0.set_random_seed(options.random_seed)
 
     if options.seq_mode:
-        train_file = file(options.data_path)
+        train_file = open(options.data_path)
+        c_train = Corpus.from_stream_data(train_file, options.D)
     else:
         train_filenames = glob(options.data_path)
         train_filenames.sort()
         num_train_splits = len(train_filenames)
         # This is used to determine when we reload some another split.
-        num_of_doc_each_split = options.D / num_train_splits
+        num_docs_per_split = options.D / num_train_splits
         # Pick a random split to start
         # cur_chosen_split = int(random.random() * num_train_splits)
         cur_chosen_split = 0  # deterministic choice
@@ -156,10 +157,10 @@ def run_m0():
 
     logging.info("Creating online nhdp instance")
     model = m0.m0(trunc, options.D, options.W,
-                                options.lambda0, options.beta, options.alpha,
-                                options.gamma1, options.gamma2,
-                                options.kappa, options.iota, options.delta,
-                                options.scale, options.adding_noise)
+                  options.lambda0, options.beta, options.alpha,
+                  options.gamma1, options.gamma2,
+                  options.kappa, options.iota, options.delta,
+                  options.scale, options.adding_noise)
 
     if options.initialize:
         if options.burn_in_samples is None:
@@ -180,14 +181,10 @@ def run_m0():
         # Sample the documents.
         batchsize = options.batchsize
         if options.seq_mode:
-            c = Corpus.from_stream_data(train_file, batchsize)
-            batchsize = c.num_docs
-            if batchsize == 0:
-                break
-            docs = c.docs
+            docs = take(c_train.docs, batchsize)
         else:
             ids = random.sample(range(c_train.num_docs), batchsize)
-            docs = [c_train.docs[id] for id in ids]
+            docs = [c_train.docs[idx] for idx in ids]
 
         total_doc_count += batchsize
         split_doc_count += batchsize
@@ -218,7 +215,7 @@ def run_m0():
 
         # read another split.
         if not options.seq_mode:
-            if split_doc_count > num_of_doc_each_split * options.pass_ratio and num_train_splits > 1:
+            if split_doc_count > num_docs_per_split * options.pass_ratio and num_train_splits > 1:
                 logging.info("Loading a new split from the training data")
                 split_doc_count = 0
                 # cur_chosen_split = int(random.random() * num_train_splits)
