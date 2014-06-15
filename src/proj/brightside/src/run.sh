@@ -37,5 +37,7 @@ do
 done
 python -m output.generate_d3_subgraphs "$OUTPUT_DIR/log" "$OUTPUT_DIR/subgraphs.json"
 
+ln -s "$PWD/output/d3.v3.js" "$PWD/output/graph.html" "$PWD/output/subgraphs.html" "$OUTPUT_DIR/"
+
 #cd "$OUTPUT_DIR"
 #python -m SimpleHTTPServer 8000
