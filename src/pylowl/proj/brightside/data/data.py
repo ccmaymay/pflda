@@ -1,4 +1,9 @@
 import os
+import itertools as it
+
+
+def take(g, n):
+    return (x for (i, x) in it.izip(xrange(n), g))
 
 
 def load_word_set(filename):
