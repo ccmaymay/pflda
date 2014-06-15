@@ -524,6 +524,20 @@ where the expectation of the normalizer does not have an obvious closed form.
 
 In the generative story, we draw the global topics $\theta$ and stick-breaking weights $V_{\cdot}$, for each user we draw user-specific topics $\phi$ and stick-breaking weights $V_{\cdot}^{(u)}$, for each document of that user we draw a path $c_d$ from the tree and proportions over the levels $U_{\cdot} \sim \GEM(m, \pi)$ (relative stick lengths $U'_{\ell} \sim \Beta(m \pi, (1 - m) \pi)$ i.i.d.), and for each token in the document we draw a topic indicator $\zeta$ according to the level proportions $U$ and finally draw the word type $W$ from the corresponding $\phi$ (hence, $\theta$).  On the surface, the difference from the nHDP (M0), using the user--document metaphor, is that tokens for a user are drawn in a two-stage process from the local tree (the intermediate stage being documents), instead of being drawn directly from the local tree.
 
+The distribution on the relative stick lengths can alternatively be parameterized as $\Beta(\gamma_1, \gamma_2)$, like the distribution on the local switching probabilities in M0.
+
+The ELBO components for $\theta$, $V$, $V^{(u)}$, and $z^{(u)}$ do not change from M0.
+
+The ELBO component for $c^{(u)}$ changes substantially; however, it can be easily deduced from the Beta formula.
+
+TODO: we do not have hard assignments for any of the following, so... it is wrong:
+
+The ELBO component for $U^{(u)}_d$ does not change in structure, however it is now computed within a user's document's path rather than within a document's tree.
+
+The ELBO component for $\zeta^{(u)}_{dn}$ resembles the M0 ELBO component for $c_{dn}$.  The difference is that the prior $\pi^{(u)}_{di}$ is based only on $U^{(u)}_d$ and not $V^{(u)}$.
+
+The ELBO component for $W^{(u)}_{dn}$
+
 \ldots
 
 
