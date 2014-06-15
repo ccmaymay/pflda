@@ -1,0 +1,10 @@
+This source is based on onlinehdp[1], which was in turn based on
+onlinelda[2], according to comments in the onlinehdp source.
+
+It has been thoroughly hacked up.
+
+[1] http://www.cs.cmu.edu/~chongw/software/onlinehdp.tar.gz
+    (Wang, Paisley, and Blei (2011))
+[2] http://www.cs.princeton.edu/~blei/downloads/onlineldavb.tar
+    (Hoffman, Blei, and Bach (2010))
+

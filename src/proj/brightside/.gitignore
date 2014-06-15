@@ -1,0 +1,8 @@
+.*.swp
+*.aux
+*.log
+model.pdf
+.sconsign.dblite
+build
+*.pyc
+.DS_Store
