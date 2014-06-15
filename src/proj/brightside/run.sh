@@ -2,7 +2,7 @@
 
 set -e
 
-DATA_DIR="../data/tng.rasp"
+DATA_DIR="../../../data/txt/tng.rasp"
 VOCAB_FILENAME="$DATA_DIR/vocab"
 TRAIN_FILENAME="$DATA_DIR/train"
 TEST_FILENAME="$DATA_DIR/test"
