@@ -29,5 +29,5 @@ python "$PYTHON_SCRIPT" \
     --trunc="$TRUNC" \
     "$@"
 
-bash generate_topic_graphs.sh "$TRUNC" "$VOCAB_FILENAME" "$OUTPUT_DIR"
-python -m output.generate_d3_subgraphs "$OUTPUT_DIR/log" "$OUTPUT_DIR/subgraphs.json"
+bash generate_topic_graphs.sh "$TRUNC" "$VOCAB_FILENAME" "$OUTPUT_DIR" \
+    && python -m output.generate_d3_subgraphs "$OUTPUT_DIR/log" "$OUTPUT_DIR/subgraphs.json"

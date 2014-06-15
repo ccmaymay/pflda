@@ -14,8 +14,11 @@ topic_types_fn=`mktemp generate_topic_graphs.top.XXXXXX`
 
 for f in "$output_dir"/*.topics
 do
-    python -m output.write_topic_types "$vocab_filename" "$f" "$topic_types_fn"
-    python -m output.generate_d3_topic_graph "$trunc_csv" "$topic_types_fn" "${f}.json"
+    if [ -f "$f" ] # guard against '*.topics' in empty case
+    then
+        python -m output.write_topic_types "$vocab_filename" "$f" "$topic_types_fn"
+        python -m output.generate_d3_topic_graph "$trunc_csv" "$topic_types_fn" "${f}.json"
+    fi
 done
 
 rm -f "$topic_types_fn"
