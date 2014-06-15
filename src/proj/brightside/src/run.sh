@@ -29,5 +29,11 @@ python "$PYTHON_SCRIPT" \
     --trunc="$TRUNC" \
     "$@"
 
-bash generate_topic_graphs.sh "$TRUNC" "$VOCAB_FILENAME" "$OUTPUT_DIR" \
-    && python -m output.generate_d3_subgraphs "$OUTPUT_DIR/log" "$OUTPUT_DIR/subgraphs.json"
+for topics_f in "$output_dir"/*.topics
+do
+    if [ -f "$topics_f" ] # guard against '*.topics' in empty case
+    then
+        python -m output.generate_d3_topic_graph "$TRUNC_CSV" "$VOCAB_FILENAME" "${topics_f}.json"
+    fi
+done
+python -m output.generate_d3_subgraphs "$OUTPUT_DIR/log" "$OUTPUT_DIR/subgraphs.json"
