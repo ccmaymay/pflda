@@ -166,7 +166,7 @@ def run_m0():
         if options.burn_in_samples is None:
             init_docs = c_train.docs
         else:
-            init_docs = take(c_train.docs, options.burn_in_samples
+            init_docs = take(c_train.docs, options.burn_in_samples)
         model.initialize(init_docs, options.xi, options.omicron)
 
     iteration = 0
