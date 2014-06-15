@@ -24,8 +24,6 @@ python "$PYTHON_SCRIPT" \
     --data_path="$TRAIN_FILENAME" \
     --test_data_path="$TEST_FILENAME" \
     --max_iter=100 \
-    --D="$NUM_DOCS" \
-    --W="$VOCAB_SIZE" \
     --trunc="$TRUNC" \
     "$@"
 
