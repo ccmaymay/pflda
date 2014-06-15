@@ -64,17 +64,7 @@ class Corpus(object):
 
     ''' the class for the whole corpus'''
 
-    def __init__(self, docs, vocab_size=None):
-        if vocab_size is None:
-            self.vocab_size = 0
-            for d in docs:
-                if d.length > 0:
-                    max_word = max(d.words)
-                    if max_word >= self.vocab_size:
-                        self.vocab_size = max_word + 1
-        else:
-            self.vocab_size = vocab_size
-
+    def __init__(self, docs, num_docs):
         self.docs = docs
         self.num_docs = len(self.docs)
 
@@ -82,29 +72,30 @@ class Corpus(object):
     def from_data(cls, filename):
         docs = []
         i = 0
-        for line in open(filename):
-            docs.append(Document.from_line(line,
-                identifier=':'.join((filename, str(i)))))
-            i += 1
-        return Corpus(docs)
+        with open(filename) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    docs.append(Document.from_line(line,
+                        identifier=':'.join((filename, str(i)))))
+                i += 1
+        return Corpus(docs, len(docs))
 
     @classmethod
     def from_stream_data(cls, f, num_docs):
-        docs = []
-        for i in xrange(num_docs):
-            line = f.readline()
-            line = line.strip()
-            if len(line) == 0:
-                break
-            docs.append(Document.from_line(line, identifier=str(i)))
-        return Corpus(docs)
+        lines = (line.strip() for line in f)
+        non_empty_lines = ((j, line) for (j, line) in enumerate(lines) if line)
+        docs = (Document.from_line(line, identifier=str(j))
+                for (i, line) in enumerate(non_empty_lines)
+                if i < num_docs)
+        return Corpus(docs, num_docs) # TODO what if too short?
 
     def split_within_docs(self, train_frac):
-        doc_pairs = [p for p in
+        doc_pairs = (p for p in
                      (d.split(train_frac) for d in self.docs)
-                     if p[0].words and p[1].words]
-        docs_train = [p[0] for p in doc_pairs]
-        docs_test = [p[1] for p in doc_pairs]
-        c_train = Corpus(docs_train, self.vocab_size)
-        c_test = Corpus(docs_test, self.vocab_size)
+                     if p[0].words and p[1].words)
+        docs_train = (p[0] for p in doc_pairs)
+        docs_test = (p[1] for p in doc_pairs)
+        c_train = Corpus(docs_train, self.num_docs) # TODO what if too short?
+        c_test = Corpus(docs_test, self.num_docs) # TODO what if too short?
         return (c_train, c_test)
