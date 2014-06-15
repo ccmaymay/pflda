@@ -112,7 +112,7 @@ class m0:
                           (specifically, to suff stats for var params)
                           every few documents, before E-step of
                           minibatch
-    m_num_docs_parsed:    int, counter of number of docs processed
+    m_num_docs_processed:    int, counter of number of docs processed
                           (updated at beginning of iteration)
     m_tau_ss           (K) float, sufficient statistics for global
                           relative stick length variational parameters
@@ -170,28 +170,21 @@ class m0:
         self.m_rho_bound = rho_bound
         self.m_t = 0
         self.m_adding_noise = adding_noise
-        self.m_num_docs_parsed = 0
+        self.m_num_docs_processed = 0
 
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
-    def initialize(self, c, xi, burn_in_samples=None, omicron=None):
+    def initialize(self, docs, xi, omicron=None):
         '''
         Initialize m_lambda_ss and m_Elogprobw (and m_lambda_ss_sum) using
-        five E-step trials on each of the provided documents.  (Use
-        burn_in_samples of the documents, if not None, else use all
-        provided documents.)
+        five E-step trials on each of the provided documents.
         '''
 
-        if burn_in_samples is None:
-            num_samples = c.num_docs
-        else:
-            num_samples = min(c.num_docs, burn_in_samples)
+        docs = list(docs)
+        num_samples = len(docs)
 
         if omicron is None:
             omicron = num_samples
-
-        ids = random.sample(range(c.num_docs), num_samples)
-        docs = [c.docs[id] for id in ids]
 
         vocab_to_batch_word_map = dict()
         batch_to_vocab_word_map = []
@@ -258,25 +251,23 @@ class m0:
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
         self.m_Elogprobw = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
 
-    def process_documents(self, docs, var_converge, unseen_ids=None, update=True, predict_docs=None):
+    def process_documents(self, docs, var_converge, update=True, predict_docs=None):
         '''
         Bring m_lambda_ss and m_Elogprobw up to date for the word types in
         this minibatch, do the E-step on this minibatch, optionally
         add noise to the global topics, and then do the M-step.
-        Return the four-tuple (score, count, unseen_score, unseen_count)
-        representing the likelihood, number of tokens, likelihood
-        restricted to documents we haven't processed before, and number
-        of tokens restricted to documents we haven't processed before,
-        respectively.
+        Return the four-tuple (score, count, doc_count)
+        representing the likelihood, number of tokens, and number of
+        documents processed, respectively.
         '''
-        if unseen_ids is None:
-            unseen_ids = []
+        docs = list(docs)
+        doc_count = len(docs)
 
         if predict_docs is None:
-            predict_docs = [None] * len(docs)
+            predict_docs = [None] * doc_count
 
         # Find the unique words in this mini-batch of documents...
-        self.m_num_docs_parsed += len(docs)
+        self.m_num_docs_processed += doc_count
         adding_noise = False
         adding_noise_point = MIN_ADDING_NOISE_POINT
 
@@ -284,7 +275,7 @@ class m0:
             if float(adding_noise_point) / len(docs) < MIN_ADDING_NOISE_RATIO:
                 adding_noise_point = MIN_ADDING_NOISE_RATIO * len(docs)
 
-            if self.m_num_docs_parsed % adding_noise_point == 0:
+            if self.m_num_docs_processed % adding_noise_point == 0:
                 adding_noise = True
 
         # mapping from word types in this mini-batch to unique
@@ -310,7 +301,7 @@ class m0:
         logging.info('Processing %d docs spanning %d tokens, %d types'
             % (len(docs), num_tokens, Wt))
 
-        ss = suff_stats(self.m_K, Wt, len(docs))
+        ss = suff_stats(self.m_K, Wt, doc_count)
 
         # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
         psi_sum_tau = sp.psi(np.sum(self.m_tau, 0))
@@ -319,23 +310,16 @@ class m0:
         # run variational inference on some new docs
         score = 0.0
         count = 0
-        unseen_score = 0.0
-        unseen_count = 0
-        for i, (doc, predict_doc) in enumerate(it.izip(docs, predict_docs)):
+        for (doc, predict_doc) in it.izip(docs, predict_docs):
             doc_score = self.doc_e_step(doc, ss, ElogV, vocab_to_batch_word_map,
                                         batch_to_vocab_word_map, var_converge,
                                         predict_doc=predict_doc)
+
             score += doc_score
             if predict_doc is None:
                 count += doc.total
             else:
                 count += predict_doc.total
-            if i in unseen_ids:
-                unseen_score += doc_score
-                if predict_doc is None:
-                    unseen_count += doc.total
-                else:
-                    unseen_count += predict_doc.total
 
         if adding_noise:
             # add noise to the ss
@@ -364,7 +348,7 @@ class m0:
             self.update_tau()
             self.m_t += 1
 
-        return (score, count, unseen_score, unseen_count)
+        return (score, count, doc_count)
 
     def update_lambda(self):
         self.m_Elogprobw = (

@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 from data.corpus import Corpus
+from data.data import take
 import m0
 import cPickle
 import random
@@ -149,25 +150,27 @@ def run_m0():
 
     if options.test_data_path is not None:
         test_data_path = options.test_data_path
-        c_test = Corpus.from_data(test_data_path)
-        (c_test_train, c_test_test) = c_test.split_within_docs(options.test_train_frac)
+        (c_test_train, c_test_test) = Corpus.from_data(test_data_path).split_within_docs(options.test_train_frac)
 
     trunc = tuple(int(t) for t in options.trunc.split(','))
 
     logging.info("Creating online nhdp instance")
-    onhdp = m0.m0(trunc, options.D, options.W,
+    model = m0.m0(trunc, options.D, options.W,
                                 options.lambda0, options.beta, options.alpha,
                                 options.gamma1, options.gamma2,
                                 options.kappa, options.iota, options.delta,
                                 options.scale, options.adding_noise)
+
     if options.initialize:
-        onhdp.initialize(c_train, options.xi, options.burn_in_samples,
-                         options.omicron)
+        if options.burn_in_samples is None:
+            init_docs = c_train.docs
+        else:
+            init_docs = take(c_train.docs, options.burn_in_samples
+        model.initialize(init_docs, options.xi, options.omicron)
 
     iteration = 0
     total_doc_count = 0
     split_doc_count = 0
-    doc_seen = set()
 
     logging.info("Starting online variational inference")
     while True:
@@ -182,25 +185,18 @@ def run_m0():
             if batchsize == 0:
                 break
             docs = c.docs
-            unseen_ids = range(batchsize)
         else:
             ids = random.sample(range(c_train.num_docs), batchsize)
             docs = [c_train.docs[id] for id in ids]
-            # Record the seen docs.
-            unseen_ids = set(
-                [i for (i, id) in enumerate(ids) if (cur_chosen_split, id) not in doc_seen])
-            if unseen_ids:
-                doc_seen.update([(cur_chosen_split, id) for id in ids])
 
         total_doc_count += batchsize
         split_doc_count += batchsize
 
         # Do online inference and evaluate on the fly dataset
-        (score, count, unseen_score, unseen_count) = onhdp.process_documents(
-            docs, options.var_converge, unseen_ids)
+        (score, count, doc_count) = model.process_documents(docs,
+            options.var_converge)
         logging.info('Cumulative doc count: %d' % total_doc_count)
         logging.info('Log-likelihood: %f (%f per token) (%d tokens)' % (score, score/count, count))
-        logging.info('Unseen log-likelihood: %f (%f per token) (%d tokens)' % (unseen_score, unseen_score/unseen_count, unseen_count))
 
         # Evaluate on the test data: fixed and folds
         if total_doc_count % options.save_lag == 0:
@@ -211,14 +207,14 @@ def run_m0():
             if options.save_model:
                 topics_filename = os.path.join(result_directory,
                     'doc_count-%d.topics' % total_doc_count)
-                onhdp.save_topics(topics_filename)
+                model.save_topics(topics_filename)
                 model_filename = os.path.join(result_directory,
                     'doc_count-%d.model' % total_doc_count)
                 with open(model_filename, 'w') as model_f:
-                    cPickle.dump(onhdp, model_f, -1)
+                    cPickle.dump(model, model_f, -1)
 
             if options.test_data_path is not None:
-                test_nhdp_predictive(onhdp, c_test_train, c_test_test, batchsize, options.var_converge, options.test_samples)
+                test_nhdp_predictive(model, c_test_train, c_test_test, batchsize, options.var_converge, options.test_samples)
 
         # read another split.
         if not options.seq_mode:
@@ -236,30 +232,34 @@ def run_m0():
     if options.save_model:
         logging.info("Saving the final model and topics")
         topics_filename = os.path.join(result_directory, 'final.topics')
-        onhdp.save_topics(topics_filename)
+        model.save_topics(topics_filename)
         model_filename = os.path.join(result_directory, 'final.model')
         with open(model_filename, 'w') as model_f:
-            cPickle.dump(onhdp, model_f, -1)
+            cPickle.dump(model, model_f, -1)
 
     if options.seq_mode:
         train_file.close()
 
     # Makeing final predictions.
     if options.test_data_path is not None:
-        test_nhdp_predictive(onhdp, c_test_train, c_test_test, batchsize, options.var_converge, options.test_samples)
+        test_nhdp_predictive(model, c_test_train, c_test_test, batchsize, options.var_converge, options.test_samples)
 
 
-def test_nhdp(onhdp, c, batchsize, var_converge, test_samples=None):
-    total_num_docs = len(c.docs)
-    if test_samples is not None and test_samples < total_num_docs:
-        total_num_docs = test_samples
-
+def test_nhdp(model, c, batchsize, var_converge, test_samples=None):
     total_score = 0.0
     total_count = 0
-    for i in xrange(0, total_num_docs, batchsize):
-        docs = c.docs[i:min(i+batchsize, total_num_docs)]
-        (score, count, unseen_score, unseen_count) = onhdp.process_documents(
-            docs, var_converge, range(len(docs)), update=False)
+
+    docs_generator = (d for d in c.docs)
+
+    if test_samples is not None:
+        docs_generator = take(docs_generator, test_samples)
+
+    doc_count = batchsize
+    while doc_count == batchsize:
+        batch = take(docs_generator, batchsize)
+
+        (score, count, doc_count) = model.process_documents(
+            batch, var_converge, update=False)
         total_score += score
         total_count += count
 
@@ -267,21 +267,25 @@ def test_nhdp(onhdp, c, batchsize, var_converge, test_samples=None):
         % (total_score, total_score/total_count, total_count))
 
 
-def test_nhdp_predictive(onhdp, c_train, c_test, batchsize, var_converge, test_samples=None):
-    total_num_docs = len(c_train.docs)
-    if test_samples is not None and test_samples < total_num_docs:
-        total_num_docs = test_samples
-
+def test_nhdp_predictive(model, c_train, c_test, batchsize, var_converge, test_samples=None):
     total_score = 0.0
     total_count = 0
-    for i in xrange(0, total_num_docs, batchsize):
-        batch_end = min(i+batchsize, total_num_docs)
-        docs_train = c_train.docs[i:batch_end]
-        docs_test = c_test.docs[i:batch_end]
 
-        (score, count, unseen_score, unseen_count) = onhdp.process_documents(
-            docs_train, var_converge, range(len(docs_train)), update=False,
-            predict_docs=docs_test)
+    # need a generator or we will start over at beginning each batch
+    train_docs_generator = (d for d in c_train.docs)
+    test_docs_generator = (d for d in c_test.docs)
+
+    if test_samples is not None:
+        train_docs_generator = take(train_docs_generator, test_samples)
+        test_docs_generator = take(test_docs_generator, test_samples)
+
+    doc_count = batchsize
+    while doc_count == batchsize:
+        train_batch = take(train_docs_generator, batchsize)
+        test_batch = take(test_docs_generator, batchsize)
+
+        (score, count, doc_count) = model.process_documents(
+            train_batch, var_converge, update=False, predict_docs=test_batch)
         total_score += score
         total_count += count
 

@@ -1,8 +1,3 @@
-'''
-3 2:3 4:5 5:3 --- document info (word: count)
-'''
-
-
 import re
 import random
 import math
@@ -13,8 +8,10 @@ SPLIT_RE = re.compile(r'[ :]')
 
 
 class Document(object):
-
-    ''' the class for a single document '''
+    '''
+    A single document: a list of type-count pairs and an optional
+    identifier (e.g., filename and line number).
+    '''
 
     def __init__(self, type_ids, type_counts, identifier=None):
         self.words = type_ids
@@ -24,19 +21,33 @@ class Document(object):
         self.identifier = identifier
 
     def split(self, train_frac):
+        '''
+        Return pair of documents, the first containing roughly
+        train_frac (a fraction) of this document's tokens
+        (chosen uniformly at random), and the second containing
+        the rest.  As long as this document (self) is non-empty,
+        the first ("training") document is always non-empty, while
+        the second ("testing") document may be empty.
+        '''
         tokens = []
         for (w, c) in it.izip(self.words, self.counts):
             tokens += [w] * c
         random.shuffle(tokens)
         num_train_tokens = int(math.ceil(len(tokens) * train_frac))
+        # always at least one token in training document
         train_doc = Document.from_tokens(tokens[:num_train_tokens],
             self.identifier)
+        # may be empty
         test_doc = Document.from_tokens(tokens[num_train_tokens:],
             self.identifier)
         return (train_doc, test_doc)
 
     @classmethod
     def from_tokens(cls, tokens, identifier=None):
+        '''
+        Return document from list of tokens (where each token is an
+        integral type index).
+        '''
         types_dict = dict()
         for t in tokens:
             if t in types_dict:
@@ -54,6 +65,16 @@ class Document(object):
 
     @classmethod
     def from_line(cls, line, identifier=None):
+        '''
+        Return document specified by line, which should be an integer
+        followed by a list of integer pairs, delimited by whitespace,
+        where the two integers within each pair are separated by a
+        colon, e.g.:
+            3 2:3 4:5 5:3
+        The first integer is the number of types in the document;
+        each pair after that contains a type index (first) and a count
+        (second).
+        '''
         pieces = [int(i) for i in SPLIT_RE.split(line)]
         type_ids = pieces[1::2]
         type_counts = pieces[2::2]
@@ -61,8 +82,10 @@ class Document(object):
 
 
 class Corpus(object):
-
-    ''' the class for the whole corpus'''
+    '''
+    Container for a list of documents.  Documents may be loaded unlazily
+    or lazily, facilitating streaming processing.
+    '''
 
     def __init__(self, docs, num_docs):
         self.docs = docs
@@ -70,6 +93,10 @@ class Corpus(object):
 
     @classmethod
     def from_data(cls, filename):
+        '''
+        Return corpus containing all documents from the file at
+        filename.  Documents are loaded immediately (unlazily).
+        '''
         docs = []
         i = 0
         with open(filename) as f:
@@ -83,19 +110,31 @@ class Corpus(object):
 
     @classmethod
     def from_stream_data(cls, f, num_docs):
-        lines = (line.strip() for line in f)
-        non_empty_lines = ((j, line) for (j, line) in enumerate(lines) if line)
-        docs = (Document.from_line(line, identifier=str(j))
-                for (i, line) in enumerate(non_empty_lines)
+        '''
+        Return corpus containing at most num_docs documents from the
+        file-like object f.  Documents are loaded lazily.
+        '''
+        docs = (Document.from_line(line.strip(), identifier=str(i))
+                for (i, line) in enumerate(f)
                 if i < num_docs)
         return Corpus(docs, num_docs) # TODO what if too short?
 
     def split_within_docs(self, train_frac):
+        '''
+        Return pair of corpora, both with the same number of documents
+        as this corpus (self).  The documents in the first corpus
+        will contain roughly train_frac (a fraction) of the tokens in
+        the respective documents in this corpus, chosen uniformly at
+        random; the documents in the second corpus will contain the
+        rest.  Assuming documents in this corpus (self) are non-empty,
+        documents in the first returned corpus are always non-empty
+        while documents in the second may be empty.
+        '''
         doc_pairs = (p for p in
                      (d.split(train_frac) for d in self.docs)
                      if p[0].words and p[1].words)
         docs_train = (p[0] for p in doc_pairs)
         docs_test = (p[1] for p in doc_pairs)
-        c_train = Corpus(docs_train, self.num_docs) # TODO what if too short?
-        c_test = Corpus(docs_test, self.num_docs) # TODO what if too short?
+        c_train = Corpus(docs_train, self.num_docs)
+        c_test = Corpus(docs_test, self.num_docs)
         return (c_train, c_test)
