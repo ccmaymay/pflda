@@ -22,11 +22,20 @@ python "$PYTHON_SCRIPT" \
     --trunc="$TRUNC" \
     "$@"
 
-for topics_f in "$output_dir"/*.topics
+first_graph=true
+for topics_f in `ls -t "$OUTPUT_DIR"/*.topics`
 do
     if [ -f "$topics_f" ] # guard against '*.topics' in empty case
     then
-        python -m output.generate_d3_topic_graph "$TRUNC_CSV" "$VOCAB_FILENAME" "${topics_f}.json"
+        python -m output.generate_d3_topic_graph "$TRUNC" "$VOCAB_FILENAME" "${topics_f}" "${topics_f}.json"
+        if $first_graph
+        then
+            cp "${topics_f}.json" "$OUTPUT_DIR/graph.json"
+        fi
+        first_graph=false
     fi
 done
 python -m output.generate_d3_subgraphs "$OUTPUT_DIR/log" "$OUTPUT_DIR/subgraphs.json"
+
+#cd "$OUTPUT_DIR"
+#python -m SimpleHTTPServer 8000

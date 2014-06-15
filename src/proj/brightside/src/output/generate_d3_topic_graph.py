@@ -10,24 +10,23 @@ from data.data import load_vocab, take
 NUM_TYPES_PER_TOPIC = 10
 
 
-def sorted_topic_word_weight_lists(input_filename, r_vocab):
+def sorted_topic_word_weight_lists(input_filename, vocab):
     with open(input_filename) as f:
         for line in f:
             yield sorted(
-                (r_vocab[t], w) for (t, w) in
-                    enumerate([float(w) for w in line.strip().split()]),
+                ((vocab[t], w) for (t, w) in
+                    enumerate([float(w) for w in line.strip().split()])),
                 key=lambda p: p[1],
                 reverse=True)
 
 
-def main(trunc_csv, input_filename, output_filename):
+def main(trunc_csv, vocab_filename, input_filename, output_filename):
     vocab = load_vocab(vocab_filename)
-    r_vocab = dict((v, k) for (k, v) in vocab.items())
 
     node_topics = []
     graph = {}
 
-    for ww_list in sorted_topic_word_weight_lists(input_filename, r_vocab):
+    for ww_list in sorted_topic_word_weight_lists(input_filename, vocab):
         label = []
         topic_weight = sum(ww[1] for ww in ww_list)
         for (word, weight) in take(ww_list, NUM_TYPES_PER_TOPIC):
