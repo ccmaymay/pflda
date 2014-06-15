@@ -157,6 +157,11 @@ def run_m0():
                     num_types,
                     max(max(d.words) for d in
                         Corpus.from_data(train_filename).docs) + 1)
+            if options.test_data_path is not None:
+                num_types = max(
+                    num_types,
+                    max(max(d.words) for d in
+                        Corpus.from_data(options.test_data_path).docs) + 1)
         else:
             num_types = options.W
 
