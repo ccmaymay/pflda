@@ -7,7 +7,7 @@ VOCAB_FILENAME="$DATA_DIR/vocab"
 TRAIN_FILENAME="$DATA_DIR/train"
 TEST_FILENAME="$DATA_DIR/test"
 PYTHON_SCRIPT=run_m0.py
-OUTPUT_BASE_DIR="../output"
+OUTPUT_BASE_DIR="../../../output/proj/brightside"
 
 mkdir -p "$OUTPUT_BASE_DIR"
 OUTPUT_DIR=`mktemp -d "$OUTPUT_BASE_DIR/XXXXXX"`
