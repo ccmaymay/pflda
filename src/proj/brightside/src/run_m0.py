@@ -1,4 +1,5 @@
 import logging
+import time
 import os
 import sys
 from data.corpus import Corpus
@@ -22,7 +23,8 @@ def run_m0():
                         gamma1=1/3.0, gamma2=2/3.0,
                         kappa=0.5, iota=1.0, delta=1e-3, omicron=None, xi=0.5,
                         batchsize=100,
-                        max_iter=0, var_converge=0.0001, random_seed=None,
+                        max_iter=0, max_time=0,
+                        var_converge=0.0001, random_seed=None,
                         data_path=None, test_data_path=None,
                         directory='output', test_samples=None,
                         test_train_frac=0.9,
@@ -62,7 +64,9 @@ def run_m0():
     parser.add_option("--batchsize", type="int", dest="batchsize",
                       help="batch size [100]")
     parser.add_option("--max_iter", type="int", dest="max_iter",
-                      help="max iteration to run training [no max]")
+                      help="max iterations for training [no max]")
+    parser.add_option("--max_time", type="int", dest="max_time",
+                      help="max time in seconds for training [no max]")
     parser.add_option("--var_converge", type="float", dest="var_converge",
                       help="relative change on doc lower bound [0.0001]")
     parser.add_option("--random_seed", type="int", dest="random_seed",
@@ -195,6 +199,7 @@ def run_m0():
     total_doc_count = 0
     split_doc_count = 0
 
+    start_time = time.time()
     logging.info("Starting online variational inference")
     while True:
         iteration += 1
@@ -246,6 +251,8 @@ def run_m0():
                 c_train = Corpus.from_data(cur_train_filename)
 
         if options.max_iter > 0 and iteration > options.max_iter:
+            break
+        if options.max_time > 0 and time.time() - start_time > options.max_time:
             break
 
     if options.save_model:
