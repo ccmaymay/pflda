@@ -27,9 +27,9 @@ def run_m0():
                         directory='output', test_samples=None,
                         test_train_frac=0.9,
                         save_lag=500, pass_ratio=0.5,
-                        initialize=False, scale=1.0, adding_noise=False,
+                        scale=1.0, adding_noise=False,
                         seq_mode=False, fixed_lag=False, save_model=False,
-                        burn_in_samples=None)
+                        init_samples=None)
 
     parser.add_option("--log_level", type="string", dest="log_level",
                       help="log level (DEBUG, INFO, WARNING, ERROR, CRITICAL) [INFO]")
@@ -81,10 +81,8 @@ def run_m0():
                       help="the minimal saving lag, increasing as save_lag * 2^i, with max i as 10; default 500.")
     parser.add_option("--pass_ratio", type="float", dest="pass_ratio",
                       help="The pass ratio for each split of training data [0.5]")
-    parser.add_option("--initialize", action="store_true", dest="initialize",
-                      help="initialize via nested k-means")
-    parser.add_option("--burn_in_samples", type="int", dest="burn_in_samples",
-                      help="number of burn-in documents for new init [all]")
+    parser.add_option("--init_samples", type="int", dest="init_samples",
+                      help="number of initialization documents (nested k-means init) [0]")
     parser.add_option("--test_samples", type="int", dest="test_samples",
                       help="number of test documents [all]")
     parser.add_option("--scale", type="float", dest="scale",
@@ -162,11 +160,8 @@ def run_m0():
                   options.kappa, options.iota, options.delta,
                   options.scale, options.adding_noise)
 
-    if options.initialize:
-        if options.burn_in_samples is None:
-            init_docs = c_train.docs
-        else:
-            init_docs = take(c_train.docs, options.burn_in_samples)
+    if options.init_samples > 0:
+        init_docs = take(c_train.docs, options.init_samples)
         model.initialize(init_docs, options.xi, options.omicron)
 
     iteration = 0
