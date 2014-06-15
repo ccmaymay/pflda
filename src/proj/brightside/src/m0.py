@@ -272,8 +272,8 @@ class m0:
         adding_noise_point = MIN_ADDING_NOISE_POINT
 
         if self.m_adding_noise:
-            if float(adding_noise_point) / len(docs) < MIN_ADDING_NOISE_RATIO:
-                adding_noise_point = MIN_ADDING_NOISE_RATIO * len(docs)
+            if float(adding_noise_point) / doc_count < MIN_ADDING_NOISE_RATIO:
+                adding_noise_point = MIN_ADDING_NOISE_RATIO * doc_count
 
             if self.m_num_docs_processed % adding_noise_point == 0:
                 adding_noise = True
@@ -299,7 +299,7 @@ class m0:
         Wt = len(batch_to_vocab_word_map)
 
         logging.info('Processing %d docs spanning %d tokens, %d types'
-            % (len(docs), num_tokens, Wt))
+            % (doc_count, num_tokens, Wt))
 
         ss = suff_stats(self.m_K, Wt, doc_count)
 
@@ -336,7 +336,7 @@ class m0:
             #scaled_beta = 5*self.m_W * (self.m_lambda_ss + self.m_lambda0) / (lambda_sum_tmp[:, np.newaxis])
             #noise = np.random.gamma(shape=scaled_beta, scale=1.0)
             #noise_ratio = lambda_sum_tmp / noise_sum
-            #noise = (noise * noise_ratio[:, np.newaxis] - self.m_lambda0) * len(docs)/self.m_D
+            #noise = (noise * noise_ratio[:, np.newaxis] - self.m_lambda0) * doc_count/self.m_D
 
             mu = MU0 * 1000.0 / (self.m_t + 1000)
 

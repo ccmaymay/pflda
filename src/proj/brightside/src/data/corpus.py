@@ -130,11 +130,10 @@ class Corpus(object):
         documents in the first returned corpus are always non-empty
         while documents in the second may be empty.
         '''
-        doc_pairs = (p for p in
+        doc_pairs = [p for p in
                      (d.split(train_frac) for d in self.docs)
-                     if p[0].words and p[1].words)
-        docs_train = (p[0] for p in doc_pairs)
-        docs_test = (p[1] for p in doc_pairs)
-        c_train = Corpus(docs_train, self.num_docs)
-        c_test = Corpus(docs_test, self.num_docs)
-        return (c_train, c_test)
+                     if p[0].words and p[1].words]
+        docs_train = [p[0] for p in doc_pairs]
+        docs_test = [p[1] for p in doc_pairs]
+        return (Corpus(docs_train, self.num_docs),
+                Corpus(docs_test, self.num_docs))

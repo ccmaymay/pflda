@@ -289,8 +289,11 @@ def test_nhdp(model, c, batchsize, var_converge, test_samples=None):
         total_score += score
         total_count += count
 
-    logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
-        % (total_score, total_score/total_count, total_count))
+    if total_count > 0:
+        logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
+            % (total_score, total_score/total_count, total_count))
+    else:
+        logging.warn('Cannot test: no data')
 
 
 def test_nhdp_predictive(model, c_train, c_test, batchsize, var_converge, test_samples=None):
@@ -315,8 +318,11 @@ def test_nhdp_predictive(model, c_train, c_test, batchsize, var_converge, test_s
         total_score += score
         total_count += count
 
-    logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
-        % (total_score, total_score/total_count, total_count))
+    if total_count > 0:
+        logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
+            % (total_score, total_score/total_count, total_count))
+    else:
+        logging.warn('Cannot test: no data')
 
 
 if __name__ == '__main__':
