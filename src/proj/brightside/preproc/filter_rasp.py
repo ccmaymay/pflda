@@ -6,7 +6,7 @@ import os
 import re
 import subprocess
 import tempfile
-from data import input_output_paths
+from preproc.utils import input_output_paths
 
 
 TOKEN_RE = re.compile(r'(\S+?)(?:\+\S*)?_[^_]+')

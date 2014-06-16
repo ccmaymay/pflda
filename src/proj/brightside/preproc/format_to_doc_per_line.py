@@ -2,7 +2,7 @@
 
 
 import os
-from data import make_parent_dir
+from utils import make_parent_dir
 
 
 def main(input_path, output_path):

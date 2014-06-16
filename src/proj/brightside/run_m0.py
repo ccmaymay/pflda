@@ -2,8 +2,8 @@ import logging
 import time
 import os
 import sys
-from data.corpus import Corpus
-from data.data import take
+from corpus import Corpus
+from utils import take
 import m0
 import cPickle
 import random

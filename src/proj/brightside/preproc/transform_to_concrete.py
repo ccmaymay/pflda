@@ -10,7 +10,7 @@ from concrete.structure.ttypes import (
     Tokenization, Token
 )
 import os
-from data import load_vocab
+from utils import load_vocab
 from corpus import Corpus
 
 

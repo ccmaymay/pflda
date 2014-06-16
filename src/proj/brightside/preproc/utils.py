@@ -1,27 +1,5 @@
 import os
-import itertools as it
-
-
-def take(g, n):
-    return (x for (i, x) in it.izip(xrange(n), g))
-
-
-def load_word_set(filename):
-    word_set = set()
-    with open(filename) as f:
-        for line in f:
-            word_set.add(line.strip())
-    return word_set
-
-
-def _pair_first_to_int(p):
-    return (int(p[0]), p[1])
-
-
-def load_vocab(filename):
-    with open(filename) as f:
-        vocab = dict(_pair_first_to_int(line.strip().split()) for line in f)
-    return vocab
+from utils import make_parent_dir
 
 
 def write_vocab(output_filename, vocab):
