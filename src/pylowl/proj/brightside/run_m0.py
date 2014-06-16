@@ -21,8 +21,8 @@ DEFAULT_OPTIONS = dict(
     lambda0=0.01,
     beta=1.0,
     alpha=1.0,
-    gamma1=1/3.0,
-    gamma2=2/3.0,
+    gamma1=1.0,
+    gamma2=1.0,
     kappa=0.5,
     iota=1.0,
     delta=1e-3,
@@ -35,7 +35,7 @@ DEFAULT_OPTIONS = dict(
     random_seed=None,
     data_path=None,
     test_data_path=None,
-    directory='output',
+    output_dir='output',
     test_samples=None,
     test_train_frac=0.9,
     save_lag=500,
@@ -49,7 +49,7 @@ DEFAULT_OPTIONS = dict(
 )
 
 
-def main():
+def main(argv=None):
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     parser.set_defaults(**DEFAULT_OPTIONS)
 
@@ -98,7 +98,7 @@ def main():
                       help="testing data path")
     parser.add_argument("--test_train_frac", type=float,
                       help="fraction of testing docs on which to infer local distributions")
-    parser.add_argument("--directory", type=str,
+    parser.add_argument("--output_dir", type=str,
                       help="output directory")
     parser.add_argument("--save_lag", type=int,
                       help="the minimal saving lag, increasing as save_lag * 2^i, with max i as 10; default 500.")
@@ -119,8 +119,10 @@ def main():
     parser.add_argument("--save_model", action="store_true",
                       help="whether to save model to disk (may be big)")
 
-    print sys.argv
-    args = parser.parse_args(sys.argv[1:])
+    if argv is None:
+        args = parser.parse_args(sys.argv[1:])
+    else:
+        args = parser.parse_args(argv)
     run_m0(**vars(args))
 
 
@@ -129,7 +131,7 @@ def run_m0(**kwargs):
     options.update(kwargs)
     
     # Make output dir
-    result_directory = options['directory']
+    result_directory = options['output_dir']
     if not os.path.isdir(result_directory):
         os.makedirs(result_directory)
 
