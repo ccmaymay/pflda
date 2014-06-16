@@ -93,7 +93,7 @@ def main(argv=None):
     parser.add_argument("--random_seed", type=int,
                       help="the random seed (None: auto)")
     parser.add_argument("--data_path", type=str,
-                      help="training data path or pattern")
+                      help="training data path or glob pattern")
     parser.add_argument("--test_data_path", type=str,
                       help="testing data path")
     parser.add_argument("--test_train_frac", type=float,
@@ -102,8 +102,6 @@ def main(argv=None):
                       help="output directory")
     parser.add_argument("--save_lag", type=int,
                       help="the minimal saving lag, increasing as save_lag * 2^i, with max i as 10; default 500.")
-    parser.add_argument("--pass_ratio", type=float,
-                      help="The pass ratio for each split of training data")
     parser.add_argument("--init_samples", type=int,
                       help="number of initialization documents (nested k-means init)")
     parser.add_argument("--test_samples", type=int,
@@ -169,12 +167,13 @@ def run_m0(**kwargs):
             raise ValueError('W must be specified in streaming mode')
         num_docs = options['D']
         num_types = options['W']
+        # TODO multiple files?
         train_file = open(options['data_path'])
         c_train = Corpus.from_stream_data(train_file, num_docs)
     else:
         train_filenames = glob(options['data_path'])
         train_filenames.sort()
-        num_train_splits = len(train_filenames)
+
         if options['D'] is None:
             num_docs = 0
             for train_filename in train_filenames:
@@ -197,11 +196,7 @@ def run_m0(**kwargs):
         else:
             num_types = options['W']
 
-        # This is used to determine when we reload some another split.
-        num_docs_per_split = num_docs / num_train_splits
-        cur_chosen_split = 0
-        cur_train_filename = train_filenames[cur_chosen_split]
-        c_train = Corpus.from_data(cur_train_filename)
+        c_train = Corpus.from_data(train_filenames)
 
     logging.info('No. docs: %d' % num_docs)
     logging.info('No. types: %d' % num_types)
@@ -226,7 +221,6 @@ def run_m0(**kwargs):
 
     iteration = 0
     total_doc_count = 0
-    split_doc_count = 0
 
     start_time = time.time()
     logging.info("Starting online variational inference")
@@ -243,7 +237,6 @@ def run_m0(**kwargs):
             docs = [c_train.docs[idx] for idx in ids]
 
         total_doc_count += batchsize
-        split_doc_count += batchsize
 
         # Do online inference and evaluate on the fly dataset
         (score, count, doc_count) = model.process_documents(docs,
@@ -268,16 +261,6 @@ def run_m0(**kwargs):
 
             if options['test_data_path'] is not None:
                 test_nhdp_predictive(model, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
-
-        # read another split.
-        if not options['streaming']:
-            if split_doc_count > num_docs_per_split * options['pass_ratio'] and num_train_splits > 1:
-                logging.info("Loading a new split from the training data")
-                split_doc_count = 0
-                # cur_chosen_split = int(random.random() * num_train_splits)
-                cur_chosen_split = (cur_chosen_split + 1) % num_train_splits
-                cur_train_filename = train_filenames[cur_chosen_split]
-                c_train = Corpus.from_data(cur_train_filename)
 
         if options['max_iter'] is not None and iteration > options['max_iter']:
             break

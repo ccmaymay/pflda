@@ -92,20 +92,25 @@ class Corpus(object):
         self.num_docs = num_docs
 
     @classmethod
-    def from_data(cls, filename):
+    def from_data(cls, loc):
         '''
-        Return corpus containing all documents from the file at
-        filename.  Documents are loaded immediately (unlazily).
+        Return corpus containing all documents from a path or
+        list of paths.  Documents are loaded immediately (unlazily).
         '''
         docs = []
         i = 0
-        with open(filename) as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    docs.append(Document.from_line(line,
-                        identifier=':'.join((filename, str(i)))))
-                i += 1
+        if isinstance(loc, str):
+            paths = (loc,)
+        else:
+            paths = loc
+        for path in paths:
+            with open(path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        docs.append(Document.from_line(line,
+                            identifier=':'.join((path, str(i)))))
+                    i += 1
         return Corpus(docs, len(docs))
 
     @classmethod
