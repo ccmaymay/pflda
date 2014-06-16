@@ -51,7 +51,8 @@ def write_concrete(docs, output_dir):
         output_path = os.path.join(output_dir, '%d.dat' % i)
 
 
-def load_concrete(loc):
+def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
+                  tokenization_list_idx=0):
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
     from concrete.communication.ttypes import Communication
@@ -59,18 +60,18 @@ def load_concrete(loc):
     def parse_comm(comm):
         tokens = []
         if comm.sectionSegmentations is not None:
-            for sect_seg in comm.sectionSegmentations:
-                if sect_seg.sectionList is not None:
-                    for sect in sect_seg.sectionList:
-                        if sect.sentenceSegmentation is not None:
-                            for sent_seg in sect.sentenceSegmentation:
-                                if sent_seg.sentenceList is not None:
-                                    for sent in sent_seg.sentenceList:
-                                        if sent.tokenizationList is not None:
-                                            for tokzn in sent.tokenizationList:
-                                                if tokzn.tokenList is not None:
-                                                    for tok in tokzn.tokenList:
-                                                        tokens.append(tok.text)
+            section_segmentation = comm.sectionSegmentations[section_segmentation_idx]
+            if section_segmentation.sectionList is not None:
+                for section in section_segmentation.sectionList:
+                    if section.sentenceSegmentation is not None:
+                        sentence_segmentation = section.sentenceSegmentation[sentence_segmentation_idx]
+                        if sentence_segmentation.sentenceList is not None:
+                            for sentence in sentence_segmentation.sentenceList:
+                                if sentence.tokenizationList is not None:
+                                    tokenization = sentence.tokenizationList[tokenization_list_idx]
+                                    if tokenization.tokenList is not None:
+                                        for token in tokenization.tokenList:
+                                            tokens.append(token.text)
         return tokens
 
     for input_path in path_list(loc):

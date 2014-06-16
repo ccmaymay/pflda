@@ -18,7 +18,7 @@ echo "Writing data to $DATA_DIR ..."
 bash "$SRC_DIR/make_demo_data.sh" src "$DATA_DIR"
 echo "Writing vocab to $VOCAB_PATH ..."
 python -m pylowl.proj.brightside.preproc.extract_concrete_vocab \
-    "$DATA_DIR"/'*' "$VOCAB_PATH"
+    "$DATA_DIR"/'*' 0 0 0 "$VOCAB_PATH"
 
 OUTPUT_BASE_DIR=output/pylowl/proj/brightside
 echo "Creating output dir within $OUTPUT_BASE_DIR ..."

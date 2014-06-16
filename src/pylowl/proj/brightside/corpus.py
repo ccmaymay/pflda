@@ -93,15 +93,18 @@ class Corpus(object):
         self.num_docs = num_docs
 
     @classmethod
-    def from_concrete(cls, paths, r_vocab):
+    def from_concrete(cls, paths, r_vocab, section_segmentation=0, sentence_segmentation=0, tokenization_list=0):
         '''
         Return corpus containing all documents from a list of concrete
         document paths.  Documents are loaded immediately (unlazily).
         '''
-        # TODO zip is hack
+        concrete_docs = load_concrete(paths,
+                                      section_segmentation,
+                                      sentence_segmentation,
+                                      tokenization_list)
         docs = [Document.from_tokens([r_vocab[t] for t in tokens],
                                      identifier=path)
-                for (path, tokens) in load_concrete(paths)]
+                for (path, tokens) in concrete_docs]
         return Corpus(docs, len(paths))
 
     @classmethod

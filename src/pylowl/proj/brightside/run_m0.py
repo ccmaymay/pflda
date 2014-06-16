@@ -48,6 +48,9 @@ DEFAULT_OPTIONS = dict(
     init_samples=None,
     concrete=False,
     concrete_vocab_path=None,
+    concrete_section_segmentation=0,
+    concrete_sentence_segmentation=0,
+    concrete_tokenization_list=0,
 )
 
 
@@ -112,6 +115,12 @@ def main(argv=None):
                       help="scaling parameter for learning rate")
     parser.add_argument("--concrete_vocab_path", type=str,
                       help="path to vocab for concrete data")
+    parser.add_argument("--concrete_section_segmentation", type=int,
+                      help="concrete section segmentation index")
+    parser.add_argument("--concrete_sentence_segmentation", type=int,
+                      help="concrete sentence segmentation index")
+    parser.add_argument("--concrete_tokenization_list", type=int,
+                      help="concrete tokenization list index")
     parser.add_argument("--adding_noise", action="store_true",
                       help="add noise to the first couple of iterations")
     parser.add_argument("--streaming", action="store_true",
@@ -193,11 +202,21 @@ def run_m0(**kwargs):
             r_vocab = dict((v, k) for (k, v) in vocab.items())
             num_types = len(vocab)
 
-            c_train = Corpus.from_concrete(train_filenames, r_vocab)
+            c_train = Corpus.from_concrete(
+                train_filenames, r_vocab,
+                options['concrete_section_segmentation'],
+                options['concrete_sentence_segmentation'],
+                options['concrete_tokenization_list'],
+            )
             if options['test_data_path'] is not None:
                 test_filenames = glob(options['test_data_path'])
                 test_filenames.sort()
-                (c_test_train, c_test_test) = Corpus.from_concrete(test_filenames, r_vocab).split_within_docs(options['test_train_frac'])
+                (c_test_train, c_test_test) = Corpus.from_concrete(
+                    test_filenames, r_vocab,
+                    options['concrete_section_segmentation'],
+                    options['concrete_sentence_segmentation'],
+                    options['concrete_tokenization_list'],
+                ).split_within_docs(options['test_train_frac'])
 
         else:
             if options['D'] is None:

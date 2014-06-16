@@ -6,11 +6,16 @@ from utils import write_vocab, make_parent_dir
 from pylowl.proj.brightside.utils import load_concrete
 
 
-def main(input_pattern, vocab_output_path):
+def main(input_pattern, section_segmentation, sentence_segmentation,
+         tokenization_list, vocab_output_path):
     make_parent_dir(vocab_output_path)
 
+    concrete_docs = load_concrete(glob(input_pattern),
+                                  int(section_segmentation),
+                                  int(sentence_segmentation),
+                                  int(tokenization_list))
     vocab = dict()
-    for (path, doc) in load_concrete(glob(input_pattern)):
+    for (path, doc) in concrete_docs:
         for token in doc:
             if token not in vocab:
                 vocab[token] = len(vocab)
