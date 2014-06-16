@@ -2,7 +2,6 @@
 
 
 from glob import glob
-import os
 import re
 from pylowl.proj.brightside.utils import write_concrete
 

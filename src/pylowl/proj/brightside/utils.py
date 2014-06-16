@@ -17,7 +17,7 @@ def write_concrete(docs, output_dir):
         Tokenization, Token
     )
 
-    def make_concrete_comm(tokens):
+    def make_comm(tokens):
         comm = Communication()
         comm.text = ' '.join(tokens)
         sectionSegmentation = SectionSegmentation()
@@ -33,7 +33,9 @@ def write_concrete(docs, output_dir):
         comm.sectionSegmentations = [sectionSegmentation]
         return comm
 
-    os.makedirs(output_dir)
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
     i = 0
     output_path = os.path.join(output_dir, '%d.dat' % i)
     for doc in docs:
@@ -54,7 +56,7 @@ def load_concrete(loc):
     from thrift.protocol import TBinaryProtocol
     from concrete.communication.ttypes import Communication
 
-    def parse_concrete_comm(comm):
+    def parse_comm(comm):
         tokens = []
         if comm.sectionSegmentations is not None:
             for sect_seg in comm.sectionSegmentations:
@@ -77,7 +79,7 @@ def load_concrete(loc):
             protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
             comm = Communication()
             comm.read(protocolIn)
-            tokens = parse_concrete_comm(comm)
+            tokens = parse_comm(comm)
             yield tokens
 
 
