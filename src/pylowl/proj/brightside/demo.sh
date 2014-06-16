@@ -26,20 +26,12 @@ python -m pylowl.proj.brightside.run_m0 \
     --max_time=30 \
     --output_dir="$OUTPUT_DIR"
 
-first_graph=true
-for topics_f in `ls -t "$OUTPUT_DIR"/*.topics`
-do
-    if [ -f "$topics_f" ] # guard against '*.topics' in empty case
-    then
-        python -m pylowl.proj.brightside.postproc.generate_d3_topic_graph \
-            "$TRUNC" "$DATA_DIR/vocab" "${topics_f}" "${topics_f}.json"
-        if $first_graph
-        then
-            cp "${topics_f}.json" "$OUTPUT_DIR/graph.json"
-        fi
-        first_graph=false
-    fi
-done
+topics_f=`ls -t "$OUTPUT_DIR"/*.topics | head -n 1`
+if [ -f "$topics_f" ]
+then
+    python -m pylowl.proj.brightside.postproc.generate_d3_topic_graph \
+        "$TRUNC" "$DATA_DIR/vocab" "${topics_f}" "$OUTPUT_DIR/graph.json"
+fi
 
 python -m pylowl.proj.brightside.postproc.generate_d3_subgraphs \
     "$OUTPUT_DIR/log" "$OUTPUT_DIR/subgraphs.json"
