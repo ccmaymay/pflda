@@ -5,6 +5,22 @@ from utils import *
 from numpy.testing import *
 
 
+def vector_norm_3d_0_ord_1_test():
+    m = np.ones((4,3,5))
+    assert_almost_equal(vector_norm(m, axis=0, ord=1), 4*np.ones((3,5)))
+
+def vector_norm_3d_1_ord_1_test():
+    m = np.ones((4,3,5))
+    assert_almost_equal(vector_norm(m, axis=1, ord=1), 3*np.ones((4,5)))
+
+def vector_norm_3d_2_ord_1_test():
+    m = np.ones((4,3,5))
+    assert_almost_equal(vector_norm(m, axis=2, ord=1), 5*np.ones((4,3)))
+
+def vector_norm_3d_0_ord_2_test():
+    m = np.ones((4,3,5))
+    assert_almost_equal(vector_norm(m, axis=0, ord=2), 2*np.ones((3,5)))
+
 def log_sticks_likelihood_1_test():
     actual = log_sticks_likelihood(
         np.array([[1.], [1.]]),
@@ -401,7 +417,7 @@ def _sort_clusters(assignments, means, norm=None, reverse=False):
     Test helper.
     '''
 
-    ids = np.argsort(la.norm(means, ord=norm, axis=1))
+    ids = np.argsort(vector_norm(means, ord=norm, axis=1))
     if reverse:
         ids = means.shape[0] - (ids + 1)
     (perm, perm_new_assignments) = np.where(assignments[:, np.newaxis] == ids)

@@ -103,6 +103,19 @@ def load_vocab(filename):
         vocab = dict(_pair_first_to_int(line.strip().split()) for line in f)
     return vocab
 
+
+def vector_norm(m, axis=0, ord=None):
+    '''
+    Return vector norm across specified axis of matrix (axis 0 by
+    default), using the specified order.
+    '''
+    new_shape = m.shape[:axis] + m.shape[(axis+1):]
+    norm = np.zeros(new_shape)
+    for idx in np.ndindex(*new_shape):
+        m_idx = idx[:axis] + (range(m.shape[axis]),) + idx[axis:]
+        norm[idx] = la.norm(m.__getitem__(m_idx), ord=ord)
+    return norm
+
     
 def log_sticks_likelihood(ab, a_prior, b_prior, ids):
     '''
@@ -319,7 +332,7 @@ def kmeans(data, k, norm=None):
             cluster_means[:, :, np.newaxis]
             - data.T[np.newaxis, :, :].repeat(k, 0)
         )
-        cluster_distances = la.norm(np.transpose(cluster_diffs, (1, 0, 2)), ord=norm)
+        cluster_distances = vector_norm(cluster_diffs, ord=norm, axis=1)
 
         old_cluster_assignments = cluster_assignments
 
@@ -383,7 +396,7 @@ def kmeans_sparse(data, num_features, k, norm=None):
         for (i, x) in enumerate(data):
             full_x[:] = 0
             full_x[x[0]] = x[1]
-            t = np.argmin(la.norm((cluster_means - full_x).T, ord=norm))
+            t = np.argmin(vector_norm(cluster_means - full_x, ord=norm, axis=1))
             if t != cluster_assignments[i]:
                 updated_cluster_assignment = True
             cluster_assignments[i] = t
