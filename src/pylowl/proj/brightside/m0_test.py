@@ -1,5 +1,5 @@
 import numpy as np
-from data.corpus import Document
+from corpus import Document
 
 from m0 import *
 from numpy.testing import *

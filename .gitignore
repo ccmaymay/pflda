@@ -2,6 +2,11 @@
 build
 lib
 bin
+output
 .*.swp
 .*.swo
 *.pyc
+*.so
+*.os
+*.dylib
+*.o

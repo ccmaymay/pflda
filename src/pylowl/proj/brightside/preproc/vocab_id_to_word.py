@@ -2,7 +2,7 @@
 
 
 import sys
-from data import load_vocab
+from utils import load_vocab
 
 
 def _map_vocab(i, vocab):

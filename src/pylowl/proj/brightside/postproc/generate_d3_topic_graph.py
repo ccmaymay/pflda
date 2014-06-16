@@ -4,7 +4,6 @@
 import utils
 import os
 import json
-from data.data import load_vocab, take
 
 
 NUM_TYPES_PER_TOPIC = 10
@@ -21,7 +20,7 @@ def sorted_topic_word_weight_lists(input_filename, vocab):
 
 
 def main(trunc_csv, vocab_filename, input_filename, output_filename):
-    vocab = load_vocab(vocab_filename)
+    vocab = utils.load_vocab(vocab_filename)
 
     node_topics = []
     graph = {}
@@ -29,7 +28,7 @@ def main(trunc_csv, vocab_filename, input_filename, output_filename):
     for ww_list in sorted_topic_word_weight_lists(input_filename, vocab):
         label = []
         topic_weight = sum(ww[1] for ww in ww_list)
-        for (word, weight) in take(ww_list, NUM_TYPES_PER_TOPIC):
+        for (word, weight) in utils.take(ww_list, NUM_TYPES_PER_TOPIC):
             label.append((word, weight))
         node_topics.append((label, topic_weight))
 
