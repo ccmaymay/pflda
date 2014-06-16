@@ -36,7 +36,7 @@ fi
 python -m pylowl.proj.brightside.postproc.generate_d3_subgraphs \
     "$OUTPUT_DIR/log" "$OUTPUT_DIR/subgraphs.json"
 
-ln -s "$SRC_DIR/postproc/d3.v3.js" "$SRC_DIR/postproc/graph.html" "$SRC_DIR/postproc/subgraphs.html" "$OUTPUT_DIR/"
+ln -s "$PWD/$SRC_DIR/postproc/d3.v3.js" "$PWD/$SRC_DIR/postproc/graph.html" "$PWD/$SRC_DIR/postproc/subgraphs.html" "$OUTPUT_DIR/"
 
 cd "$OUTPUT_DIR"
 python -m SimpleHTTPServer 8000
