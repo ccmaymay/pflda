@@ -36,7 +36,10 @@ for proj_dir in glob('src/pylowl/proj/*'):
             projects.append((proj_name, m.select))
 
 
-USER_OPTIONS = [('with-proj-' + p[0], None, 'Install ' + p[0]) for p in projects]
+USER_OPTIONS = [('with-proj-' + p[0],
+                 None,
+                 'Include ' + p[0] + ' project in build/install')
+                for p in projects]
 
 
 def make_initialize_options(superclass):
