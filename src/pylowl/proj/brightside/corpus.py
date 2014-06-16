@@ -2,6 +2,7 @@ import re
 import random
 import math
 import itertools as it
+from utils import path_list
 
 
 SPLIT_RE = re.compile(r'[ :]')
@@ -99,11 +100,7 @@ class Corpus(object):
         '''
         docs = []
         i = 0
-        if isinstance(loc, str):
-            paths = (loc,)
-        else:
-            paths = loc
-        for path in paths:
+        for path in path_list(loc):
             with open(path) as f:
                 for line in f:
                     line = line.strip()

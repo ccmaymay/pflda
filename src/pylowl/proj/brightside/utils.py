@@ -6,6 +6,46 @@ import scipy.special as sp
 import itertools as it
 
 
+def parse_concrete_comm(comm):
+    tokens = []
+    if comm.sectionSegmentations is not None:
+        for sect_seg in comm.sectionSegmentations:
+            if sect_seg.sectionList is not None:
+                for sect in sect_seg.sectionList:
+                    if sect.sentenceSegmentation is not None:
+                        for sent_seg in sect.sentenceSegmentation:
+                            if sent_seg.sentenceList is not None:
+                                for sent in sent_seg.sentenceList:
+                                    if sent.tokenizationList is not None:
+                                        for tokzn in sent.tokenizationList:
+                                            if tokzn.tokenList is not None:
+                                                for tok in tokzn.tokenList:
+                                                    tokens.append(tok.text)
+    return tokens
+
+
+def load_concrete(loc):
+    from thrift.transport import TTransport
+    from thrift.protocol import TBinaryProtocol
+    from concrete.communication.ttypes import Communication
+
+    for input_path in path_list(loc):
+        with open(input_path, 'rb') as f:
+            transportIn = TTransport.TFileObjectTransport(f)
+            protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
+            comm = Communication()
+            comm.read(protocolIn)
+            tokens = parse_concrete_comm(comm)
+            yield tokens
+
+
+def path_list(loc):
+    if isinstance(loc, str):
+        return [loc]
+    else:
+        return loc
+
+
 def take(g, n):
     return (x for (i, x) in it.izip(xrange(n), g))
 
