@@ -54,6 +54,11 @@ python -m pylowl.proj.brightside.postproc.generate_d3_subgraphs \
 echo "Linking graph visualization code to $OUTPUT_DIR ..."
 ln -s "$PWD/$SRC_DIR/postproc/d3.v3.js" "$PWD/$SRC_DIR/postproc/graph.html" "$PWD/$SRC_DIR/postproc/subgraphs.html" "$OUTPUT_DIR/"
 
-echo "Launching web server in $OUTPUT_DIR on port $WEB_PORT ..."
-cd "$OUTPUT_DIR"
-python -m SimpleHTTPServer $WEB_PORT
+echo
+
+echo "Copy $OUTPUT_DIR somewhere a web server can see it"
+echo "and point a browser to it."
+
+#echo "Launching web server in $OUTPUT_DIR on port $WEB_PORT ..."
+#cd "$OUTPUT_DIR"
+#python -m SimpleHTTPServer $WEB_PORT
