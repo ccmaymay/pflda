@@ -29,10 +29,10 @@ TRUNC=1,2,2
 
 python -m pylowl.proj.brightside.run_m0 \
     --trunc="$TRUNC" \
-    --concrete
+    --concrete \
+    --concrete_vocab_path="$VOCAB_PATH" \
     --data_path="$DATA_DIR"/'*' \
     --test_data_path="$DATA_DIR"/'*' \
-    --vocab_path="$VOCAB_PATH" \
     --save_model \
     --init_samples=50 \
     --test_samples=50 \
@@ -45,7 +45,7 @@ topics_f=`ls -t "$OUTPUT_DIR"/*.topics | head -n 1`
 if [ -f "$topics_f" ]
 then
     python -m pylowl.proj.brightside.postproc.generate_d3_topic_graph \
-        "$TRUNC" "$DATA_DIR/vocab" "${topics_f}" "$OUTPUT_DIR/graph.json"
+        "$TRUNC" "$VOCAB_PATH" "${topics_f}" "$OUTPUT_DIR/graph.json"
 fi
 
 python -m pylowl.proj.brightside.postproc.generate_d3_subgraphs \

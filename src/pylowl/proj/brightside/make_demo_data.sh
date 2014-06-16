@@ -19,6 +19,7 @@ find "$INPUT_DIR" -type f -name '*.py' \
     -or -name '*.h' \
     -or -name '*.pxd' \
     -or -name '*.pyx' \
+    | grep -v core.c \
     | xargs -n 1 cp --backup=numbered -t "$temp_output_dir"
 python -m pylowl.proj.brightside.preproc.docs_to_concrete "$temp_output_dir"/'*' "$OUTPUT_DIR"
 rm -rf "$temp_output_dir"
