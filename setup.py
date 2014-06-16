@@ -9,6 +9,8 @@ from importlib import import_module
 from distutils.command.build import build
 from distutils.command.install import install
 from distutils.command.clean import clean
+from distutils.command.sdist import sdist
+from distutils.command.bdist import bdist
 
 
 packages=['pylowl', 'pylowl.proj']
@@ -39,7 +41,7 @@ for proj_dir in glob('src/pylowl/proj/*'):
 
 USER_OPTIONS = [('with-proj-' + p[0],
                  None,
-                 'Include ' + p[0] + ' project in clean/build/install')
+                 'Include ' + p[0] + ' project in build/install/etc.')
                 for p in projects]
 
 
@@ -63,12 +65,6 @@ def make_run(superclass):
     return run
 
 
-class selective_clean(clean):
-    user_options = clean.user_options + USER_OPTIONS
-    initialize_options = make_initialize_options(clean)
-    run = make_run(clean)
-
-
 class selective_build(build):
     user_options = build.user_options + USER_OPTIONS
     initialize_options = make_initialize_options(build)
@@ -81,13 +77,33 @@ class selective_install(install):
     run = make_run(install)
 
 
+class selective_clean(clean):
+    user_options = clean.user_options + USER_OPTIONS
+    initialize_options = make_initialize_options(clean)
+    run = make_run(clean)
+
+
+class selective_sdist(sdist):
+    user_options = sdist.user_options + USER_OPTIONS
+    initialize_options = make_initialize_options(sdist)
+    run = make_run(sdist)
+
+
+class selective_bdist(bdist):
+    user_options = bdist.user_options + USER_OPTIONS
+    initialize_options = make_initialize_options(bdist)
+    run = make_run(bdist)
+
+
 def main():
     setup(
+        author='hltcoe',
+        author_email='hltcoe',
         name='pylowl',
-        version='0.0',
+        version='0.1',
         description='Randomized Algorithms Library',
         url='https://gitlab.hltcoe.jhu.edu/klevin/littleowl',
-        cmdclass={'build_ext': build_ext, 'build': selective_build, 'install': selective_install, 'clean': selective_clean},
+        cmdclass={'build_ext': build_ext, 'build': selective_build, 'install': selective_install, 'clean': selective_clean, 'sdist': selective_sdist, 'bdist': selective_bdist},
         package_dir={'': 'src'},
         packages=packages,
         ext_modules=ext_modules,
