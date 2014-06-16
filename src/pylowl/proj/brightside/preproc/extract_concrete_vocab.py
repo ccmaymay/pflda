@@ -10,7 +10,7 @@ def main(input_pattern, vocab_output_path):
     make_parent_dir(vocab_output_path)
 
     vocab = dict()
-    for doc in load_concrete(glob(input_pattern)):
+    for (path, doc) in load_concrete(glob(input_pattern)):
         for token in doc:
             if token not in vocab:
                 vocab[token] = len(vocab)

@@ -80,7 +80,7 @@ def load_concrete(loc):
             comm = Communication()
             comm.read(protocolIn)
             tokens = parse_comm(comm)
-            yield tokens
+            yield (input_path, tokens)
 
 
 def path_list(loc):

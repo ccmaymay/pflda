@@ -101,7 +101,7 @@ class Corpus(object):
         # TODO zip is hack
         docs = [Document.from_tokens([r_vocab[t] for t in tokens],
                                      identifier=path)
-                for (path, tokens) in it.izip(paths, load_concrete(paths))]
+                for (path, tokens) in load_concrete(paths)]
         return Corpus(docs, len(paths))
 
     @classmethod
