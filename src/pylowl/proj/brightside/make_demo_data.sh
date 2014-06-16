@@ -13,6 +13,9 @@ OUTPUT_DIR="$2"
 
 temp_output_dir=`mktemp -d demo.temp.XXXXXX`
 mkdir -p "$temp_output_dir"
+# copy all shell, C, and python source files to $temp_output_dir
+# (filter out core.c, which is at the time of writing always a huge
+# cython-generated file)
 find "$INPUT_DIR" -type f -name '*.py' \
     -or -name '*.sh' \
     -or -name '*.c' \
@@ -21,5 +24,6 @@ find "$INPUT_DIR" -type f -name '*.py' \
     -or -name '*.pyx' \
     | grep -v core.c \
     | xargs -n 1 cp --backup=numbered -t "$temp_output_dir"
+# convert docs in $temp_output_dir to concrete (write to $OUTPUT_DIR)
 python -m pylowl.proj.brightside.preproc.docs_to_concrete "$temp_output_dir"/'*' "$OUTPUT_DIR"
 rm -rf "$temp_output_dir"
