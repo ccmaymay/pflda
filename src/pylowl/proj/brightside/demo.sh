@@ -21,9 +21,10 @@ python -m pylowl.proj.brightside.run_m0 \
     --data_path="$DATA_DIR/train" \
     --test_data_path="$DATA_DIR/test" \
     --save_model \
-    --init_samples=10 \
-    --test_samples=10 \
-    --max_time=30 \
+    --init_samples=50 \
+    --test_samples=50 \
+    --max_time=60 \
+    --batchsize=20 \
     --output_dir="$OUTPUT_DIR"
 
 topics_f=`ls -t "$OUTPUT_DIR"/*.topics | head -n 1`
