@@ -4,7 +4,9 @@ set -e
 
 cd ../../../../ # repo root
 
-export PYTHONPATH=build/lib.linux-x86_64-2.7
+DISTUTILS_PLATFORM=`python -c 'import distutils.util; print distutils.util.get_platform()'`
+DISTUTILS_VERSION=`python -c 'import sys; print "%s.%s" % sys.version_info[:2]'`
+export PYTHONPATH="build/lib.${DISTUTILS_PLATFORM}-${DISTUTILS_VERSION}"
 
 python setup.py build --with-proj-brightside
 
