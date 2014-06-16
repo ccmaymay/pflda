@@ -2,7 +2,7 @@ import re
 import random
 import math
 import itertools as it
-from utils import path_list
+from utils import path_list, load_concrete
 
 
 SPLIT_RE = re.compile(r'[ :]')
@@ -93,10 +93,22 @@ class Corpus(object):
         self.num_docs = num_docs
 
     @classmethod
+    def from_concrete(cls, paths, r_vocab):
+        '''
+        Return corpus containing all documents from a list of concrete
+        document paths.  Documents are loaded immediately (unlazily).
+        '''
+        # TODO zip is hack
+        docs = [Document.from_tokens([r_vocab[t] for t in tokens],
+                                     identifier=path)
+                for (path, tokens) in it.izip(paths, load_concrete(paths))]
+        return Corpus(docs, len(paths))
+
+    @classmethod
     def from_data(cls, loc):
         '''
-        Return corpus containing all documents from a path or
-        list of paths.  Documents are loaded immediately (unlazily).
+        Return corpus containing all documents from a path or list
+        thereof.  Documents are loaded immediately (unlazily).
         '''
         docs = []
         i = 0

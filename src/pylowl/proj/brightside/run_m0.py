@@ -3,7 +3,7 @@ import time
 import os
 import sys
 from corpus import Corpus
-from utils import take
+from utils import take, load_vocab
 import m0
 import cPickle
 import random
@@ -46,6 +46,8 @@ DEFAULT_OPTIONS = dict(
     fixed_lag=False,
     save_model=False,
     init_samples=None,
+    concrete=False,
+    concrete_vocab_path=None,
 )
 
 
@@ -108,6 +110,8 @@ def main(argv=None):
                       help="number of test documents (None: auto)")
     parser.add_argument("--scale", type=float,
                       help="scaling parameter for learning rate")
+    parser.add_argument("--concrete_vocab_path", type=str,
+                      help="path to vocab for concrete data")
     parser.add_argument("--adding_noise", action="store_true",
                       help="add noise to the first couple of iterations")
     parser.add_argument("--streaming", action="store_true",
@@ -116,6 +120,8 @@ def main(argv=None):
                       help="fixing a saving lag")
     parser.add_argument("--save_model", action="store_true",
                       help="whether to save model to disk (may be big)")
+    parser.add_argument("--concrete", action="store_true",
+                      help="data is in concrete (concrete_vocab_path must be specified)")
 
     if argv is None:
         args = parser.parse_args(sys.argv[1:])
@@ -161,6 +167,8 @@ def run_m0(**kwargs):
         m0.set_random_seed(options['random_seed'])
 
     if options['streaming']:
+        if options['concrete']:
+            raise ValueError('streaming and concrete cannot both be selected')
         if options['D'] is None:
             raise ValueError('D must be specified in streaming mode')
         if options['W'] is None:
@@ -170,40 +178,58 @@ def run_m0(**kwargs):
         # TODO multiple files?
         train_file = open(options['data_path'])
         c_train = Corpus.from_stream_data(train_file, num_docs)
+
     else:
         train_filenames = glob(options['data_path'])
         train_filenames.sort()
 
-        if options['D'] is None:
-            num_docs = 0
-            for train_filename in train_filenames:
-                num_docs += len(Corpus.from_data(train_filename).docs)
-        else:
-            num_docs = options['D']
+        if options['concrete']:
+            if options['D'] is None:
+                num_docs = len(train_filenames)
+            else:
+                num_docs = options['D']
 
-        if options['W'] is None:
-            num_types = 0
-            for train_filename in train_filenames:
-                num_types = max(
-                    num_types,
-                    max(max(d.words) for d in
-                        Corpus.from_data(train_filename).docs) + 1)
+            vocab = load_vocab(options['concrete_vocab_path'])
+            r_vocab = dict((v, k) for (k, v) in vocab.items())
+            num_types = len(vocab)
+
+            c_train = Corpus.from_concrete(train_filenames, r_vocab)
             if options['test_data_path'] is not None:
-                num_types = max(
-                    num_types,
-                    max(max(d.words) for d in
-                        Corpus.from_data(options['test_data_path']).docs) + 1)
-        else:
-            num_types = options['W']
+                test_filenames = glob(options['test_data_path'])
+                test_filenames.sort()
+                (c_test_train, c_test_test) = Corpus.from_concrete(test_filenames, r_vocab).split_within_docs(options['test_train_frac'])
 
-        c_train = Corpus.from_data(train_filenames)
+        else:
+            if options['D'] is None:
+                num_docs = 0
+                for train_filename in train_filenames:
+                    num_docs += len(Corpus.from_data(train_filename).docs)
+            else:
+                num_docs = options['D']
+
+            # TODO ugly
+            if options['W'] is None:
+                num_types = 0
+                for train_filename in train_filenames:
+                    num_types = max(
+                        num_types,
+                        max(max(d.words) for d in
+                            Corpus.from_data(train_filename).docs) + 1)
+                if options['test_data_path'] is not None:
+                    num_types = max(
+                        num_types,
+                        max(max(d.words) for d in
+                            Corpus.from_data(options['test_data_path']).docs) + 1)
+            else:
+                num_types = options['W']
+
+            c_train = Corpus.from_data(train_filenames)
+            if options['test_data_path'] is not None:
+                (c_test_train, c_test_test) = Corpus.from_data(options['test_data_path']).split_within_docs(options['test_train_frac'])
+
 
     logging.info('No. docs: %d' % num_docs)
     logging.info('No. types: %d' % num_types)
-
-    if options['test_data_path'] is not None:
-        test_data_path = options['test_data_path']
-        (c_test_train, c_test_test) = Corpus.from_data(test_data_path).split_within_docs(options['test_train_frac'])
 
     trunc = tuple(int(t) for t in options['trunc'].split(','))
 
