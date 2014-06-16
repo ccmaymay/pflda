@@ -4,8 +4,7 @@
 import os
 import re
 import gzip
-from preproc.utils import get_path_suffix, input_output_paths
-from utils import make_parent_dir
+from utils import get_path_suffix, input_output_paths, make_parent_dir
 
 
 GREEDY_EMAIL_RE = re.compile(r'\S+@\S+\.\S+')

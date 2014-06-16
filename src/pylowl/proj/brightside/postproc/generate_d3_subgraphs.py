@@ -2,8 +2,8 @@
 
 
 import re
-import utils
 import json
+from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index
 
 
 TRUNC_RE = re.compile(r'.* trunc: ([0-9,]+)')
@@ -30,19 +30,19 @@ def main(log_filename, output_filename):
 
     json_data = []
 
-    tree_idx_b = utils.tree_index_b(trunc)
-    tree_idx_m = utils.tree_index_m(trunc)
+    tree_idx_b = tree_index_b(trunc)
+    tree_idx_m = tree_index_m(trunc)
     for (identifier, node_ids) in subtrees.items():
         d = dict(identifier=identifier)
-        subtree_nodes = [None] * len(list(utils.tree_iter(trunc)))
+        subtree_nodes = [None] * len(list(tree_iter(trunc)))
 
-        for node in utils.tree_iter(trunc):
-            idx = utils.tree_index(node, tree_idx_m, tree_idx_b)
+        for node in tree_iter(trunc):
+            idx = tree_index(node, tree_idx_m, tree_idx_b)
             active = idx in node_ids
             subtree_nodes[idx] = dict(active=active, children=[])
             p = node[:-1]
             if p:
-                p_idx = utils.tree_index(p, tree_idx_m, tree_idx_b)
+                p_idx = tree_index(p, tree_idx_m, tree_idx_b)
                 subtree_nodes[p_idx]['children'].append(subtree_nodes[idx])
 
         d['subtree'] = subtree_nodes[0]

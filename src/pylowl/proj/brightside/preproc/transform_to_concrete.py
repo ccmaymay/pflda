@@ -10,8 +10,8 @@ from concrete.structure.ttypes import (
     Tokenization, Token
 )
 import os
-from utils import load_vocab
-from corpus import Corpus
+from pylowl.proj.brightside.utils import load_vocab
+from pylowl.proj.brightside.corpus import Corpus
 
 
 def make_comm(tokens):

@@ -3,7 +3,7 @@
 
 import os
 import itertools as it
-from preproc.utils import write_vocab, write_doc
+from utils import write_vocab, write_doc
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 from concrete.communication.ttypes import Communication

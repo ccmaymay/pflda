@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 
-import utils
 import os
 import json
+from pylowl.proj.brightside.utils import take, load_vocab, tree_index_m, tree_index_b, tree_iter, tree_index
 
 
 NUM_TYPES_PER_TOPIC = 10
@@ -20,7 +20,7 @@ def sorted_topic_word_weight_lists(input_filename, vocab):
 
 
 def main(trunc_csv, vocab_filename, input_filename, output_filename):
-    vocab = utils.load_vocab(vocab_filename)
+    vocab = load_vocab(vocab_filename)
 
     node_topics = []
     graph = {}
@@ -28,15 +28,15 @@ def main(trunc_csv, vocab_filename, input_filename, output_filename):
     for ww_list in sorted_topic_word_weight_lists(input_filename, vocab):
         label = []
         topic_weight = sum(ww[1] for ww in ww_list)
-        for (word, weight) in utils.take(ww_list, NUM_TYPES_PER_TOPIC):
+        for (word, weight) in take(ww_list, NUM_TYPES_PER_TOPIC):
             label.append((word, weight))
         node_topics.append((label, topic_weight))
 
     trunc = [int(t) for t in trunc_csv.split(',')]
-    m = utils.tree_index_m(trunc)
-    b = utils.tree_index_b(trunc)
-    for node in utils.tree_iter(trunc):
-        idx = utils.tree_index(node, m, b)
+    m = tree_index_m(trunc)
+    b = tree_index_b(trunc)
+    for node in tree_iter(trunc):
+        idx = tree_index(node, m, b)
         node_dict = {'words': [{'word': p[0], 'weight': p[1]} for p in node_topics[idx][0]], 'children': [], 'weight': node_topics[idx][1]}
         parent = node[:-1]
         graph[node] = node_dict

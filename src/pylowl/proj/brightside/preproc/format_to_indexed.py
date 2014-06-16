@@ -4,8 +4,7 @@
 import logging
 import os
 import re
-from utils import write_vocab, write_data
-from utils import load_word_set, make_parent_dir
+from utils import write_vocab, write_data, make_parent_dir, load_word_set
 
 
 NON_ALPHA_RE = re.compile(r'[^a-zA-Z]')

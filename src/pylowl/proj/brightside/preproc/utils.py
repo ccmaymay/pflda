@@ -1,5 +1,12 @@
 import os
-from utils import make_parent_dir
+
+
+def load_word_set(filename):
+    word_set = set()
+    with open(filename) as f:
+        for line in f:
+            word_set.add(line.strip())
+    return word_set
 
 
 def write_vocab(output_filename, vocab):
