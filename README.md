@@ -60,3 +60,8 @@ $ tar -xzf Cython-0.19.2.tar.gz
 $ cd Cython-0.19.2
 $ python setup.py install --user
 ```
+
+Project Development
+-------------------
+
+If you are starting a project under `pylowl/proj`, note that we use `distutils` with some extra functionality to facilitate project development.  In particular, `setup.py` scans each directory under `pylowl/proj` for a file named `_setup_include.py`.  (See `pylowl/proj/pflda/_setup_include.py` for an example.)  It uses that file to configure your project as an optional target in the build, enabled by a `--with-proj-xyz` command-line option (where `xyz` is your project's directory name).  Note that file paths and Python module paths should be written relative to the `pylowl` root, not relative to the top level of your project.  (The example illustrates this issue.)
