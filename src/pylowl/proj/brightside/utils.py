@@ -309,7 +309,7 @@ def kmeans(data, k, norm=None):
     
     cluster_sizes = np.sum(cluster_assignments_binary, 1)
     cluster_means = np.array(np.dot(cluster_assignments_binary, data), dtype=np.double)
-    cluster_means[cluster_sizes > 0,:] /= cluster_sizes[cluster_sizes > 0,np.newaxis]
+    cluster_means[cluster_sizes > 0,:] /= cluster_sizes[cluster_sizes > 0][:,np.newaxis]
     cluster_means[cluster_sizes == 0,:] = np.zeros(data.shape[1])
 
     old_cluster_assignments = None
@@ -319,7 +319,7 @@ def kmeans(data, k, norm=None):
             cluster_means[:, :, np.newaxis]
             - data.T[np.newaxis, :, :].repeat(k, 0)
         )
-        cluster_distances = la.norm(cluster_diffs, ord=norm, axis=1)
+        cluster_distances = la.norm(np.transpose(cluster_diffs, (1, 0, 2)), ord=norm)
 
         old_cluster_assignments = cluster_assignments
 
@@ -329,7 +329,7 @@ def kmeans(data, k, norm=None):
 
         cluster_sizes = np.sum(cluster_assignments_binary, 1)
         cluster_means = np.array(np.dot(cluster_assignments_binary, data), dtype=np.double)
-        cluster_means[cluster_sizes > 0,:] /= cluster_sizes[cluster_sizes > 0,np.newaxis]
+        cluster_means[cluster_sizes > 0,:] /= cluster_sizes[cluster_sizes > 0][:,np.newaxis]
         cluster_means[cluster_sizes == 0,:] = np.zeros(data.shape[1])
 
     return (cluster_assignments, cluster_means)
@@ -371,7 +371,7 @@ def kmeans_sparse(data, num_features, k, norm=None):
         t = cluster_assignments[i]
         cluster_sizes[t] += 1
         cluster_means[t,x[0]] += x[1]
-    cluster_means[cluster_sizes > 0,:] /= cluster_sizes[cluster_sizes > 0,np.newaxis]
+    cluster_means[cluster_sizes > 0,:] /= cluster_sizes[cluster_sizes > 0][:,np.newaxis]
 
     updated_cluster_assignment = True
     full_x = np.zeros(num_features)
@@ -383,7 +383,7 @@ def kmeans_sparse(data, num_features, k, norm=None):
         for (i, x) in enumerate(data):
             full_x[:] = 0
             full_x[x[0]] = x[1]
-            t = np.argmin(la.norm(cluster_means - full_x, ord=norm, axis=1))
+            t = np.argmin(la.norm((cluster_means - full_x).T, ord=norm))
             if t != cluster_assignments[i]:
                 updated_cluster_assignment = True
             cluster_assignments[i] = t
@@ -393,6 +393,6 @@ def kmeans_sparse(data, num_features, k, norm=None):
         for (i, x) in enumerate(data):
             t = cluster_assignments[i]
             cluster_means[t,x[0]] += x[1]
-        cluster_means[cluster_sizes > 0,:] /= cluster_sizes[cluster_sizes > 0,np.newaxis]
+        cluster_means[cluster_sizes > 0,:] /= cluster_sizes[cluster_sizes > 0][:,np.newaxis]
 
     return (cluster_assignments, cluster_means)

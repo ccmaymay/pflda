@@ -27,7 +27,7 @@ WEB_PORT=8000
 
 TRUNC=1,2,2
 
-python -m pylowl.proj.brightside.run_m0 \
+PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run_m0 \
     --trunc="$TRUNC" \
     --concrete \
     --concrete_vocab_path="$VOCAB_PATH" \
