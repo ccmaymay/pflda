@@ -4,30 +4,72 @@ import numpy.random as nprand
 import numpy.linalg as la
 import scipy.special as sp
 import itertools as it
+import os
 
 
-def parse_concrete_comm(comm):
-    tokens = []
-    if comm.sectionSegmentations is not None:
-        for sect_seg in comm.sectionSegmentations:
-            if sect_seg.sectionList is not None:
-                for sect in sect_seg.sectionList:
-                    if sect.sentenceSegmentation is not None:
-                        for sent_seg in sect.sentenceSegmentation:
-                            if sent_seg.sentenceList is not None:
-                                for sent in sent_seg.sentenceList:
-                                    if sent.tokenizationList is not None:
-                                        for tokzn in sent.tokenizationList:
-                                            if tokzn.tokenList is not None:
-                                                for tok in tokzn.tokenList:
-                                                    tokens.append(tok.text)
-    return tokens
+def write_concrete(docs, output_dir):
+    from thrift.transport import TTransport
+    from thrift.protocol import TBinaryProtocol
+    from concrete.communication.ttypes import Communication
+    from concrete.structure.ttypes import (
+        SectionSegmentation, Section,
+        SentenceSegmentation, Sentence,
+        Tokenization, Token
+    )
+
+    def make_concrete_comm(tokens):
+        comm = Communication()
+        comm.text = ' '.join(tokens)
+        sectionSegmentation = SectionSegmentation()
+        section = Section()
+        sentenceSegmentation = SentenceSegmentation()
+        sentence = Sentence()
+        tokenization = Tokenization()
+        tokenization.tokenList = [Token(text=t) for t in tokens]
+        sentence.tokenizationList = [tokenization]
+        sentenceSegmentation.sentenceList = [sentence]
+        section.sentenceSegmentation = [sentenceSegmentation]
+        sectionSegmentation.sectionList = [section]
+        comm.sectionSegmentations = [sectionSegmentation]
+        return comm
+
+    os.makedirs(output_dir)
+    i = 0
+    output_path = os.path.join(output_dir, '%d.dat' % i)
+    for doc in docs:
+        comm = make_comm(doc)
+        while os.path.exists(output_path):
+            i += 1
+            output_path = os.path.join(output_dir, '%d.dat' % i)
+        with open(output_path, 'wb') as f:
+            transport = TTransport.TFileObjectTransport(f)
+            protocol = TBinaryProtocol.TBinaryProtocol(transport)
+            comm.write(protocol)
+        i += 1
+        output_path = os.path.join(output_dir, '%d.dat' % i)
 
 
 def load_concrete(loc):
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
     from concrete.communication.ttypes import Communication
+
+    def parse_concrete_comm(comm):
+        tokens = []
+        if comm.sectionSegmentations is not None:
+            for sect_seg in comm.sectionSegmentations:
+                if sect_seg.sectionList is not None:
+                    for sect in sect_seg.sectionList:
+                        if sect.sentenceSegmentation is not None:
+                            for sent_seg in sect.sentenceSegmentation:
+                                if sent_seg.sentenceList is not None:
+                                    for sent in sent_seg.sentenceList:
+                                        if sent.tokenizationList is not None:
+                                            for tokzn in sent.tokenizationList:
+                                                if tokzn.tokenList is not None:
+                                                    for tok in tokzn.tokenList:
+                                                        tokens.append(tok.text)
+        return tokens
 
     for input_path in path_list(loc):
         with open(input_path, 'rb') as f:
