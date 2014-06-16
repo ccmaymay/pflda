@@ -219,7 +219,8 @@ def run_m0(**kwargs):
                   options['kappa'], options['iota'], options['delta'],
                   options['scale'], options['adding_noise'])
 
-    if options['init_samples'] > 0:
+    if options['init_samples'] is not None:
+        logging.info("Initializing")
         init_docs = take(c_train.docs, options['init_samples'])
         model.initialize(init_docs, options['xi'], options['omicron'])
 
