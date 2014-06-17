@@ -1,8 +1,30 @@
-In this project you'll find online variational inference for the
-nested hierarchical Dirichlet process (nHDP, M0), among other things.
-The nHDP source is based on onlinehdp[1], which was in turn based on
+"brightside" is a codebase implementing online variational inference
+for forest-structured (Bayesian nonparametric) topic models.  It also
+contains some utilities concerning geo-tagged Twitter data, ALNC, and
+Freebase.
+
+Currently only one observational model, M0, is implemented.  M0 is
+the nested hierarchical Dirichlet process (nHDP) topic model from the
+literature.
+
+The inference code is based on onlinehdp[1], which was in turn based on
 onlinelda[2], according to comments in the onlinehdp source.
-It has been thoroughly hacked up.
+
+Dependencies (in addition to pylowl dependencies):
+* numpy and scipy
+* d3, for visualization (see note below)
+* python-concrete and python-thrift, if you want to read and/or write
+  concrete data
+* nose, if you want to run unit tests
+
+The master branch includes a copy of d3 under postproc/ .  The min
+branch is identical to master, at the time of writing, except that d3
+has been removed.
+
+To get up and running quickly, run demo.sh from the current directory
+(the brightside project directory):
+
+$ bash demo.sh
 
 demo.sh has a few comments---I suggest reading it.  At a high level, it
 builds littleowl with brightside, creates a toy concrete dataset from
@@ -26,7 +48,10 @@ or something similar)
 
 The data specifications are glob patterns so you'll end up doing
 something like:
-$ python -m pylowl.proj.brightside.run_m0 --data_path='/path/to/nested/data/*/*' --test_data_path='/path/to/nested/test_data/*/*' ...
+$ python -m pylowl.proj.brightside.run_m0 \
+    --data_path='/path/to/nested/data/*/*' \
+    --test_data_path='/path/to/nested/test_data/*/*' \
+    ...
 (note the quotes)
 
 [1] http://www.cs.cmu.edu/~chongw/software/onlinehdp.tar.gz
