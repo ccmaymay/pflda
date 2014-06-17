@@ -5,10 +5,10 @@ Freebase.
 
 Currently only one observational model, M0, is implemented.  M0 is
 the nested hierarchical Dirichlet process (nHDP) topic model from the
-literature.
+literature.[1]
 
-The inference code is based on onlinehdp[1], which was in turn based on
-onlinelda[2], according to comments in the onlinehdp source.
+The inference code is based on onlinehdp[2], which was in turn based on
+onlinelda[3], according to comments in the onlinehdp source.
 
 Dependencies (in addition to pylowl dependencies):
 * numpy and scipy
@@ -54,7 +54,9 @@ $ python -m pylowl.proj.brightside.run_m0 \
     ...
 (note the quotes)
 
-[1] http://www.cs.cmu.edu/~chongw/software/onlinehdp.tar.gz
+[1] arXiv:1210.6738
+    (Paisley, Wang, Blei, and Jordan (2014))
+[2] http://www.cs.cmu.edu/~chongw/software/onlinehdp.tar.gz
     (Wang, Paisley, and Blei (2011))
-[2] http://www.cs.princeton.edu/~blei/downloads/onlineldavb.tar
+[3] http://www.cs.princeton.edu/~blei/downloads/onlineldavb.tar
     (Hoffman, Blei, and Bach (2010))
