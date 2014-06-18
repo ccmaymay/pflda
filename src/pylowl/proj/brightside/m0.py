@@ -688,6 +688,30 @@ class m0:
 
             iteration += 1
 
+        try:
+            uv_expectation = utils.beta_expectation(uv, ids)[0]
+        except:
+            logging.info('Doc uv expectation for %s: error'
+                % str(doc.identifier))
+        else:
+            logging.info('Doc uv expectation for %s: %s'
+                % (str(doc.identifier),
+                   ' '.join(str(x) for x in uv_expectation)))
+
+        try:
+            ab_expectation = utils.beta_expectation(ab, ids)[0]
+        except:
+            logging.info('Doc ab expectation for %s: error'
+                % str(doc.identifier))
+        else:
+            logging.info('Doc ab expectation for %s: %s'
+                % (str(doc.identifier),
+                   ' '.join(str(x) for x in uv_expectation)))
+
+        logging.info('Doc nu sums for %s: %s'
+            % (str(doc.identifier),
+               ' '.join(str(x) for x in nu_sums[ids])))
+
         # update the suff_stat ss
         global_ids = l2g_idx[ids]
         ss.m_tau_ss[global_ids] += 1
