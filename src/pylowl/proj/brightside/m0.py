@@ -11,6 +11,7 @@ import scipy.special as sp
 import itertools as it
 import utils
 import random
+import cPickle
 
 
 # TODO assert var beta/dirichlet parameters no smaller than prior
@@ -1037,3 +1038,11 @@ class m0:
             f.write(' '.join(str(l2g_idx[self.tree_index(nod)])
                              for nod in self.tree_iter(subtree)))
             f.write('\n')
+
+    def save_model(self, filename):
+        '''
+        Pickle model to file.
+        '''
+
+        with open(filename, 'w') as f:
+            cPickle.dump(model, f, -1)

@@ -5,14 +5,21 @@ import sys
 from corpus import Corpus
 from utils import take, load_vocab
 import m0
-import cPickle
 import random
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from glob import glob
 
 
 LOG_BASENAME = 'log'
+
 OPTIONS_BASENAME = 'options.dat'
+
+MODEL_EXT = '.model'
+TOPICS_EXT = '.topics'
+LOG_TOPICS_EXT = '.log_topics'
+SUBTREE_PRIOR_EXT = '.subtree_prior'
+LOG_SUBTREE_PRIOR_EXT = '.log_subtree_prior'
+
 DEFAULT_OPTIONS = dict(
     log_level='INFO',
     trunc='1,20,10,5',
@@ -296,13 +303,18 @@ def run_m0(**kwargs):
 
             # Save the model.
             if options['save_model']:
-                topics_filename = os.path.join(result_directory,
-                    'doc_count-%d.topics' % total_doc_count)
-                model.save_topics(topics_filename)
-                model_filename = os.path.join(result_directory,
-                    'doc_count-%d.model' % total_doc_count)
-                with open(model_filename, 'w') as model_f:
-                    cPickle.dump(model, model_f, -1)
+                model.save_topics(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, TOPICS_EXT)
+                ))
+                model.save_log_topics(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, LOG_TOPICS_EXT)
+                ))
+                model.save_model(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, MODEL_EXT)
+                ))
 
             if options['test_data_path'] is not None:
                 test_nhdp_predictive(model, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
@@ -314,11 +326,18 @@ def run_m0(**kwargs):
 
     if options['save_model']:
         logging.info("Saving the final model and topics")
-        topics_filename = os.path.join(result_directory, 'final.topics')
-        model.save_topics(topics_filename)
-        model_filename = os.path.join(result_directory, 'final.model')
-        with open(model_filename, 'w') as model_f:
-            cPickle.dump(model, model_f, -1)
+        model.save_topics(os.path.join(
+            result_directory,
+            'final%s' % TOPICS_EXT
+        ))
+        model.save_log_topics(os.path.join(
+            result_directory,
+            'final%s' % LOG_TOPICS_EXT
+        ))
+        model.save_model(os.path.join(
+            result_directory,
+            'final%s' % MODEL_EXT
+        ))
 
     if options['streaming']:
         train_file.close()
