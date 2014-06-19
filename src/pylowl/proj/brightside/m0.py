@@ -334,7 +334,7 @@ class m0(object):
 
         # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
         ids = [self.tree_index(node) for node in self.tree_iter()]
-        ElogV = utils.log_beta_expectation(self.m_tau, ids)
+        ElogV = utils.log_beta_expectation(self.m_tau)
 
         # run variational inference on some new docs
         score = 0.0
@@ -519,11 +519,11 @@ class m0(object):
 
     def compute_Elogpi(self):
         ids = [self.tree_index(node) for node in self.tree_iter()]
-        return utils.log_beta_expectation(self.m_tau, ids)
+        return utils.log_beta_expectation(self.m_tau)
 
     def compute_logEpi(self):
         ids = [self.tree_index(node) for node in self.tree_iter()]
-        return utils.beta_log_expectation(self.m_tau, ids)
+        return utils.beta_log_expectation(self.m_tau)
 
     def compute_subtree_Elogpi(self, subtree, ab, uv):
         Elogpi = np.zeros(self.m_K)

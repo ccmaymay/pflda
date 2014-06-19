@@ -215,26 +215,22 @@ def dirichlet_log_expectation(conc):
     return np.log(conc) - np.log(np.sum(conc, 1))[:, np.newaxis]
 
 
-def log_beta_expectation(ab, ids):
+def log_beta_expectation(ab):
     '''
     Return E[log X]
-    where X is a random vector whose components are Beta-distributed and
-    ids is an array of indices used to subselect components of X (we
-    ignore components whose indices are not in ids).
+    where X is a random vector whose components are Beta-distributed
     '''
-    sum_ab = np.sum(ab[:,ids], 0)
-    return sp.psi(ab[:,ids]) - sp.psi(sum_ab)
+    sum_ab = np.sum(ab, 0)
+    return sp.psi(ab) - sp.psi(sum_ab)
 
 
-def beta_log_expectation(ab, ids):
+def beta_log_expectation(ab):
     '''
     Return log E[X]
-    where X is a random vector whose components are Beta-distributed and
-    ids is an array of indices used to subselect components of X (we
-    ignore components whose indices are not in ids).
+    where X is a random vector whose components are Beta-distributed
     '''
-    sum_ab = np.sum(ab[:,ids], 0)
-    return np.log(ab[:,ids]) - np.log(sum_ab)
+    sum_ab = np.sum(ab, 0)
+    return np.log(ab) - np.log(sum_ab)
 
 
 def node_ancestors(node):
