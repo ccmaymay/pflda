@@ -12,13 +12,17 @@ from glob import glob
 
 LOG_BASENAME = 'log'
 
-OPTIONS_BASENAME = 'options.dat'
+OPTIONS_BASENAME = 'options'
 
 MODEL_EXT = '.model'
-TOPICS_EXT = '.topics'
-LOG_TOPICS_EXT = '.log_topics'
-SUBTREE_PRIOR_EXT = '.subtree_prior'
-LOG_SUBTREE_PRIOR_EXT = '.log_subtree_prior'
+LAMBDA_SS_EXT = '.lambda_ss'
+ELOGTHETA_EXT = '.Elogtheta'
+LOGETHETA_EXT = '.logEtheta'
+SUBTREE_BASENAME = '.subtree'
+SUBTREE_ELOGPI_BASENAME = 'subtree_Elogpi'
+SUBTREE_LOGEPI_BASENAME = 'subtree_logEpi'
+SUBTREE_ELOGTHETA_BASENAME = 'subtree_Elogtheta'
+SUBTREE_LOGETHETA_BASENAME = 'subtree_logEtheta'
 
 DEFAULT_OPTIONS = dict(
     log_level='INFO',
@@ -303,13 +307,17 @@ def run_m0(**kwargs):
 
             # Save the model.
             if options['save_model']:
-                model.save_topics(os.path.join(
+                model.save_lambda_ss(os.path.join(
                     result_directory,
-                    'doc_count-%d%s' % (total_doc_count, TOPICS_EXT)
+                    'doc_count-%d%s' % (total_doc_count, LAMBDA_SS_EXT)
                 ))
-                model.save_log_topics(os.path.join(
+                model.save_Elogtheta(os.path.join(
                     result_directory,
-                    'doc_count-%d%s' % (total_doc_count, LOG_TOPICS_EXT)
+                    'doc_count-%d%s' % (total_doc_count, ELOGTHETA_EXT)
+                ))
+                model.save_logEtheta(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, LOGETHETA_EXT)
                 ))
                 model.save_model(os.path.join(
                     result_directory,
@@ -326,13 +334,17 @@ def run_m0(**kwargs):
 
     if options['save_model']:
         logging.info("Saving the final model and topics")
-        model.save_topics(os.path.join(
+        model.save_lambda_ss(os.path.join(
             result_directory,
-            'final%s' % TOPICS_EXT
+            'final%s' % LAMBDA_SS_EXT
         ))
-        model.save_log_topics(os.path.join(
+        model.save_Elogtheta(os.path.join(
             result_directory,
-            'final%s' % LOG_TOPICS_EXT
+            'final%s' % ELOGTHETA_EXT
+        ))
+        model.save_logEtheta(os.path.join(
+            result_directory,
+            'final%s' % LOGETHETA_EXT
         ))
         model.save_model(os.path.join(
             result_directory,

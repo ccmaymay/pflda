@@ -729,7 +729,7 @@ class m0:
             ss.m_lambda_ss[global_ids, token_batch_ids[n]] += nu[n, ids]
 
         if predict_doc is not None:
-            logEpi = self.compute_logEpi(subtree, ab, uv):
+            logEpi = self.compute_logEpi(subtree, ab, uv)
             logEtheta = (
                 np.log(self.m_lambda0 + self.m_lambda_ss)
                 - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
@@ -975,7 +975,7 @@ class m0:
             + rho * ss.m_tau_ss * self.m_D / ss.m_batchsize
         )
 
-    def save_topics(self, filename):
+    def save_lambda_ss(self, filename):
         '''
         Write the topics (specified by variational parameters
         lambda + lambda0) to file.
@@ -983,11 +983,23 @@ class m0:
 
         with open(filename, 'w') as f:
             lambdas = self.m_lambda_ss + self.m_lambda0
-            for lamb in lambdas:
-                line = ' '.join([str(x) for x in lamb])
+            for row in lambdas:
+                line = ' '.join([str(x) for x in row])
                 f.write(line + '\n')
 
-    def save_log_topics(self, filename):
+    def save_logEtheta(self, filename):
+        '''
+        Write the topics (specified by logs of variational means of
+        lambda + lambda0) to file.
+        '''
+
+        with open(filename, 'w') as f:
+            logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + self.m_lambda_ss)
+            for row in logEtheta:
+                line = ' '.join([str(x) for x in row])
+                f.write(line + '\n')
+
+    def save_Elogtheta(self, filename):
         '''
         Write the topics (specified by variational log means of
         lambda + lambda0) to file.
@@ -995,11 +1007,11 @@ class m0:
 
         with open(filename, 'w') as f:
             Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
-            for elt in Elogtheta:
-                line = ' '.join([str(x) for x in elt])
+            for row in Elogtheta:
+                line = ' '.join([str(x) for x in row])
                 f.write(line + '\n')
 
-    def save_subtree_topic_likelihood_sums(self, filename, doc, ids, nu_sums):
+    def save_subtree_lambda_ss(self, filename, doc, ids, nu_sums):
         '''
         Append nu sums to file.
         '''
@@ -1008,7 +1020,27 @@ class m0:
             f.write(' '.join(str(x) for x in nu_sums[ids]))
             f.write('\n')
 
-    def save_subtree_prior_log(self, filename, doc, subtree, ids, ab, uv):
+    def save_subtree_logEtheta(self, filename, doc, subtree, ids, nu):
+        '''
+        Append log E[theta] for doc subtree to file.
+        '''
+        logEtheta = self.compute_logEtheta(subtree, nu)
+        with open(filename, 'a') as f:
+            f.write(str(doc.identifier) + ' ')
+            f.write(' '.join(str(logEtheta[i]) for i in ids))
+            f.write('\n')
+
+    def save_subtree_Elogtheta(self, filename, doc, subtree, ids, nu):
+        '''
+        Append E[log theta] for doc subtree to file.
+        '''
+        Elogtheta = self.compute_Elogtheta(subtree, nu)
+        with open(filename, 'a') as f:
+            f.write(str(doc.identifier) + ' ')
+            f.write(' '.join(str(Elogtheta[i]) for i in ids))
+            f.write('\n')
+
+    def save_subtree_logEpi(self, filename, doc, subtree, ids, ab, uv):
         '''
         Append log E[pi] for doc subtree to file.
         '''
@@ -1018,7 +1050,7 @@ class m0:
             f.write(' '.join(str(logEpi[i]) for i in ids))
             f.write('\n')
 
-    def save_subtree_log_prior(self, filename, doc, subtree, ids, ab, uv):
+    def save_subtree_Elogpi(self, filename, doc, subtree, ids, ab, uv):
         '''
         Append E[log pi] for doc subtree to file.
         '''

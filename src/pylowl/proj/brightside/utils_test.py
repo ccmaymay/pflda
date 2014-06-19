@@ -5,25 +5,25 @@ from utils import *
 from numpy.testing import *
 
 
-def beta_expectation_trivial_unif_test():
-    m = beta_expectation(np.array([[1.], [1.]]), [0])
+def beta_log_expectation_trivial_unif_test():
+    m = beta_log_expectation(np.array([[1.], [1.]]), [0])
     assert_array_almost_equal(m,
-        np.array([[0.5], [0.5]]))
+        np.log(np.array([[0.5], [0.5]])))
 
-def beta_expectation_unif_subset_test():
-    m = beta_expectation(np.array([[42., 1., 1., 3.], [42., 7., 1., 9.]]), [0, 2])
+def beta_log_expectation_unif_subset_test():
+    m = beta_log_expectation(np.array([[42., 1., 1., 3.], [42., 7., 1., 9.]]), [0, 2])
     assert_array_almost_equal(m,
-        np.array([[0.5, 0.5], [0.5, 0.5]]))
+        np.log(np.array([[0.5, 0.5], [0.5, 0.5]])))
 
-def beta_expectation_non_unif_subset_test():
-    m = beta_expectation(np.array([[42., 1., 1., 3.], [42., 7., 1., 9.]]), [1, 3])
+def beta_log_expectation_non_unif_subset_test():
+    m = beta_log_expectation(np.array([[42., 1., 1., 3.], [42., 7., 1., 9.]]), [1, 3])
     assert_array_almost_equal(m,
-        np.array([[0.125, 0.25], [0.875, 0.75]]))
+        np.log(np.array([[0.125, 0.25], [0.875, 0.75]])))
 
-def beta_expectation_non_unif_permutation_test():
-    m = beta_expectation(np.array([[42., 1., 1., 3.], [42., 7., 1., 9.]]), [1, 0, 2, 3])
+def beta_log_expectation_non_unif_permutation_test():
+    m = beta_log_expectation(np.array([[42., 1., 1., 3.], [42., 7., 1., 9.]]), [1, 0, 2, 3])
     assert_array_almost_equal(m,
-        np.array([[0.125, 0.5, 0.5, 0.25], [0.875, 0.5, 0.5, 0.75]]))
+        np.log(np.array([[0.125, 0.5, 0.5, 0.25], [0.875, 0.5, 0.5, 0.75]])))
 
 def vector_norm_3d_0_ord_1_test():
     m = np.ones((4,3,5))
