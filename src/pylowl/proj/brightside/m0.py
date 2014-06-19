@@ -333,8 +333,8 @@ class m0(object):
         ss = suff_stats(self.m_K, Wt, doc_count)
 
         # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
-        psi_sum_tau = sp.psi(np.sum(self.m_tau, 0))
-        ElogV = sp.psi(self.m_tau) - psi_sum_tau
+        ids = [self.tree_index(node) for node in self.tree_iter()]
+        ElogV = utils.log_beta_expectation(self.m_tau, ids)
 
         # run variational inference on some new docs
         score = 0.0
@@ -385,7 +385,7 @@ class m0(object):
         )
 
     def update_nu(self, subtree, ab, uv, Elogprobw_doc, doc, nu, log_nu):
-        Elogpi = self.compute_Elogpi(subtree, ab, uv)
+        Elogpi = self.compute_subtree_Elogpi(subtree, ab, uv)
 
         # TODO oHDP: only add Elogpi if iter < 3
         log_nu[:,:] = np.repeat(Elogprobw_doc, doc.counts, axis=1).T + Elogpi # N x K
@@ -517,7 +517,15 @@ class m0(object):
 
         return np.sum(nu[:,ids].T * np.repeat(Elogprobw_doc[ids,:], doc.counts, axis=1))
 
-    def compute_Elogpi(self, subtree, ab, uv):
+    def compute_Elogpi(self):
+        ids = [self.tree_index(node) for node in self.tree_iter()]
+        return utils.log_beta_expectation(self.m_tau, ids)
+
+    def compute_logEpi(self):
+        ids = [self.tree_index(node) for node in self.tree_iter()]
+        return utils.beta_log_expectation(self.m_tau, ids)
+
+    def compute_subtree_Elogpi(self, subtree, ab, uv):
         Elogpi = np.zeros(self.m_K)
 
         for node in self.tree_iter(subtree):
@@ -551,7 +559,7 @@ class m0(object):
 
         return Elogpi
 
-    def compute_logEpi(self, subtree, ab, uv):
+    def compute_subtree_logEpi(self, subtree, ab, uv):
         logEpi = np.zeros(self.m_K)
 
         # TODO precompute ratios, here and elsewhere?
@@ -771,7 +779,7 @@ class m0(object):
             ss.m_lambda_ss[global_ids, token_batch_ids[n]] += nu[n, ids]
 
         if predict_doc is not None:
-            logEpi = self.compute_logEpi(subtree, ab, uv)
+            logEpi = self.compute_subtree_logEpi(subtree, ab, uv)
             # TODO abstract this?
             logEtheta = (
                 np.log(self.m_lambda0 + self.m_lambda_ss)
@@ -1053,6 +1061,26 @@ class m0(object):
                 line = ' '.join([str(x) for x in row])
                 f.write(line + '\n')
 
+    def save_logEpi(self, filename):
+        '''
+        Write the expected log prior to file.
+        '''
+
+        logEpi = self.compute_logEpi()
+        with open(filename, 'w') as f:
+            f.write('\n'.join(str(x) for x in logEpi))
+            f.write('\n')
+
+    def save_Elogpi(self, filename):
+        '''
+        Write the log of the expected prior to file.
+        '''
+
+        Elogpi = self.compute_Elogpi()
+        with open(filename, 'w') as f:
+            f.write('\n'.join(str(x) for x in Elogpi))
+            f.write('\n')
+
     def save_subtree_lambda_ss(self, filename, doc, ids, nu_sums):
         '''
         Append nu sums to file.
@@ -1087,7 +1115,7 @@ class m0(object):
         '''
         Append log E[pi] for doc subtree to file.
         '''
-        logEpi = self.compute_logEpi(subtree, ab, uv)
+        logEpi = self.compute_subtree_logEpi(subtree, ab, uv)
         with open(filename, 'a') as f:
             f.write(str(doc.identifier) + ' ')
             f.write(' '.join(str(logEpi[i]) for i in ids))
@@ -1097,7 +1125,7 @@ class m0(object):
         '''
         Append E[log pi] for doc subtree to file.
         '''
-        Elogpi = self.compute_Elogpi(subtree, ab, uv)
+        Elogpi = self.compute_subtree_Elogpi(subtree, ab, uv)
         with open(filename, 'a') as f:
             f.write(str(doc.identifier) + ' ')
             f.write(' '.join(str(Elogpi[i]) for i in ids))
@@ -1120,4 +1148,4 @@ class m0(object):
         '''
 
         with open(filename, 'w') as f:
-            cPickle.dump(model, f, -1)
+            cPickle.dump(self, f, -1)

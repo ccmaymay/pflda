@@ -16,6 +16,8 @@ OPTIONS_BASENAME = 'options'
 
 MODEL_EXT = '.model'
 LAMBDA_SS_EXT = '.lambda_ss'
+ELOGPI_EXT = '.Elogpi'
+LOGEPI_EXT = '.logEpi'
 ELOGTHETA_EXT = '.Elogtheta'
 LOGETHETA_EXT = '.logEtheta'
 SUBTREE_BASENAME = 'subtree'
@@ -331,6 +333,14 @@ def run_m0(**kwargs):
                     result_directory,
                     'doc_count-%d%s' % (total_doc_count, LAMBDA_SS_EXT)
                 ))
+                model.save_Elogpi(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, ELOGPI_EXT)
+                ))
+                model.save_logEpi(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, LOGEPI_EXT)
+                ))
                 model.save_Elogtheta(os.path.join(
                     result_directory,
                     'doc_count-%d%s' % (total_doc_count, ELOGTHETA_EXT)
@@ -365,6 +375,14 @@ def run_m0(**kwargs):
         model.save_logEtheta(os.path.join(
             result_directory,
             'final%s' % LOGETHETA_EXT
+        ))
+        model.save_Elogpi(os.path.join(
+            result_directory,
+            'final%s' % ELOGPI_EXT
+        ))
+        model.save_logEpi(os.path.join(
+            result_directory,
+            'final%s' % LOGEPI_EXT
         ))
         model.save_model(os.path.join(
             result_directory,
