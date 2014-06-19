@@ -716,12 +716,12 @@ class m0(object):
             likelihood = 0.0
 
             # E[log p(U | gamma_1, gamma_2)] + H(q(U))
-            u_ll = utils.log_sticks_likelihood(ab, self.m_gamma1, self.m_gamma2, ab_ids)
+            u_ll = utils.log_sticks_likelihood(ab[:,ab_ids], self.m_gamma1, self.m_gamma2)
             likelihood += u_ll
             logging.debug('Log-likelihood after U components: %f (+ %f)' % (likelihood, u_ll))
 
             # E[log p(V | beta)] + H(q(V))
-            v_ll = utils.log_sticks_likelihood(uv, 1.0, self.m_beta, uv_ids)
+            v_ll = utils.log_sticks_likelihood(uv[:,uv_ids], 1.0, self.m_beta)
             likelihood += v_ll
             logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
 

@@ -118,7 +118,7 @@ def vector_norm(m, axis=0, ord=None):
     return norm
 
     
-def log_sticks_likelihood(ab, a_prior, b_prior, ids):
+def log_sticks_likelihood(ab, a_prior, b_prior):
     '''
     Return E[log p(X | a_prior, b_prior)] + H(q(X))
     where X is a random vector whose components are Beta-distributed
@@ -126,17 +126,16 @@ def log_sticks_likelihood(ab, a_prior, b_prior, ids):
     X is that each component of X is an independent Beta random
     variable whose parameters are given by the corresponding column of
     ab, and the expectation E is taken with respect to the variational
-    distribution.  ids is an array of indices used to subselect
-    components of X (we ignore components whose indices are not in ids).
+    distribution.
     '''
-    sum_ab = np.sum(ab[:,ids], 0)
-    diff_psi_ab = sp.psi(ab[:,ids]) - sp.psi(sum_ab)
-    ab_entr_factors = ab[:,ids]
+    sum_ab = np.sum(ab, 0)
+    diff_psi_ab = sp.psi(ab) - sp.psi(sum_ab)
+    ab_entr_factors = ab
     ab_prob_factors = np.zeros(2)
     ab_prob_factors[0] = a_prior
     ab_prob_factors[1] = b_prior
     ab_entr_log_beta = (
-        np.sum(sp.gammaln(ab[:, ids]), 0)
+        np.sum(sp.gammaln(ab), 0)
         - sp.gammaln(sum_ab)
     )
     ab_prob_log_beta = (

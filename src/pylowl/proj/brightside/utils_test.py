@@ -34,64 +34,28 @@ def vector_norm_3d_0_ord_2_test():
 def log_sticks_likelihood_1_test():
     actual = log_sticks_likelihood(
         np.array([[1.], [1.]]),
-        1., 1.,
-        [0]
+        1., 1.
     )
     assert_almost_equal(actual, 0.0)
 
 def log_sticks_likelihood_2_test():
     actual = log_sticks_likelihood(
         np.array([[42.], [7.]]),
-        42., 7.,
-        [0]
+        42., 7.
     )
     assert_almost_equal(actual, 0.0)
 
 def log_sticks_likelihood_3_test():
     actual = log_sticks_likelihood(
         np.array([[42., 42., 42., 42.], [7., 7., 7., 7.]]),
-        42., 7.,
-        [0, 1, 2, 3]
+        42., 7.
     )
     assert_almost_equal(actual, 0.0)
 
 def log_sticks_likelihood_4_test():
     actual = log_sticks_likelihood(
         np.array([[42., 47., 42., 42.], [7., 7., 7., 8.]]),
-        42., 7.,
-        [0, 2]
-    )
-    assert_almost_equal(actual, 0.0)
-
-def log_sticks_likelihood_5_test():
-    actual = log_sticks_likelihood(
-        np.array([[42., 47., 42., 42.], [7., 7., 7., 8.]]),
-        42., 7.,
-        [1]
-    )
-    assert_almost_equal(actual, -0.037718168)
-
-def log_sticks_likelihood_6_test():
-    actual = log_sticks_likelihood(
-        np.array([[42., 47., 42., 42.], [7., 7., 7., 8.]]),
-        42., 7.,
-        [3]
-    )
-    assert_almost_equal(actual, -0.059561954)
-
-def log_sticks_likelihood_7_test():
-    actual = log_sticks_likelihood(
-        np.array([[42., 47., 42., 42.], [7., 7., 7., 8.]]),
-        42., 7.,
-        [1, 3]
-    )
-    assert_almost_equal(actual, -0.097280122)
-
-def log_sticks_likelihood_8_test():
-    actual = log_sticks_likelihood(
-        np.array([[42., 47., 42., 42.], [7., 7., 7., 8.]]),
-        42., 7.,
-        [0, 1, 2, 3]
+        42., 7.
     )
     assert_almost_equal(actual, -0.097280122)
 
