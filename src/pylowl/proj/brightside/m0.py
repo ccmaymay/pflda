@@ -29,7 +29,7 @@ def set_random_seed(seed):
     np.random.seed(seed)
 
 
-class suff_stats:
+class suff_stats(object):
 
     '''
     Struct for per-document sufficient statistics for one or more
@@ -58,7 +58,7 @@ class suff_stats:
         self.m_lambda_ss.fill(0.0)
 
 
-class m0:
+class m0(object):
 
     r'''
     nHDP model using stick breaking.
@@ -122,7 +122,27 @@ class m0:
                           (per topic)
     '''
 
-    def __init__(self, trunc, D, W, lambda0=0.01, beta=1., alpha=1., gamma1=1./3., gamma2=2./3., kappa=0.5, iota=1., delta=1e-3, scale=1., rho_bound=0., adding_noise=False):
+    def __init__(self,
+                 trunc,
+                 D,
+                 W,
+                 lambda0=0.01,
+                 beta=1.,
+                 alpha=1.,
+                 gamma1=1./3.,
+                 gamma2=2./3.,
+                 kappa=0.5,
+                 iota=1.,
+                 delta=1e-3,
+                 scale=1.,
+                 rho_bound=0.,
+                 adding_noise=False,
+                 subtree_filename=None,
+                 subtree_Elogpi_filename=None,
+                 subtree_logEpi_filename=None,
+                 subtree_Elogtheta_filename=None,
+                 subtree_logEtheta_filename=None,
+                 subtree_lambda_ss_filename=None):
         if trunc[0] != 1:
             raise ValueError('Top-level truncation must be one.')
 
@@ -174,6 +194,13 @@ class m0:
         self.m_num_docs_processed = 0
 
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
+
+        self.subtree_filename = subtree_filename
+        self.subtree_Elogpi_filename = subtree_Elogpi_filename
+        self.subtree_logEpi_filename = subtree_logEpi_filename
+        self.subtree_Elogtheta_filename = subtree_Elogtheta_filename
+        self.subtree_logEtheta_filename = subtree_logEtheta_filename
+        self.subtree_lambda_ss_filename = subtree_lambda_ss_filename
 
     def initialize(self, docs, xi, omicron=None):
         '''
@@ -252,7 +279,8 @@ class m0:
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
         self.m_Elogprobw = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
 
-    def process_documents(self, docs, var_converge, update=True, predict_docs=None):
+    def process_documents(self, docs, var_converge, update=True,
+                          predict_docs=None):
         '''
         Bring m_lambda_ss and m_Elogprobw up to date for the word types in
         this minibatch, do the E-step on this minibatch, optionally
@@ -313,8 +341,7 @@ class m0:
         count = 0
         for (doc, predict_doc) in it.izip(docs, predict_docs):
             doc_score = self.doc_e_step(doc, ss, ElogV, vocab_to_batch_word_map,
-                                        batch_to_vocab_word_map, var_converge,
-                                        predict_doc=predict_doc)
+                batch_to_vocab_word_map, var_converge, predict_doc=predict_doc)
 
             score += doc_score
             if predict_doc is None:
@@ -718,9 +745,24 @@ class m0:
 
             iteration += 1
 
-        # TODOTODO save E[pi]
-        # TODOTODO save E[log pi]
-        # TODOTODO save nu sums
+        if self.subtree_filename is not None:
+            self.save_subtree(self.subtree_filename,
+                doc, subtree, l2g_idx)
+        if self.subtree_Elogpi_filename is not None:
+            self.save_subtree_Elogpi(self.subtree_Elogpi_filename,
+                doc, subtree, ids, ab, uv)
+        if self.subtree_logEpi_filename is not None:
+            self.save_subtree_logEpi(self.subtree_logEpi_filename,
+                doc, subtree, ids, ab, uv)
+        if self.subtree_Elogtheta_filename is not None:
+            self.save_subtree_Elogtheta(self.subtree_Elogtheta_filename,
+                doc, ids, nu_sums)
+        if self.subtree_logEtheta_filename is not None:
+            self.save_subtree_logEtheta(self.subtree_logEtheta_filename,
+                doc, ids, nu_sums)
+        if self.subtree_lambda_ss_filename is not None:
+            self.save_subtree_lambda_ss(self.subtree_lambda_ss_filename,
+                doc, ids, nu_sums)
 
         # update the suff_stat ss
         global_ids = l2g_idx[ids]
@@ -730,6 +772,7 @@ class m0:
 
         if predict_doc is not None:
             logEpi = self.compute_logEpi(subtree, ab, uv)
+            # TODO abstract this?
             logEtheta = (
                 np.log(self.m_lambda0 + self.m_lambda_ss)
                 - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
@@ -945,7 +988,6 @@ class m0:
         logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
         logging.debug('Subtree global ids: %s'
             % ' '.join(str(l2g_idx[i]) for i in ids))
-        # TODOTODO save subtree
 
         return (subtree, l2g_idx, g2l_idx)
 
@@ -1015,26 +1057,27 @@ class m0:
         '''
         Append nu sums to file.
         '''
+        # TODO lambda0?
         with open(filename, 'a') as f:
             f.write(str(doc.identifier) + ' ')
             f.write(' '.join(str(x) for x in nu_sums[ids]))
             f.write('\n')
 
-    def save_subtree_logEtheta(self, filename, doc, subtree, ids, nu):
+    def save_subtree_logEtheta(self, filename, doc, ids, nu_sums):
         '''
         Append log E[theta] for doc subtree to file.
         '''
-        logEtheta = self.compute_logEtheta(subtree, nu)
+        logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + nu_sums)
         with open(filename, 'a') as f:
             f.write(str(doc.identifier) + ' ')
             f.write(' '.join(str(logEtheta[i]) for i in ids))
             f.write('\n')
 
-    def save_subtree_Elogtheta(self, filename, doc, subtree, ids, nu):
+    def save_subtree_Elogtheta(self, filename, doc, ids, nu_sums):
         '''
         Append E[log theta] for doc subtree to file.
         '''
-        Elogtheta = self.compute_Elogtheta(subtree, nu)
+        Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + nu_sums)
         with open(filename, 'a') as f:
             f.write(str(doc.identifier) + ' ')
             f.write(' '.join(str(Elogtheta[i]) for i in ids))

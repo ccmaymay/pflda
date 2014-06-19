@@ -18,11 +18,12 @@ MODEL_EXT = '.model'
 LAMBDA_SS_EXT = '.lambda_ss'
 ELOGTHETA_EXT = '.Elogtheta'
 LOGETHETA_EXT = '.logEtheta'
-SUBTREE_BASENAME = '.subtree'
+SUBTREE_BASENAME = 'subtree'
 SUBTREE_ELOGPI_BASENAME = 'subtree_Elogpi'
 SUBTREE_LOGEPI_BASENAME = 'subtree_logEpi'
 SUBTREE_ELOGTHETA_BASENAME = 'subtree_Elogtheta'
 SUBTREE_LOGETHETA_BASENAME = 'subtree_logEtheta'
+SUBTREE_LAMBDA_SS_BASENAME = 'subtree_lambda_ss'
 
 DEFAULT_OPTIONS = dict(
     log_level='INFO',
@@ -263,12 +264,31 @@ def run_m0(**kwargs):
 
     trunc = tuple(int(t) for t in options['trunc'].split(','))
 
+    subtree_filename = os.path.join(result_directory,
+        SUBTREE_BASENAME)
+    subtree_Elogpi_filename = os.path.join(result_directory,
+        SUBTREE_ELOGPI_BASENAME)
+    subtree_logEpi_filename = os.path.join(result_directory,
+        SUBTREE_LOGEPI_BASENAME)
+    subtree_Elogtheta_filename = os.path.join(result_directory,
+        SUBTREE_ELOGTHETA_BASENAME)
+    subtree_logEtheta_filename = os.path.join(result_directory,
+        SUBTREE_LOGETHETA_BASENAME)
+    subtree_lambda_ss_filename = os.path.join(result_directory,
+        SUBTREE_LAMBDA_SS_BASENAME)
+
     logging.info("Creating online nhdp instance")
     model = m0.m0(trunc, num_docs, num_types,
                   options['lambda0'], options['beta'], options['alpha'],
                   options['gamma1'], options['gamma2'],
                   options['kappa'], options['iota'], options['delta'],
-                  options['scale'], options['adding_noise'])
+                  options['scale'], options['adding_noise'],
+                  subtree_filename=subtree_filename,
+                  subtree_Elogpi_filename=subtree_Elogpi_filename,
+                  subtree_logEpi_filename=subtree_logEpi_filename,
+                  subtree_Elogtheta_filename=subtree_Elogtheta_filename,
+                  subtree_logEtheta_filename=subtree_logEtheta_filename,
+                  subtree_lambda_ss_filename=subtree_lambda_ss_filename)
 
     if options['init_samples'] is not None:
         logging.info("Initializing")
