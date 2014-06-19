@@ -357,35 +357,7 @@ class m0:
         )
 
     def update_nu(self, subtree, ab, uv, Elogprobw_doc, doc, nu, log_nu):
-        Elogpi = np.zeros(self.m_K)
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            for p in it.chain((node,), self.node_ancestors(node)):
-                p_idx = self.tree_index(p)
-
-                # contributions from switching probabilities
-                if idx == p_idx:
-                    Elogpi[idx] += (
-                        sp.psi(ab[0, p_idx])
-                        - sp.psi(np.sum(ab[:, p_idx]))
-                    )
-                else:
-                    Elogpi[idx] += (
-                        sp.psi(ab[1, p_idx])
-                        - sp.psi(np.sum(ab[:, p_idx]))
-                    )
-
-                # contributions from stick proportions
-                Elogpi[idx] += (
-                    sp.psi(uv[0, p_idx])
-                    - sp.psi(np.sum(uv[:, p_idx]))
-                )
-                for s in self.node_left_siblings(p):
-                    s_idx = self.tree_index(s)
-                    Elogpi[idx] += (
-                        sp.psi(uv[1, s_idx])
-                        - sp.psi(np.sum(uv[:, s_idx]))
-                    )
+        Elogpi = self.compute_Elogpi(subtree, ab, uv)
 
         # TODO oHDP: only add Elogpi if iter < 3
         log_nu[:,:] = np.repeat(Elogprobw_doc, doc.counts, axis=1).T + Elogpi # N x K
@@ -516,6 +488,63 @@ class m0:
         self.check_nu_edge_cases(nu)
 
         return np.sum(nu[:,ids].T * np.repeat(Elogprobw_doc[ids,:], doc.counts, axis=1))
+
+    def compute_Elogpi(self, subtree, ab, uv):
+        Elogpi = np.zeros(self.m_K)
+
+        for node in self.tree_iter(subtree):
+            idx = self.tree_index(node)
+            for p in it.chain((node,), self.node_ancestors(node)):
+                p_idx = self.tree_index(p)
+
+                # contributions from switching probabilities
+                if idx == p_idx:
+                    Elogpi[idx] += (
+                        sp.psi(ab[0, p_idx])
+                        - sp.psi(np.sum(ab[:, p_idx]))
+                    )
+                else:
+                    Elogpi[idx] += (
+                        sp.psi(ab[1, p_idx])
+                        - sp.psi(np.sum(ab[:, p_idx]))
+                    )
+
+                # contributions from stick proportions
+                Elogpi[idx] += (
+                    sp.psi(uv[0, p_idx])
+                    - sp.psi(np.sum(uv[:, p_idx]))
+                )
+                for s in self.node_left_siblings(p):
+                    s_idx = self.tree_index(s)
+                    Elogpi[idx] += (
+                        sp.psi(uv[1, s_idx])
+                        - sp.psi(np.sum(uv[:, s_idx]))
+                    )
+
+        return Elogpi
+
+    def compute_logEpi(self, subtree, ab, uv):
+        logEpi = np.zeros(self.m_K)
+
+        # TODO precompute ratios, here and elsewhere?
+        for node in self.tree_iter(subtree):
+            idx = self.tree_index(node)
+            for p in it.chain((node,), self.node_ancestors(node)):
+                p_idx = self.tree_index(p)
+
+                # contributions from switching probabilities
+                if idx == p_idx:
+                    logEpi[idx] += np.log(ab[0, p_idx]) - np.log(np.sum(ab[:, p_idx]))
+                else:
+                    logEpi[idx] += np.log(ab[1, p_idx]) - np.log(np.sum(ab[:, p_idx]))
+
+                # contributions from stick proportions
+                logEpi[idx] += np.log(uv[0, p_idx]) - np.log(np.sum(uv[:, p_idx]))
+                for s in self.node_left_siblings(p):
+                    s_idx = self.tree_index(s)
+                    logEpi[idx] += np.log(uv[1, s_idx]) - np.log(np.sum(uv[:, s_idx]))
+
+        return logEpi
 
     def check_subtree_ids(self, subtree, ids):
         ids_in_subtree = set(ids)
@@ -688,29 +717,9 @@ class m0:
 
             iteration += 1
 
-        try:
-            uv_expectation = utils.beta_expectation(uv, ids)[0]
-        except:
-            logging.info('Doc uv expectation for %s: error'
-                % str(doc.identifier))
-        else:
-            logging.info('Doc uv expectation for %s: %s'
-                % (str(doc.identifier),
-                   ' '.join(str(x) for x in uv_expectation)))
-
-        try:
-            ab_expectation = utils.beta_expectation(ab, ids)[0]
-        except:
-            logging.info('Doc ab expectation for %s: error'
-                % str(doc.identifier))
-        else:
-            logging.info('Doc ab expectation for %s: %s'
-                % (str(doc.identifier),
-                   ' '.join(str(x) for x in uv_expectation)))
-
-        logging.info('Doc nu sums for %s: %s'
-            % (str(doc.identifier),
-               ' '.join(str(x) for x in nu_sums[ids])))
+        # TODOTODO save E[pi]
+        # TODOTODO save E[log pi]
+        # TODOTODO save nu sums
 
         # update the suff_stat ss
         global_ids = l2g_idx[ids]
@@ -719,31 +728,11 @@ class m0:
             ss.m_lambda_ss[global_ids, token_batch_ids[n]] += nu[n, ids]
 
         if predict_doc is not None:
-            logEpi = np.zeros(self.m_K)
-
-            # TODO precompute ratios, here and elsewhere?
-            for node in self.tree_iter(subtree):
-                idx = self.tree_index(node)
-                for p in it.chain((node,), self.node_ancestors(node)):
-                    p_idx = self.tree_index(p)
-
-                    # contributions from switching probabilities
-                    if idx == p_idx:
-                        logEpi[idx] += np.log(ab[0, p_idx]) - np.log(np.sum(ab[:, p_idx]))
-                    else:
-                        logEpi[idx] += np.log(ab[1, p_idx]) - np.log(np.sum(ab[:, p_idx]))
-
-                    # contributions from stick proportions
-                    logEpi[idx] += np.log(uv[0, p_idx]) - np.log(np.sum(uv[:, p_idx]))
-                    for s in self.node_left_siblings(p):
-                        s_idx = self.tree_index(s)
-                        logEpi[idx] += np.log(uv[1, s_idx]) - np.log(np.sum(uv[:, s_idx]))
-
+            logEpi = self.compute_logEpi(subtree, ab, uv):
             logEtheta = (
                 np.log(self.m_lambda0 + self.m_lambda_ss)
                 - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
             )
-
             likelihood = np.sum(np.log(np.sum(np.exp(logEpi[ids][:,np.newaxis] + logEtheta[l2g_idx[ids],:][:,predict_doc.words]), 0)) * predict_doc.counts)
 
         return likelihood
@@ -815,6 +804,8 @@ class m0:
 
         ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
         logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
+        logging.debug('Subtree global ids: %s'
+            % ' '.join(str(l2g_idx[i]) for i in ids))
 
         Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
         nu = np.zeros((num_tokens, self.m_K))
@@ -870,6 +861,8 @@ class m0:
 
                 ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
                 logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
+                logging.debug('Subtree global ids: %s'
+                    % ' '.join(str(l2g_idx[i]) for i in ids))
 
                 Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
                 self.update_nu(subtree, prior_ab, prior_uv, Elogprobw_doc, doc,
@@ -938,17 +931,20 @@ class m0:
                 prior_uv[:,left_s_idx] = [1.0, self.m_beta]
             likelihood = best_likelihood
 
-            logging.debug('Subtree ids: %s'
-                % ' '.join(str(self.tree_index(nod))
-                           for nod in self.tree_iter(subtree)))
+            ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
+            logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
+            logging.debug('Subtree global ids: %s'
+                % ' '.join(str(l2g_idx[i]) for i in ids))
 
             old_likelihood = likelihood
 
         logging.debug('Log-likelihood: %f' % old_likelihood)
-        logging.info('Subtree global node ids for %s: %s'
-            % (str(doc.identifier),
-               ' '.join(str(l2g_idx[self.tree_index(nod)])
-                        for nod in self.tree_iter(subtree))))
+
+        ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
+        logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
+        logging.debug('Subtree global ids: %s'
+            % ' '.join(str(l2g_idx[i]) for i in ids))
+        # TODOTODO save subtree
 
         return (subtree, l2g_idx, g2l_idx)
 
@@ -980,8 +976,8 @@ class m0:
 
     def save_topics(self, filename):
         '''
-        Write the topics (specified by variational means lambda + lambda0)
-        to file.
+        Write the topics (specified by variational parameters
+        lambda + lambda0) to file.
         '''
 
         with open(filename, 'w') as f:
@@ -989,3 +985,55 @@ class m0:
             for lamb in lambdas:
                 line = ' '.join([str(x) for x in lamb])
                 f.write(line + '\n')
+
+    def save_log_topics(self, filename):
+        '''
+        Write the topics (specified by variational log means of
+        lambda + lambda0) to file.
+        '''
+
+        with open(filename, 'w') as f:
+            Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
+            for elt in Elogtheta:
+                line = ' '.join([str(x) for x in elt])
+                f.write(line + '\n')
+
+    def save_subtree_topic_likelihood_sums(self, filename, doc, ids, nu_sums):
+        '''
+        Append nu sums to file.
+        '''
+        with open(filename, 'a') as f:
+            f.write(str(doc.identifier) + ' ')
+            f.write(' '.join(str(x) for x in nu_sums[ids]))
+            f.write('\n')
+
+    def save_subtree_prior_log(self, filename, doc, subtree, ids, ab, uv):
+        '''
+        Append log E[pi] for doc subtree to file.
+        '''
+        logEpi = self.compute_logEpi(subtree, ab, uv)
+        with open(filename, 'a') as f:
+            f.write(str(doc.identifier) + ' ')
+            f.write(' '.join(str(logEpi[i]) for i in ids))
+            f.write('\n')
+
+    def save_subtree_log_prior(self, filename, doc, subtree, ids, ab, uv):
+        '''
+        Append E[log pi] for doc subtree to file.
+        '''
+        Elogpi = self.compute_Elogpi(subtree, ab, uv)
+        with open(filename, 'a') as f:
+            f.write(str(doc.identifier) + ' ')
+            f.write(' '.join(str(Elogpi[i]) for i in ids))
+            f.write('\n')
+
+    def save_subtree(self, filename, doc, subtree, l2g_idx):
+        '''
+        Append document subtree to file.
+        '''
+
+        with open(filename, 'a') as f:
+            f.write(str(doc.identifier) + ' ')
+            f.write(' '.join(str(l2g_idx[self.tree_index(nod)])
+                             for nod in self.tree_iter(subtree)))
+            f.write('\n')
