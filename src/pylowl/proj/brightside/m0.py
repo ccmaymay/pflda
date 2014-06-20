@@ -527,10 +527,10 @@ class m0(object):
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
 
-                Elogpi[idx] += ElogV[0,idx]
+                Elogpi[idx] += ElogV[0,p_idx]
                 for s in self.node_left_siblings(p):
                     s_idx = self.tree_index(s)
-                    Elogpi[idx] += ElogV[1,idx]
+                    Elogpi[idx] += ElogV[1,s_idx]
 
         return Elogpi
 
@@ -544,10 +544,10 @@ class m0(object):
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
 
-                logEpi[idx] += logEV[0,idx]
+                logEpi[idx] += logEV[0,p_idx]
                 for s in self.node_left_siblings(p):
                     s_idx = self.tree_index(s)
-                    logEpi[idx] += logEV[1,idx]
+                    logEpi[idx] += logEV[1,s_idx]
 
         return logEpi
 
