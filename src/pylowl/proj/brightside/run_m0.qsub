@@ -33,8 +33,8 @@ shift
 
 PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run_m0 \
     --trunc="$TRUNC" \
-    --data_path="$DATA_DIR"/'*' \
-    --test_data_path="$DATA_DIR"/'*' \
+    --data_path="$DATA_DIR/train" \
+    --test_data_path="$DATA_DIR/test" \
     --save_model \
     --max_time=28800 \
     --output_dir="$OUTPUT_DIR" \
