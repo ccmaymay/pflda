@@ -161,10 +161,10 @@ class m0(object):
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
-        #self.m_tau[1] = self.m_alpha
+        self.m_tau[1] = alpha
         # make a uniform at beginning
         # TODO why? and how is this uniform?
-        self.m_tau[1] = range(self.m_K, 0, -1)
+        # self.m_tau[1] = range(self.m_K, 0, -1)
         for global_node in self.tree_iter():
             global_node_idx = self.tree_index(global_node)
             if global_node[-1] + 1 == self.m_trunc[len(global_node)-1]: # right-most child in truncated tree
