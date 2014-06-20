@@ -39,14 +39,18 @@ for proj_dir in glob('src/pylowl/proj/*'):
             projects.append((proj_name, m.select))
 
 
-USER_OPTIONS = [('with-proj-' + p[0],
-                 None,
-                 'Include ' + p[0] + ' project in build/install/etc.')
-                for p in projects]
+USER_OPTIONS = ([('with-proj-' + p[0],
+                  None,
+                  'Include ' + p[0] + ' project in build/install/etc.')
+                 for p in projects]
+                + [('with-all-proj',
+                    None,
+                    'Include all projects in build/install/etc.')])
 
 
 def make_initialize_options(superclass):
     def initialize_options(o):
+        o.with_all_proj = False
         for p in projects:
             attr_name = 'with_proj_' + p[0]
             setattr(o, attr_name, False)
@@ -58,7 +62,8 @@ def make_run(superclass):
     def run(o):
         for p in projects:
             attr_name = 'with_proj_' + p[0]
-            if getattr(o, attr_name) and p[0] not in selected_proj:
+            selected = o.with_all_proj or getattr(o, attr_name)
+            if selected and p[0] not in selected_proj:
                 p[1](packages, ext_modules, scripts)
                 selected_proj.add(p[0])
         superclass.run(o)
