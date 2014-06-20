@@ -519,11 +519,37 @@ class m0(object):
 
     def compute_Elogpi(self):
         ids = [self.tree_index(node) for node in self.tree_iter()]
-        return utils.log_beta_expectation(self.m_tau)
+        ElogV = utils.log_beta_expectation(self.m_tau)
+        Elogpi = np.zeros(self.m_K)
+
+        for node in self.tree_iter():
+            idx = self.tree_index(node)
+            for p in it.chain((node,), self.node_ancestors(node)):
+                p_idx = self.tree_index(p)
+
+                Elogpi[idx] += ElogV[0,idx]
+                for s in self.node_left_siblings(p):
+                    s_idx = self.tree_index(s)
+                    Elogpi[idx] += ElogV[1,idx]
+
+        return Elogpi
 
     def compute_logEpi(self):
         ids = [self.tree_index(node) for node in self.tree_iter()]
-        return utils.beta_log_expectation(self.m_tau)
+        logEV = utils.beta_log_expectation(self.m_tau)
+        logEpi = np.zeros(self.m_K)
+
+        for node in self.tree_iter():
+            idx = self.tree_index(node)
+            for p in it.chain((node,), self.node_ancestors(node)):
+                p_idx = self.tree_index(p)
+
+                logEpi[idx] += logEV[0,idx]
+                for s in self.node_left_siblings(p):
+                    s_idx = self.tree_index(s)
+                    logEpi[idx] += logEV[1,idx]
+
+        return logEpi
 
     def compute_subtree_Elogpi(self, subtree, ab, uv):
         Elogpi = np.zeros(self.m_K)
@@ -1064,8 +1090,7 @@ class m0(object):
         '''
 
         logEpi = self.compute_logEpi().T
-        for row in logEpi:
-            f.write(' '.join(str(x) for x in row))
+        f.write('\n'.join(str(x) for x in logEpi))
         f.write('\n')
 
     def save_Elogpi(self, f):
@@ -1074,8 +1099,7 @@ class m0(object):
         '''
 
         Elogpi = self.compute_Elogpi().T
-        for row in Elogpi:
-            f.write(' '.join(str(x) for x in row))
+        f.write('\n'.join(str(x) for x in Elogpi))
         f.write('\n')
 
     def save_subtree_lambda_ss(self, f, doc, ids, nu_sums):
