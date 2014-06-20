@@ -6,4 +6,4 @@
 #$ -q text.q
 #$ -l num_proc=1,mem_free=400M,h_rt=2:00:00
 printenv
-./pflda_run_pf "$@"
+pflda_run_pf "$@"
