@@ -1063,8 +1063,9 @@ class m0(object):
         Write the expected log prior to file.
         '''
 
-        logEpi = self.compute_logEpi()
-        f.write('\n'.join(str(x) for x in logEpi))
+        logEpi = self.compute_logEpi().T
+        for row in logEpi:
+            f.write(' '.join(str(x) for x in row))
         f.write('\n')
 
     def save_Elogpi(self, f):
@@ -1072,8 +1073,9 @@ class m0(object):
         Write the log of the expected prior to file.
         '''
 
-        Elogpi = self.compute_Elogpi()
-        f.write('\n'.join(str(x) for x in Elogpi))
+        Elogpi = self.compute_Elogpi().T
+        for row in Elogpi:
+            f.write(' '.join(str(x) for x in row))
         f.write('\n')
 
     def save_subtree_lambda_ss(self, f, doc, ids, nu_sums):
