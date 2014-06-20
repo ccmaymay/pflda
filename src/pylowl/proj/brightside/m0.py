@@ -137,12 +137,12 @@ class m0(object):
                  scale=1.,
                  rho_bound=0.,
                  adding_noise=False,
-                 subtree_filename=None,
-                 subtree_Elogpi_filename=None,
-                 subtree_logEpi_filename=None,
-                 subtree_Elogtheta_filename=None,
-                 subtree_logEtheta_filename=None,
-                 subtree_lambda_ss_filename=None):
+                 subtree_f=None,
+                 subtree_Elogpi_f=None,
+                 subtree_logEpi_f=None,
+                 subtree_Elogtheta_f=None,
+                 subtree_logEtheta_f=None,
+                 subtree_lambda_ss_f=None):
         if trunc[0] != 1:
             raise ValueError('Top-level truncation must be one.')
 
@@ -195,12 +195,12 @@ class m0(object):
 
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
-        self.subtree_filename = subtree_filename
-        self.subtree_Elogpi_filename = subtree_Elogpi_filename
-        self.subtree_logEpi_filename = subtree_logEpi_filename
-        self.subtree_Elogtheta_filename = subtree_Elogtheta_filename
-        self.subtree_logEtheta_filename = subtree_logEtheta_filename
-        self.subtree_lambda_ss_filename = subtree_lambda_ss_filename
+        self.subtree_f = subtree_f
+        self.subtree_Elogpi_f = subtree_Elogpi_f
+        self.subtree_logEpi_f = subtree_logEpi_f
+        self.subtree_Elogtheta_f = subtree_Elogtheta_f
+        self.subtree_logEtheta_f = subtree_logEtheta_f
+        self.subtree_lambda_ss_f = subtree_lambda_ss_f
 
     def initialize(self, docs, xi, omicron=None):
         '''
@@ -753,23 +753,23 @@ class m0(object):
 
             iteration += 1
 
-        if self.subtree_filename is not None:
-            self.save_subtree(self.subtree_filename,
+        if self.subtree_f is not None:
+            self.save_subtree(self.subtree_f,
                 doc, subtree, l2g_idx)
-        if self.subtree_Elogpi_filename is not None:
-            self.save_subtree_Elogpi(self.subtree_Elogpi_filename,
+        if self.subtree_Elogpi_f is not None:
+            self.save_subtree_Elogpi(self.subtree_Elogpi_f,
                 doc, subtree, ids, ab, uv)
-        if self.subtree_logEpi_filename is not None:
-            self.save_subtree_logEpi(self.subtree_logEpi_filename,
+        if self.subtree_logEpi_f is not None:
+            self.save_subtree_logEpi(self.subtree_logEpi_f,
                 doc, subtree, ids, ab, uv)
-        if self.subtree_Elogtheta_filename is not None:
-            self.save_subtree_Elogtheta(self.subtree_Elogtheta_filename,
+        if self.subtree_Elogtheta_f is not None:
+            self.save_subtree_Elogtheta(self.subtree_Elogtheta_f,
                 doc, ids, nu_sums)
-        if self.subtree_logEtheta_filename is not None:
-            self.save_subtree_logEtheta(self.subtree_logEtheta_filename,
+        if self.subtree_logEtheta_f is not None:
+            self.save_subtree_logEtheta(self.subtree_logEtheta_f,
                 doc, ids, nu_sums)
-        if self.subtree_lambda_ss_filename is not None:
-            self.save_subtree_lambda_ss(self.subtree_lambda_ss_filename,
+        if self.subtree_lambda_ss_f is not None:
+            self.save_subtree_lambda_ss(self.subtree_lambda_ss_f,
                 doc, ids, nu_sums)
 
         # update the suff_stat ss
@@ -1025,127 +1025,115 @@ class m0(object):
             + rho * ss.m_tau_ss * self.m_D / ss.m_batchsize
         )
 
-    def save_lambda_ss(self, filename):
+    def save_lambda_ss(self, f):
         '''
         Write the topics (specified by variational parameters
         lambda + lambda0) to file.
         '''
 
-        with open(filename, 'w') as f:
-            lambdas = self.m_lambda_ss + self.m_lambda0
-            for row in lambdas:
-                line = ' '.join([str(x) for x in row])
-                f.write(line + '\n')
+        lambdas = self.m_lambda_ss + self.m_lambda0
+        for row in lambdas:
+            line = ' '.join([str(x) for x in row])
+            f.write(line + '\n')
 
-    def save_logEtheta(self, filename):
+    def save_logEtheta(self, f):
         '''
         Write the topics (specified by logs of variational means of
         lambda + lambda0) to file.
         '''
 
-        with open(filename, 'w') as f:
-            logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + self.m_lambda_ss)
-            for row in logEtheta:
-                line = ' '.join([str(x) for x in row])
-                f.write(line + '\n')
+        logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + self.m_lambda_ss)
+        for row in logEtheta:
+            line = ' '.join([str(x) for x in row])
+            f.write(line + '\n')
 
-    def save_Elogtheta(self, filename):
+    def save_Elogtheta(self, f):
         '''
         Write the topics (specified by variational log means of
         lambda + lambda0) to file.
         '''
 
-        with open(filename, 'w') as f:
-            Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
-            for row in Elogtheta:
-                line = ' '.join([str(x) for x in row])
-                f.write(line + '\n')
+        Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
+        for row in Elogtheta:
+            line = ' '.join([str(x) for x in row])
+            f.write(line + '\n')
 
-    def save_logEpi(self, filename):
+    def save_logEpi(self, f):
         '''
         Write the expected log prior to file.
         '''
 
         logEpi = self.compute_logEpi()
-        with open(filename, 'w') as f:
-            f.write('\n'.join(str(x) for x in logEpi))
-            f.write('\n')
+        f.write('\n'.join(str(x) for x in logEpi))
+        f.write('\n')
 
-    def save_Elogpi(self, filename):
+    def save_Elogpi(self, f):
         '''
         Write the log of the expected prior to file.
         '''
 
         Elogpi = self.compute_Elogpi()
-        with open(filename, 'w') as f:
-            f.write('\n'.join(str(x) for x in Elogpi))
-            f.write('\n')
+        f.write('\n'.join(str(x) for x in Elogpi))
+        f.write('\n')
 
-    def save_subtree_lambda_ss(self, filename, doc, ids, nu_sums):
+    def save_subtree_lambda_ss(self, f, doc, ids, nu_sums):
         '''
         Append nu sums to file.
         '''
         # TODO lambda0?
-        with open(filename, 'a') as f:
-            f.write(str(doc.identifier) + ' ')
-            f.write(' '.join(str(x) for x in nu_sums[ids]))
-            f.write('\n')
+        f.write(str(doc.identifier) + ' ')
+        f.write(' '.join(str(x) for x in nu_sums[ids]))
+        f.write('\n')
 
-    def save_subtree_logEtheta(self, filename, doc, ids, nu_sums):
+    def save_subtree_logEtheta(self, f, doc, ids, nu_sums):
         '''
         Append log E[theta] for doc subtree to file.
         '''
         logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + nu_sums)
-        with open(filename, 'a') as f:
-            f.write(str(doc.identifier) + ' ')
-            f.write(' '.join(str(logEtheta[i]) for i in ids))
-            f.write('\n')
+        f.write(str(doc.identifier) + ' ')
+        f.write(' '.join(str(logEtheta[i]) for i in ids))
+        f.write('\n')
 
-    def save_subtree_Elogtheta(self, filename, doc, ids, nu_sums):
+    def save_subtree_Elogtheta(self, f, doc, ids, nu_sums):
         '''
         Append E[log theta] for doc subtree to file.
         '''
         Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + nu_sums)
-        with open(filename, 'a') as f:
-            f.write(str(doc.identifier) + ' ')
-            f.write(' '.join(str(Elogtheta[i]) for i in ids))
-            f.write('\n')
+        f.write(str(doc.identifier) + ' ')
+        f.write(' '.join(str(Elogtheta[i]) for i in ids))
+        f.write('\n')
 
-    def save_subtree_logEpi(self, filename, doc, subtree, ids, ab, uv):
+    def save_subtree_logEpi(self, f, doc, subtree, ids, ab, uv):
         '''
         Append log E[pi] for doc subtree to file.
         '''
         logEpi = self.compute_subtree_logEpi(subtree, ab, uv)
-        with open(filename, 'a') as f:
-            f.write(str(doc.identifier) + ' ')
-            f.write(' '.join(str(logEpi[i]) for i in ids))
-            f.write('\n')
+        f.write(str(doc.identifier) + ' ')
+        f.write(' '.join(str(logEpi[i]) for i in ids))
+        f.write('\n')
 
-    def save_subtree_Elogpi(self, filename, doc, subtree, ids, ab, uv):
+    def save_subtree_Elogpi(self, f, doc, subtree, ids, ab, uv):
         '''
         Append E[log pi] for doc subtree to file.
         '''
         Elogpi = self.compute_subtree_Elogpi(subtree, ab, uv)
-        with open(filename, 'a') as f:
-            f.write(str(doc.identifier) + ' ')
-            f.write(' '.join(str(Elogpi[i]) for i in ids))
-            f.write('\n')
+        f.write(str(doc.identifier) + ' ')
+        f.write(' '.join(str(Elogpi[i]) for i in ids))
+        f.write('\n')
 
-    def save_subtree(self, filename, doc, subtree, l2g_idx):
+    def save_subtree(self, f, doc, subtree, l2g_idx):
         '''
         Append document subtree to file.
         '''
 
-        with open(filename, 'a') as f:
-            f.write(str(doc.identifier) + ' ')
-            f.write(' '.join(str(l2g_idx[self.tree_index(nod)])
-                             for nod in self.tree_iter(subtree)))
-            f.write('\n')
+        f.write(str(doc.identifier) + ' ')
+        f.write(' '.join(str(l2g_idx[self.tree_index(nod)])
+                         for nod in self.tree_iter(subtree)))
+        f.write('\n')
 
-    def save_model(self, filename):
+    def save_model(self, f):
         '''
         Pickle model to file.
         '''
 
-        with open(filename, 'w') as f:
-            cPickle.dump(self, f, -1)
+        cPickle.dump(self, f, -1)
