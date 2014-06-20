@@ -553,6 +553,11 @@ class m0(object):
 
     def compute_subtree_Elogpi(self, subtree, ab, uv):
         Elogpi = np.zeros(self.m_K)
+        ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
+        ElogV = np.zeros((2, self.m_K))
+        ElogV[:,ids] = utils.log_beta_expectation(uv[:,ids])
+        ElogU = np.zeros((2, self.m_K))
+        ElogU[:,ids] = utils.log_beta_expectation(ab[:,ids])
 
         for node in self.tree_iter(subtree):
             idx = self.tree_index(node)
@@ -561,34 +566,26 @@ class m0(object):
 
                 # contributions from switching probabilities
                 if idx == p_idx:
-                    Elogpi[idx] += (
-                        sp.psi(ab[0, p_idx])
-                        - sp.psi(np.sum(ab[:, p_idx]))
-                    )
+                    Elogpi[idx] += ElogU[0,p_idx]
                 else:
-                    Elogpi[idx] += (
-                        sp.psi(ab[1, p_idx])
-                        - sp.psi(np.sum(ab[:, p_idx]))
-                    )
+                    Elogpi[idx] += ElogU[1,p_idx]
 
                 # contributions from stick proportions
-                Elogpi[idx] += (
-                    sp.psi(uv[0, p_idx])
-                    - sp.psi(np.sum(uv[:, p_idx]))
-                )
+                Elogpi[idx] += ElogV[0,p_idx]
                 for s in self.node_left_siblings(p):
                     s_idx = self.tree_index(s)
-                    Elogpi[idx] += (
-                        sp.psi(uv[1, s_idx])
-                        - sp.psi(np.sum(uv[:, s_idx]))
-                    )
+                    Elogpi[idx] += ElogV[1,s_idx]
 
         return Elogpi
 
     def compute_subtree_logEpi(self, subtree, ab, uv):
         logEpi = np.zeros(self.m_K)
+        ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
+        logEV = np.zeros((2, self.m_K))
+        logEV[:,ids] = utils.beta_log_expectation(uv[:,ids])
+        logEU = np.zeros((2, self.m_K))
+        logEU[:,ids] = utils.beta_log_expectation(ab[:,ids])
 
-        # TODO precompute ratios, here and elsewhere?
         for node in self.tree_iter(subtree):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
@@ -596,15 +593,15 @@ class m0(object):
 
                 # contributions from switching probabilities
                 if idx == p_idx:
-                    logEpi[idx] += np.log(ab[0, p_idx]) - np.log(np.sum(ab[:, p_idx]))
+                    logEpi[idx] += logEU[0,p_idx]
                 else:
-                    logEpi[idx] += np.log(ab[1, p_idx]) - np.log(np.sum(ab[:, p_idx]))
+                    logEpi[idx] += logEU[1,p_idx]
 
                 # contributions from stick proportions
-                logEpi[idx] += np.log(uv[0, p_idx]) - np.log(np.sum(uv[:, p_idx]))
+                logEpi[idx] += logEV[0,p_idx]
                 for s in self.node_left_siblings(p):
                     s_idx = self.tree_index(s)
-                    logEpi[idx] += np.log(uv[1, s_idx]) - np.log(np.sum(uv[:, s_idx]))
+                    logEpi[idx] += logEV[1,s_idx]
 
         return logEpi
 
