@@ -118,7 +118,7 @@ def vector_norm(m, axis=0, ord=None):
     return norm
 
     
-def log_sticks_likelihood(ab, a_prior, b_prior, ids):
+def log_sticks_likelihood(ab, a_prior, b_prior):
     '''
     Return E[log p(X | a_prior, b_prior)] + H(q(X))
     where X is a random vector whose components are Beta-distributed
@@ -126,17 +126,16 @@ def log_sticks_likelihood(ab, a_prior, b_prior, ids):
     X is that each component of X is an independent Beta random
     variable whose parameters are given by the corresponding column of
     ab, and the expectation E is taken with respect to the variational
-    distribution.  ids is an array of indices used to subselect
-    components of X (we ignore components whose indices are not in ids).
+    distribution.
     '''
-    sum_ab = np.sum(ab[:,ids], 0)
-    diff_psi_ab = sp.psi(ab[:,ids]) - sp.psi(sum_ab)
-    ab_entr_factors = ab[:,ids]
+    sum_ab = np.sum(ab, 0)
+    diff_psi_ab = sp.psi(ab) - sp.psi(sum_ab)
+    ab_entr_factors = ab
     ab_prob_factors = np.zeros(2)
     ab_prob_factors[0] = a_prior
     ab_prob_factors[1] = b_prior
     ab_entr_log_beta = (
-        np.sum(sp.gammaln(ab[:, ids]), 0)
+        np.sum(sp.gammaln(ab), 0)
         - sp.gammaln(sum_ab)
     )
     ab_prob_log_beta = (
@@ -203,26 +202,34 @@ def log_dirichlet_expectation(conc):
     return sp.psi(conc) - sp.psi(np.sum(conc, 1))[:, np.newaxis]
 
 
-def log_beta_expectation(ab, ids):
+def dirichlet_log_expectation(conc):
+    '''
+    Compute log of the expectation of a Dirichlet-distributed r.v. with
+    parameter vector conc (or an array of Dirichlet r.v.s with
+    parameter vectors given by the rows of conc).
+    '''
+
+    if (len(conc.shape) == 1):
+        return np.log(conc) - np.log(np.sum(conc))
+    return np.log(conc) - np.log(np.sum(conc, 1))[:, np.newaxis]
+
+
+def log_beta_expectation(ab):
     '''
     Return E[log X]
-    where X is a random vector whose components are Beta-distributed and
-    ids is an array of indices used to subselect components of X (we
-    ignore components whose indices are not in ids).
+    where X is a random vector whose components are Beta-distributed
     '''
-    sum_ab = np.sum(ab[:,ids], 0)
-    return sp.psi(ab[:,ids]) - sp.psi(sum_ab)
+    sum_ab = np.sum(ab, 0)
+    return sp.psi(ab) - sp.psi(sum_ab)
 
 
-def beta_expectation(ab, ids):
+def beta_log_expectation(ab):
     '''
-    Return E[X]
-    where X is a random vector whose components are Beta-distributed and
-    ids is an array of indices used to subselect components of X (we
-    ignore components whose indices are not in ids).
+    Return log E[X]
+    where X is a random vector whose components are Beta-distributed
     '''
-    sum_ab = np.sum(ab[:,ids], 0)
-    return ab[:,ids] / sum_ab
+    sum_ab = np.sum(ab, 0)
+    return np.log(ab) - np.log(sum_ab)
 
 
 def node_ancestors(node):

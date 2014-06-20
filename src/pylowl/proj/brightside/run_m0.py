@@ -5,14 +5,28 @@ import sys
 from corpus import Corpus
 from utils import take, load_vocab
 import m0
-import cPickle
 import random
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from glob import glob
 
 
 LOG_BASENAME = 'log'
-OPTIONS_BASENAME = 'options.dat'
+
+OPTIONS_BASENAME = 'options'
+
+MODEL_EXT = '.model'
+LAMBDA_SS_EXT = '.lambda_ss'
+ELOGPI_EXT = '.Elogpi'
+LOGEPI_EXT = '.logEpi'
+ELOGTHETA_EXT = '.Elogtheta'
+LOGETHETA_EXT = '.logEtheta'
+SUBTREE_BASENAME = 'subtree'
+SUBTREE_ELOGPI_BASENAME = 'subtree_Elogpi'
+SUBTREE_LOGEPI_BASENAME = 'subtree_logEpi'
+SUBTREE_ELOGTHETA_BASENAME = 'subtree_Elogtheta'
+SUBTREE_LOGETHETA_BASENAME = 'subtree_logEtheta'
+SUBTREE_LAMBDA_SS_BASENAME = 'subtree_lambda_ss'
+
 DEFAULT_OPTIONS = dict(
     log_level='INFO',
     trunc='1,20,10,5',
@@ -252,12 +266,31 @@ def run_m0(**kwargs):
 
     trunc = tuple(int(t) for t in options['trunc'].split(','))
 
+    subtree_filename = os.path.join(result_directory,
+        SUBTREE_BASENAME)
+    subtree_Elogpi_filename = os.path.join(result_directory,
+        SUBTREE_ELOGPI_BASENAME)
+    subtree_logEpi_filename = os.path.join(result_directory,
+        SUBTREE_LOGEPI_BASENAME)
+    subtree_Elogtheta_filename = os.path.join(result_directory,
+        SUBTREE_ELOGTHETA_BASENAME)
+    subtree_logEtheta_filename = os.path.join(result_directory,
+        SUBTREE_LOGETHETA_BASENAME)
+    subtree_lambda_ss_filename = os.path.join(result_directory,
+        SUBTREE_LAMBDA_SS_BASENAME)
+
     logging.info("Creating online nhdp instance")
     model = m0.m0(trunc, num_docs, num_types,
                   options['lambda0'], options['beta'], options['alpha'],
                   options['gamma1'], options['gamma2'],
                   options['kappa'], options['iota'], options['delta'],
-                  options['scale'], options['adding_noise'])
+                  options['scale'], options['adding_noise'],
+                  subtree_filename=subtree_filename,
+                  subtree_Elogpi_filename=subtree_Elogpi_filename,
+                  subtree_logEpi_filename=subtree_logEpi_filename,
+                  subtree_Elogtheta_filename=subtree_Elogtheta_filename,
+                  subtree_logEtheta_filename=subtree_logEtheta_filename,
+                  subtree_lambda_ss_filename=subtree_lambda_ss_filename)
 
     if options['init_samples'] is not None:
         logging.info("Initializing")
@@ -296,13 +329,30 @@ def run_m0(**kwargs):
 
             # Save the model.
             if options['save_model']:
-                topics_filename = os.path.join(result_directory,
-                    'doc_count-%d.topics' % total_doc_count)
-                model.save_topics(topics_filename)
-                model_filename = os.path.join(result_directory,
-                    'doc_count-%d.model' % total_doc_count)
-                with open(model_filename, 'w') as model_f:
-                    cPickle.dump(model, model_f, -1)
+                model.save_lambda_ss(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, LAMBDA_SS_EXT)
+                ))
+                model.save_Elogpi(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, ELOGPI_EXT)
+                ))
+                model.save_logEpi(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, LOGEPI_EXT)
+                ))
+                model.save_Elogtheta(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, ELOGTHETA_EXT)
+                ))
+                model.save_logEtheta(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, LOGETHETA_EXT)
+                ))
+                model.save_model(os.path.join(
+                    result_directory,
+                    'doc_count-%d%s' % (total_doc_count, MODEL_EXT)
+                ))
 
             if options['test_data_path'] is not None:
                 test_nhdp_predictive(model, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
@@ -314,11 +364,30 @@ def run_m0(**kwargs):
 
     if options['save_model']:
         logging.info("Saving the final model and topics")
-        topics_filename = os.path.join(result_directory, 'final.topics')
-        model.save_topics(topics_filename)
-        model_filename = os.path.join(result_directory, 'final.model')
-        with open(model_filename, 'w') as model_f:
-            cPickle.dump(model, model_f, -1)
+        model.save_lambda_ss(os.path.join(
+            result_directory,
+            'final%s' % LAMBDA_SS_EXT
+        ))
+        model.save_Elogtheta(os.path.join(
+            result_directory,
+            'final%s' % ELOGTHETA_EXT
+        ))
+        model.save_logEtheta(os.path.join(
+            result_directory,
+            'final%s' % LOGETHETA_EXT
+        ))
+        model.save_Elogpi(os.path.join(
+            result_directory,
+            'final%s' % ELOGPI_EXT
+        ))
+        model.save_logEpi(os.path.join(
+            result_directory,
+            'final%s' % LOGEPI_EXT
+        ))
+        model.save_model(os.path.join(
+            result_directory,
+            'final%s' % MODEL_EXT
+        ))
 
     if options['streaming']:
         train_file.close()
