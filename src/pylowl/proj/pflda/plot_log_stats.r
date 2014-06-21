@@ -228,8 +228,8 @@ plot.experiments <- function(experiment.group.name, dataset.names, experiment.na
     }
 }
 
-metrics <- c('out_of_sample_perplexity')
-metrics.legend <- c('out-of-sample perplexity')
+metrics <- c('out_of_sample_perplexity', 'out_of_sample_nmi', 'in_sample_nmi')
+metrics.legend <- c('out-of-sample perplexity', 'out-of-sample nmi', 'in-sample nmi')
 
 #plot.experiments('1', c('diff3', 'rel3', 'sim3'), c('1-rs0', '1-rs1k', '1-rs500k'), c('no rejuvenation', 'reservoir size 1k', 'full uniform rejuvenation'), metrics, metrics.legend, plot.tng3, NULL, NULL)
 #plot.experiments('2', c('diff3', 'rel3', 'sim3'), c('2-rs1k-ibs0', '2-rs1k-ibs30', '2-rs1k-ibs100', '2-rs1k-ibs300', '2-rs1k-ibs3k'), c('no initialization', 'initialization size 30', 'initialization size 100', 'initialization size 300', 'batch gibbs'), metrics, metrics.legend, plot.tng3, NULL, NULL)
@@ -264,36 +264,37 @@ metrics.legend <- c('out-of-sample perplexity')
 #plot.experiments('29-a1', c('diff3'), c('29-a1-b0.001', '29-a1-b0.01', '29-a1-b0.1', '29-a1-b1', '29-a1-b10'), c('alpha 1, beta 0.001', 'alpha 1, beta 0.01', 'alpha 1, beta 0.1', 'alpha 1, beta 1', 'alpha 1, beta 10'), metrics, metrics.legend, plot.tng3, NULL, NULL)
 #plot.experiments('29-a10', c('diff3'), c('29-a10-b0.001', '29-a10-b0.01', '29-a10-b0.1', '29-a10-b1', '29-a10-b10'), c('alpha 10, beta 0.001', 'alpha 10, beta 0.01', 'alpha 10, beta 0.1', 'alpha 10, beta 1', 'alpha 10, beta 10'), metrics, metrics.legend, plot.tng3, NULL, NULL)
 #plot.experiments('30', c('diff3'), c('30-rs1k', '30-rs10k', '30-rs100k', '30-rs500k'), c('reservoir size 1k', 'reservoir size 10k', 'reservoir size 100k', 'reservoir size 500k'), metrics, metrics.legend, plot.tng3, NULL, NULL)
-plot.experiments('32', c('null'),
-    c('32-p10-t50-rs1k-rss100-a0.1-b0.1',
-        '32-p1-t100-rs1k-rss100-a0.1-b0.1',
-        '32-p1-t10-rs1k-rss100-a0.1-b0.1',
-        '32-p1-t50-rs10k-rss1k-a0.1-b0.1',
-        '32-p1-t50-rs1k-rss100-a0.1-b0.1',
-        '32-p1-t50-rs1k-rss10-a0.01-b0.01',
-        '32-p1-t50-rs1k-rss10-a0.01-b0.1',
-        '32-p1-t50-rs1k-rss10-a0.1-b0.01',
-        '32-p1-t50-rs1k-rss10-a0.1-b0.1'),
-    NULL, metrics, metrics.legend, plot.null, 8, 6)
-plot.experiments('33', c('null'),
-    c('33-p10-t50-rs1k-rss100-a0.1-b0.1',
-        '33-p1-t100-rs1k-rss100-a0.1-b0.1',
-        '33-p1-t10-rs1k-rss100-a0.1-b0.1',
-        '33-p1-t50-rs10k-rss1k-a0.1-b0.1',
-        '33-p1-t50-rs1k-rss100-a0.1-b0.1',
-        '33-p1-t50-rs1k-rss10-a0.01-b0.01',
-        '33-p1-t50-rs1k-rss10-a0.01-b0.1',
-        '33-p1-t50-rs1k-rss10-a0.1-b0.01',
-        '33-p1-t50-rs1k-rss10-a0.1-b0.1'),
-    NULL, metrics, metrics.legend, plot.null, 8, 6)
-plot.experiments('34', c('null'),
-    c('34-p10-t50-rs1k-rss100-a0.1-b0.1',
-        '34-p1-t100-rs1k-rss100-a0.1-b0.1',
-        '34-p1-t10-rs1k-rss100-a0.1-b0.1',
-        '34-p1-t50-rs10k-rss1k-a0.1-b0.1',
-        '34-p1-t50-rs1k-rss100-a0.1-b0.1',
-        '34-p1-t50-rs1k-rss10-a0.01-b0.01',
-        '34-p1-t50-rs1k-rss10-a0.01-b0.1',
-        '34-p1-t50-rs1k-rss10-a0.1-b0.01',
-        '34-p1-t50-rs1k-rss10-a0.1-b0.1'),
-    NULL, metrics, metrics.legend, plot.null, 8, 6)
+#plot.experiments('32', c('null'),
+#    c('32-p10-t50-rs1k-rss100-a0.1-b0.1',
+#        '32-p1-t100-rs1k-rss100-a0.1-b0.1',
+#        '32-p1-t10-rs1k-rss100-a0.1-b0.1',
+#        '32-p1-t50-rs10k-rss1k-a0.1-b0.1',
+#        '32-p1-t50-rs1k-rss100-a0.1-b0.1',
+#        '32-p1-t50-rs1k-rss10-a0.01-b0.01',
+#        '32-p1-t50-rs1k-rss10-a0.01-b0.1',
+#        '32-p1-t50-rs1k-rss10-a0.1-b0.01',
+#        '32-p1-t50-rs1k-rss10-a0.1-b0.1'),
+#    NULL, metrics, metrics.legend, plot.null, 8, 6)
+#plot.experiments('33', c('null'),
+#    c('33-p10-t50-rs1k-rss100-a0.1-b0.1',
+#        '33-p1-t100-rs1k-rss100-a0.1-b0.1',
+#        '33-p1-t10-rs1k-rss100-a0.1-b0.1',
+#        '33-p1-t50-rs10k-rss1k-a0.1-b0.1',
+#        '33-p1-t50-rs1k-rss100-a0.1-b0.1',
+#        '33-p1-t50-rs1k-rss10-a0.01-b0.01',
+#        '33-p1-t50-rs1k-rss10-a0.01-b0.1',
+#        '33-p1-t50-rs1k-rss10-a0.1-b0.01',
+#        '33-p1-t50-rs1k-rss10-a0.1-b0.1'),
+#    NULL, metrics, metrics.legend, plot.null, 8, 6)
+#plot.experiments('34', c('null'),
+#    c('34-p10-t50-rs1k-rss100-a0.1-b0.1',
+#        '34-p1-t100-rs1k-rss100-a0.1-b0.1',
+#        '34-p1-t10-rs1k-rss100-a0.1-b0.1',
+#        '34-p1-t50-rs10k-rss1k-a0.1-b0.1',
+#        '34-p1-t50-rs1k-rss100-a0.1-b0.1',
+#        '34-p1-t50-rs1k-rss10-a0.01-b0.01',
+#        '34-p1-t50-rs1k-rss10-a0.01-b0.1',
+#        '34-p1-t50-rs1k-rss10-a0.1-b0.01',
+#        '34-p1-t50-rs1k-rss10-a0.1-b0.1'),
+#    NULL, metrics, metrics.legend, plot.null, 8, 6)
+plot.experiments('39', c('diff3', 'rel3', 'sim3'), c('39-rss30', '39-rss100', '39-rss300', '39-rss1000'), c('rejuv sample size 30', 'rejuv sample size 100', 'rejuv sample size 300', 'rejuv sample size 1000'), metrics, metrics.legend, plot.tng3, NULL, NULL)
