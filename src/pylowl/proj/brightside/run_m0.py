@@ -6,7 +6,6 @@ from corpus import Corpus
 from utils import take, load_vocab
 import m0
 import random
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from glob import glob
 
 
@@ -69,6 +68,7 @@ DEFAULT_OPTIONS = dict(
 
 
 def main(argv=None):
+    from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     parser.set_defaults(**DEFAULT_OPTIONS)
 
