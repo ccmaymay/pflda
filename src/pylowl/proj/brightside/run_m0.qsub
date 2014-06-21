@@ -4,7 +4,7 @@
 #$ -V
 #$ -N onhdp
 #$ -q text.q
-#$ -l num_proc=1,mem_free=3G,h_rt=12:00:00
+#$ -l num_proc=1,mem_free=3G,h_rt=48:00:00
 
 printenv
 
@@ -36,7 +36,7 @@ PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run_m0 \
     --data_path="$DATA_DIR/train" \
     --test_data_path="$DATA_DIR/test" \
     --save_model \
-    --max_time=28800 \
+    --max_time=86400 \
     --output_dir="$OUTPUT_DIR" \
     "$@"
 

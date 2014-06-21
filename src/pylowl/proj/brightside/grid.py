@@ -6,9 +6,9 @@ import itertools as it
 
 
 TRUNC_LEVELS = (
-    #'1,7,5,3',
+    '1,7,5,3',
     '1,7,5',
-    #'1,35',
+    '1,35',
 )
 
 ALPHA_LEVELS = (
