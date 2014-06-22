@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 2 with single particle, new dataset path, full reservoir, larger rejuvenation samples
+# single particle, no init, new dataset path, full reservoir, larger rejuvenation samples
 
 dataset_path=../../../../data/txt/tng-noheader-nowalls-nonalpha
 bash run_pf_qsub_wrapper_tng3.sh $dataset_path 39-rss20 \

@@ -298,3 +298,5 @@ metrics.legend <- c('out-of-sample perplexity', 'out-of-sample nmi', 'in-sample 
 #        '34-p1-t50-rs1k-rss10-a0.1-b0.1'),
 #    NULL, metrics, metrics.legend, plot.null, 8, 6)
 plot.experiments('39', c('diff3', 'rel3', 'sim3'), c('39-rss30', '39-rss100', '39-rss300', '39-rss1000'), c('rejuv sample size 30', 'rejuv sample size 100', 'rejuv sample size 300', 'rejuv sample size 1000'), metrics, metrics.legend, plot.tng3, NULL, NULL)
+plot.experiments('40', c('diff3', 'rel3', 'sim3'), c('40-rss30', '40-rss100', '40-rss300', '40-rss1000'), c('rejuv sample size 30', 'rejuv sample size 100', 'rejuv sample size 300', 'rejuv sample size 1000'), metrics, metrics.legend, plot.tng3, NULL, NULL)
+plot.experiments('41', c('diff3', 'rel3', 'sim3'), c('41-rss20', '41-rss30'), c('rejuv sample size 20', 'rejuv sample size 30'), metrics, metrics.legend, plot.tng3, NULL, NULL)
