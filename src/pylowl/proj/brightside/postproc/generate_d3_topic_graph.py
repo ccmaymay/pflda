@@ -63,10 +63,13 @@ def generate_d3_topic_graph(trunc_csv,
             'words': [{'word': vocab[t]} for t in range(len(vocab))]
         })
 
-    with open(lambda_ss_filename) as f:
-        for (idx, line) in enumerate(f):
-            for (t, w) in enumerate(float(w) for w in line.strip().split()):
-                node_topics[idx]['words'][t]['lambda_ss'] = w
+    for (stat_name, stat_filename) in (('Elogtheta', Elogtheta_filename),
+                                       ('logEtheta', logEtheta_filename),
+                                       ('lambda_ss', lambda_ss_filename)):
+        with open(stat_filename) as f:
+            for (idx, line) in enumerate(f):
+                for (t, w) in enumerate(float(w) for w in line.strip().split()):
+                    node_topics[idx]['words'][t][stat_name] = w
 
     for (stat_name, stat_filename) in (('Elogpi', Elogpi_filename),
                                        ('logEpi', logEpi_filename)):
