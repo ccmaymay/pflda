@@ -57,13 +57,14 @@ PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run_m0 \
 
 # extract global and local graph data (for visualization) from output
 echo "Extracting graph data in $OUTPUT_DIR ..."
-topics_f=`ls -t "$OUTPUT_DIR"/*.topics | head -n 1`
-if [ -f "$topics_f" ]
-then
-    # global graph
-    python -m pylowl.proj.brightside.postproc.generate_d3_topic_graph \
-        "$TRUNC" "$VOCAB_PATH" "${topics_f}" "$OUTPUT_DIR/graph.json"
-fi
+python -m pylowl.proj.brightside.postproc.generate_d3_topic_graph \
+    --lambda_ss "$OUTPUT_DIR/final.lambda_ss" \
+    --Elogpi "$OUTPUT_DIR/final.Elogpi" \
+    --logEpi "$OUTPUT_DIR/final.logEpi" \
+    --Elogtheta "$OUTPUT_DIR/final.Elogtheta" \
+    --logEtheta "$OUTPUT_DIR/final.logEtheta" \
+    "$TRUNC" "$VOCAB_PATH" "$OUTPUT_DIR/graph.json"
+
 # local graphs
 python -m pylowl.proj.brightside.postproc.generate_d3_subgraphs \
     "$OUTPUT_DIR/log" "$OUTPUT_DIR/subgraphs.json"
