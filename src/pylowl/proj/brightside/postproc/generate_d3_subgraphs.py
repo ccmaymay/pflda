@@ -3,7 +3,7 @@
 
 import json
 import itertools as it
-from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index
+from pylowl.proj.brightside.utils import load_vocab, tree_index_m, tree_index_b, tree_iter, tree_index
 
 
 def main():
@@ -58,103 +58,67 @@ def generate_d3_subgraphs(trunc_csv,
     m = tree_index_m(trunc)
     b = tree_index_b(trunc)
 
-    subtrees = {}
-    subtree_nodes = [None] * len(list(tree_iter(trunc)))
+    subtree_dicts_per_id = {}
 
-    with open(subtree_filename) as f:
-        for line in f:
-            pieces = line.strip().split()
+    with open(subtree_filename) as subtree_f, \
+         open(Elogtheta_filename) as Elogtheta_f, \
+         open(logEtheta_filename) as logEtheta_f, \
+         open(Elogpi_filename) as Elogpi_f, \
+         open(logEpi_filename) as logEpi_f, \
+         open(lambda_ss_filename) as lambda_ss_f:
+        for (subtree_line, stat_lines) in it.izip(subtree_f, it.izip(
+                Elogtheta_f, logEtheta_f, Elogpi_f, logEpi_f, lambda_ss_f)):
+            pieces = subtree_line.strip().split()
             identifier = pieces[0]
-            node_ids = set([int(i) for i in pieces[1:]])
+            node_map = dict((p[1], p[0]) for p in
+                            enumerate([int(i) for i in pieces[1:]]))
+
+            subtree_dicts = [None] * len(list(tree_iter(trunc)))
             for node in tree_iter(trunc):
                 idx = tree_index(node, m, b)
-                active = idx in node_ids
-                subtree_nodes[idx] = {
+                active = idx in node_map
+                subtree_dicts[idx] = {
                     'active': active,
-                    'children': []
+                    'children': [],
                 }
-                p = node[:-1]
-                if p:
-                    p_idx = tree_index(p, m, b)
-                    subtree_nodes[p_idx]['children'].append(subtree_nodes[idx])
-            subtrees[identifier] = {
-                'identifier': identifier,
-                'subtree': subtree_nodes[0]
-            }
 
-        f.seek(0)
-
-        for (stat_name, stat_filename) in (('Elogtheta', Elogtheta_filename),
-                                           ('logEtheta', logEtheta_filename),
-                                           ('Elogpi', Elogpi_filename),
-                                           ('logEpi', logEpi_filename),
-                                           ('lambda_ss', lambda_ss_filename)):
-            with open(stat_filename) as stat_f:
-                for (line, stat_line) in it.izip(f, stat_f):
-                    pieces = line.strip().split()
-                    identifier = pieces[0]
-                    node_ids = set([int(i) for i in pieces[1:]])
-
-                    stat_pieces = stat_line.strip().split()
-                    if identifier != stat_pieces[0]:
-                        raise Exception('identifiers do not match: %s and %s'
-                                        % (identifier, stat_pieces[0]))
-                    weights = [float(w) for w in stat_pieces[1:]]
-
-                    node_weights = dict(zip(node_ids, weights))
-                    for node in tree_iter(trunc):
-                        idx = tree_index(node, m, b)
-                        if idx in node_weights:
-                            subtrees[identifier]['subtree']
-
-                for (idx, line) in enumerate(f):
-                    for (t, w) in enumerate(float(w) for w in line.strip().split()):
-                        node_topics[idx]['words'][t][stat_name] = w
-
-
+            for (stat_name, stat_line) in it.izip(
+                    ('Elogtheta', 'logEtheta', 'Elogpi', 'logEpi', 'lambda_ss'),
+                    stat_lines):
+                stat_pieces = stat_line.strip().split()
+                if identifier != stat_pieces[0]:
+                    raise Exception('identifiers do not match: %s and %s'
+                                    % (identifier, stat_pieces[0]))
+                weights = [float(w) for w in stat_pieces[1:]]
                 for node in tree_iter(trunc):
                     idx = tree_index(node, m, b)
+                    if idx in node_map:
+                        subtree_dicts[idx][stat_name] = weights[node_map[idx]]
 
-            f.seek(0)
-            node_weights.append({
-                'children': [],
-                'words': [{'word': vocab[t]} for t in range(len(vocab))]
-            })
+            subtree_dicts_per_id[identifier] = subtree_dicts
 
-        json_data = []
+    json_data = []
 
-        for (identifier, node_ids) in subtrees.items():
-            d = dict(identifier=identifier)
-            subtree_nodes = [None] * len(list(tree_iter(trunc)))
+    for (identifier, subtree_dicts) in subtree_dicts_per_id.items():
+        num_active = 0
+        for node in tree_iter(trunc):
+            idx = tree_index(node, m, b)
+            p = node[:-1]
+            num_active += subtree_dicts[idx]['active']
+            if p:
+                p_idx = tree_index(p, m, b)
+                subtree_dicts[p_idx]['children'].append(subtree_dicts[idx])
+        json_data.append({
+            'identifier': identifier,
+            'subtree': subtree_dicts[0],
+            'num_active': num_active
+        })
 
-            for node in tree_iter(trunc):
-                idx = tree_index(node, m, b)
-                active = idx in node_ids
-                subtree_nodes[idx] = dict(active=active, children=[])
-                p = node[:-1]
-                if p:
-                    p_idx = tree_index(p, m, b)
-                    subtree_nodes[p_idx]['children'].append(subtree_nodes[idx])
+    json_data.sort(key=lambda s: s['num_active'], reverse=True)
 
-            d['subtree'] = subtree_nodes[0]
-            json_data.append(d)
-
-        with open(output_filename, 'w') as f:
-            json.dump(json_data, f, indent=2)
+    with open(output_filename, 'w') as f:
+        json.dump(json_data, f, indent=2)
 
 
-    if __name__ == '__main__':
-        import sys
-
-        args = []
-        params = dict()
-        for token in sys.argv[1:]:
-            eq_pos = token.find('=')
-            if token.startswith('--') and eq_pos >= 0:
-                k = token[len('--'):eq_pos]
-                v = token[(eq_pos+1):len(token)]
-                params[k] = v
-            else:
-                args.append(token)
-
-        main(*args, **params)
+if __name__ == '__main__':
+    main()
