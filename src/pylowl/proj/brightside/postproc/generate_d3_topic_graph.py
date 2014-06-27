@@ -68,10 +68,12 @@ def generate_d3_topic_graph(trunc_csv,
             for (t, w) in enumerate(float(w) for w in line.strip().split()):
                 node_topics[idx]['words'][t]['lambda_ss'] = w
 
-    with open(Elogpi_filename) as f:
-        for (idx, line) in enumerate(f):
-            w = float(line.strip())
-            node_topics[idx]['Elogpi'] = w
+    for (stat_name, stat_filename) in (('Elogpi', Elogpi_filename),
+                                       ('logEpi', logEpi_filename)):
+        with open(stat_filename) as f:
+            for (idx, line) in enumerate(f):
+                w = float(line.strip())
+                node_topics[idx][stat_name] = w
 
     for node in tree_iter(trunc):
         idx = tree_index(node, m, b)
