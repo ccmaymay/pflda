@@ -1,8 +1,10 @@
-\documentclass[draft]{article}
+%\documentclass[draft]{article}
+\documentclass{article}
 
 \usepackage[fleqn]{amsmath}
 \usepackage{amsfonts}
 \usepackage{xspace}
+\usepackage{pdfpages}
 
 \newcommand{\Beta}{\ensuremath{\mathrm{Beta}}}
 \newcommand{\Dirichlet}{\ensuremath{\mathrm{Dirichlet}}}
@@ -518,6 +520,33 @@ Specifically, in the nCRF topic model we have $\theta_0 \sim \Dirichlet\left(\la
 where the expectation of the normalizer does not have an obvious closed form.
 
 
+\subsection*{Visualization}
+
+The global topic tree can be visualized by resizing the words in each topic according to $\lambda_j$, the effective word counts.  Because $\lambda_j$ is a vector of effective counts, it seems intuitive that we can compare word sizes between topics.  However, the precise interpretation of this weighting scheme is not yet clear.
+
+In the following graphic (implemented in D3\footnote{http://d3js.org/}), we have used a thresholded log transform on $\lambda$ to resize words.  We are thus weighting words by the log of the mean variational model, a biased estimate.  (If a log transform is used, it would be better to use the expectation of log $\lambda$.)
+
+Note that there is some coherence within topics and between topics (siblings or child--parent pairs) but interpretability is still poor overall.  For example, a middle-level topic and its children appear to span baseball and computer hardware.  How can we get a cleaner separation in the model between these intuitively separate concepts?
+
+\includepdf[pages={-}]{graph.pdf}
+
+Each document subtree can be visualized by drawing a copy of the global tree and highlighting the nodes selected for the given document.  If all subtrees are rendered at once there may be a heavy load on the renderer, so we implement a small amount of interactivity in order to only draw a few subtrees at a time.  The controls at the top of the following graphic are used to navigate between subtrees.
+
+Note that it is not generally sensible to draw subtrees selected during the training procedure, as these are (generally) selected using different versions of the global parameters.  Additionally, if the subtrees and global tree are visualized simultaneously, many subtrees would be based on stale versions of the global parameters.  (In other words, we should only visualize test--time subtrees that are inferred using the same set of global parameters so that the nodes of one subtree represent the same topics as the nodes of another.)
+
+Some ways we could augment the following visualization:
+\begin{itemize}
+\item Add tooltips or links from subtree nodes to global topics
+\item Add a control (e.g., checkbox) to toggle displaying counts next to subtree nodes
+\item Resize subtree nodes by absolute (global) weights (comparable between subtrees)
+\item Color (e.g., heatmap, grayscale, opacity) subtree nodes by relative (per-document) weights (not comparable between subtrees, but would be expected to correlate with absolute weights); keep all edges black to retain clear indication of which nodes are actually selected
+\end{itemize}
+
+\includepdf[pages={-}]{subgraphs.pdf}
+
+
+
+
 \section*{nHDP/nCRP hybrid topic model (M1)}
 
 \subsection*{True model}
@@ -571,6 +600,6 @@ In the nHDP we draw the atoms of a node in a document's tree i.i.d.\ from the pa
 
 
 \bibliographystyle{plain}
-\bibliography{model}
+\bibliography{notes}
 
 \end{document}
