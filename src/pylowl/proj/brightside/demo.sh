@@ -67,7 +67,13 @@ python -m pylowl.proj.brightside.postproc.generate_d3_topic_graph \
 
 # local graphs
 python -m pylowl.proj.brightside.postproc.generate_d3_subgraphs \
-    "$OUTPUT_DIR/log" "$OUTPUT_DIR/subgraphs.json"
+    --subtree "$OUTPUT_DIR/subtree" \
+    --lambda_ss "$OUTPUT_DIR/subtree_lambda_ss" \
+    --Elogpi "$OUTPUT_DIR/subtree_Elogpi" \
+    --logEpi "$OUTPUT_DIR/subtree_logEpi" \
+    --Elogtheta "$OUTPUT_DIR/subtree_Elogtheta" \
+    --logEtheta "$OUTPUT_DIR/subtree_logEtheta" \
+    "$TRUNC" "$VOCAB_PATH" "$OUTPUT_DIR/subgraphs.json"
 
 # put d3 and html files in $OUTPUT_DIR (so we don't have to change the
 # relative locations of the json files they load)
