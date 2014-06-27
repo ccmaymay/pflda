@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+import re
 import json
 import itertools as it
 from pylowl.proj.brightside.utils import load_vocab, tree_index_m, tree_index_b, tree_iter, tree_index
@@ -27,8 +28,15 @@ def main():
                         help='Elogtheta file path')
     parser.add_argument('--logEtheta', type=str, required=True,
                         help='logEtheta file path')
+    parser.add_argument('--identifier_re', type=str,
+                        help='regex to filter document identifiers')
 
     args = parser.parse_args()
+    if args.identifier_re is None:
+        identifier_re = None
+    else:
+        identifier_re = re.compile(args.identifier_re)
+
     generate_d3_subgraphs(
         args.trunc_csv,
         args.vocab_path,
@@ -38,7 +46,8 @@ def main():
         logEpi_filename=args.logEpi,
         Elogtheta_filename=args.Elogtheta,
         logEtheta_filename=args.logEtheta,
-        output_filename=args.output_path
+        output_filename=args.output_path,
+        identifier_re=identifier_re
     )
 
 
@@ -50,7 +59,8 @@ def generate_d3_subgraphs(trunc_csv,
         logEpi_filename,
         Elogtheta_filename,
         logEtheta_filename,
-        output_filename):
+        output_filename,
+        identifier_re=None):
 
     vocab = load_vocab(vocab_filename)
 
@@ -70,6 +80,8 @@ def generate_d3_subgraphs(trunc_csv,
                 Elogtheta_f, logEtheta_f, Elogpi_f, logEpi_f, lambda_ss_f)):
             pieces = subtree_line.strip().split()
             identifier = pieces[0]
+            if identifier_re is not None and identifier_re.match(identifier) is None:
+                continue
             node_map = dict((p[1], p[0]) for p in
                             enumerate([int(i) for i in pieces[1:]]))
 
