@@ -58,7 +58,7 @@ class suff_stats(object):
         self.m_lambda_ss.fill(0.0)
 
 
-class m0(object):
+class model(object):
 
     r'''
     nHDP model using stick breaking.

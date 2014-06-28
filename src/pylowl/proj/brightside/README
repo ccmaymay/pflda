@@ -41,14 +41,14 @@ already been divided into training and testing sets, and that all
 preprocessing has been performed.
 
 You can see command-line arguments for learning parameters, etc. with:
-$ python -m pylowl.proj.brightside.run_m0 -h
+$ python -m pylowl.proj.brightside.run -h
 (from the repository root, after doing:
 $ export PYTHONPATH="build/lib.linux-x86_64-2.7:$PYTHONPATH"
 or something similar)
 
 The data specifications are glob patterns so you'll end up doing
 something like:
-$ python -m pylowl.proj.brightside.run_m0 \
+$ python -m pylowl.proj.brightside.run \
     --data_path='/path/to/nested/data/*/*' \
     --test_data_path='/path/to/nested/test_data/*/*' \
     ...

@@ -4,7 +4,7 @@ import os
 import sys
 from corpus import Corpus
 from utils import take, load_vocab
-import m0
+from model import *
 import random
 from glob import glob
 
@@ -150,10 +150,10 @@ def main(argv=None):
         args = parser.parse_args(sys.argv[1:])
     else:
         args = parser.parse_args(argv)
-    run_m0(**vars(args))
+    run(**vars(args))
 
 
-def run_m0(**kwargs):
+def run(**kwargs):
     options = dict((k, v) for (k, v) in DEFAULT_OPTIONS.items())
     options.update(kwargs)
     
@@ -187,7 +187,7 @@ def run_m0(**kwargs):
 
     # Set the random seed.
     if options['random_seed'] is not None:
-        m0.set_random_seed(options['random_seed'])
+        set_random_seed(options['random_seed'])
 
     if options['streaming']:
         if options['D'] is None:
@@ -310,7 +310,7 @@ def run_m0(**kwargs):
         SUBTREE_LAMBDA_SS_BASENAME), 'w')
 
     logging.info("Creating online nhdp instance")
-    model = m0.m0(trunc, num_docs, num_types,
+    m = model(trunc, num_docs, num_types,
                   options['lambda0'], options['beta'], options['alpha'],
                   options['gamma1'], options['gamma2'],
                   options['kappa'], options['iota'], options['delta'],
@@ -325,7 +325,7 @@ def run_m0(**kwargs):
     if options['init_samples'] is not None:
         logging.info("Initializing")
         init_docs = take(c_train.docs, options['init_samples'])
-        model.initialize(init_docs, options['xi'], options['omicron'])
+        m.initialize(init_docs, options['xi'], options['omicron'])
 
     iteration = 0
     total_doc_count = 0
@@ -347,7 +347,7 @@ def run_m0(**kwargs):
         total_doc_count += batchsize
 
         # Do online inference and evaluate on the fly dataset
-        (score, count, doc_count) = model.process_documents(docs,
+        (score, count, doc_count) = m.process_documents(docs,
             options['var_converge'])
         logging.info('Cumulative doc count: %d' % total_doc_count)
         logging.info('Log-likelihood: %f (%f per token) (%d tokens)' % (score, score/count, count))
@@ -359,12 +359,12 @@ def run_m0(**kwargs):
 
             # Save the model.
             if options['save_model']:
-                for func_ext_pair in ((model.save_lambda_ss, LAMBDA_SS_EXT),
-                                      (model.save_logEpi, LOGEPI_EXT),
-                                      (model.save_Elogpi, ELOGPI_EXT),
-                                      (model.save_logEtheta, LOGETHETA_EXT),
-                                      (model.save_Elogtheta, ELOGTHETA_EXT),
-                                      (model.save_model, MODEL_EXT)):
+                for func_ext_pair in ((m.save_lambda_ss, LAMBDA_SS_EXT),
+                                      (m.save_logEpi, LOGEPI_EXT),
+                                      (m.save_Elogpi, ELOGPI_EXT),
+                                      (m.save_logEtheta, LOGETHETA_EXT),
+                                      (m.save_Elogtheta, ELOGTHETA_EXT),
+                                      (m.save_model, MODEL_EXT)):
                     path = os.path.join(os.path.join(
                         result_directory,
                         'doc_count-%d%s' % (total_doc_count, func_ext_pair[1])
@@ -373,7 +373,7 @@ def run_m0(**kwargs):
                         func_ext_pair[0](f)
 
             if options['test_data_path'] is not None:
-                test_nhdp_predictive(model, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
+                test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
         if options['max_iter'] is not None and iteration > options['max_iter']:
             break
@@ -382,12 +382,12 @@ def run_m0(**kwargs):
 
     if options['save_model']:
         logging.info("Saving the final model and topics")
-        for func_ext_pair in ((model.save_lambda_ss, LAMBDA_SS_EXT),
-                              (model.save_logEpi, LOGEPI_EXT),
-                              (model.save_Elogpi, ELOGPI_EXT),
-                              (model.save_logEtheta, LOGETHETA_EXT),
-                              (model.save_Elogtheta, ELOGTHETA_EXT),
-                              (model.save_model, MODEL_EXT)):
+        for func_ext_pair in ((m.save_lambda_ss, LAMBDA_SS_EXT),
+                              (m.save_logEpi, LOGEPI_EXT),
+                              (m.save_Elogpi, ELOGPI_EXT),
+                              (m.save_logEtheta, LOGETHETA_EXT),
+                              (m.save_Elogtheta, ELOGTHETA_EXT),
+                              (m.save_model, MODEL_EXT)):
             path = os.path.join(os.path.join(
                 result_directory,
                 'final%s' % func_ext_pair[1]
@@ -400,7 +400,7 @@ def run_m0(**kwargs):
 
     # Making final predictions.
     if options['test_data_path'] is not None:
-        test_nhdp_predictive(model, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
+        test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
     subtree_f.close()
     subtree_Elogpi_f.close()
@@ -410,7 +410,7 @@ def run_m0(**kwargs):
     subtree_lambda_ss_f.close()
 
 
-def test_nhdp(model, c, batchsize, var_converge, test_samples=None):
+def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
     total_score = 0.0
     total_count = 0
 
@@ -423,7 +423,7 @@ def test_nhdp(model, c, batchsize, var_converge, test_samples=None):
     while doc_count == batchsize:
         batch = take(docs_generator, batchsize)
 
-        (score, count, doc_count) = model.process_documents(
+        (score, count, doc_count) = m.process_documents(
             batch, var_converge, update=False)
         total_score += score
         total_count += count
@@ -435,7 +435,7 @@ def test_nhdp(model, c, batchsize, var_converge, test_samples=None):
         logging.warn('Cannot test: no data')
 
 
-def test_nhdp_predictive(model, c_train, c_test, batchsize, var_converge, test_samples=None):
+def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_samples=None):
     total_score = 0.0
     total_count = 0
 
@@ -452,7 +452,7 @@ def test_nhdp_predictive(model, c_train, c_test, batchsize, var_converge, test_s
         train_batch = take(train_docs_generator, batchsize)
         test_batch = take(test_docs_generator, batchsize)
 
-        (score, count, doc_count) = model.process_documents(
+        (score, count, doc_count) = m.process_documents(
             train_batch, var_converge, update=False, predict_docs=test_batch)
         total_score += score
         total_count += count

@@ -42,7 +42,7 @@ TRUNC=1,2,2
 # use 50 documents for testing
 # use 20-document mini-batches
 # run for at most 60 seconds (plus overhead)
-PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run_m0 \
+PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run \
     --trunc="$TRUNC" \
     --concrete \
     --concrete_vocab_path="$VOCAB_PATH" \

@@ -1,7 +1,7 @@
 import numpy as np
 from corpus import Document
 
-from m0 import *
+from model import *
 from numpy.testing import *
 
 
@@ -9,7 +9,7 @@ def update_ss_stochastic_1_t_0_trivial_test():
     iota = 0.
     kappa = 0.5
 
-    onhdp = m0((1,), D=1, W=1, iota=iota, kappa=kappa)
+    onhdp = model((1,), D=1, W=1, iota=iota, kappa=kappa)
     onhdp.m_t = 0
     onhdp.m_tau_ss = np.zeros((2,1))
     onhdp.m_lambda_ss = np.zeros((1,1))
@@ -28,7 +28,7 @@ def update_ss_stochastic_1_t_0_non_trivial_test():
     iota = 2.
     kappa = 0.5
 
-    onhdp = m0((1,), D=4, W=3, iota=iota, kappa=kappa)
+    onhdp = model((1,), D=4, W=3, iota=iota, kappa=kappa)
     onhdp.m_t = 0
     onhdp.m_tau_ss = np.array([[1], [0]])
     onhdp.m_lambda_ss = np.array([[0.25, 4, 0.5]])
@@ -51,7 +51,7 @@ def update_ss_stochastic_1_t_3_non_trivial_test():
     iota = 2.
     kappa = 0.5
 
-    onhdp = m0((1,), D=4, W=3, iota=iota, kappa=kappa)
+    onhdp = model((1,), D=4, W=3, iota=iota, kappa=kappa)
     onhdp.m_t = 3
     onhdp.m_tau_ss = np.array([[1], [0]])
     onhdp.m_lambda_ss = np.array([[0.25, 4, 0.5]])
@@ -74,7 +74,7 @@ def update_ss_stochastic_1_2_2_t_3_non_trivial_test():
     iota = 2.
     kappa = 0.5
 
-    onhdp = m0((1,2,2), D=4, W=3, iota=iota, kappa=kappa)
+    onhdp = model((1,2,2), D=4, W=3, iota=iota, kappa=kappa)
     onhdp.m_t = 3
     onhdp.m_tau_ss = np.array([[1, 4, 1, 3.5, 1, 7, 1], [0, 8, 0, 8, 0, 2, 0]])
     onhdp.m_lambda_ss = np.array(
@@ -111,14 +111,14 @@ def update_ss_stochastic_1_2_2_t_3_non_trivial_test():
 
 
 def update_lambda_1_one_type_test():
-    onhdp = m0((1,), D=47, W=1, lambda0=2)
+    onhdp = model((1,), D=47, W=1, lambda0=2)
     onhdp.m_lambda_ss = np.ones((1, 1))
     onhdp.m_lambda_ss_sum = np.sum(onhdp.m_lambda_ss, axis=1)
     onhdp.update_lambda()
     assert_array_almost_equal(onhdp.m_Elogprobw, np.zeros((1,1)))
 
 def update_lambda_1_many_types_test():
-    onhdp = m0((1,), D=47, W=3, lambda0=2)
+    onhdp = model((1,), D=47, W=3, lambda0=2)
     onhdp.m_lambda_ss = np.array([[3, 0, 2.5]])
     onhdp.m_lambda_ss_sum = np.sum(onhdp.m_lambda_ss, axis=1)
     onhdp.update_lambda()
@@ -126,14 +126,14 @@ def update_lambda_1_many_types_test():
         np.array([[-0.89212146, -1.97545479, -1.0093682 ]]))
 
 def update_lambda_1_2_2_one_type_test():
-    onhdp = m0((1,2,2), D=47, W=1, lambda0=2)
+    onhdp = model((1,2,2), D=47, W=1, lambda0=2)
     onhdp.m_lambda_ss = np.ones((7, 1))
     onhdp.m_lambda_ss_sum = np.sum(onhdp.m_lambda_ss, axis=1)
     onhdp.update_lambda()
     assert_array_almost_equal(onhdp.m_Elogprobw, np.zeros((7,1)))
 
 def update_lambda_1_2_2_many_types_test():
-    onhdp = m0((1,2,2), D=47, W=3, lambda0=2)
+    onhdp = model((1,2,2), D=47, W=3, lambda0=2)
     onhdp.m_lambda_ss = np.array(
         [[3, 0, 2.5],
          [3, 0, 2.5],
@@ -155,7 +155,7 @@ def update_lambda_1_2_2_many_types_test():
 
 
 def update_nu_1_one_type_test():
-    onhdp = m0((1,), D=47, W=42)
+    onhdp = model((1,), D=47, W=42)
     doc = Document([3], [2])
     ab = np.array([[1], [0]])
     uv = np.array([[1], [0]])
@@ -174,7 +174,7 @@ def update_nu_1_one_type_test():
     assert_array_almost_equal(log_nu, np.log(nu))
 
 def update_nu_1_many_types_test():
-    onhdp = m0((1,), D=47, W=42)
+    onhdp = model((1,), D=47, W=42)
     doc = Document([3, 8, 0], [2, 1, 3])
     ab = np.array([[1], [0]])
     uv = np.array([[1], [0]])
@@ -193,7 +193,7 @@ def update_nu_1_many_types_test():
     assert_array_almost_equal(log_nu, np.log(nu))
 
 def update_nu_1_3_one_type_full_subtree_test():
-    onhdp = m0((1, 3), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
+    onhdp = model((1, 3), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
     doc = Document([3], [2])
     ab = np.array([[8, 1, 1, 1], [4, 0, 0, 0]])
     uv = np.array([[1, 5, 2, 1], [0, 6, 7, 0]])
@@ -214,7 +214,7 @@ def update_nu_1_3_one_type_full_subtree_test():
     assert_array_almost_equal(log_nu, np.log(nu))
 
 def update_nu_1_3_many_types_full_subtree_test():
-    onhdp = m0((1, 3), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
+    onhdp = model((1, 3), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
     doc = Document([3, 8, 0], [2, 1, 3])
     ab = np.array([[8, 1, 1, 1], [4, 0, 0, 0]])
     uv = np.array([[1, 5, 2, 1], [0, 6, 7, 0]])
@@ -243,7 +243,7 @@ def update_nu_1_3_many_types_full_subtree_test():
     assert_array_almost_equal(log_nu, np.log(nu))
 
 def update_nu_1_3_many_types_partial_subtree_test():
-    onhdp = m0((1, 3), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
+    onhdp = model((1, 3), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
     doc = Document([3, 8, 0], [2, 1, 3])
     ab = np.array([[8, 1, 1, 1], [4, 0, 0, 0]])
     uv = np.array([[1, 5, 1, 1], [0, 6, 0, 0]])
@@ -272,7 +272,7 @@ def update_nu_1_3_many_types_partial_subtree_test():
     assert_array_almost_equal(log_nu, np.log(nu))
 
 def update_nu_1_2_2_one_type_full_subtree_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
     doc = Document([3], [2])
     ab = np.array([[8, 3, 3, 1, 1, 1, 1], [4, 4, 5, 0, 0, 0, 0]])
     uv = np.array([[1, 5, 1, 2, 1, 3, 1], [0, 6, 0, 7, 0, 8, 0]])
@@ -295,7 +295,7 @@ def update_nu_1_2_2_one_type_full_subtree_test():
     assert_array_almost_equal(log_nu, np.log(nu))
 
 def update_nu_1_2_2_many_types_full_subtree_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
     doc = Document([3, 8, 0], [2, 1, 3])
     ab = np.array([[8, 3, 3, 1, 1, 1, 1], [4, 4, 5, 0, 0, 0, 0]])
     uv = np.array([[1, 5, 1, 2, 1, 3, 1], [0, 6, 0, 7, 0, 8, 0]])
@@ -333,7 +333,7 @@ def update_nu_1_2_2_many_types_full_subtree_test():
     assert_array_almost_equal(log_nu, np.log(nu))
 
 def update_nu_1_2_2_many_types_partial_subtree_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=2, gamma2=3, alpha=4, beta=5)
     doc = Document([3, 8, 0], [2, 1, 3])
     ab = np.array([[8, 1, 3, 1, 1, 1, 1], [4, 0, 5, 0, 0, 0, 0]])
     uv = np.array([[1, 5, 1, 1, 1, 1, 1], [0, 6, 0, 0, 0, 0, 0]])
@@ -372,7 +372,7 @@ def update_nu_1_2_2_many_types_partial_subtree_test():
 
 
 def update_uv_1_test():
-    onhdp = m0((1,), D=47, W=42, beta=9)
+    onhdp = model((1,), D=47, W=42, beta=9)
     uv = np.zeros((2,1))
     onhdp.update_uv(
         {(0,): (0,)},
@@ -381,7 +381,7 @@ def update_uv_1_test():
     assert_array_almost_equal(uv, [[1], [0]])
 
 def update_uv_2_test():
-    onhdp = m0((1,), D=47, W=42, beta=9)
+    onhdp = model((1,), D=47, W=42, beta=9)
     uv = np.zeros((2,1))
     onhdp.update_uv(
         {(0,): (0,)},
@@ -390,7 +390,7 @@ def update_uv_2_test():
     assert_array_almost_equal(uv, [[1], [0]])
 
 def update_uv_3_test():
-    onhdp = m0((1, 3), D=47, W=42, beta=9)
+    onhdp = model((1, 3), D=47, W=42, beta=9)
     uv = np.zeros((2,4))
     onhdp.update_uv(
         {(0,): (0,)},
@@ -399,7 +399,7 @@ def update_uv_3_test():
     assert_array_almost_equal(uv[:,[0]], [[1], [0]])
 
 def update_uv_4_test():
-    onhdp = m0((1, 3), D=47, W=42, beta=9)
+    onhdp = model((1, 3), D=47, W=42, beta=9)
     uv = np.zeros((2,4))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 2), (0, 1): (0, 1), (0, 2): (0, 0)},
@@ -410,7 +410,7 @@ def update_uv_4_test():
          [ 0., 9., 9., 0. ]])
 
 def update_uv_5_test():
-    onhdp = m0((1, 3), D=47, W=42, beta=9)
+    onhdp = model((1, 3), D=47, W=42, beta=9)
     uv = np.zeros((2,4))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 2), (0, 1): (0, 1), (0, 2): (0, 0)},
@@ -421,7 +421,7 @@ def update_uv_5_test():
          [ 0, 19., 15., 0. ]])
 
 def update_uv_6_test():
-    onhdp = m0((1, 3), D=47, W=42, beta=9)
+    onhdp = model((1, 3), D=47, W=42, beta=9)
     uv = np.zeros((2,4))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 2), (0, 1): (0, 1)},
@@ -432,7 +432,7 @@ def update_uv_6_test():
         [ 0, 13., 0. ]])
 
 def update_uv_7_test():
-    onhdp = m0((1, 3), D=47, W=42, beta=9)
+    onhdp = model((1, 3), D=47, W=42, beta=9)
     uv = np.zeros((2,4))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 2), (0, 1): (0, 1)},
@@ -443,7 +443,7 @@ def update_uv_7_test():
         [ 0, 13., 0. ]])
 
 def update_uv_8_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, beta=9)
+    onhdp = model((1, 2, 2), D=47, W=42, beta=9)
     uv = np.zeros((2,7))
     onhdp.update_uv(
         {(0,): (0,)},
@@ -452,7 +452,7 @@ def update_uv_8_test():
     assert_array_almost_equal(uv[:,[0]], [[ 1. ], [ 0. ]])
 
 def update_uv_9_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, beta=9)
+    onhdp = model((1, 2, 2), D=47, W=42, beta=9)
     uv = np.zeros((2,7))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 0, 1): (0, 1, 0), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -463,7 +463,7 @@ def update_uv_9_test():
          [ 0., 9., 0., 9., 0., 9., 0. ]])
 
 def update_uv_10_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, beta=9)
+    onhdp = model((1, 2, 2), D=47, W=42, beta=9)
     uv = np.zeros((2,7))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 0, 1): (0, 1, 0), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -474,7 +474,7 @@ def update_uv_10_test():
         [ 0, 27., 0., 16., 0., 27., 0. ]])
 
 def update_uv_11_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, beta=9)
+    onhdp = model((1, 2, 2), D=47, W=42, beta=9)
     uv = np.zeros((2,7))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -485,7 +485,7 @@ def update_uv_11_test():
         [ 0, 27., 0., 0., 27., 0. ]])
 
 def update_uv_12_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, beta=9)
+    onhdp = model((1, 2, 2), D=47, W=42, beta=9)
     uv = np.zeros((2,7))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -496,7 +496,7 @@ def update_uv_12_test():
         [ 0, 27., 0., 0., 27., 0. ]])
 
 def update_uv_13_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, beta=9)
+    onhdp = model((1, 2, 2), D=47, W=42, beta=9)
     uv = np.zeros((2,7))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -507,7 +507,7 @@ def update_uv_13_test():
         [ 0, 27., 0., 27., 0. ]])
 
 def update_uv_14_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, beta=9)
+    onhdp = model((1, 2, 2), D=47, W=42, beta=9)
     uv = np.zeros((2,7))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -518,7 +518,7 @@ def update_uv_14_test():
         [ 0, 27., 0., 27., 0. ]])
 
 def update_uv_15_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, beta=9)
+    onhdp = model((1, 2, 2), D=47, W=42, beta=9)
     uv = np.zeros((2,7))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 0, 1): (0, 1, 0)},
@@ -529,7 +529,7 @@ def update_uv_15_test():
         [ 0, 9., 0., 16., 0. ]])
 
 def update_uv_16_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, beta=9)
+    onhdp = model((1, 2, 2), D=47, W=42, beta=9)
     uv = np.zeros((2,7))
     onhdp.update_uv(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 0, 1): (0, 1, 0)},
@@ -541,7 +541,7 @@ def update_uv_16_test():
 
 
 def update_ab_1_test():
-    onhdp = m0((1,), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1,), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,1))
     onhdp.update_ab(
         {(0,): (0,)},
@@ -550,7 +550,7 @@ def update_ab_1_test():
     assert_array_almost_equal(ab, [[1], [0]])
 
 def update_ab_2_test():
-    onhdp = m0((1,), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1,), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,1))
     onhdp.update_ab(
         {(0,): (0,)},
@@ -559,7 +559,7 @@ def update_ab_2_test():
     assert_array_almost_equal(ab, [[ 1.], [ 0.]])
 
 def update_ab_3_test():
-    onhdp = m0((1, 3), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 3), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,4))
     onhdp.update_ab(
         {(0,): (0,)},
@@ -568,7 +568,7 @@ def update_ab_3_test():
     assert_array_almost_equal(ab[:,[0]], [[ 1. ], [ 0. ]])
 
 def update_ab_4_test():
-    onhdp = m0((1, 3), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 3), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,4))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 2), (0, 1): (0, 1), (0, 2): (0, 0)},
@@ -579,7 +579,7 @@ def update_ab_4_test():
         [ 3., 0., 0., 0. ]])
 
 def update_ab_5_test():
-    onhdp = m0((1, 3), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 3), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,4))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 2), (0, 1): (0, 1), (0, 2): (0, 0)},
@@ -590,7 +590,7 @@ def update_ab_5_test():
         [ 9.25, 0., 0., 0. ]])
 
 def update_ab_6_test():
-    onhdp = m0((1, 3), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 3), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,4))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 2), (0, 1): (0, 1)},
@@ -601,7 +601,7 @@ def update_ab_6_test():
         [ 3.25, 0., 0. ]])
 
 def update_ab_7_test():
-    onhdp = m0((1, 3), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 3), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,4))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 2), (0, 1): (0, 1)},
@@ -612,7 +612,7 @@ def update_ab_7_test():
         [ 3.25, 0., 0. ]])
 
 def update_ab_8_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,7))
     onhdp.update_ab(
         {(0,): (0,)},
@@ -623,7 +623,7 @@ def update_ab_8_test():
         [ 0. ]])
 
 def update_ab_9_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,7))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 0, 1): (0, 1, 0), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -634,7 +634,7 @@ def update_ab_9_test():
         [ 3., 3., 3., 0., 0., 0., 0. ]])
 
 def update_ab_10_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,7))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 0, 1): (0, 1, 0), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -645,7 +645,7 @@ def update_ab_10_test():
         [ 34.25, 16., 21., 0., 0., 0., 0. ]])
 
 def update_ab_11_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,7))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -656,7 +656,7 @@ def update_ab_11_test():
         [ 27.25, 9., 21., 0., 0., 0. ]])
 
 def update_ab_12_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,7))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -667,7 +667,7 @@ def update_ab_12_test():
         [ 27.25, 9., 21., 0., 0., 0. ]])
 
 def update_ab_13_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,7))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -678,7 +678,7 @@ def update_ab_13_test():
         [ 21.25, 0, 21., 0., 0. ]])
 
 def update_ab_14_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,7))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -689,7 +689,7 @@ def update_ab_14_test():
         [ 21.25, 0, 21., 0., 0. ]])
 
 def update_ab_15_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,7))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 0, 1): (0, 1, 0)},
@@ -700,7 +700,7 @@ def update_ab_15_test():
         [ 16.25, 16., 0., 0., 0. ]])
 
 def update_ab_16_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
+    onhdp = model((1, 2, 2), D=47, W=42, gamma1=9, gamma2=3)
     ab = np.zeros((2,7))
     onhdp.update_ab(
         {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 0, 1): (0, 1, 0)},
@@ -712,12 +712,12 @@ def update_ab_16_test():
 
 
 def update_tau_1_test():
-    onhdp = m0((1,), D=47, W=42, alpha=9)
+    onhdp = model((1,), D=47, W=42, alpha=9)
     onhdp.update_tau()
     assert_array_almost_equal(onhdp.m_tau, [[1], [0]])
 
 def update_tau_2_test():
-    onhdp = m0((1, 3), D=47, W=42, alpha=9)
+    onhdp = model((1, 3), D=47, W=42, alpha=9)
     onhdp.m_tau_ss[:] = 0
     onhdp.update_tau()
     assert_array_almost_equal(onhdp.m_tau,
@@ -726,7 +726,7 @@ def update_tau_2_test():
 
 
 def update_tau_3_test():
-    onhdp = m0((1, 3), D=47, W=42, alpha=9)
+    onhdp = model((1, 3), D=47, W=42, alpha=9)
     onhdp.m_tau_ss[:] = [2, 5, 7, 3]
     onhdp.update_tau()
     assert_array_almost_equal(onhdp.m_tau,
@@ -734,7 +734,7 @@ def update_tau_3_test():
         [  0. ,  19. ,  12. ,   0. ]])
 
 def update_tau_4_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, alpha=9)
+    onhdp = model((1, 2, 2), D=47, W=42, alpha=9)
     onhdp.m_tau_ss[:] = 0
     onhdp.update_tau()
     assert_array_almost_equal(onhdp.m_tau,
@@ -742,7 +742,7 @@ def update_tau_4_test():
         [ 0.,  9.,  0.,  9.,  0.,  9.,  0.]])
 
 def update_tau_5_test():
-    onhdp = m0((1, 2, 2), D=47, W=42, alpha=9)
+    onhdp = model((1, 2, 2), D=47, W=42, alpha=9)
     onhdp.m_tau_ss[:] = [2, 5, 7, 3, 2, 0, 14]
     onhdp.update_tau()
     assert_array_almost_equal(onhdp.m_tau,
@@ -751,7 +751,7 @@ def update_tau_5_test():
 
 
 def z_likelihood_1_test():
-    onhdp = m0((1,), D=47, W=42)
+    onhdp = model((1,), D=47, W=42)
     assert_almost_equal(0,
         onhdp.z_likelihood(
             {(0,): (0,)},
@@ -759,28 +759,28 @@ def z_likelihood_1_test():
         ))
 
 def z_likelihood_2_test():
-    onhdp = m0((1, 3), D=47, W=42)
+    onhdp = model((1, 3), D=47, W=42)
     assert_almost_equal(0,
         onhdp.z_likelihood(
             {(0,): (0,)},
             np.array([[0., 0., 0., 0.], [np.inf, 0., 0., np.inf]])))
 
 def z_likelihood_3_test():
-    onhdp = m0((1, 3), D=47, W=42)
+    onhdp = model((1, 3), D=47, W=42)
     assert_almost_equal(-10.75,
         onhdp.z_likelihood(
             {(0,): (0,), (0, 0): (0, 2), (0, 1): (0, 1), (0, 2): (0, 0)},
             np.array([[0., -0.5, -0.25, 0.], [np.inf, -1., -8., np.inf]])))
 
 def z_likelihood_4_test():
-    onhdp = m0((1, 3), D=47, W=42)
+    onhdp = model((1, 3), D=47, W=42)
     assert_almost_equal(-10.25,
         onhdp.z_likelihood(
             {(0,): (0,), (0, 0): (0, 2), (0, 1): (0, 1)},
             np.array([[0., -0.5, -0.25, 0.], [np.inf, -1., -8., np.inf]])))
 
 def z_likelihood_5_test():
-    onhdp = m0((1, 2, 2), D=47, W=42)
+    onhdp = model((1, 2, 2), D=47, W=42)
     assert_almost_equal(-73.875,
         onhdp.z_likelihood(
             {(0,): (0,), (0, 0): (0, 1), (0, 1): (0, 0), (0, 0, 0): (0, 1, 1), (0, 0, 1): (0, 1, 0), (0, 1, 0): (0, 0, 0), (0, 1, 1): (0, 0, 1)},
@@ -790,7 +790,7 @@ def z_likelihood_5_test():
             ])))
 
 def z_likelihood_6_test():
-    onhdp = m0((1, 2, 2), D=47, W=42)
+    onhdp = model((1, 2, 2), D=47, W=42)
     assert_almost_equal(-65.125,
         onhdp.z_likelihood(
             {(0,): (0,), (0, 0): (0, 1), (0, 0, 0): (0, 1, 1), (0, 0, 1): (0, 1, 0)},
@@ -801,7 +801,7 @@ def z_likelihood_6_test():
 
 
 def c_likelihood_1_test():
-    onhdp = m0((1,), D=47, W=42)
+    onhdp = model((1,), D=47, W=42)
     assert_almost_equal(0,
         onhdp.c_likelihood(
             {(0,): (0,)},
@@ -812,7 +812,7 @@ def c_likelihood_1_test():
             [0]))
 
 def c_likelihood_2_test():
-    onhdp = m0((1, 3), D=47, W=42)
+    onhdp = model((1, 3), D=47, W=42)
     nu = np.array([
         [0.25, 0.25, 0.25, 0.25],
         [0.625, 0.125, 0.125, 0.125],
@@ -828,7 +828,7 @@ def c_likelihood_2_test():
             [0, 1, 2, 3]))
 
 def c_likelihood_3_test():
-    onhdp = m0((1, 3), D=47, W=42)
+    onhdp = model((1, 3), D=47, W=42)
     nu = np.array([
         [0.25, 0.25, 0.25, 0.25],
         [0.625, 0.125, 0.125, 0.125],
@@ -844,7 +844,7 @@ def c_likelihood_3_test():
             [0, 1, 2, 3]))
 
 def c_likelihood_4_test():
-    onhdp = m0((1, 3), D=47, W=42)
+    onhdp = model((1, 3), D=47, W=42)
     nu = np.array([
         [0.25, 0.25, 0.5, 0.],
         [0.625, 0.25, 0.125, 0.],
@@ -861,7 +861,7 @@ def c_likelihood_4_test():
         ))
 
 def c_likelihood_5_test():
-    onhdp = m0((1, 2, 2), D=47, W=42)
+    onhdp = model((1, 2, 2), D=47, W=42)
     nu = np.array([
         [0.25, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125],
         [0.0625, 0.0625, 0.0625, 0.625, 0.0625, 0.0625, 0.0625],
@@ -877,7 +877,7 @@ def c_likelihood_5_test():
             [0, 1, 2, 3, 4, 5, 6]))
 
 def c_likelihood_6_test():
-    onhdp = m0((1, 2, 2), D=47, W=42)
+    onhdp = model((1, 2, 2), D=47, W=42)
     nu = np.array([
         [0.25, 0.25, 0., 0.25, 0.25, 0., 0.],
         [0.625, 0.125, 0., 0.125, 0.125, 0., 0.],
@@ -894,7 +894,7 @@ def c_likelihood_6_test():
 
 
 def w_likelihood_1_test():
-    onhdp = m0((1,), D=47, W=42)
+    onhdp = model((1,), D=47, W=42)
     doc = Document([3], [2])
     assert_almost_equal(0,
         onhdp.w_likelihood(
@@ -905,7 +905,7 @@ def w_likelihood_1_test():
         ))
 
 def w_likelihood_2_test():
-    onhdp = m0((1,), D=47, W=42)
+    onhdp = model((1,), D=47, W=42)
     doc = Document([3], [2])
     assert_almost_equal(-4.158883083,
         onhdp.w_likelihood(
@@ -915,7 +915,7 @@ def w_likelihood_2_test():
             [0]))
 
 def w_likelihood_3_test():
-    onhdp = m0((1,), D=47, W=42)
+    onhdp = model((1,), D=47, W=42)
     doc = Document([0, 41, 3], [2, 1, 2])
     assert_almost_equal(-6.238324625,
         onhdp.w_likelihood(
@@ -925,7 +925,7 @@ def w_likelihood_3_test():
         [0]))
 
 def w_likelihood_4_test():
-    onhdp = m0((1, 3), D=47, W=42)
+    onhdp = model((1, 3), D=47, W=42)
     doc = Document([0, 41, 3], [2, 1, 2])
     assert_almost_equal(-11.911208475,
         onhdp.w_likelihood(
@@ -946,7 +946,7 @@ def w_likelihood_4_test():
         [0, 1, 2, 3]))
 
 def w_likelihood_5_test():
-    onhdp = m0((1, 3), D=47, W=42)
+    onhdp = model((1, 3), D=47, W=42)
     doc = Document([0, 41, 3], [2, 1, 2])
     assert_almost_equal(-6.570175336,
         onhdp.w_likelihood(
@@ -967,7 +967,7 @@ def w_likelihood_5_test():
         [0, 1, 2]))
 
 def w_likelihood_6_test():
-    onhdp = m0((1, 3), D=47, W=42)
+    onhdp = model((1, 3), D=47, W=42)
     doc = Document([0, 41, 3], [2, 1, 2])
     assert_almost_equal(-3.667621517,
         onhdp.w_likelihood(
@@ -988,7 +988,7 @@ def w_likelihood_6_test():
         [0, 1, 2]))
 
 def w_likelihood_7_test():
-    onhdp = m0((1, 2, 2), D=47, W=42)
+    onhdp = model((1, 2, 2), D=47, W=42)
     doc = Document([0, 41, 3], [2, 1, 2])
     assert_almost_equal(-9.235786743,
         onhdp.w_likelihood(
@@ -1012,7 +1012,7 @@ def w_likelihood_7_test():
         [0, 1, 2, 3, 4, 5, 6]))
 
 def w_likelihood_8_test():
-    onhdp = m0((1, 2, 2), D=47, W=42)
+    onhdp = model((1, 2, 2), D=47, W=42)
     doc = Document([0, 41, 3], [2, 1, 2])
     assert_almost_equal(-3.755323728,
         onhdp.w_likelihood(

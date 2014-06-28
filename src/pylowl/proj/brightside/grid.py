@@ -53,7 +53,7 @@ def main():
                        GAMMA1_LEVELS, GAMMA2_LEVELS, KAPPA_LEVELS, IOTA_LEVELS,
                        BATCHSIZE_LEVELS)
     for (trunc, alpha, beta, gamma1, gamma2, kappa, iota, batchsize) in cells:
-        args = ['qsub', 'run_m0.qsub', trunc, '--init_samples=1000', '--test_samples=100', '--save_model', '--batchsize', batchsize,'--gamma1', gamma1, '--gamma2', gamma2, '--alpha', alpha, '--beta', beta, '--kappa', kappa, '--iota', iota]
+        args = ['qsub', 'run.qsub', trunc, '--init_samples=1000', '--test_samples=100', '--save_model', '--batchsize', batchsize,'--gamma1', gamma1, '--gamma2', gamma2, '--alpha', alpha, '--beta', beta, '--kappa', kappa, '--iota', iota]
         print ' '.join(args)
         subprocess.call(args)
 

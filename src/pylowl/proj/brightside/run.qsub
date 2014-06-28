@@ -31,7 +31,7 @@ fi
 TRUNC="$1"
 shift
 
-PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run_m0 \
+PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run \
     --trunc="$TRUNC" \
     --data_path="$CONCRETE_DATA_DIR/train/*" \
     --test_data_path="$CONCRETE_DATA_DIR/test/*" \
