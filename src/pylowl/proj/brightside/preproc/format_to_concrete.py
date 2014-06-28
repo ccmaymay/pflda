@@ -4,7 +4,8 @@
 import logging
 import os
 import re
-from pylowl.proj.brightside.preproc.utils import make_parent_dir, load_word_set
+from pylowl.proj.brightside.preproc.utils import load_word_set, write_vocab
+from pylowl.proj.brightside.utils import write_concrete
 
 
 NON_ALPHA_RE = re.compile(r'[^a-zA-Z]')
@@ -27,10 +28,12 @@ def main():
                         help='doc-per-line input file path (training split)')
     parser.add_argument('test_input_filename', type=str,
                         help='doc-per-line input file path (testing split)')
-    parser.add_argument('train_output_filename', type=str,
-                        help='output file path (training split)')
-    parser.add_argument('test_output_filename', type=str,
-                        help='output file path (testing split)')
+    parser.add_argument('train_output_path', type=str,
+                        help='output directory path (training split)')
+    parser.add_argument('test_output_path', type=str,
+                        help='output directory path (testing split)')
+    parser.add_argument('vocab_output_path', type=str,
+                        help='vocab output filename')
     parser.add_argument('--stop_list', type=str,
                         help='path to stop list')
     parser.add_argument('--dictionary', type=str,
@@ -49,11 +52,12 @@ def main():
                         help='log level')
 
     args = parser.parse_args()
-    format_to_pflda(
+    format_to_concrete(
         args.train_input_filename,
         args.test_input_filename,
-        args.train_output_filename,
-        args.test_output_filename,
+        args.train_output_path,
+        args.test_output_path,
+        args.vocab_output_path,
         stop_list=args.stop_list,
         dictionary=args.dictionary,
         idf_lb=args.idf_lb,
@@ -83,23 +87,17 @@ def transform_token(token, remove_non_alpha, lowercase):
     return token
 
 
-def write_docs(input_filename, output_filename, vocab, tt):
-    make_parent_dir(output_filename)
-    with open(output_filename, 'w') as out_f:
-        with open(input_filename) as in_f:
-            for line in in_f:
-                pieces = line.strip().split()
-                category = pieces[0]
-                tokens = [tt(token) for token in pieces[1:]]
-                tokens = [token for token in tokens if token in vocab]
-                if tokens:
-                    out_f.write(category)
-                    out_f.write(' ')
-                    out_f.write(' '.join(tokens))
-                    out_f.write('\n')
+def iter_docs(input_filename, tt, vocab):
+    with open(input_filename) as f:
+        for line in f:
+            pieces = line.strip().split()
+            tokens = [tt(token) for token in pieces]
+            tokens = [token for token in tokens if token in vocab]
+            if tokens:
+                yield tokens
 
 
-def format_to_pflda(train_input_filename, test_input_filename, train_output_filename, test_output_filename, stop_list=None, dictionary=None, idf_lb=0., idf_ub=1., remove_non_alpha=False, lowercase=False, min_word_len=1, log_level='INFO'):
+def format_to_concrete(train_input_filename, test_input_filename, train_output_path, test_output_path, vocab_output_path, stop_list=None, dictionary=None, idf_lb=0., idf_ub=1., remove_non_alpha=False, lowercase=False, min_word_len=1, log_level='INFO'):
     logger = logging.getLogger()
     logger.setLevel(log_level)
 
@@ -129,7 +127,7 @@ def format_to_pflda(train_input_filename, test_input_filename, train_output_file
         df = dict()
         for line in f:
             doc_types = set()
-            for token in line.strip().split()[1:]:
+            for token in line.strip().split():
                 token = tt(token)
                 doc_types.add(token)
             for t in doc_types:
@@ -149,14 +147,15 @@ def format_to_pflda(train_input_filename, test_input_filename, train_output_file
         f.seek(0)
 
         for line in f:
-            for token in line.strip().split()[1:]:
+            for token in line.strip().split():
                 token = transform_token(token, remove_non_alpha, lowercase)
                 if not is_bad(token, stop_set, idf, idf_lb, idf_ub, dictionary_set, min_word_len):
                     if token not in vocab:
                         vocab[token] = len(vocab)
 
-    write_docs(train_input_filename, train_output_filename, vocab, tt)
-    write_docs(test_input_filename, test_output_filename, vocab, tt)
+    write_concrete(iter_docs(train_input_filename, tt, vocab), train_output_path)
+    write_concrete(iter_docs(test_input_filename, tt, vocab), test_output_path)
+    write_vocab(vocab_output_path, vocab)
 
 
 if __name__ == '__main__':
