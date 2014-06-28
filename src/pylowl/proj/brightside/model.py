@@ -126,6 +126,7 @@ class model(object):
                  trunc,
                  D,
                  W,
+                 U,
                  lambda0=0.01,
                  beta=1.,
                  alpha=1.,
@@ -143,6 +144,7 @@ class model(object):
                  subtree_Elogtheta_f=None,
                  subtree_logEtheta_f=None,
                  subtree_lambda_ss_f=None):
+
         if trunc[0] != 1:
             raise ValueError('Top-level truncation must be one.')
 
@@ -158,6 +160,10 @@ class model(object):
         self.m_alpha = alpha
         self.m_gamma1 = gamma1
         self.m_gamma2 = gamma2
+
+        self.m_U = U
+        self.m_users = [None] * U
+        self.m_r_users = dict()
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
