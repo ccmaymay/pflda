@@ -7,6 +7,18 @@ import itertools as it
 import os
 
 
+def reservoir_insert(reservoir, n, item):
+    if n < len(reservoir):
+        reservoir[n] = item
+        return n
+    else:
+        if random.random() < len(reservoir)/float(n + 1):
+            i = random.randint(0, len(reservoir) - 1)
+            reservoir[i] = item
+            return i
+        return None
+
+
 def write_concrete(docs, output_dir):
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
