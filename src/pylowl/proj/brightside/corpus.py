@@ -126,7 +126,7 @@ class Corpus(object):
         return Corpus(docs, len(docs))
 
     @classmethod
-    def from_stream_data(cls, f, num_docs):
+    def from_data_stream(cls, f, num_docs):
         '''
         Return corpus containing at most num_docs documents from the
         file-like object f.  Documents are loaded lazily.

@@ -200,7 +200,7 @@ def run_m0(**kwargs):
         num_types = options['W']
         # TODO multiple files?
         train_file = open(options['data_path'])
-        c_train = Corpus.from_stream_data(train_file, num_docs)
+        c_train = Corpus.from_data_stream(train_file, num_docs)
 
     else:
         train_filenames = glob(options['data_path'])
