@@ -190,8 +190,6 @@ def run_m0(**kwargs):
         m0.set_random_seed(options['random_seed'])
 
     if options['streaming']:
-        if options['concrete']:
-            raise ValueError('streaming and concrete cannot both be selected')
         if options['D'] is None:
             raise ValueError('D must be specified in streaming mode')
         if options['W'] is None:
@@ -199,8 +197,38 @@ def run_m0(**kwargs):
         num_docs = options['D']
         num_types = options['W']
         # TODO multiple files?
-        train_file = open(options['data_path'])
-        c_train = Corpus.from_data_stream(train_file, num_docs)
+
+        if options['concrete']:
+            train_filenames = glob(options['data_path'])
+            train_filenames.sort()
+
+            vocab = load_vocab(options['concrete_vocab_path'])
+            r_vocab = dict((v, k) for (k, v) in vocab.items())
+            if num_types != len(vocab):
+                raise ValueError('specified vocab length is wrong')
+
+            c_train = Corpus.from_concrete_stream(
+                train_filenames, r_vocab, num_docs,
+                options['concrete_section_segmentation'],
+                options['concrete_sentence_segmentation'],
+                options['concrete_tokenization_list'],
+            )
+            if options['test_data_path'] is not None:
+                test_filenames = glob(options['test_data_path'])
+                test_filenames.sort()
+                (c_test_train, c_test_test) = Corpus.from_concrete(
+                    test_filenames, r_vocab,
+                    options['concrete_section_segmentation'],
+                    options['concrete_sentence_segmentation'],
+                    options['concrete_tokenization_list'],
+                ).split_within_docs(options['test_train_frac'])
+        else:
+            train_file = open(options['data_path'])
+            c_train = Corpus.from_data_stream(train_file, num_docs)
+            if options['test_data_path'] is not None:
+                (c_test_train, c_test_test) = Corpus.from_data(
+                    options['test_data_path']
+                ).split_within_docs(options['test_train_frac'])
 
     else:
         train_filenames = glob(options['data_path'])
@@ -258,7 +286,9 @@ def run_m0(**kwargs):
 
             c_train = Corpus.from_data(train_filenames)
             if options['test_data_path'] is not None:
-                (c_test_train, c_test_test) = Corpus.from_data(options['test_data_path']).split_within_docs(options['test_train_frac'])
+                (c_test_train, c_test_test) = Corpus.from_data(
+                    options['test_data_path']
+                ).split_within_docs(options['test_train_frac'])
 
 
     logging.info('No. docs: %d' % num_docs)
