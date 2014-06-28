@@ -126,6 +126,23 @@ class Corpus(object):
         return Corpus(docs, len(docs))
 
     @classmethod
+    def from_concrete_stream(cls, paths, r_vocab, num_docs, section_segmentation=0, sentence_segmentation=0, tokenization_list=0):
+        '''
+        Return corpus containing at most num_docs documents from a list
+        of concrete document paths.  Documents are loaded lazily.
+        '''
+        # TODO: pass file-like object(s) instead of paths
+        concrete_docs = load_concrete(paths,
+                                      section_segmentation,
+                                      sentence_segmentation,
+                                      tokenization_list)
+        docs = (Document.from_tokens([r_vocab[t] for t in tokens],
+                                     identifier=path)
+                for (i, (path, tokens)) in enumerate(concrete_docs)
+                if i < num_docs)
+        return Corpus(docs, num_docs) # TODO what if too short?
+
+    @classmethod
     def from_data_stream(cls, f, num_docs):
         '''
         Return corpus containing at most num_docs documents from the
