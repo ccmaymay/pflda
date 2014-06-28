@@ -31,6 +31,7 @@ DEFAULT_OPTIONS = dict(
     trunc='1,20,10,5',
     D=None,
     W=None,
+    U=None,
     lambda0=0.01,
     beta=1.0,
     alpha=1.0,
@@ -81,6 +82,8 @@ def main(argv=None):
                       help="number of documents (None: auto)")
     parser.add_argument("--W", type=int,
                       help="size of vocabulary (None: auto)")
+    parser.add_argument("--U", type=int,
+                      help="number of users")
     parser.add_argument("--lambda0", type=float,
                       help="the topic Dirichlet")
     parser.add_argument("--beta", type=float,
@@ -156,6 +159,10 @@ def main(argv=None):
 def run(**kwargs):
     options = dict((k, v) for (k, v) in DEFAULT_OPTIONS.items())
     options.update(kwargs)
+
+    if options['U'] is None:
+        raise ValueError('number of users must be specified')
+    num_users = options['U']
     
     # Make output dir
     result_directory = options['output_dir']
@@ -310,7 +317,7 @@ def run(**kwargs):
         SUBTREE_LAMBDA_SS_BASENAME), 'w')
 
     logging.info("Creating online nhdp instance")
-    m = model(trunc, num_docs, num_types,
+    m = model(trunc, num_docs, num_types, num_users,
                   options['lambda0'], options['beta'], options['alpha'],
                   options['gamma1'], options['gamma2'],
                   options['kappa'], options['iota'], options['delta'],
