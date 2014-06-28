@@ -395,10 +395,10 @@ def run_m0(**kwargs):
             with open(path, 'w') as f:
                 func_ext_pair[0](f)
 
-    if options['streaming']:
+    if options['streaming'] and not options['concrete']:
         train_file.close()
 
-    # Makeing final predictions.
+    # Making final predictions.
     if options['test_data_path'] is not None:
         test_nhdp_predictive(model, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
