@@ -15,8 +15,8 @@ cd ../../../../
 
 SRC_DIR=src/pylowl/proj/brightside
 
-DATA_DIR=data/txt/tng.rasp
-VOCAB_PATH="$DATA_DIR/vocab"
+CONCRETE_DATA_DIR=data/txt/tng.rasp
+VOCAB_PATH="$CONCRETE_DATA_DIR/vocab"
 
 OUTPUT_BASE_DIR=output/pylowl/proj/brightside
 mkdir -p "$OUTPUT_BASE_DIR"
@@ -33,12 +33,12 @@ shift
 
 PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run_m0 \
     --trunc="$TRUNC" \
-    --data_path="$DATA_DIR/train" \
-    --test_data_path="$DATA_DIR/test" \
+    --data_path="$CONCRETE_DATA_DIR/train/*" \
+    --test_data_path="$CONCRETE_DATA_DIR/test/*" \
     --save_model \
     --max_time=86400 \
     --concrete \
-    --concrete_vocab_path="$DATA_DIR/vocab" \
+    --concrete_vocab_path="$VOCAB_PATH" \
     --output_dir="$OUTPUT_DIR" \
     "$@"
 
