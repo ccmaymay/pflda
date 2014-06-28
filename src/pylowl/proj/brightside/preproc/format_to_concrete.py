@@ -91,10 +91,11 @@ def iter_docs(input_filename, tt, vocab):
     with open(input_filename) as f:
         for line in f:
             pieces = line.strip().split()
-            tokens = [tt(token) for token in pieces]
+            user = pieces[0]
+            tokens = [tt(token) for token in pieces[1:]]
             tokens = [token for token in tokens if token in vocab]
             if tokens:
-                yield tokens
+                yield (tokens, user)
 
 
 def format_to_concrete(train_input_filename, test_input_filename, train_output_path, test_output_path, vocab_output_path, stop_list=None, dictionary=None, idf_lb=0., idf_ub=1., remove_non_alpha=False, lowercase=False, min_word_len=1, log_level='INFO'):
@@ -127,7 +128,7 @@ def format_to_concrete(train_input_filename, test_input_filename, train_output_p
         df = dict()
         for line in f:
             doc_types = set()
-            for token in line.strip().split():
+            for token in line.strip().split()[1:]:
                 token = tt(token)
                 doc_types.add(token)
             for t in doc_types:
@@ -147,7 +148,7 @@ def format_to_concrete(train_input_filename, test_input_filename, train_output_p
         f.seek(0)
 
         for line in f:
-            for token in line.strip().split():
+            for token in line.strip().split()[1:]:
                 token = transform_token(token, remove_non_alpha, lowercase)
                 if not is_bad(token, stop_set, idf, idf_lb, idf_ub, dictionary_set, min_word_len):
                     if token not in vocab:

@@ -19,7 +19,7 @@ def reservoir_insert(reservoir, n, item):
         return None
 
 
-def write_concrete(docs, output_dir, users=None):
+def write_concrete(doc_user_pairs, output_dir):
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
     from concrete.communication.ttypes import Communication
@@ -48,15 +48,12 @@ def write_concrete(docs, output_dir, users=None):
         comm.sectionSegmentations = [sectionSegmentation]
         return comm
 
-    if users is None:
-        users = it.cycle([None])
-
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
     i = 0
     output_path = os.path.join(output_dir, '%d.dat' % i)
-    for (doc, user) in it.izip(docs, users):
+    for (doc, user) in doc_user_pairs:
         comm = make_comm(doc, user)
         while os.path.exists(output_path):
             i += 1

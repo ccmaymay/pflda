@@ -3,6 +3,7 @@
 
 from glob import glob
 import re
+import itertools as it
 from pylowl.proj.brightside.utils import write_concrete
 
 
@@ -30,7 +31,7 @@ def main(input_pattern, output_dir):
                            if token and not is_num(token))
         if doc:
             docs.append(doc)
-    write_concrete(docs, output_dir)
+    write_concrete(it.izip(docs, it.cycle([None])), output_dir)
 
 
 if __name__ == '__main__':
