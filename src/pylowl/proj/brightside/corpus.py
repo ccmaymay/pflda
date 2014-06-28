@@ -14,12 +14,13 @@ class Document(object):
     identifier (e.g., filename and line number).
     '''
 
-    def __init__(self, type_ids, type_counts, identifier=None):
+    def __init__(self, type_ids, type_counts, identifier=None, user=None):
         self.words = type_ids
         self.length = len(self.words)
         self.counts = type_counts
         self.total = sum(self.counts)
         self.identifier = identifier
+        self.user = user
 
     def split(self, train_frac):
         '''
@@ -37,14 +38,14 @@ class Document(object):
         num_train_tokens = int(math.ceil(len(tokens) * train_frac))
         # always at least one token in training document
         train_doc = Document.from_tokens(tokens[:num_train_tokens],
-            self.identifier)
+            self.identifier, self.user)
         # may be empty
         test_doc = Document.from_tokens(tokens[num_train_tokens:],
-            self.identifier)
+            self.identifier, self.user)
         return (train_doc, test_doc)
 
     @classmethod
-    def from_tokens(cls, tokens, identifier=None):
+    def from_tokens(cls, tokens, identifier=None, user=None):
         '''
         Return document from list of tokens (where each token is an
         integral type index).
@@ -62,10 +63,10 @@ class Document(object):
             type_ids.append(type_id)
             type_counts.append(type_count)
 
-        return Document(type_ids, type_counts, identifier)
+        return Document(type_ids, type_counts, identifier, user)
 
     @classmethod
-    def from_line(cls, line, identifier=None):
+    def from_line(cls, line, identifier=None, user=None):
         '''
         Return document specified by line, which should be an integer
         followed by a list of integer pairs, delimited by whitespace,
@@ -79,7 +80,7 @@ class Document(object):
         pieces = [int(i) for i in SPLIT_RE.split(line)]
         type_ids = pieces[1::2]
         type_counts = pieces[2::2]
-        return Document(type_ids, type_counts, identifier)
+        return Document(type_ids, type_counts, identifier, user)
 
 
 class Corpus(object):
@@ -103,7 +104,7 @@ class Corpus(object):
                                       sentence_segmentation,
                                       tokenization_list)
         docs = [Document.from_tokens([r_vocab[t] for t in tokens],
-                                     identifier=path)
+                                     identifier=path, user=user)
                 for (path, tokens, user) in concrete_docs]
         return Corpus(docs, len(paths))
 
@@ -137,7 +138,7 @@ class Corpus(object):
                                       sentence_segmentation,
                                       tokenization_list)
         docs = (Document.from_tokens([r_vocab[t] for t in tokens],
-                                     identifier=path)
+                                     identifier=path, user=user)
                 for (i, (path, tokens, user)) in enumerate(concrete_docs)
                 if i < num_docs)
         return Corpus(docs, num_docs) # TODO what if too short?
