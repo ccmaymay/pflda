@@ -37,18 +37,18 @@ def write_concrete(docs, output_dir):
         os.makedirs(output_dir)
 
     i = 0
-    output_path = os.path.join(output_dir, '%d.dat' % i)
+    output_path = os.path.join(output_dir, '%d.concrete' % i)
     for doc in docs:
         comm = make_comm(doc)
         while os.path.exists(output_path):
             i += 1
-            output_path = os.path.join(output_dir, '%d.dat' % i)
+            output_path = os.path.join(output_dir, '%d.concrete' % i)
         with open(output_path, 'wb') as f:
             transport = TTransport.TFileObjectTransport(f)
             protocol = TBinaryProtocol.TBinaryProtocol(transport)
             comm.write(protocol)
         i += 1
-        output_path = os.path.join(output_dir, '%d.dat' % i)
+        output_path = os.path.join(output_dir, '%d.concrete' % i)
 
 
 def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
