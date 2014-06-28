@@ -104,7 +104,7 @@ class Corpus(object):
                                       tokenization_list)
         docs = [Document.from_tokens([r_vocab[t] for t in tokens],
                                      identifier=path)
-                for (path, tokens) in concrete_docs]
+                for (path, tokens, user) in concrete_docs]
         return Corpus(docs, len(paths))
 
     @classmethod
@@ -138,7 +138,7 @@ class Corpus(object):
                                       tokenization_list)
         docs = (Document.from_tokens([r_vocab[t] for t in tokens],
                                      identifier=path)
-                for (i, (path, tokens)) in enumerate(concrete_docs)
+                for (i, (path, tokens, user)) in enumerate(concrete_docs)
                 if i < num_docs)
         return Corpus(docs, num_docs) # TODO what if too short?
 

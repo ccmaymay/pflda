@@ -16,7 +16,7 @@ def extract_concrete_vocab(input_paths, section_segmentation,
                                   int(sentence_segmentation),
                                   int(tokenization_list))
     vocab = dict()
-    for (path, doc) in concrete_docs:
+    for (path, doc, user) in concrete_docs:
         for token in doc:
             if token not in vocab:
                 vocab[token] = len(vocab)

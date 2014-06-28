@@ -19,7 +19,7 @@ def reservoir_insert(reservoir, n, item):
         return None
 
 
-def write_concrete(docs, output_dir):
+def write_concrete(docs, output_dir, users=None):
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
     from concrete.communication.ttypes import Communication
@@ -29,9 +29,12 @@ def write_concrete(docs, output_dir):
         Tokenization, Token
     )
 
-    def make_comm(tokens):
+    def make_comm(tokens, user=None):
         comm = Communication()
         comm.text = ' '.join(tokens)
+        comm.keyValueMap = dict()
+        if user is not None:
+            comm.keyValueMap['user'] = user
         sectionSegmentation = SectionSegmentation()
         section = Section()
         sentenceSegmentation = SentenceSegmentation()
@@ -45,13 +48,16 @@ def write_concrete(docs, output_dir):
         comm.sectionSegmentations = [sectionSegmentation]
         return comm
 
+    if users is None:
+        users = it.cycle([None])
+
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
     i = 0
     output_path = os.path.join(output_dir, '%d.dat' % i)
-    for doc in docs:
-        comm = make_comm(doc)
+    for (doc, user) in it.izip(docs, users):
+        comm = make_comm(doc, user)
         while os.path.exists(output_path):
             i += 1
             output_path = os.path.join(output_dir, '%d.dat' % i)
@@ -70,6 +76,11 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
     from concrete.communication.ttypes import Communication
 
     def parse_comm(comm):
+        if comm.keyValueMap is not None and 'user' in comm.keyValueMap:
+            user = comm.keyValueMap['user']
+        else:
+            user = None
+
         tokens = []
         if comm.sectionSegmentations is not None:
             section_segmentation = comm.sectionSegmentations[section_segmentation_idx]
@@ -84,7 +95,8 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
                                     if tokenization.tokenList is not None:
                                         for token in tokenization.tokenList:
                                             tokens.append(token.text)
-        return tokens
+
+        return (tokens, user)
 
     for input_path in path_list(loc):
         with open(input_path, 'rb') as f:
@@ -92,8 +104,8 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
             protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
             comm = Communication()
             comm.read(protocolIn)
-            tokens = parse_comm(comm)
-            yield (input_path, tokens)
+            (tokens, user) = parse_comm(comm)
+            yield (input_path, tokens, user)
 
 
 def path_list(loc):
