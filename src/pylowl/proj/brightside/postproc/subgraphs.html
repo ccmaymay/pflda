@@ -111,7 +111,7 @@ update_graphs = function() {
             .style("fill-opacity", function(d) { return d.active ? Math.random() : "0.05"; });
 
         node.append("circle")
-            .attr("r", 4.5 )
+            .attr("r", function(d) {return d.active ? 2 + Math.random()*7 : 4.5})
             .style("fill", function(d) {return d.active ? stringColor(Math.random()*100) : "black"})
             .style("stroke", function(d) {return d.active ? stringColor(Math.random()*100) : "black"});
 
