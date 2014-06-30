@@ -107,8 +107,8 @@ update_graphs = function() {
             .enter().append("g")
             .attr("class", "node")
             .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
-            .style("stroke-opacity", function(d) { return d.active ? 1 : "0.05"; })
-            .style("fill-opacity", function(d) { return d.active ? 1 : "0.05"; });
+            .style("stroke-opacity", function(d) { return d.active ? Math.random() : "0.05"; })
+            .style("fill-opacity", function(d) { return d.active ? Math.random() : "0.05"; });
 
         node.append("circle")
             .attr("r", 4.5 )
