@@ -40,7 +40,7 @@ DEFAULT_OPTIONS = dict(
     kappa=0.5,
     iota=1.0,
     delta=1e-3,
-    omicron=None,
+    eff_init_samples=None,
     xi=0.5,
     batchsize=100,
     max_iter=None,
@@ -100,7 +100,7 @@ def main(argv=None):
                       help="slow down")
     parser.add_argument("--delta", type=float,
                       help="greedy subtree selection stopping crit")
-    parser.add_argument("--omicron", type=float,
+    parser.add_argument("--eff_init_samples", type=float,
                       help="effective no. documents in initialization (None: actual)")
     parser.add_argument("--xi", type=float,
                       help="fraction of topic mass derived from data in initialization")
@@ -332,7 +332,7 @@ def run(**kwargs):
     if options['init_samples'] is not None:
         logging.info("Initializing")
         init_docs = take(c_train.docs, options['init_samples'])
-        m.initialize(init_docs, options['xi'], options['omicron'])
+        m.initialize(init_docs, options['xi'], options['eff_init_samples'])
 
     iteration = 0
     total_doc_count = 0
