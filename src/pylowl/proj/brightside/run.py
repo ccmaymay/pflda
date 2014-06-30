@@ -41,7 +41,7 @@ DEFAULT_OPTIONS = dict(
     iota=1.0,
     delta=1e-3,
     eff_init_samples=None,
-    xi=0.5,
+    init_noise_weight=0.5,
     batchsize=100,
     max_iter=None,
     max_time=None,
@@ -102,8 +102,8 @@ def main(argv=None):
                       help="greedy subtree selection stopping crit")
     parser.add_argument("--eff_init_samples", type=float,
                       help="effective no. documents in initialization (None: actual)")
-    parser.add_argument("--xi", type=float,
-                      help="fraction of topic mass derived from data in initialization")
+    parser.add_argument("--init_noise_weight", type=float,
+                      help="fraction of topic mass derived from Dirichlet noise in initialization")
     parser.add_argument("--batchsize", type=int,
                       help="batch size")
     parser.add_argument("--max_iter", type=int,
@@ -332,7 +332,7 @@ def run(**kwargs):
     if options['init_samples'] is not None:
         logging.info("Initializing")
         init_docs = take(c_train.docs, options['init_samples'])
-        m.initialize(init_docs, options['xi'], options['eff_init_samples'])
+        m.initialize(init_docs, options['init_noise_weight'], options['eff_init_samples'])
 
     iteration = 0
     total_doc_count = 0

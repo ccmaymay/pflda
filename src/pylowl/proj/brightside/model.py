@@ -208,7 +208,7 @@ class model(object):
         self.subtree_logEtheta_f = subtree_logEtheta_f
         self.subtree_lambda_ss_f = subtree_lambda_ss_f
 
-    def initialize(self, docs, xi, eff_init_samples=None):
+    def initialize(self, docs, init_noise_weight, eff_init_samples=None):
         '''
         Initialize m_lambda_ss and m_Elogprobw (and m_lambda_ss_sum) using
         five E-step trials on each of the provided documents.
@@ -279,8 +279,8 @@ class model(object):
                     logging.debug('Node %d: no docs' % idx)
                     cluster_means[c_ids,:] = cluster_means[idx,:]
 
-        self.m_lambda_ss = eff_init_samples * (1 - xi) * nprand.dirichlet(100 * np.ones(self.m_W) / float(self.m_W), self.m_K)
-        self.m_lambda_ss[:, batch_to_vocab_word_map] += eff_init_samples * xi * cluster_means
+        self.m_lambda_ss = eff_init_samples * init_noise_weight * nprand.dirichlet(100 * np.ones(self.m_W) / float(self.m_W), self.m_K)
+        self.m_lambda_ss[:, batch_to_vocab_word_map] += eff_init_samples * (1 - init_noise_weight) * cluster_means
 
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
         self.m_Elogprobw = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
