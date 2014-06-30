@@ -3,23 +3,23 @@
 <style>
 
 body {
-  font: sans-serif;
+    font: sans-serif;
 }
 
 .node circle {
-  stroke: #000;
-  stroke-width: 1.5px;
-  fill: #000;
+    stroke: #000;
+    stroke-width: 1.5px;
+    fill: #000;
 }
 
 .node {
-  font: 10px sans-serif;
+    font: 10px sans-serif;
 }
 
 .link {
-  fill: none;
-  stroke: #000;
-  stroke-width: 1.5px;
+    fill: none;
+    stroke: #000;
+    stroke-width: 1.5px;
 }
 
 </style>
@@ -34,6 +34,9 @@ body {
     </div>
     <div id="status">
         showing graphs <span id="window_start_text"></span> to <span id="window_end_text"></span> of <span id="num_graphs_text"></span>
+    </div>
+    <div id="showCounts">
+        show counts: <input type="checkbox" onchange="update_graphs();" id="showValues"/>
     </div>
 </div>
 
@@ -73,40 +76,55 @@ update_graphs = function() {
         graphs_container.removeChild(graphs_container.firstChild);
     }
 
+    var stringColor = d3.scale.linear().domain([0,100]).range(["red","blue"]);
+
     for (var c = $window_start; c < $window_end; ++c) {
-      var cluster = d3.layout.cluster()
-          .size([$height, $width - 40]);
+        var cluster = d3.layout.cluster()
+            .size([$height - 10, $width - 40]);
 
-      var identifier = $root[c]["identifier"];
-      var svg = d3.select("#graphs_container").append("svg")
-          .attr("width", $width)
-          .attr("height", $height)
-        .append("g")
-          .attr("transform", "translate(20,0)")
-      svg.append("title").text(identifier);
+        var identifier = $root[c]["identifier"];
+        var svg = d3.select("#graphs_container").append("svg")
+            .attr("width", $width)
+            .attr("height", $height)
+            .append("g")
+            .attr("transform", "translate(20,0)")
+        svg.append("title").text(identifier);
 
-      var nodes = cluster.nodes($root[c]["subtree"]),
-          links = cluster.links(nodes);
+        var nodes = cluster.nodes($root[c]["subtree"]);
+        var links = cluster.links(nodes);
 
-      var link = svg.selectAll(".link")
-          .data(links)
-        .enter().append("path")
-          .attr("class", "link")
-          .attr("d", diagonal)
-          .style("stroke-opacity", function(d) { return d.target.active ? "1" : "0.1"; });
 
-      var node = svg.selectAll(".node")
-          .data(nodes)
-        .enter().append("g")
-          .attr("class", "node")
-          .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
-          .style("stroke-opacity", function(d) { return d.active ? "1" : "0.05"; })
-          .style("fill-opacity", function(d) { return d.active ? "1" : "0.05"; });
 
-      node.append("circle")
-          .attr("r", 4.5);
+        var link = svg.selectAll(".link")
+            .data(links)
+            .enter().append("path")
+            .attr("class", "link")
+            .attr("d", diagonal)
+            .style("stroke-opacity", function(d) { return d.target.active ? "1" : "0.1"; });
+
+        var node = svg.selectAll(".node")
+            .data(nodes)
+            .enter().append("g")
+            .attr("class", "node")
+            .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
+            .style("stroke-opacity", function(d) { return d.active ? Math.random() : "0.05"; })
+            .style("fill-opacity", function(d) { return d.active ? Math.random() : "0.05"; });
+
+        node.append("circle")
+            .attr("r", function(d) {return d.active ? 2 + Math.random()*7 : 4.5})
+            .style("fill", function(d) {return d.active ? stringColor(Math.random()*100) : "black"})
+            .style("stroke", function(d) {return d.active ? stringColor(Math.random()*100) : "black"});
+
+        if(document.getElementById("showValues").checked == true){
+            node.append("text")
+                .attr("dx", 8)
+                .attr("dy", 11)
+                .style("text-anchor","start")
+                .text(function(d) {return d.active ? Math.floor(Math.random()*100) : null});
+        }
     }
 }
+
 update_window_size = function() {
     $window_size = parseInt(document.getElementById("window_size").value, 10);
     $num_windows = Math.ceil($num_graphs / $window_size);
@@ -162,7 +180,7 @@ tree_size_per_level = function(node) {
 
 d3.json("subgraphs.json", function(error, root) {
     $width = 100 * tree_depth(root[0]["subtree"]) + 100;
-    $height = 15 * Math.max.apply(null, tree_size_per_level(root[0]["subtree"]));
+    $height = 15 * Math.max.apply(null, tree_size_per_level(root[0]["subtree"])) + 10;
     $root = root;
 
     $num_graphs = root.length;
