@@ -490,7 +490,7 @@ class model(object):
 
     def c_likelihood(self, subtree, ab, uv, nu, log_nu, ids):
         '''
-        Return E[log p(c | U, V)] + H(q(c)).
+        Return E[log p(c | U, zeta)] + H(q(c)).
         Assume ab[:,i] = [1, 0] for i leaf and uv[:,i] = [1, 0] for
         i right-most child of its parent node.
         '''
@@ -534,7 +534,7 @@ class model(object):
 
     def w_likelihood(self, doc, nu, Elogprobw_doc, ids):
         '''
-        Return E[log p(W | theta, c, z)].
+        Return E[log p(W | theta, c, zeta, z)].
         Assume rows of nu sum to one.
         '''
         self.check_nu_edge_cases(nu)
@@ -778,6 +778,7 @@ class model(object):
 
             self.update_nu(subtree, ab, uv, Elogprobw_doc, doc, nu, log_nu)
             nu_sums = np.sum(nu, 0)
+            self.update_xi(subtree, ab, uv, Elogprobw_doc, doc, xi, log_xi)
             self.update_uv(subtree, nu_sums, uv)
             self.update_ab(subtree, nu_sums, ab)
 
@@ -800,12 +801,18 @@ class model(object):
             likelihood += z_ll
             logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
 
-            # E[log p(c | U, V)] + H(q(c))
+            # E[log p(c | U, zeta)] + H(q(c))
             c_ll = self.c_likelihood(subtree, ab, uv, nu, log_nu, ids)
             likelihood += c_ll
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
 
-            # E[log p(W | theta, c, z)]
+            # E[log p(zeta | V)] + H(q(zeta))
+            zeta_ll = self.zeta_likelihood(subtree, ab, uv, xi, log_xi, ids)
+            likelihood += zeta_ll
+            logging.debug('Log-likelihood after zeta components: %f (+ %f)'
+                % (likelihood, zeta_ll))
+
+            # E[log p(W | theta, c, zeta, z)]
             w_ll = self.w_likelihood(doc, nu, Elogprobw_doc, ids)
             likelihood += w_ll
             logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
@@ -852,6 +859,7 @@ class model(object):
                 np.log(self.m_lambda0 + self.m_lambda_ss)
                 - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
             )
+            # TODO update wrt m1
             likelihood = np.sum(np.log(np.sum(np.exp(logEpi[ids][:,np.newaxis] + logEtheta[l2g_idx[ids],:][:,predict_doc.words]), 0)) * predict_doc.counts)
 
         return likelihood
