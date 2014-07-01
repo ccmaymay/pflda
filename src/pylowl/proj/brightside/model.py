@@ -855,6 +855,9 @@ class model(object):
 
         return likelihood
 
+    def node_depth(self, node):
+        return len(node) - 1
+
     def node_ancestors(self, node):
         r'''
         Return generator over this node's ancestors, starting from the
@@ -980,7 +983,7 @@ class model(object):
                 subtree[node] = global_node
                 l2g_idx[idx] = global_idx
                 for p in self.node_ancestors(node):
-                    p_depth = len(p) - 1
+                    p_depth = self.node_depth(p)
                     prior_ab[:,idx,p_depth] = [self.m_gamma1, self.m_gamma2]
                 left_s = node[:-1] + (node[-1] - 1,)
                 if left_s in subtree:
@@ -1033,7 +1036,7 @@ class model(object):
                 del subtree[node]
                 l2g_idx[idx] = 0
                 for p in self.node_ancestors(node):
-                    p_depth = len(p) - 1
+                    p_depth = self.node_depth(p)
                     prior_ab[:,idx,p_depth] = [1.0, 0.0]
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
@@ -1056,7 +1059,7 @@ class model(object):
             l2g_idx[idx] = global_idx
             g2l_idx[global_idx] = idx
             for p in self.node_ancestors(best_node):
-                p_depth = len(p) - 1
+                p_depth = self.node_depth(p)
                 prior_ab[:,idx,p_depth] = [self.m_gamma1, self.m_gamma2]
             left_s = best_node[:-1] + (best_node[-1] - 1,)
             if left_s in subtree:
