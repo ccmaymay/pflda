@@ -260,16 +260,21 @@ class model(object):
             - sp.psi(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:, np.newaxis])
         )
 
-    def update_xi(self, subtree_leaves, uv, Elogprobw_doc, doc, xi, log_xi):
-        Elogpi = self.compute_subtree_Elogpi(subtree_leaves, uv)
+    def update_xi(self, subtree_leaves, uv, Elogprobw_doc, doc, nu, xi, log_xi):
+        log_xi[:] = self.compute_subtree_Elogpi(subtree_leaves, uv)
+        Elogprobw_doc_all = np.repeat(Elogprobw_doc, doc.counts, axis=1) # K x N
+        for node in self.tree_iter(subtree_leaves):
+            idx = self.tree_index(node)
+            for p in it.chain((node,), self.node_ancestors(node)):
+                p_idx = self.tree_index(p)
+                p_level = self.node_level(p)
+                log_xi[idx] += np.sum(nu[idx,:,p_level] * Elogprobw_doc_all[p_idx,:])
 
-        # TODO oHDP: only add Elogpi if iter < 3
-        log_xi[:,:] = np.repeat(Elogprobw_doc, doc.counts, axis=1).T + Elogpi # N x K
-        log_xi[:,[self.tree_index(node) for node in self.tree_iter() if node not in subtree]] = -np.inf
-        (log_xi[:,:], log_norm) = utils.log_normalize(log_xi)
-        xi[:,:] = np.exp(log_xi)
+        log_xi[[self.tree_index(node) for node in self.tree_iter() if node not in subtree_leaves]] = -np.inf
+        (log_xi[:], log_norm) = utils.log_normalize(log_xi)
+        xi[:] = np.exp(log_xi)
 
-    def update_nu(self, subtree, ab, Elogprobw_doc, doc, nu, log_nu):
+    def update_nu(self, subtree, ab, Elogprobw_doc, doc, xi, nu, log_nu):
         Elogchi = self.compute_subtree_Elogchi(subtree, ab)
 
         # TODO oHDP: only add Elogchi(?) if iter < 3
@@ -605,12 +610,12 @@ class model(object):
 
         nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         log_nu = np.log(nu)
-        self.update_nu(subtree, ab, Elogprobw_doc, doc, nu, log_nu)
+        self.update_nu(subtree, ab, Elogprobw_doc, doc, xi, nu, log_nu)
         nu_sums = np.sum(nu, 0) # TODO still useful?
 
         xi = np.zeros((self.m_K,))
         log_xi = np.log(xi)
-        self.update_xi(subtree_leaves, uv, Elogprobw_doc, doc, xi, log_xi)
+        self.update_xi(subtree_leaves, uv, Elogprobw_doc, doc, nu, xi, log_xi)
         xi_sums = np.sum(xi, 0) # TODO still useful?
 
         converge = None
@@ -624,9 +629,9 @@ class model(object):
             logging.debug('Updating document variational parameters (iteration: %d)' % iteration)
             # update variational parameters
 
-            self.update_nu(subtree, ab, Elogprobw_doc, doc, nu, log_nu)
+            self.update_nu(subtree, ab, Elogprobw_doc, doc, xi, nu, log_nu)
             nu_sums = np.sum(nu, 0)
-            self.update_xi(subtree_leaves, uv, Elogprobw_doc, doc, xi, log_xi)
+            self.update_xi(subtree_leaves, uv, Elogprobw_doc, doc, nu, xi, log_xi)
             self.update_uv(subtree, nu_sums, uv)
             self.update_ab(subtree, nu_sums, ab)
 
@@ -767,12 +772,12 @@ class model(object):
         nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         log_nu = np.log(nu)
         self.update_nu(
-            subtree, prior_ab, Elogprobw_doc, doc, nu, log_nu)
+            subtree, prior_ab, Elogprobw_doc, doc, xi, nu, log_nu)
 
         xi = np.zeros((self.m_K,))
         log_xi = np.log(xi)
         self.update_xi(
-            subtree_leaves, prior_uv, Elogprobw_doc, doc, xi, log_xi)
+            subtree_leaves, prior_uv, Elogprobw_doc, doc, nu, xi, log_xi)
 
         # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
         z_ll = self.z_likelihood(subtree, ElogV)
@@ -836,10 +841,10 @@ class model(object):
 
                 Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
                 self.update_nu(subtree, prior_ab, Elogprobw_doc, doc,
-                    candidate_nu, candidate_log_nu)
+                    candidate_xi, candidate_nu, candidate_log_nu)
 
                 self.update_xi(subtree_leaves, prior_uv, Elogprobw_doc, doc,
-                    candidate_xi, candidate_log_xi)
+                    candidate_nu, candidate_xi, candidate_log_xi)
 
                 candidate_likelihood = 0.0
 
