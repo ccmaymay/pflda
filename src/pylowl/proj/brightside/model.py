@@ -307,6 +307,7 @@ class model(object):
                 user_idx = len(self.m_r_users)
                 self.m_users[user_idx] = doc.user
                 self.m_r_users[doc.user] = user_idx
+            doc.user_idx = self.m_r_users[doc.user]
 
         # Find the unique words in this mini-batch of documents...
         self.m_num_docs_processed += doc_count
