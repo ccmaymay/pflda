@@ -302,13 +302,6 @@ class model(object):
         if predict_docs is None:
             predict_docs = [None] * doc_count
 
-        for doc in docs:
-            if doc.user not in self.m_r_users:
-                user_idx = len(self.m_r_users)
-                self.m_users[user_idx] = doc.user
-                self.m_r_users[doc.user] = user_idx
-            doc.user_idx = self.m_r_users[doc.user]
-
         # Find the unique words in this mini-batch of documents...
         self.m_num_docs_processed += doc_count
         adding_noise = False
@@ -354,8 +347,19 @@ class model(object):
         score = 0.0
         count = 0
         for (doc, predict_doc) in it.izip(docs, predict_docs):
+            if doc.user in self.m_r_users:
+                doc.user_idx = self.m_r_users[doc.user]
+                new_user = False
+            else:
+                user_idx = len(self.m_r_users)
+                self.m_users[user_idx] = doc.user
+                self.m_r_users[doc.user] = user_idx
+                doc.user_idx = user_idx
+                new_user = True
+
             doc_score = self.doc_e_step(doc, ss, ElogV, vocab_to_batch_word_map,
-                batch_to_vocab_word_map, var_converge, predict_doc=predict_doc)
+                batch_to_vocab_word_map, var_converge, predict_doc=predict_doc,
+                new_user=new_user)
 
             score += doc_score
             if predict_doc is None:
@@ -657,7 +661,7 @@ class model(object):
 
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, var_converge, max_iter=100,
-                   predict_doc=None):
+                   predict_doc=None, new_user=True):
         '''
         Perform document-level coordinate ascent updates of variational
         parameters.  Don't incorporate variational expectations of log
@@ -696,7 +700,11 @@ class model(object):
         batch_ids = [vocab_to_batch_word_map[w] for w in doc.words]
         token_batch_ids = np.repeat(batch_ids, doc.counts)
 
-        (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc, ElogV, num_tokens)
+        if new_user:
+            (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc, ElogV, num_tokens)
+        else:
+            # TODO where to pull subtree etc.?
+
         ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
 
         Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
