@@ -302,6 +302,12 @@ class model(object):
         if predict_docs is None:
             predict_docs = [None] * doc_count
 
+        for doc in docs:
+            if doc.user not in self.m_r_users:
+                user_idx = len(self.m_r_users)
+                self.m_users[user_idx] = doc.user
+                self.m_r_users[doc.user] = user_idx
+
         # Find the unique words in this mini-batch of documents...
         self.m_num_docs_processed += doc_count
         adding_noise = False
