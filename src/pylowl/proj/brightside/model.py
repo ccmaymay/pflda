@@ -725,22 +725,6 @@ class model(object):
 
         logging.debug('Initializing document variational parameters')
 
-        # uniform
-        # TODO use update_nu?
-        nu = np.zeros((self.m_K, num_tokens, self.m_depth))
-        # TODO wrong
-        nu[ids, :, :] = 1.0 / float(len(subtree))
-        log_nu = np.log(nu)
-        # TODO are these still useful (wrt xi)?
-        nu_sums = np.sum(nu, 0)
-
-        # uniform
-        # TODO use update_xi?
-        xi = np.zeros((self.m_K,))
-        xi[ids_leaves] = 1.0 / float(len(subtree_leaves))
-        log_xi = np.log(xi)
-        xi_sums = np.sum(xi, 0)
-
         # q(V_{i,j}^{(d)} = 1) = 1 for j+1 = trunc[\ell] (\ell is depth)
         uv = np.zeros((2, self.m_K))
         uv[0] = 1.0
@@ -764,6 +748,16 @@ class model(object):
                 p_level = self.node_level(p)
                 ab[:,idx,p_level] = [self.m_gamma1, self.m_gamma2]
                 ab_ids.append((idx,p_level))
+
+        nu = np.zeros((self.m_K, num_tokens, self.m_depth))
+        log_nu = np.log(nu)
+        self.update_nu(subtree, ab, uv, Elogprobw_doc, doc, nu, log_nu)
+        nu_sums = np.sum(nu, 0) # TODO still useful?
+
+        xi = np.zeros((self.m_K,))
+        log_xi = np.log(xi)
+        self.update_xi(subtree, ab, uv, Elogprobw_doc, doc, xi, log_xi)
+        xi_sums = np.sum(xi, 0) # TODO still useful?
 
         converge = None
         likelihood = None
