@@ -260,6 +260,15 @@ class model(object):
             - sp.psi(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:, np.newaxis])
         )
 
+    def update_xi(self, subtree, uv, Elogprobw_doc, doc, xi, log_xi):
+        Elogpi = self.compute_subtree_Elogpi(subtree, ab, uv)
+
+        # TODO oHDP: only add Elogpi if iter < 3
+        log_xi[:,:] = np.repeat(Elogprobw_doc, doc.counts, axis=1).T + Elogpi # N x K
+        log_xi[:,[self.tree_index(node) for node in self.tree_iter() if node not in subtree]] = -np.inf
+        (log_xi[:,:], log_norm) = utils.log_normalize(log_xi)
+        xi[:,:] = np.exp(log_xi)
+
     def update_nu(self, subtree, ab, uv, Elogprobw_doc, doc, nu, log_nu):
         Elogpi = self.compute_subtree_Elogpi(subtree, ab, uv)
 
