@@ -703,12 +703,6 @@ class model(object):
 
         logging.debug('Initializing document variational parameters')
 
-        # uniform
-        nu = np.zeros((num_tokens, self.m_K))
-        nu[:, ids] = 1.0 / float(len(subtree))
-        log_nu = np.log(nu)
-        nu_sums = np.sum(nu, 0)
-
         # q(V_{i,j}^{(d)} = 1) = 1 for j+1 = trunc[\ell] (\ell is depth)
         uv = np.zeros((2, self.m_K))
         uv[0] = 1.0
@@ -734,6 +728,11 @@ class model(object):
                 ab[1,idx] = 0.0
             else:
                 ab_ids.append(idx)
+
+        nu = np.zeros((num_tokens, self.m_K))
+        log_nu = np.log(nu)
+        self.update_nu(subtree, ab, uv, Elogprobw_doc, doc, nu, log_nu)
+        nu_sums = np.sum(nu, 0)
 
         converge = None
         likelihood = None
