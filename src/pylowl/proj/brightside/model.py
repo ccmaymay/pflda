@@ -165,6 +165,9 @@ class model(object):
         self.m_uv = np.zeros((self.m_U, 2, self.m_K))
         self.m_users = [None] * U
         self.m_r_users = dict()
+        self.m_user_subtrees = [None] * U
+        self.m_user_l2g_ids = np.zeros((U, self.m_K), dtype=np.uint)
+        self.m_user_g2l_ids = np.zeros((U, self.m_K), dtype=np.uint)
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
@@ -302,13 +305,6 @@ class model(object):
         if predict_docs is None:
             predict_docs = [None] * doc_count
 
-        for doc in docs:
-            if doc.user not in self.m_r_users:
-                user_idx = len(self.m_r_users)
-                self.m_users[user_idx] = doc.user
-                self.m_r_users[doc.user] = user_idx
-            doc.user_idx = self.m_r_users[doc.user]
-
         # Find the unique words in this mini-batch of documents...
         self.m_num_docs_processed += doc_count
         adding_noise = False
@@ -354,8 +350,19 @@ class model(object):
         score = 0.0
         count = 0
         for (doc, predict_doc) in it.izip(docs, predict_docs):
+            if doc.user in self.m_r_users:
+                doc.user_idx = self.m_r_users[doc.user]
+                new_user = False
+            else:
+                user_idx = len(self.m_r_users)
+                self.m_users[user_idx] = doc.user
+                self.m_r_users[doc.user] = user_idx
+                doc.user_idx = user_idx
+                new_user = True
+
             doc_score = self.doc_e_step(doc, ss, ElogV, vocab_to_batch_word_map,
-                batch_to_vocab_word_map, var_converge, predict_doc=predict_doc)
+                batch_to_vocab_word_map, var_converge, predict_doc=predict_doc,
+                new_user=new_user)
 
             score += doc_score
             if predict_doc is None:
@@ -483,7 +490,7 @@ class model(object):
 
     def c_likelihood(self, subtree, ab, uv, nu, log_nu, ids):
         '''
-        Return E[log p(c | U, V)] + H(q(c)).
+        Return E[log p(c | U, zeta)] + H(q(c)).
         Assume ab[:,i] = [1, 0] for i leaf and uv[:,i] = [1, 0] for
         i right-most child of its parent node.
         '''
@@ -527,7 +534,7 @@ class model(object):
 
     def w_likelihood(self, doc, nu, Elogprobw_doc, ids):
         '''
-        Return E[log p(W | theta, c, z)].
+        Return E[log p(W | theta, c, zeta, z)].
         Assume rows of nu sum to one.
         '''
         self.check_nu_edge_cases(nu)
@@ -657,7 +664,7 @@ class model(object):
 
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, var_converge, max_iter=100,
-                   predict_doc=None):
+                   predict_doc=None, new_user=True):
         '''
         Perform document-level coordinate ascent updates of variational
         parameters.  Don't incorporate variational expectations of log
@@ -696,8 +703,23 @@ class model(object):
         batch_ids = [vocab_to_batch_word_map[w] for w in doc.words]
         token_batch_ids = np.repeat(batch_ids, doc.counts)
 
-        (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc, ElogV, num_tokens)
+        if new_user:
+            (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc, ElogV, num_tokens)
+            self.m_user_subtrees[doc.user_idx] = subtree
+            self.m_user_l2g_ids[doc.user_idx] = l2g_idx
+            self.m_user_g2l_ids[doc.user_idx] = g2l_idx
+        else:
+            subtree = self.m_user_subtrees[doc.user_idx]
+            l2g_idx = self.m_user_l2g_ids[doc.user_idx]
+            g2l_idx = self.m_user_g2l_ids[doc.user_idx]
+
         ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
+
+        subtree_leaves = dict((node, subtree[node])
+                              for node in self.tree_iter(subtree)
+                              if node + (0,) not in subtree)
+        ids_leaves = [self.tree_index(node)
+                      for node in self.tree_iter(subtree_leaves)]
 
         Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
 
@@ -717,22 +739,25 @@ class model(object):
             else:
                 uv_ids.append(idx)
 
-        ab = np.zeros((2, self.m_K))
-        ab[0] = self.m_gamma1
-        ab[1] = self.m_gamma2
+        ab = np.zeros((2, self.m_K, self.m_depth))
+        ab[0] = 1.0
         ab_ids = []
-        for node in self.tree_iter(subtree):
+        for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
-            if node + (0,) not in subtree: # leaf in subtree
-                ab[0,idx] = 1.0
-                ab[1,idx] = 0.0
-            else:
-                ab_ids.append(idx)
+            for p in self.node_ancestors(node):
+                p_level = self.node_level(p)
+                ab[:,idx,p_level] = [self.m_gamma1, self.m_gamma2]
+                ab_ids.append((idx,p_level))
 
-        nu = np.zeros((num_tokens, self.m_K))
+        nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         log_nu = np.log(nu)
         self.update_nu(subtree, ab, uv, Elogprobw_doc, doc, nu, log_nu)
-        nu_sums = np.sum(nu, 0)
+        nu_sums = np.sum(nu, 0) # TODO still useful?
+
+        xi = np.zeros((self.m_K,))
+        log_xi = np.log(xi)
+        self.update_xi(subtree, ab, uv, Elogprobw_doc, doc, xi, log_xi)
+        xi_sums = np.sum(xi, 0) # TODO still useful?
 
         converge = None
         likelihood = None
@@ -747,6 +772,7 @@ class model(object):
 
             self.update_nu(subtree, ab, uv, Elogprobw_doc, doc, nu, log_nu)
             nu_sums = np.sum(nu, 0)
+            self.update_xi(subtree, ab, uv, Elogprobw_doc, doc, xi, log_xi)
             self.update_uv(subtree, nu_sums, uv)
             self.update_ab(subtree, nu_sums, ab)
 
@@ -769,12 +795,18 @@ class model(object):
             likelihood += z_ll
             logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
 
-            # E[log p(c | U, V)] + H(q(c))
+            # E[log p(c | U, zeta)] + H(q(c))
             c_ll = self.c_likelihood(subtree, ab, uv, nu, log_nu, ids)
             likelihood += c_ll
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
 
-            # E[log p(W | theta, c, z)]
+            # E[log p(zeta | V)] + H(q(zeta))
+            zeta_ll = self.zeta_likelihood(subtree, ab, uv, xi, log_xi, ids)
+            likelihood += zeta_ll
+            logging.debug('Log-likelihood after zeta components: %f (+ %f)'
+                % (likelihood, zeta_ll))
+
+            # E[log p(W | theta, c, zeta, z)]
             w_ll = self.w_likelihood(doc, nu, Elogprobw_doc, ids)
             likelihood += w_ll
             logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
@@ -821,9 +853,13 @@ class model(object):
                 np.log(self.m_lambda0 + self.m_lambda_ss)
                 - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
             )
+            # TODO update wrt m1
             likelihood = np.sum(np.log(np.sum(np.exp(logEpi[ids][:,np.newaxis] + logEtheta[l2g_idx[ids],:][:,predict_doc.words]), 0)) * predict_doc.counts)
 
         return likelihood
+
+    def node_level(self, node):
+        return len(node) - 1
 
     def node_ancestors(self, node):
         r'''
@@ -896,7 +932,7 @@ class model(object):
             % ' '.join(str(l2g_idx[i]) for i in ids))
 
         Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
-        nu = np.zeros((num_tokens, self.m_K))
+        nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         log_nu = np.log(nu)
         self.update_nu(
             subtree, prior_ab, prior_uv, Elogprobw_doc, doc, nu, log_nu)
@@ -930,7 +966,7 @@ class model(object):
         logging.debug('Log-likelihood after W component: %f (+ %f)'
             % (old_likelihood, w_ll))
 
-        candidate_nu = np.zeros((num_tokens, self.m_K))
+        candidate_nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         candidate_log_nu = np.log(nu)
 
         candidate_xi = np.zeros((self.m_K,))
@@ -950,8 +986,8 @@ class model(object):
                 subtree[node] = global_node
                 l2g_idx[idx] = global_idx
                 for p in self.node_ancestors(node):
-                    p_depth = len(p) - 1
-                    prior_ab[:,idx,p_depth] = [self.m_gamma1, self.m_gamma2]
+                    p_level = self.node_level(p)
+                    prior_ab[:,idx,p_level] = [self.m_gamma1, self.m_gamma2]
                 left_s = node[:-1] + (node[-1] - 1,)
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
@@ -1003,8 +1039,8 @@ class model(object):
                 del subtree[node]
                 l2g_idx[idx] = 0
                 for p in self.node_ancestors(node):
-                    p_depth = len(p) - 1
-                    prior_ab[:,idx,p_depth] = [1.0, 0.0]
+                    p_level = self.node_level(p)
+                    prior_ab[:,idx,p_level] = [1.0, 0.0]
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
                     prior_uv[:,left_s_idx] = [1.0, 0.0]
@@ -1026,8 +1062,8 @@ class model(object):
             l2g_idx[idx] = global_idx
             g2l_idx[global_idx] = idx
             for p in self.node_ancestors(best_node):
-                p_depth = len(p) - 1
-                prior_ab[:,idx,p_depth] = [self.m_gamma1, self.m_gamma2]
+                p_level = self.node_level(p)
+                prior_ab[:,idx,p_level] = [self.m_gamma1, self.m_gamma2]
             left_s = best_node[:-1] + (best_node[-1] - 1,)
             if left_s in subtree:
                 left_s_idx = self.tree_index(left_s)
