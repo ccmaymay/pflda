@@ -726,15 +726,18 @@ class model(object):
         logging.debug('Initializing document variational parameters')
 
         # uniform
-        nu = np.zeros((num_tokens, self.m_K))
-        nu[:, ids] = 1.0 / float(len(subtree))
+        # TODO use update_nu?
+        nu = np.zeros((self.m_K, num_tokens, self.m_depth))
+        # TODO wrong
+        nu[ids, :, :] = 1.0 / float(len(subtree))
         log_nu = np.log(nu)
         # TODO are these still useful (wrt xi)?
         nu_sums = np.sum(nu, 0)
 
         # uniform
-        xi = np.zeros((num_tokens, self.m_K))
-        xi[:, ids_leaves] = 1.0 / float(len(subtree_leaves))
+        # TODO use update_xi?
+        xi = np.zeros((self.m_K,))
+        xi[ids_leaves] = 1.0 / float(len(subtree_leaves))
         log_xi = np.log(xi)
         xi_sums = np.sum(xi, 0)
 
@@ -927,7 +930,7 @@ class model(object):
             % ' '.join(str(l2g_idx[i]) for i in ids))
 
         Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
-        nu = np.zeros((num_tokens, self.m_K))
+        nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         log_nu = np.log(nu)
         self.update_nu(
             subtree, prior_ab, prior_uv, Elogprobw_doc, doc, nu, log_nu)
@@ -961,7 +964,7 @@ class model(object):
         logging.debug('Log-likelihood after W component: %f (+ %f)'
             % (old_likelihood, w_ll))
 
-        candidate_nu = np.zeros((num_tokens, self.m_K))
+        candidate_nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         candidate_log_nu = np.log(nu)
 
         candidate_xi = np.zeros((self.m_K,))
