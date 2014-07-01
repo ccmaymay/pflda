@@ -715,6 +715,12 @@ class model(object):
 
         ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
 
+        subtree_leaves = dict((node, subtree[node])
+                              for node in self.tree_iter(subtree)
+                              if node + (0,) not in subtree)
+        ids_leaves = [self.tree_index(node)
+                      for node in self.tree_iter(subtree_leaves)]
+
         Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
 
         logging.debug('Initializing document variational parameters')
@@ -723,7 +729,14 @@ class model(object):
         nu = np.zeros((num_tokens, self.m_K))
         nu[:, ids] = 1.0 / float(len(subtree))
         log_nu = np.log(nu)
+        # TODO are these still useful (wrt xi)?
         nu_sums = np.sum(nu, 0)
+
+        # uniform
+        xi = np.zeros((num_tokens, self.m_K))
+        xi[:, ids_leaves] = 1.0 / float(len(subtree_leaves))
+        log_xi = np.log(xi)
+        xi_sums = np.sum(xi, 0)
 
         # q(V_{i,j}^{(d)} = 1) = 1 for j+1 = trunc[\ell] (\ell is depth)
         uv = np.zeros((2, self.m_K))
