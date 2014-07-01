@@ -395,6 +395,7 @@ class model(object):
             self.update_ss_stochastic(ss, batch_to_vocab_word_map)
             self.update_lambda()
             self.update_tau()
+            self.update_uv()
             self.m_t += 1
 
         return (score, count, doc_count)
@@ -469,6 +470,18 @@ class model(object):
             for global_s in self.node_left_siblings(global_node):
                 global_s_idx = self.tree_index(global_s)
                 self.m_tau[1,global_s_idx] += self.m_tau_ss[global_node_idx]
+
+    def update_uv(self, subtree):
+        self.m_uv[0] = self.m_uv_ss + 1.0
+        self.m_uv[1] = self.m_beta
+        for node in self.tree_iter(subtree):
+            idx = self.tree_index(node)
+            if node[:-1] + (node[-1] + 1,) not in subtree: # right-most child
+                self.m_uv[0,idx] = 1.0
+                self.m_uv[1,idx] = 0.0
+            for s in self.node_left_siblings(node):
+                s_idx = self.tree_index(s)
+                self.m_uv[1,s_idx] += self.m_uv_ss[idx]
 
     def z_likelihood(self, subtree, ElogV):
         '''
