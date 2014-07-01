@@ -274,12 +274,17 @@ class model(object):
         (log_xi[:], log_norm) = utils.log_normalize(log_xi)
         xi[:] = np.exp(log_xi)
 
-    def update_nu(self, subtree, ab, Elogprobw_doc, doc, xi, nu, log_nu):
-        Elogchi = self.compute_subtree_Elogchi(subtree, ab)
+    def update_nu(self, subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu):
+        log_nu[:] = -np.inf
+        Elogchi = self.compute_subtree_Elogchi(subtree, ab) # (1 x) K
+        Elogprobw_doc_all = np.repeat(Elogprobw_doc, doc.counts, axis=1) # K x N
+        for node in self.tree_iter(subtree_leaves):
+            idx = self.tree_index(node)
+            for p in it.chain((node,), self.node_ancestors(node)):
+                p_idx = self.tree_index(p)
+                p_level = self.node_level(p)
+                log_nu[idx,:,p_level] = Elogchi[p_idx] + xi[idx] * np.sum(Elogprobw_doc_all[p_idx,:])
 
-        # TODO oHDP: only add Elogchi(?) if iter < 3
-        log_nu[:,:] = np.repeat(Elogprobw_doc, doc.counts, axis=1).T + Elogpi # N x K
-        log_nu[:,[self.tree_index(node) for node in self.tree_iter() if node not in subtree]] = -np.inf
         (log_nu[:,:], log_norm) = utils.log_normalize(log_nu)
         nu[:,:] = np.exp(log_nu)
 
@@ -473,18 +478,10 @@ class model(object):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
-
-                # contributions from switching probabilities
                 if idx == p_idx:
                     Elogchi[idx] += ElogU[0,p_idx]
                 else:
                     Elogchi[idx] += ElogU[1,p_idx]
-
-                # contributions from stick proportions
-                Elogchi[idx] += ElogV[0,p_idx]
-                for s in self.node_left_siblings(p):
-                    s_idx = self.tree_index(s)
-                    Elogchi[idx] += ElogV[1,s_idx]
 
         return Elogchi
 
@@ -498,18 +495,10 @@ class model(object):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
-
-                # contributions from switching probabilities
                 if idx == p_idx:
                     logEchi[idx] += logEU[0,p_idx]
                 else:
                     logEchi[idx] += logEU[1,p_idx]
-
-                # contributions from stick proportions
-                logEchi[idx] += logEV[0,p_idx]
-                for s in self.node_left_siblings(p):
-                    s_idx = self.tree_index(s)
-                    logEchi[idx] += logEV[1,s_idx]
 
         return logEchi
 
@@ -610,7 +599,7 @@ class model(object):
 
         nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         log_nu = np.log(nu)
-        self.update_nu(subtree, ab, Elogprobw_doc, doc, xi, nu, log_nu)
+        self.update_nu(subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu)
         nu_sums = np.sum(nu, 0) # TODO still useful?
 
         xi = np.zeros((self.m_K,))
@@ -629,7 +618,7 @@ class model(object):
             logging.debug('Updating document variational parameters (iteration: %d)' % iteration)
             # update variational parameters
 
-            self.update_nu(subtree, ab, Elogprobw_doc, doc, xi, nu, log_nu)
+            self.update_nu(subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu)
             nu_sums = np.sum(nu, 0)
             self.update_xi(subtree_leaves, uv, Elogprobw_doc, doc, nu, xi, log_xi)
             self.update_uv(subtree, nu_sums, uv)
@@ -772,7 +761,7 @@ class model(object):
         nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         log_nu = np.log(nu)
         self.update_nu(
-            subtree, prior_ab, Elogprobw_doc, doc, xi, nu, log_nu)
+            subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc, xi, nu, log_nu)
 
         xi = np.zeros((self.m_K,))
         log_xi = np.log(xi)
@@ -840,7 +829,7 @@ class model(object):
                     % ' '.join(str(l2g_idx[i]) for i in ids))
 
                 Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
-                self.update_nu(subtree, prior_ab, Elogprobw_doc, doc,
+                self.update_nu(subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc,
                     candidate_xi, candidate_nu, candidate_log_nu)
 
                 self.update_xi(subtree_leaves, prior_uv, Elogprobw_doc, doc,
