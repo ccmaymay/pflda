@@ -487,6 +487,9 @@ class model(object):
         Assume ab[:,i] = [1, 0] for i leaf and uv[:,i] = [1, 0] for
         i right-most child of its parent node.
         '''
+        # TODO is it a bug that the equivalent computation in
+        # oHDP does not account for types appearing more than
+        # once?  (Uses . rather than ._all .)
         self.check_ab_edge_cases(ab, subtree, ids)
         self.check_uv_edge_cases(uv, subtree, ids)
         self.check_nu_edge_cases(nu)
@@ -768,9 +771,6 @@ class model(object):
             logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
 
             # E[log p(c | U, V)] + H(q(c))
-            # TODO is it a bug that the equivalent computation in
-            # oHDP does not account for types appearing more than
-            # once?  (Uses . rather than ._all .)
             c_ll = self.c_likelihood(subtree, ab, uv, nu, log_nu, ids)
             likelihood += c_ll
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
@@ -886,7 +886,7 @@ class model(object):
         prior_uv = np.zeros((2, self.m_K))
         prior_uv[0] = 1.0
 
-        prior_ab = np.zeros((2, self.m_K))
+        prior_ab = np.zeros((2, self.m_K, self.m_depth))
         prior_ab[0] = 1.0
 
         old_likelihood = 0.0
@@ -902,22 +902,30 @@ class model(object):
         self.update_nu(
             subtree, prior_ab, prior_uv, Elogprobw_doc, doc, nu, log_nu)
 
+        xi = np.zeros((self.m_K,))
+        log_xi = np.log(xi)
+        self.update_xi(
+            subtree, prior_ab, prior_uv, Elogprobw_doc, doc, xi, log_xi)
+
         # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
         z_ll = self.z_likelihood(subtree, ElogV)
         old_likelihood += z_ll
         logging.debug('Log-likelihood after z components: %f (+ %f)'
             % (old_likelihood, z_ll))
 
-        # E[log p(c | U, V)] + H(q(c))
-        # TODO is it a bug that the equivalent computation in
-        # oHDP does not account for types appearing more than
-        # once?  (Uses . rather than ._all .)
+        # E[log p(c | U, zeta)] + H(q(c))
         c_ll = self.c_likelihood(subtree, prior_ab, prior_uv, nu, log_nu, ids)
         old_likelihood += c_ll
         logging.debug('Log-likelihood after c components: %f (+ %f)'
             % (old_likelihood, c_ll))
 
-        # E[log p(W | theta, c, z)]
+        # E[log p(zeta | V)] + H(q(zeta))
+        zeta_ll = self.zeta_likelihood(subtree, prior_ab, prior_uv, xi, log_xi, ids)
+        old_likelihood += zeta_ll
+        logging.debug('Log-likelihood after zeta components: %f (+ %f)'
+            % (old_likelihood, zeta_ll))
+
+        # E[log p(W | theta, c, zeta, z)]
         w_ll = self.w_likelihood(doc, nu, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
         old_likelihood += w_ll
         logging.debug('Log-likelihood after W component: %f (+ %f)'
@@ -925,6 +933,9 @@ class model(object):
 
         candidate_nu = np.zeros((num_tokens, self.m_K))
         candidate_log_nu = np.log(nu)
+
+        candidate_xi = np.zeros((self.m_K,))
+        candidate_log_xi = np.log(xi)
 
         while True:
             best_node = None
@@ -939,11 +950,10 @@ class model(object):
 
                 subtree[node] = global_node
                 l2g_idx[idx] = global_idx
-                p = node[:-1]
-                if p in subtree and node[-1] == 0:
-                    p_idx = self.tree_index(p)
-                    prior_ab[:,p_idx] = [self.m_gamma1, self.m_gamma2]
-                left_s = p + (node[-1] - 1,)
+                for p in self.node_ancestors(node):
+                    p_depth = len(p) - 1
+                    prior_ab[:,idx,p_depth] = [self.m_gamma1, self.m_gamma2]
+                left_s = node[:-1] + (node[-1] - 1,)
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
                     prior_uv[:,left_s_idx] = [1.0, self.m_beta]
@@ -957,6 +967,9 @@ class model(object):
                 self.update_nu(subtree, prior_ab, prior_uv, Elogprobw_doc, doc,
                     candidate_nu, candidate_log_nu)
 
+                self.update_xi(subtree, prior_ab, prior_uv, Elogprobw_doc, doc,
+                    candidate_xi, candidate_log_xi)
+
                 candidate_likelihood = 0.0
 
                 # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
@@ -965,16 +978,19 @@ class model(object):
                 logging.debug('Log-likelihood after z components: %f (+ %f)'
                     % (candidate_likelihood, z_ll))
 
-                # E[log p(c | U, V)] + H(q(c))
-                # TODO is it a bug that the equivalent computation in
-                # oHDP does not account for types appearing more than
-                # once?  (Uses . rather than ._all .)
+                # E[log p(c | U, zeta)] + H(q(c))
                 c_ll = self.c_likelihood(subtree, prior_ab, prior_uv, candidate_nu, candidate_log_nu, ids)
                 candidate_likelihood += c_ll
                 logging.debug('Log-likelihood after c components: %f (+ %f)'
                     % (candidate_likelihood, c_ll))
 
-                # E[log p(W | theta, c, z)]
+                # E[log p(zeta | V)] + H(q(zeta))
+                zeta_ll = self.zeta_likelihood(subtree, prior_ab, prior_uv, candidate_xi, candidate_log_xi, ids)
+                candidate_likelihood += zeta_ll
+                logging.debug('Log-likelihood after zeta components: %f (+ %f)'
+                    % (candidate_likelihood, zeta_ll))
+
+                # E[log p(W | theta, c, zeta, z)]
                 w_ll = self.w_likelihood(doc, candidate_nu, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
                 candidate_likelihood += w_ll
                 logging.debug('Log-likelihood after W component: %f (+ %f)'
@@ -987,9 +1003,9 @@ class model(object):
 
                 del subtree[node]
                 l2g_idx[idx] = 0
-                if p in subtree and node[-1] == 0:
-                    p_idx = self.tree_index(p)
-                    prior_ab[:,p_idx] = [1.0, 0.0]
+                for p in self.node_ancestors(node):
+                    p_depth = len(p) - 1
+                    prior_ab[:,idx,p_depth] = [1.0, 0.0]
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
                     prior_uv[:,left_s_idx] = [1.0, 0.0]
@@ -1010,11 +1026,10 @@ class model(object):
             global_idx = self.tree_index(best_global_node)
             l2g_idx[idx] = global_idx
             g2l_idx[global_idx] = idx
-            p = best_node[:-1]
-            if p in subtree and best_node[-1] == 0:
-                p_idx = self.tree_index(p)
-                prior_ab[:,p_idx] = [self.m_gamma1, self.m_gamma2]
-            left_s = p + (best_node[-1] - 1,)
+            for p in self.node_ancestors(best_node):
+                p_depth = len(p) - 1
+                prior_ab[:,idx,p_depth] = [self.m_gamma1, self.m_gamma2]
+            left_s = best_node[:-1] + (best_node[-1] - 1,)
             if left_s in subtree:
                 left_s_idx = self.tree_index(left_s)
                 prior_uv[:,left_s_idx] = [1.0, self.m_beta]
