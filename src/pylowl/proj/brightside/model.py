@@ -1,8 +1,3 @@
-'''
-Online variational inference for nHDP with several tricks to improve
-performance.  Part of code is adapted from Matt's online LDA code.
-'''
-
 import logging
 import numpy as np
 import numpy.linalg as la
@@ -30,24 +25,6 @@ def set_random_seed(seed):
 
 
 class suff_stats(object):
-
-    '''
-    Struct for per-document sufficient statistics for one or more
-    documents.
-
-    Members
-    -------
-    m_batchsize:      int, number of documents this object represents
-    m_tau_ss:  (K) float, each entry of which is the sum of
-                      var_phi over all tokens in the document(s)
-                      allocated the corresponding (global) topic
-    m_lambda_ss:    (K x Wt) float, each entry of which is the sum of
-                      var_phi * nu over all tokens of the corresponding
-                      type in the document(s) that are allocated the
-                      corresponding (global) topic.  Wt is the number
-                      of word types spanned by the Dt document(s).
-    '''
-
     def __init__(self, K, Wt, Dt):
         self.m_batchsize = Dt
         self.m_tau_ss = np.zeros(K)
@@ -59,69 +36,6 @@ class suff_stats(object):
 
 
 class model(object):
-
-    r'''
-    nHDP model using stick breaking.
-
-    This class implements the following tricks not described in the
-    online nHDP paper:
-    * optionally add noise to global topics (via ss.m_lambda_ss)
-    * optionally initialize topics (lambda) using five E-steps on a
-      sample of documents
-    * optionally re-order topics so that more prominent topics have
-      lower (earlier) indices (re-order before updating stick
-      parameters)
-    * do not incorporate variational expectations of log stick lengths
-      until the third iteration of the E-step (and later)
-    * bound rho by below, and optionally scale, so that
-      \[
-        \rho_t = \max{(a, b (\iota_0 + t)^{-\kappa})}
-      \]
-      where a is the lower bound (member m_rho_bound) and b is the
-      scaling factor (member m_scale) (see below).
-
-    Members
-    -------
-    m_trunc:              tuple, truncations (per level)
-    m_depth:              int, max number of levels after truncation
-    m_K:                  int, max number of topics after truncation
-    m_W:                  int, size of vocabulary
-    m_D:                  int, size of corpus (in documents)
-    m_kappa:              float, learning rate
-    m_iota:                float, slow down parameter
-    m_delta:              float, stopping criterion of greedy
-                          subtree selection algorithm (ELBO threshold)
-    m_lambda_ss:             (K x W) float, variational parameters of
-                          top-level topics (lambda in paper; top-level
-                          topics are phi)
-    m_lambda0:                float, parameter on top-level topic Dirichlet
-    m_beta:              float, second-level DP concentration parameter
-    m_alpha:              float, first-level DP concentration parameter
-    m_gamma1:              float, switching probability Beta shape param
-    m_gamma2:              float, switching probability Beta shape param
-    m_tau:         (2 x K-1) float, variational parameters of
-                          first-level relative stick lengths (u and v in
-                          paper; rel stick lengths are beta')
-    m_Elogprobw:           (K x W) float, variational expectation of
-                          log word likelihoods (E log p(w | phi) in
-                          paper)
-    m_scale:              float, scaling factor for rho
-    m_t:           int, counter of number of times we have
-                          updated lambda (word likelihoods for global
-                          topics) (t_0 in paper)
-    m_adding_noise:       bool, true to add noise to global topics
-                          (specifically, to suff stats for var params)
-                          every few documents, before E-step of
-                          minibatch
-    m_num_docs_processed:    int, counter of number of docs processed
-                          (updated at beginning of iteration)
-    m_tau_ss           (K) float, sufficient statistics for global
-                          relative stick length variational parameters
-                          (corresponds to suff_stats.m_tau_ss)
-    m_lambda_ss_sum:         (K) float, sum of word proportions lambda
-                          (per topic)
-    '''
-
     def __init__(self,
                  trunc,
                  D,
@@ -172,9 +86,6 @@ class model(object):
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
         self.m_tau[1] = alpha
-        # make a uniform at beginning
-        # TODO why? and how is this uniform?
-        # self.m_tau[1] = range(self.m_K, 0, -1)
         for global_node in self.tree_iter():
             global_node_idx = self.tree_index(global_node)
             if global_node[-1] + 1 == self.m_trunc[len(global_node)-1]: # right-most child in truncated tree
@@ -213,11 +124,6 @@ class model(object):
         self.subtree_lambda_ss_f = subtree_lambda_ss_f
 
     def initialize(self, docs, init_noise_weight, eff_init_samples=None):
-        '''
-        Initialize m_lambda_ss and m_Elogprobw (and m_lambda_ss_sum) using
-        five E-step trials on each of the provided documents.
-        '''
-
         docs = list(docs)
         num_samples = len(docs)
 
@@ -291,14 +197,6 @@ class model(object):
 
     def process_documents(self, docs, var_converge, update=True,
                           predict_docs=None):
-        '''
-        Bring m_lambda_ss and m_Elogprobw up to date for the word types in
-        this minibatch, do the E-step on this minibatch, optionally
-        add noise to the global topics, and then do the M-step.
-        Return the four-tuple (score, count, doc_count)
-        representing the likelihood, number of tokens, and number of
-        documents processed, respectively.
-        '''
         docs = list(docs)
         doc_count = len(docs)
 
@@ -439,11 +337,6 @@ class model(object):
                         uv[1,s_idx] += nu_sums[idx]
 
     def update_ab(self, subtree, nu_sums, ab):
-        '''
-        Update ab in-place.
-        Fix q(U_{di} = 1) = 1 for all i that are leaves of the truncated
-        subtree.
-        '''
         ab[0] = self.m_gamma1 + nu_sums
         ab[1] = self.m_gamma2
         for node in self.tree_iter(subtree):
@@ -455,11 +348,6 @@ class model(object):
                 ab[1,p_idx] += nu_sums[idx]
 
     def update_tau(self):
-        '''
-        Update self.m_tau in-place.
-        Fix q(V_j = 1) = 1 for all j that are the right-most children
-        of their parent.
-        '''
         self.m_tau[0] = self.m_tau_ss + 1.0
         self.m_tau[1] = self.m_alpha
         for global_node in self.tree_iter():
@@ -484,11 +372,6 @@ class model(object):
                 self.m_uv[1,s_idx] += self.m_uv_ss[idx]
 
     def z_likelihood(self, subtree, ElogV):
-        '''
-        Return E[log p(z | V)] + H(q(z)).  (Note H(q(z)) = 0.)
-        Assume ElogV columns corresponding to the right-most child of
-        each node (*globally*) are [0, inf].
-        '''
         self.check_ElogV_edge_cases(ElogV)
 
         likelihood = 0.0
@@ -502,14 +385,6 @@ class model(object):
         return likelihood
 
     def c_likelihood(self, subtree, ab, uv, nu, log_nu, ids):
-        '''
-        Return E[log p(c | U, zeta)] + H(q(c)).
-        Assume ab[:,i] = [1, 0] for i leaf and uv[:,i] = [1, 0] for
-        i right-most child of its parent node.
-        '''
-        # TODO is it a bug that the equivalent computation in
-        # oHDP does not account for types appearing more than
-        # once?  (Uses . rather than ._all .)
         self.check_ab_edge_cases(ab, subtree, ids)
         self.check_uv_edge_cases(uv, subtree, ids)
         self.check_nu_edge_cases(nu)
@@ -546,10 +421,6 @@ class model(object):
         return np.sum(nu[:,ids] * (log_prob_c[ids][np.newaxis,:] - log_nu[:,ids]))
 
     def w_likelihood(self, doc, nu, Elogprobw_doc, ids):
-        '''
-        Return E[log p(W | theta, c, zeta, z)].
-        Assume rows of nu sum to one.
-        '''
         self.check_nu_edge_cases(nu)
 
         return np.sum(nu[:,ids].T * np.repeat(Elogprobw_doc[ids,:], doc.counts, axis=1))
@@ -678,31 +549,6 @@ class model(object):
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, var_converge, max_iter=100,
                    predict_doc=None, new_user=True):
-        '''
-        Perform document-level coordinate ascent updates of variational
-        parameters.  Don't incorporate variational expectations of log
-        stick lengths until the third iteration of the E-step (and
-        later).  Update global sufficient statistics by incrementing
-        members of ss accordingly.  Return likelihood for this E-step.
-
-        Variables
-        ---------
-        uv:               (2 x T-1) float, variational parameters of
-                         second level relative stick lengths (a and b in
-                         paper, respectively by row; rel stick lengths
-                         are pi')
-        nu:             (N x T) float, variational parameters for topic
-                         index of token (index into active topics for
-                         this document) (nu in paper; indices are z)
-        Elogprobw_doc:    (K x N) float, expected log word likelihoods
-                         (E log p(w | phi) in paper)
-        ElogV:  (K) float, expected log first-level stick
-                         lengths (E log beta in paper)
-        Elogpi:  (T) float, expected log second-level stick
-                         lengths (E log pi in paper)
-
-        (denote by N the number of *types* in the document)
-        '''
 
         num_tokens = sum(doc.counts)
 
@@ -875,44 +721,21 @@ class model(object):
         return len(node) - 1
 
     def node_ancestors(self, node):
-        r'''
-        Return generator over this node's ancestors, starting from the
-        parent and ascending upward.
-        '''
         return utils.node_ancestors(node)
 
     def node_left_siblings(self, node):
-        r'''
-        Return generator over this node's elder siblings (children of the
-        same parent, left of this node in the planar embedding).  Generator
-        starts at the sibling to the immediate left and proceeds leftward.
-        '''
         return utils.node_left_siblings(node)
 
     def tree_iter(self, subtree=None):
-        '''
-        Return generator over all nodes in tree, ordered first by level,
-        and then left-to-right within each level.  If subtree is not
-        None, the generator is filtered to only return nodes in the
-        subtree (as determined by subtree.__contains__).
-        '''
         if subtree is None:
             return utils.tree_iter(self.m_trunc)
         else:
             return (n for n in utils.tree_iter(self.m_trunc) if n in subtree)
 
     def tree_index(self, x):
-        '''
-        Return index into flat array representing the tree corresponding
-        to level-wise offsets given in x.  See utils.tree_index for details.
-        '''
         return utils.tree_index(x, self.m_trunc_idx_m, self.m_trunc_idx_b)
 
     def subtree_node_candidates(self, subtree):
-        '''
-        TODO
-        '''
-
         return utils.subtree_node_candidates(self.m_trunc, subtree)
 
     def select_subtree(self, doc, ElogV, num_tokens):
@@ -1100,12 +923,6 @@ class model(object):
         return (subtree, l2g_idx, g2l_idx)
 
     def update_ss_stochastic(self, ss, batch_to_vocab_word_map):
-        '''
-        Perform stochastic update of sufficient statistics for global
-        variational parameters, incorporating batch-wise sufficient
-        statistics in ss.
-        '''
-
         # rho will be between 0 and 1, and says how much to weight
         # the information we got from this mini-batch.
         # Add one because self.m_t is zero-based.
@@ -1126,114 +943,68 @@ class model(object):
         )
 
     def save_lambda_ss(self, f):
-        '''
-        Write the topics (specified by variational parameters
-        lambda + lambda0) to file.
-        '''
-
         lambdas = self.m_lambda_ss + self.m_lambda0
         for row in lambdas:
             line = ' '.join([str(x) for x in row])
             f.write(line + '\n')
 
     def save_logEtheta(self, f):
-        '''
-        Write the topics (specified by logs of variational means of
-        lambda + lambda0) to file.
-        '''
-
         logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + self.m_lambda_ss)
         for row in logEtheta:
             line = ' '.join([str(x) for x in row])
             f.write(line + '\n')
 
     def save_Elogtheta(self, f):
-        '''
-        Write the topics (specified by variational log means of
-        lambda + lambda0) to file.
-        '''
-
         Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
         for row in Elogtheta:
             line = ' '.join([str(x) for x in row])
             f.write(line + '\n')
 
     def save_logEpi(self, f):
-        '''
-        Write the expected log prior to file.
-        '''
-
         logEpi = self.compute_logEpi().T
         f.write('\n'.join(str(x) for x in logEpi))
         f.write('\n')
 
     def save_Elogpi(self, f):
-        '''
-        Write the log of the expected prior to file.
-        '''
-
         Elogpi = self.compute_Elogpi().T
         f.write('\n'.join(str(x) for x in Elogpi))
         f.write('\n')
 
     def save_subtree_lambda_ss(self, f, doc, ids, nu_sums):
-        '''
-        Append nu sums to file.
-        '''
         # TODO lambda0?
         f.write(str(doc.identifier) + ' ')
         f.write(' '.join(str(x) for x in nu_sums[ids]))
         f.write('\n')
 
     def save_subtree_logEtheta(self, f, doc, ids, nu_sums):
-        '''
-        Append log E[theta] for doc subtree to file.
-        '''
         logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + nu_sums)
         f.write(str(doc.identifier) + ' ')
         f.write(' '.join(str(logEtheta[i]) for i in ids))
         f.write('\n')
 
     def save_subtree_Elogtheta(self, f, doc, ids, nu_sums):
-        '''
-        Append E[log theta] for doc subtree to file.
-        '''
         Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + nu_sums)
         f.write(str(doc.identifier) + ' ')
         f.write(' '.join(str(Elogtheta[i]) for i in ids))
         f.write('\n')
 
     def save_subtree_logEpi(self, f, doc, subtree, ids, ab, uv):
-        '''
-        Append log E[pi] for doc subtree to file.
-        '''
         logEpi = self.compute_subtree_logEpi(subtree, ab, uv)
         f.write(str(doc.identifier) + ' ')
         f.write(' '.join(str(logEpi[i]) for i in ids))
         f.write('\n')
 
     def save_subtree_Elogpi(self, f, doc, subtree, ids, ab, uv):
-        '''
-        Append E[log pi] for doc subtree to file.
-        '''
         Elogpi = self.compute_subtree_Elogpi(subtree, ab, uv)
         f.write(str(doc.identifier) + ' ')
         f.write(' '.join(str(Elogpi[i]) for i in ids))
         f.write('\n')
 
     def save_subtree(self, f, doc, subtree, l2g_idx):
-        '''
-        Append document subtree to file.
-        '''
-
         f.write(str(doc.identifier) + ' ')
         f.write(' '.join(str(l2g_idx[self.tree_index(nod)])
                          for nod in self.tree_iter(subtree)))
         f.write('\n')
 
     def save_model(self, f):
-        '''
-        Pickle model to file.
-        '''
-
         cPickle.dump(self, f, -1)
