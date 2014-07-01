@@ -12,13 +12,6 @@ import cPickle
 # TODO assert var beta/dirichlet parameters no smaller than prior
 
 
-MEANCHANGETHRESH = 0.00001
-RANDOM_SEED = 999931111
-MIN_ADDING_NOISE_POINT = 10
-MIN_ADDING_NOISE_RATIO = 1
-MU0 = 0.3
-
-
 def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -51,7 +44,6 @@ class model(object):
                  delta=1e-3,
                  scale=1.,
                  rho_bound=0.,
-                 adding_noise=False,
                  subtree_f=None,
                  subtree_Elogpi_f=None,
                  subtree_logEpi_f=None,
@@ -111,7 +103,6 @@ class model(object):
         self.m_scale = scale
         self.m_rho_bound = rho_bound
         self.m_t = 0
-        self.m_adding_noise = adding_noise
         self.m_num_docs_processed = 0
 
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
@@ -205,31 +196,17 @@ class model(object):
 
         # Find the unique words in this mini-batch of documents...
         self.m_num_docs_processed += doc_count
-        adding_noise = False
-        adding_noise_point = MIN_ADDING_NOISE_POINT
-
-        if self.m_adding_noise:
-            if float(adding_noise_point) / doc_count < MIN_ADDING_NOISE_RATIO:
-                adding_noise_point = MIN_ADDING_NOISE_RATIO * doc_count
-
-            if self.m_num_docs_processed % adding_noise_point == 0:
-                adding_noise = True
 
         # mapping from word types in this mini-batch to unique
         # consecutive integers
         vocab_to_batch_word_map = dict()
         # list of unique word types, in order of first appearance
         batch_to_vocab_word_map = []
-        if adding_noise:
-            batch_to_vocab_word_map = range(self.m_W)
-            for w in batch_to_vocab_word_map:
-                vocab_to_batch_word_map[w] = w
-        else:
-            for doc in docs:
-                for w in doc.words:
-                    if w not in vocab_to_batch_word_map:
-                        vocab_to_batch_word_map[w] = len(vocab_to_batch_word_map)
-                        batch_to_vocab_word_map.append(w)
+        for doc in docs:
+            for w in doc.words:
+                if w not in vocab_to_batch_word_map:
+                    vocab_to_batch_word_map[w] = len(vocab_to_batch_word_map)
+                    batch_to_vocab_word_map.append(w)
 
         # number of unique word types in this mini-batch
         num_tokens = sum([sum(doc.counts) for doc in docs])
@@ -267,27 +244,6 @@ class model(object):
                 count += doc.total
             else:
                 count += predict_doc.total
-
-        if adding_noise:
-            # add noise to the ss
-            logging.debug("Adding noise")
-
-            # old noise
-            noise = np.random.gamma(1.0, 1.0, ss.m_lambda_ss.shape)
-            noise_sum = np.sum(noise, axis=1)
-            ratio = np.sum(ss.m_lambda_ss, axis=1) / noise_sum
-            noise = noise * ratio[:, np.newaxis]
-
-            # new noise
-            #lambda_sum_tmp = self.m_W * self.m_lambda0 + self.m_lambda_ss_sum
-            #scaled_beta = 5*self.m_W * (self.m_lambda_ss + self.m_lambda0) / (lambda_sum_tmp[:, np.newaxis])
-            #noise = np.random.gamma(shape=scaled_beta, scale=1.0)
-            #noise_ratio = lambda_sum_tmp / noise_sum
-            #noise = (noise * noise_ratio[:, np.newaxis] - self.m_lambda0) * doc_count/self.m_D
-
-            mu = MU0 * 1000.0 / (self.m_t + 1000)
-
-            ss.m_lambda_ss = ss.m_lambda_ss * (1.0 - mu) + noise * mu
 
         if update:
             self.update_ss_stochastic(ss, batch_to_vocab_word_map)

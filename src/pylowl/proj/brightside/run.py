@@ -55,7 +55,6 @@ DEFAULT_OPTIONS = dict(
     save_lag=500,
     pass_ratio=0.5,
     scale=1.0,
-    adding_noise=False,
     streaming=False,
     fixed_lag=False,
     save_model=False,
@@ -138,8 +137,6 @@ def main(argv=None):
                       help="concrete sentence segmentation index")
     parser.add_argument("--concrete_tokenization_list", type=int,
                       help="concrete tokenization list index")
-    parser.add_argument("--adding_noise", action="store_true",
-                      help="add noise to the first couple of iterations")
     parser.add_argument("--streaming", action="store_true",
                       help="process data in streaming fashion (D and W must be specified)")
     parser.add_argument("--fixed_lag", action="store_true",
@@ -321,7 +318,7 @@ def run(**kwargs):
                   options['lambda0'], options['beta'], options['alpha'],
                   options['gamma1'], options['gamma2'],
                   options['kappa'], options['iota'], options['delta'],
-                  options['scale'], options['adding_noise'],
+                  options['scale'],
                   subtree_f=subtree_f,
                   subtree_Elogpi_f=subtree_Elogpi_f,
                   subtree_logEpi_f=subtree_logEpi_f,
