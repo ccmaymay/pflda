@@ -162,6 +162,7 @@ class model(object):
         self.m_gamma2 = gamma2
 
         self.m_U = U
+        self.m_uv = np.zeros((self.m_U, 2, self.m_K))
         self.m_users = [None] * U
         self.m_r_users = dict()
 
