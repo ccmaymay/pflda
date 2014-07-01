@@ -752,17 +752,15 @@ class model(object):
             else:
                 uv_ids.append(idx)
 
-        ab = np.zeros((2, self.m_K))
-        ab[0] = self.m_gamma1
-        ab[1] = self.m_gamma2
+        ab = np.zeros((2, self.m_K, self.m_depth))
+        ab[0] = 1.0
         ab_ids = []
-        for node in self.tree_iter(subtree):
+        for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
-            if node + (0,) not in subtree: # leaf in subtree
-                ab[0,idx] = 1.0
-                ab[1,idx] = 0.0
-            else:
-                ab_ids.append(idx)
+            for p in self.node_ancestors(node):
+                p_depth = self.node_depth(p)
+                ab[:,idx,p_depth] = [1., 0.]
+                ab_ids.append((idx,p_depth))
 
         converge = None
         likelihood = None
