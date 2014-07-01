@@ -165,6 +165,9 @@ class model(object):
         self.m_uv = np.zeros((self.m_U, 2, self.m_K))
         self.m_users = [None] * U
         self.m_r_users = dict()
+        self.m_user_subtrees = [None] * U
+        self.m_user_l2g_ids = np.zeros((U, self.m_K), dtype=np.uint)
+        self.m_user_g2l_ids = np.zeros((U, self.m_K), dtype=np.uint)
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
@@ -702,8 +705,13 @@ class model(object):
 
         if new_user:
             (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc, ElogV, num_tokens)
+            self.m_user_subtrees[doc.user_idx] = subtree
+            self.m_user_l2g_ids[doc.user_idx] = l2g_idx
+            self.m_user_g2l_ids[doc.user_idx] = g2l_idx
         else:
-            # TODO where to pull subtree etc.?
+            subtree = self.m_user_subtrees[doc.user_idx]
+            l2g_idx = self.m_user_l2g_ids[doc.user_idx]
+            g2l_idx = self.m_user_g2l_ids[doc.user_idx]
 
         ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
 
