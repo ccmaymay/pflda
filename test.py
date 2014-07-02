@@ -46,7 +46,7 @@ def run_tests(src_dirs):
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
 
-    (successes, errors) = run_tests(sys.argv[1:] if len(sys.argv) > 1 else '.')
+    (successes, errors) = run_tests(sys.argv[1:] if len(sys.argv) > 1 else ('.',))
     num_tests = errors + successes
     if errors == 0:
         if successes == 0:
