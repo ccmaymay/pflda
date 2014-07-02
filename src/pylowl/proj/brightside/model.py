@@ -18,14 +18,11 @@ def set_random_seed(seed):
 
 
 class suff_stats(object):
-    def __init__(self, K, Wt, Dt):
+    def __init__(self, K, Wt, Dt, Ut):
         self.m_batchsize = Dt
+        self.m_uv_ss = np.zeros((Ut, K))
         self.m_tau_ss = np.zeros(K)
         self.m_lambda_ss = np.zeros((K, Wt))
-
-    def set_zero(self):
-        self.m_tau_ss.fill(0.0)
-        self.m_lambda_ss.fill(0.0)
 
 
 class model(object):
@@ -68,12 +65,17 @@ class model(object):
         self.m_gamma2 = gamma2
 
         self.m_U = U
-        self.m_uv = np.zeros((self.m_U, 2, self.m_K))
+
         self.m_users = [None] * U
         self.m_r_users = dict()
         self.m_user_subtrees = [None] * U
         self.m_user_l2g_ids = np.zeros((U, self.m_K), dtype=np.uint)
         self.m_user_g2l_ids = np.zeros((U, self.m_K), dtype=np.uint)
+
+        self.m_uv = np.zeros((2, self.m_U, self.m_K))
+        self.m_uv[0] = 1.0
+        self.m_uv[1] = beta
+        self.m_uv_ss = np.zeros(self.m_U, self.m_K)
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
@@ -83,7 +85,6 @@ class model(object):
             if global_node[-1] + 1 == self.m_trunc[len(global_node)-1]: # right-most child in truncated tree
                 self.m_tau[0,global_node_idx] = 1.0
                 self.m_tau[1,global_node_idx] = 0.0
-
         self.m_tau_ss = np.zeros(self.m_K)
 
         # Intuition: take 100 to be the expected document length (TODO)
@@ -197,12 +198,29 @@ class model(object):
         # Find the unique words in this mini-batch of documents...
         self.m_num_docs_processed += doc_count
 
+        users_to_batch_map = dict()
+        batch_to_users_map = []
+        docs_new_user = []
         # mapping from word types in this mini-batch to unique
         # consecutive integers
         vocab_to_batch_word_map = dict()
         # list of unique word types, in order of first appearance
         batch_to_vocab_word_map = []
         for doc in docs:
+            if doc.user in self.m_r_users:
+                doc.user_idx = self.m_r_users[doc.user]
+                docs_new_user.append(False)
+            else:
+                user_idx = len(self.m_r_users)
+                self.m_users[user_idx] = doc.user
+                self.m_r_users[doc.user] = user_idx
+                doc.user_idx = user_idx
+                docs_new_user.append(True)
+
+            if doc.user_idx not in users_to_batch_map:
+                batch_to_users_map.append(doc.user_idx)
+                users_to_batch_map[doc.user_idx] = len(users_to_batch_map)
+
             for w in doc.words:
                 if w not in vocab_to_batch_word_map:
                     vocab_to_batch_word_map[w] = len(vocab_to_batch_word_map)
@@ -215,7 +233,7 @@ class model(object):
         logging.info('Processing %d docs spanning %d tokens, %d types'
             % (doc_count, num_tokens, Wt))
 
-        ss = suff_stats(self.m_K, Wt, doc_count)
+        ss = suff_stats(self.m_K, Wt, doc_count, Ut)
 
         # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
         ids = [self.tree_index(node) for node in self.tree_iter()]
@@ -224,20 +242,10 @@ class model(object):
         # run variational inference on some new docs
         score = 0.0
         count = 0
-        for (doc, predict_doc) in it.izip(docs, predict_docs):
-            if doc.user in self.m_r_users:
-                doc.user_idx = self.m_r_users[doc.user]
-                new_user = False
-            else:
-                user_idx = len(self.m_r_users)
-                self.m_users[user_idx] = doc.user
-                self.m_r_users[doc.user] = user_idx
-                doc.user_idx = user_idx
-                new_user = True
-
+        for (doc, predict_doc, new_user) in it.izip(docs, predict_docs, docs_new_user):
             doc_score = self.doc_e_step(doc, ss, ElogV, vocab_to_batch_word_map,
-                batch_to_vocab_word_map, var_converge, predict_doc=predict_doc,
-                new_user=new_user)
+                batch_to_vocab_word_map, users_to_batch_map, batch_to_users_map,
+                var_converge, predict_doc=predict_doc, new_user=new_user)
 
             score += doc_score
             if predict_doc is None:
@@ -536,7 +544,8 @@ class model(object):
         assert la.norm(np.sum(np.exp(log_nu),1) - 1, np.inf) < 1e-9, 'not all rows of exp(log_nu) sum to one: %s' % str(np.sum(np.exp(log_nu),1))
 
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
-                   batch_to_vocab_word_map, var_converge, max_iter=100,
+                   batch_to_vocab_word_map, users_to_batch_map,
+                   batch_to_users_map, var_converge, max_iter=100,
                    predict_doc=None, new_user=True):
 
         num_tokens = sum(doc.counts)
