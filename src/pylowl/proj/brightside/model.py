@@ -285,14 +285,14 @@ class model(object):
 
     def update_nu(self, subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu):
         log_nu[:] = -np.inf
-        Elogchi = self.compute_subtree_Elogchi(subtree, ab) # (1 x) K
+        Elogchi = self.compute_subtree_Elogchi(subtree, ab)
         Elogprobw_doc_all = np.repeat(Elogprobw_doc, doc.counts, axis=1) # K x N
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                log_nu[idx,:,p_level] = Elogchi[p_idx] + xi[idx] * np.sum(Elogprobw_doc_all[p_idx,:])
+                log_nu[idx,:,p_level] = Elogchi[idx,p_level] + xi[idx] * np.sum(Elogprobw_doc_all[p_idx,:])
 
         (log_nu[:,:], log_norm) = utils.log_normalize(log_nu)
         nu[:,:] = np.exp(log_nu)
@@ -366,45 +366,14 @@ class model(object):
         self.check_subtree_ids(subtree, ids)
 
         likelihood = 0.0
-        nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         Elogchi = self.compute_subtree_Elogchi(subtree, ab):
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-
-                nu
-                Elogchi[p_idx]
-
-                Elogpi[idx] += ElogV[0,p_idx]
-
-            idx = self.tree_index(node)
-            log_prob_c[idx] += (
-                sp.psi(ab[0,idx])
-                - sp.psi(np.sum(ab[:,idx]))
-            )
-            if len(node) > 1: # not root
-                for p in it.chain((node,), self.node_ancestors(node)):
-                    p_idx = self.tree_index(p)
-                    if len(p) < len(node): # equivalent to: p != node
-                        log_prob_c[idx] += (
-                            sp.psi(ab[1,p_idx])
-                            - sp.psi(np.sum(ab[:,p_idx]))
-                        )
-                    log_prob_c[idx] += (
-                        sp.psi(uv[0,p_idx])
-                        - sp.psi(np.sum(uv[:,p_idx]))
-                    )
-                    for s in self.node_left_siblings(p):
-                        s_idx = self.tree_index(s)
-                        log_prob_c[idx] += (
-                            sp.psi(uv[1,s_idx])
-                            - sp.psi(np.sum(uv[:,s_idx]))
-                        )
-
-        assert (log_prob_c <= 0).all()
-        return np.sum(nu[:,ids] * (log_prob_c[ids][np.newaxis,:] - log_nu[:,ids]))
+                likelihood += np.sum(nu[idx,:,p_level] * (Elogchi[p_idx] - log_nu[idx,:,p_level]))
+        return likelihood
 
     def w_likelihood(self, doc, nu, Elogprobw_doc, ids):
         self.check_nu_edge_cases(nu)
@@ -654,7 +623,7 @@ class model(object):
             logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
 
             # E[log p(c | U, zeta)] + H(q(c))
-            c_ll = self.c_likelihood(subtree, ab, nu, log_nu, ids)
+            c_ll = self.c_likelihood(subtree, subtree_leaves, ab, nu, log_nu, ids)
             likelihood += c_ll
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
 
@@ -793,7 +762,7 @@ class model(object):
             % (old_likelihood, z_ll))
 
         # E[log p(c | U, zeta)] + H(q(c))
-        c_ll = self.c_likelihood(subtree, prior_ab, nu, log_nu, ids)
+        c_ll = self.c_likelihood(subtree, subtree_leaves, prior_ab, nu, log_nu, ids)
         old_likelihood += c_ll
         logging.debug('Log-likelihood after c components: %f (+ %f)'
             % (old_likelihood, c_ll))
@@ -864,7 +833,7 @@ class model(object):
                     % (candidate_likelihood, z_ll))
 
                 # E[log p(c | U, zeta)] + H(q(c))
-                c_ll = self.c_likelihood(subtree, prior_ab, candidate_nu, candidate_log_nu, ids)
+                c_ll = self.c_likelihood(subtree, subtree_leaves, prior_ab, candidate_nu, candidate_log_nu, ids)
                 candidate_likelihood += c_ll
                 logging.debug('Log-likelihood after c components: %f (+ %f)'
                     % (candidate_likelihood, c_ll))
