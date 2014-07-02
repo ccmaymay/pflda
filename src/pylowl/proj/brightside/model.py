@@ -356,6 +356,7 @@ class model(object):
         self.check_xi_edge_cases(xi)
         self.check_log_xi_edge_cases(log_xi)
         self.check_subtree_ids(subtree, ids)
+        compute_subtree_Elogpi(self, subtree_leaves, uv):
 
         log_prob_c = np.zeros(self.m_K)
         for node in self.tree_iter(subtree):
@@ -392,6 +393,7 @@ class model(object):
         self.check_nu_edge_cases(nu)
         self.check_log_nu_edge_cases(log_nu)
         self.check_subtree_ids(subtree, ids)
+        compute_subtree_Elogchi(self, subtree, ab):
 
         log_prob_c = np.zeros(self.m_K)
         for node in self.tree_iter(subtree):
