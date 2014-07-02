@@ -355,19 +355,30 @@ class model(object):
         self.check_xi_edge_cases(xi)
         self.check_log_xi_edge_cases(log_xi)
         self.check_subtree_ids(subtree_leaves, ids_leaves)
+
         Elogpi = self.compute_subtree_Elogpi(subtree_leaves, uv):
         return np.sum(xi[ids_leaves] * (Elogpi[ids_leaves] - log_xi[ids_leaves]))
 
-    def c_likelihood(self, subtree, ab, uv, nu, log_nu, ids):
+    def c_likelihood(self, subtree, subtree_leaves, ab, nu, log_nu, ids):
         self.check_ab_edge_cases(ab, subtree, ids)
-        self.check_uv_edge_cases(uv, subtree, ids)
         self.check_nu_edge_cases(nu)
         self.check_log_nu_edge_cases(log_nu)
         self.check_subtree_ids(subtree, ids)
-        compute_subtree_Elogchi(self, subtree, ab):
 
-        log_prob_c = np.zeros(self.m_K)
-        for node in self.tree_iter(subtree):
+        likelihood = 0.0
+        nu = np.zeros((self.m_K, num_tokens, self.m_depth))
+        Elogchi = self.compute_subtree_Elogchi(subtree, ab):
+        for node in self.tree_iter(subtree_leaves):
+            idx = self.tree_index(node)
+            for p in it.chain((node,), self.node_ancestors(node)):
+                p_idx = self.tree_index(p)
+                p_level = self.node_level(p)
+
+                nu
+                Elogchi[p_idx]
+
+                Elogpi[idx] += ElogV[0,p_idx]
+
             idx = self.tree_index(node)
             log_prob_c[idx] += (
                 sp.psi(ab[0,idx])
@@ -643,7 +654,7 @@ class model(object):
             logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
 
             # E[log p(c | U, zeta)] + H(q(c))
-            c_ll = self.c_likelihood(subtree, ab, uv, nu, log_nu, ids)
+            c_ll = self.c_likelihood(subtree, ab, nu, log_nu, ids)
             likelihood += c_ll
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
 
@@ -782,7 +793,7 @@ class model(object):
             % (old_likelihood, z_ll))
 
         # E[log p(c | U, zeta)] + H(q(c))
-        c_ll = self.c_likelihood(subtree, prior_ab, prior_uv, nu, log_nu, ids)
+        c_ll = self.c_likelihood(subtree, prior_ab, nu, log_nu, ids)
         old_likelihood += c_ll
         logging.debug('Log-likelihood after c components: %f (+ %f)'
             % (old_likelihood, c_ll))
@@ -853,7 +864,7 @@ class model(object):
                     % (candidate_likelihood, z_ll))
 
                 # E[log p(c | U, zeta)] + H(q(c))
-                c_ll = self.c_likelihood(subtree, prior_ab, prior_uv, candidate_nu, candidate_log_nu, ids)
+                c_ll = self.c_likelihood(subtree, prior_ab, candidate_nu, candidate_log_nu, ids)
                 candidate_likelihood += c_ll
                 logging.debug('Log-likelihood after c components: %f (+ %f)'
                     % (candidate_likelihood, c_ll))
