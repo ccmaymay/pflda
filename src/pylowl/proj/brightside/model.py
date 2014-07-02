@@ -75,7 +75,7 @@ class model(object):
         self.m_uv = np.zeros((2, self.m_U, self.m_K))
         self.m_uv[0] = 1.0
         self.m_uv[1] = beta
-        self.m_uv_ss = np.zeros(self.m_U, self.m_K)
+        self.m_uv_ss = np.zeros((self.m_U, self.m_K))
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
@@ -254,7 +254,8 @@ class model(object):
                 count += predict_doc.total
 
         if update:
-            self.update_ss_stochastic(ss, batch_to_vocab_word_map)
+            self.update_ss_stochastic(ss, batch_to_vocab_word_map,
+                                      batch_to_users_map)
             self.update_lambda()
             self.update_tau()
             self.update_uv()
@@ -296,29 +297,6 @@ class model(object):
         (log_nu[:,:], log_norm) = utils.log_normalize(log_nu)
         nu[:,:] = np.exp(log_nu)
 
-    def update_uv(self, subtree, nu_sums, uv):
-        '''
-        Update uv in-place.
-        Fix q(V^{(d)}_i = 1) = 1 for all i that are the right-most
-        children of their parent.
-        '''
-        uv[0] = 1.0
-        uv[1] = self.m_beta
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            if node[:-1] + (node[-1] + 1,) not in subtree: # last child of this node in subtree
-                uv[:,idx] = [1.0, 0.0]
-            for p in it.chain((node,), self.node_ancestors(node)):
-                if len(p) > 1: # not root
-                    p_idx = self.tree_index(p)
-                    if p[:-1] + (p[-1] + 1,) in subtree:
-                        uv[0,p_idx] += nu_sums[idx]
-
-                    # left siblings of this ancestor
-                    for s in self.node_left_siblings(p):
-                        s_idx = self.tree_index(s)
-                        uv[1,s_idx] += nu_sums[idx]
-
     def update_ab(self, subtree, nu_sums, ab):
         ab[0] = self.m_gamma1 + nu_sums
         ab[1] = self.m_gamma2
@@ -342,17 +320,18 @@ class model(object):
                 global_s_idx = self.tree_index(global_s)
                 self.m_tau[1,global_s_idx] += self.m_tau_ss[global_node_idx]
 
-    def update_uv(self, subtree):
+    def update_uv(self):
         self.m_uv[0] = self.m_uv_ss + 1.0
         self.m_uv[1] = self.m_beta
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            if node[:-1] + (node[-1] + 1,) not in subtree: # right-most child
-                self.m_uv[0,idx] = 1.0
-                self.m_uv[1,idx] = 0.0
-            for s in self.node_left_siblings(node):
-                s_idx = self.tree_index(s)
-                self.m_uv[1,s_idx] += self.m_uv_ss[idx]
+        for user_idx in xrange(self.m_U):
+            subtree = self.m_user_subtrees[user_idx]
+            for node in self.tree_iter(subtree):
+                idx = self.tree_index(node)
+                if node[:-1] + (node[-1] + 1,) not in subtree: # rightmost child
+                    self.m_uv[:,user_idx,idx] = [1., 0.]
+                for s in self.node_left_siblings(node):
+                    s_idx = self.tree_index(s)
+                    ss.m_uv[1, user_idx, s_idx] += self.m_uv_ss[user_idx, idx]
 
     def z_likelihood(self, subtree, ElogV):
         self.check_ElogV_edge_cases(ElogV)
@@ -630,7 +609,6 @@ class model(object):
             self.update_nu(subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu)
             nu_sums = np.sum(nu, 0)
             self.update_xi(subtree_leaves, uv, Elogprobw_doc, doc, nu, xi, log_xi)
-            self.update_uv(subtree, nu_sums, uv)
             self.update_ab(subtree, nu_sums, ab)
 
             # compute likelihood
@@ -700,6 +678,11 @@ class model(object):
         # update the suff_stat ss
         global_ids = l2g_idx[ids]
         ss.m_tau_ss[global_ids] += 1
+        for node in self.tree_iter(subtree_leaves):
+            idx = self.tree_index(node)
+            for p in it.chain((node,), self.node_ancestors(node)):
+                p_idx = self.tree_index(p)
+                ss.m_uv_ss[users_to_batch_map[doc.user_idx], p_idx] += xi[idx]
         for n in xrange(num_tokens):
             ss.m_lambda_ss[global_ids, token_batch_ids[n]] += nu[n, ids]
 
@@ -933,7 +916,8 @@ class model(object):
 
         return (subtree, l2g_idx, g2l_idx)
 
-    def update_ss_stochastic(self, ss, batch_to_vocab_word_map):
+    def update_ss_stochastic(self, ss, batch_to_vocab_word_map,
+                             batch_to_users_map):
         # rho will be between 0 and 1, and says how much to weight
         # the information we got from this mini-batch.
         # Add one because self.m_t is zero-based.
@@ -951,6 +935,11 @@ class model(object):
         self.m_tau_ss = (
             (1.0 - rho) * self.m_tau_ss
             + rho * ss.m_tau_ss * self.m_D / ss.m_batchsize
+        )
+
+        self.m_uv_ss *= (1 - rho)
+        self.m_uv_ss[batch_to_users_map, :] += (
+            rho * ss.m_uv_ss * self.m_D / ss.m_batchsize
         )
 
     def save_lambda_ss(self, f):
