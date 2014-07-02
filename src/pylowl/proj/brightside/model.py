@@ -297,16 +297,20 @@ class model(object):
         (log_nu[:,:], log_norm) = utils.log_normalize(log_nu)
         nu[:,:] = np.exp(log_nu)
 
-    def update_ab(self, subtree, nu_sums, ab):
+    def update_ab(self, subtree_leaves, nu_sums, ab):
         ab[0] = self.m_gamma1 + nu_sums
         ab[1] = self.m_gamma2
-        for node in self.tree_iter(subtree):
+        for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
-            if node + (0,) not in subtree: # leaf in subtree
-                ab[:,idx] = [1.0, 0.0]
-            for p in self.node_ancestors(node):
+            node_level = self.node_level(node)
+            ab[:, idx, node_level] = [1.0, 0.0]
+            for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
-                ab[1,p_idx] += nu_sums[idx]
+                p_level = self.node_level(p)
+                for pp in self.node_ancestors(p):
+                    pp_idx = self.tree_index(pp)
+                    pp_level = self.node_level(pp)
+                    ab[1, idx, pp_level] += nu_sums[idx, p_level]
 
     def update_tau(self):
         self.m_tau[0] = self.m_tau_ss + 1.0
@@ -588,12 +592,11 @@ class model(object):
         nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         log_nu = np.log(nu)
         self.update_nu(subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu)
-        nu_sums = np.sum(nu, 0) # TODO still useful?
+        nu_sums = np.sum(nu, 1)
 
         xi = np.zeros((self.m_K,))
         log_xi = np.log(xi)
         self.update_xi(subtree_leaves, uv, Elogprobw_doc, doc, nu, xi, log_xi)
-        xi_sums = np.sum(xi, 0) # TODO still useful?
 
         converge = None
         likelihood = None
@@ -607,9 +610,9 @@ class model(object):
             # update variational parameters
 
             self.update_nu(subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu)
-            nu_sums = np.sum(nu, 0)
+            nu_sums = np.sum(nu, 1)
             self.update_xi(subtree_leaves, uv, Elogprobw_doc, doc, nu, xi, log_xi)
-            self.update_ab(subtree, nu_sums, ab)
+            self.update_ab(subtree_leaves, nu_sums, ab)
 
             # compute likelihood
 
