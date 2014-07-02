@@ -724,7 +724,7 @@ class model(object):
                 p_level = self.node_level(p)
                 ss.m_uv_ss[users_to_batch_map[doc.user_idx], p_idx] += xi[idx]
                 for n in xrange(num_tokens):
-                    ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level]
+                    ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
 
         if predict_doc is not None:
             logEpi = self.compute_subtree_logEpi(subtree, uv)
