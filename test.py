@@ -7,7 +7,7 @@ from importlib import import_module
 def iter_test_funcs(module):
     for name in dir(module):
         obj = getattr(module, name)
-        if name.endswith('_test') and callable(obj):
+        if not name.startswith('.') and name.endswith('_test') and callable(obj):
             yield obj
 
 
