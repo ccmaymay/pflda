@@ -1,4 +1,10 @@
 #!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -V
+#$ -N "postproc"
+#$ -q text.q
+#$ -l num_proc=1,mem_free=2G,h_rt=1:00:00
 
 if [ $# -ne 3 ]
 then
