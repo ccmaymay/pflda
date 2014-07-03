@@ -4,46 +4,6 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 from cPickle import load, dump
 
 
-def _raises(f, exception_type):
-    try:
-        f
-    except exception_type:
-        return False
-    else:
-        return True
-
-
-def _chisq(expected, observed):
-    """
-    Compute chi-squared statistic for the given sequences of expected
-    and observed counts.
-
-    >>> from pylowl import _chisq
-    >>> _chisq([3], [3]) == 0.0
-    True
-    >>> _chisq([1], [3]) == 4.0
-    True
-    >>> _chisq([3], [1]) == 4.0 / 3.0
-    True
-    >>> _chisq([1, 3, 5], [1, 3, 5]) == 0.0
-    True
-    >>> _chisq([5, 3, 1], [1, 3, 5]) == 16.0 / 5.0 + 16.0
-    True
-    >>> _chisq([1, 3, 5], [5, 3, 1]) == 16.0 / 5.0 + 16.0
-    True
-    >>> _chisq([2, 4, 6], [1, 3, 5]) == 0.25 + 0.5 + 1.0 / 6.0
-    True
-
-    This space intentionally left blank.
-    """
-
-    total = 0.0
-    for (exp, obs) in zip(expected, observed):
-        diff = exp - obs
-        total += diff * diff / float(exp)
-    return total
-
-
 cdef int _check_err(int ret) except -1:
     """
     Raise exception according to standard integral lowl error code.
@@ -67,31 +27,6 @@ cpdef srandom(unsigned int seed):
 
     Check that calling srandom with different seeds yields different
     PRNGs while calling srandom the the same seed yields the same PRNG.
-    >>> from pylowl import srandom, ReservoirSampler
-    >>> srandom(0)
-    >>> rs1 = ReservoirSampler()
-    >>> ret = rs1.init(1)
-    >>> for i in xrange(1000000):
-    ...     (inserted, idx, ejected, ejected_key) = rs1.insert(i)
-    >>> k1 = rs1.get(0)
-    >>> srandom(42)
-    >>> rs2 = ReservoirSampler()
-    >>> ret = rs2.init(1)
-    >>> for i in xrange(1000000):
-    ...     (inserted, idx, ejected, ejected_key) = rs2.insert(i)
-    >>> k2 = rs2.get(0)
-    >>> srandom(0)
-    >>> rs3 = ReservoirSampler()
-    >>> ret = rs3.init(1)
-    >>> for i in xrange(1000000):
-    ...     (inserted, idx, ejected, ejected_key) = rs3.insert(i)
-    >>> k3 = rs3.get(0)
-    >>> k1 == k2
-    False
-    >>> k1 == k3
-    True
-
-    I'm claustrophobic.
     """
     lowl.srandom(seed)
 
