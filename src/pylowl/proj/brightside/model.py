@@ -271,13 +271,12 @@ class model(object):
 
     def update_xi(self, subtree_leaves, uv, Elogprobw_doc, doc, nu, xi, log_xi):
         log_xi[:] = self.compute_subtree_Elogpi(subtree_leaves, uv)
-        Elogprobw_doc_all = np.repeat(Elogprobw_doc, doc.counts, axis=1) # K x N
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                log_xi[idx] += np.sum(nu[idx,:,p_level] * Elogprobw_doc_all[p_idx,:])
+                log_xi[idx] += np.sum(nu[idx,:,p_level] * Elogprobw_doc[p_idx,:] * doc.counts)
 
         log_xi[[self.tree_index(node) for node in self.tree_iter() if node not in subtree_leaves]] = -np.inf
         (log_xi[:], log_norm) = utils.log_normalize(log_xi)
@@ -286,13 +285,12 @@ class model(object):
     def update_nu(self, subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu):
         log_nu[:] = -np.inf
         Elogchi = self.compute_subtree_Elogchi(subtree, ab)
-        Elogprobw_doc_all = np.repeat(Elogprobw_doc, doc.counts, axis=1) # K x N
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                log_nu[idx,:,p_level] = Elogchi[idx,p_level] + xi[idx] * np.sum(Elogprobw_doc_all[p_idx,:])
+                log_nu[idx,:,p_level] = Elogchi[idx,p_level] + xi[idx] * np.sum(Elogprobw_doc[p_idx,:] * doc.counts)
 
         (log_nu[:,:], log_norm) = utils.log_normalize(log_nu)
         nu[:,:] = np.exp(log_nu)
@@ -375,10 +373,18 @@ class model(object):
                 likelihood += np.sum(nu[idx,:,p_level] * (Elogchi[p_idx] - log_nu[idx,:,p_level]))
         return likelihood
 
-    def w_likelihood(self, doc, nu, Elogprobw_doc, ids):
+    def w_likelihood(self, doc, nu, xi, Elogprobw_doc):
         self.check_nu_edge_cases(nu)
+        self.check_xi_edge_cases(xi)
 
-        return np.sum(nu[:,ids].T * np.repeat(Elogprobw_doc[ids,:], doc.counts, axis=1))
+        likelihood = 0.0
+        for node in self.tree_iter(subtree_leaves):
+            idx = self.tree_index(node)
+            for p in it.chain((node,), self.node_ancestors(node)):
+                p_idx = self.tree_index(p)
+                p_level = self.node_level(p)
+                likelihood += xi[idx] * np.sum(nu[idx,:,p_level] * Elogprobw_doc[p_idx,:] * doc.counts)
+        return likelihood
 
     def compute_Elogpi(self):
         ids = [self.tree_index(node) for node in self.tree_iter()]
@@ -634,7 +640,7 @@ class model(object):
                 % (likelihood, zeta_ll))
 
             # E[log p(W | theta, c, zeta, z)]
-            w_ll = self.w_likelihood(doc, nu, Elogprobw_doc, ids)
+            w_ll = self.w_likelihood(doc, nu, xi, Elogprobw_doc, ids)
             likelihood += w_ll
             logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
 
@@ -774,7 +780,7 @@ class model(object):
             % (old_likelihood, zeta_ll))
 
         # E[log p(W | theta, c, zeta, z)]
-        w_ll = self.w_likelihood(doc, nu, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
+        w_ll = self.w_likelihood(doc, nu, xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
         old_likelihood += w_ll
         logging.debug('Log-likelihood after W component: %f (+ %f)'
             % (old_likelihood, w_ll))
@@ -845,7 +851,7 @@ class model(object):
                     % (candidate_likelihood, zeta_ll))
 
                 # E[log p(W | theta, c, zeta, z)]
-                w_ll = self.w_likelihood(doc, candidate_nu, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
+                w_ll = self.w_likelihood(doc, candidate_nu, candidate_xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
                 candidate_likelihood += w_ll
                 logging.debug('Log-likelihood after W component: %f (+ %f)'
                     % (candidate_likelihood, w_ll))
