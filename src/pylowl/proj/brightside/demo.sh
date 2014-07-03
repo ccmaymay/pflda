@@ -57,23 +57,7 @@ PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run \
 
 # extract global and local graph data (for visualization) from output
 echo "Extracting graph data in $OUTPUT_DIR ..."
-python -m pylowl.proj.brightside.postproc.generate_d3_topic_graph \
-    --lambda_ss "$OUTPUT_DIR/final.lambda_ss" \
-    --Elogpi "$OUTPUT_DIR/final.Elogpi" \
-    --logEpi "$OUTPUT_DIR/final.logEpi" \
-    --Elogtheta "$OUTPUT_DIR/final.Elogtheta" \
-    --logEtheta "$OUTPUT_DIR/final.logEtheta" \
-    "$TRUNC" "$VOCAB_PATH" "$OUTPUT_DIR/graph.json"
-
-# local graphs
-python -m pylowl.proj.brightside.postproc.generate_d3_subgraphs \
-    --subtree "$OUTPUT_DIR/subtree" \
-    --lambda_ss "$OUTPUT_DIR/subtree_lambda_ss" \
-    --Elogpi "$OUTPUT_DIR/subtree_Elogpi" \
-    --logEpi "$OUTPUT_DIR/subtree_logEpi" \
-    --Elogtheta "$OUTPUT_DIR/subtree_Elogtheta" \
-    --logEtheta "$OUTPUT_DIR/subtree_logEtheta" \
-    "$TRUNC" "$VOCAB_PATH" "$OUTPUT_DIR/subgraphs.json"
+bash "$SRC_DIR/postproc/generate_d3_inputs.sh" "$OUTPUT_DIR" "$TRUNC" "$VOCAB_PATH"
 
 # put d3 and html files in $OUTPUT_DIR (so we don't have to change the
 # relative locations of the json files they load)
