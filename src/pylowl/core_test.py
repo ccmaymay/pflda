@@ -147,3 +147,93 @@ def bloomfilter_uninitialized_deallocation_test():
     def f():
         bf_noinit = BloomFilter()
     f()
+
+
+def cmsketch_test():
+    cm = CountMinSketch()
+    ret = cm.init(4, 8)
+    cm.add("hello, world", 12, 1)
+    cm.add("hello world", 11, 1)
+    cm.add("hello, world", 12, 4)
+    cm.add("hello, waldorf", 14, 42)
+
+    assert cm.query("hello, world", 12) == 5
+    assert cm.query("hello world", 11) == 1
+    assert cm.query("hello, waldo", 12) == 0
+    assert cm.query("hello, waldorf", 14) == 42
+    assert cm.query("hello, waldorf!", 15) == 0
+    assert cm.query("hello, waldorf!", 14) == 42
+
+def cmsketch_serialization_test():
+    cm = CountMinSketch()
+    ret = cm.init(4, 8)
+    cm.add("hello, world", 12, 1)
+    cm.add("hello world", 11, 1)
+    cm.add("hello, world", 12, 4)
+    cm.add("hello, waldorf", 14, 42)
+
+    (fid, filename) = mkstemp()
+    os.close(fid)
+    ret = cm.write(filename)
+    cm_fromfile = CountMinSketch()
+    ret = cm_fromfile.read(filename)
+    assert cm_fromfile.query("hello, world", 12) == 5
+    assert cm_fromfile.query("hello world", 11) == 1
+    assert cm_fromfile.query("hello, waldo", 12) == 0
+    assert cm_fromfile.query("hello, waldorf", 14) == 42
+    assert cm_fromfile.query("hello, waldorf!", 15) == 0
+    assert cm_fromfile.query("hello, waldorf!", 14) == 42
+    assert cm_fromfile.query("foobar", 6) == 0
+    cm_fromfile.add("foobar!", 6, 7)
+    assert cm_fromfile.query("foobar", 6) == 7
+    os.remove(filename)
+
+def cmsketch_serialization_errors_test():
+    assert False
+#    cm = CountMinSketch()
+#    ret = cm.init(4, 8)
+#    cm.add("hello, world", 12, 1)
+#    cm.add("hello world", 11, 1)
+#    cm.add("hello, world", 12, 4)
+#    cm.add("hello, waldorf", 14, 42)
+#
+#    assert raises(lambda: cm.write("/this/path/should/not/be/writable"), IOError)
+#
+#    dirname = mkdtemp()
+#    assert raises(lambda: cm.write(dirname), IOError)
+#    os.rmdir(dirname)
+#
+#    cm = CountMinSketch()
+#    assert raises(lambda: cm.read("/this/path/should/not/exist"), IOError)
+#
+#    (fid, filename) = mkstemp()
+#    os.close(fid)
+#    cm = CountMinSketch()
+#    assert raises(lambda: cm.read(filename), IOError)
+#    os.remove(filename)
+
+def cmsketch_clear_test():
+    cm = CountMinSketch()
+    ret = cm.init(4, 8)
+    cm.add("hello, world", 12, 1)
+    cm.add("hello world", 11, 1)
+    cm.add("hello, world", 12, 4)
+    cm.add("hello, waldorf", 14, 42)
+    cm.clear()
+    assert cm.query("hello, world", 12) == 0
+    assert cm.query("hello world", 11) == 0
+    assert cm.query("hello, waldo", 12) == 0
+    assert cm.query("hello, waldorf", 14) == 0
+    assert cm.query("hello, waldorf!", 15) == 0
+    assert cm.query("hello, waldorf!", 14) == 0
+
+def cmsketch_param_bndy_cases_test():
+    cm = CountMinSketch()
+    ret = cm.init(1, 1)
+    cm.add("hello, world", 12, 42)
+    assert cm.query("hello, world", 12) == 42
+
+def cmsketch_uninitialized_deallocation_test():
+    def f():
+        cm_noinit = CountMinSketch()
+    f()
