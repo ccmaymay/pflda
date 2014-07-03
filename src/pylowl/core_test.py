@@ -1,5 +1,8 @@
-from pylowl.core import *
 from numpy.testing import assert_almost_equal
+from tempfile import mkstemp, mkdtemp
+import os
+
+from pylowl.core import *
 
 
 def raises(f, ex_type):
@@ -72,3 +75,75 @@ def srandom_test():
 
     assert k1 != k2
     assert k1 == k3
+
+
+def bloomfilter_test():
+    bf = BloomFilter()
+    ret = bf.init(4, 8)
+    bf.insert("hello, world", 12)
+    bf.insert("hello world", 11)
+    bf.insert("hello, waldorf", 14)
+
+    assert bf.query("hello, world", 12)
+    assert bf.query("hello world", 11)
+    assert not bf.query("hello, waldo", 12)
+    assert bf.query("hello, waldorf", 14)
+    assert not bf.query("hello, waldorf!", 15)
+    assert bf.query("hello, waldorf!", 14)
+
+def bloomfilter_serialization_test():
+    bf = BloomFilter()
+    ret = bf.init(8, 8)
+    bf.insert("hello, world", 12)
+    bf.insert("hello world", 11)
+    bf.insert("hello, waldorf", 14)
+
+    (fid, filename) = mkstemp()
+    os.close(fid)
+    ret = bf.write(filename)
+    bf_fromfile = BloomFilter()
+    ret = bf_fromfile.read(filename)
+    assert bf_fromfile.query("hello, world", 12)
+    assert bf_fromfile.query("hello world", 11)
+    assert not bf_fromfile.query("hello, waldo", 12)
+    assert bf_fromfile.query("hello, waldorf", 14)
+    assert not bf_fromfile.query("hello, waldorf!", 15)
+    assert bf_fromfile.query("hello, waldorf!", 14)
+    assert not bf_fromfile.query("foobar", 6)
+
+    bf_fromfile.insert("foobar!", 6)
+    assert bf_fromfile.query("foobar", 6)
+    os.remove(filename)
+
+def bloomfilter_serialization_errors_test():
+    bf = BloomFilter()
+    ret = bf.init(4, 8)
+    bf.insert("hello, world", 12)
+    bf.insert("hello world", 11)
+    bf.insert("hello, waldorf", 14)
+
+    assert raises(lambda: bf.write("/this/path/should/not/be/writable"), IOError)
+
+    dirname = mkdtemp()
+    assert raises(lambda: bf.write(dirname), IOError)
+    os.rmdir(dirname)
+
+    bf = BloomFilter()
+    assert raises(lambda: bf.read("/this/path/should/not/exist"), IOError)
+
+    (fid, filename) = mkstemp()
+    os.close(fid)
+    bf = BloomFilter()
+    assert raises(lambda: bf.read(filename), IOError)
+    os.remove(filename)
+
+def bloomfilter_param_bndy_cases_test():
+    bf = BloomFilter()
+    ret = bf.init(1, 1)
+    bf.insert("hello, world", 12)
+    assert bf.query("hello, world", 12)
+
+def bloomfilter_uninitialized_deallocation_test():
+    def f():
+        bf_noinit = BloomFilter()
+    f()
