@@ -46,16 +46,17 @@ def run_tests(src_dirs):
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
 
-    (successes, errors) = run_tests(sys.argv[1:] if len(sys.argv) > 1 else ('.',))
+    args = (sys.argv[1:] if len(sys.argv) > 1 else ('.',))
+    (successes, errors) = run_tests(args)
     num_tests = errors + successes
     if errors == 0:
         if successes == 0:
             mood = 'O_o'
         else:
             mood = '^_^'
-    elif errors/float(num_tests) < 0.3:
+    elif errors == 1:
         mood = '-_-'
-    elif errors < num_tests:
+    elif errors > successes:
         mood = 't_t'
     else:
         mood = 'x_x'
