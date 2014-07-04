@@ -656,10 +656,10 @@ class model(object):
                 doc, subtree, l2g_idx)
         if self.subtree_Elogpi_f is not None:
             self.save_subtree_Elogpi(self.subtree_Elogpi_f,
-                doc, subtree_leaves, ids, uv)
+                doc, subtree_leaves, ids_leaves, ids)
         if self.subtree_logEpi_f is not None:
             self.save_subtree_logEpi(self.subtree_logEpi_f,
-                doc, subtree_leaves, ids, uv)
+                doc, subtree_leaves, ids_leaves, ids)
         if self.subtree_Elogtheta_f is not None:
             self.save_subtree_Elogtheta(self.subtree_Elogtheta_f,
                 doc, ids, nu_sums)
