@@ -686,14 +686,30 @@ class model(object):
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
 
         if predict_doc is not None:
-            logEpi = self.compute_subtree_logEpi(subtree, uv)
+            logEpi = self.compute_subtree_logEpi(subtree_leaves, uv)
+            logEchi = self.compute_subtree_logEchi(subtree, ab)
             # TODO abstract this?
             logEtheta = (
                 np.log(self.m_lambda0 + self.m_lambda_ss)
                 - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
             )
-            # TODO update wrt m1
-            likelihood = np.sum(np.log(np.sum(np.exp(logEpi[ids][:,np.newaxis] + logEtheta[l2g_idx[ids],:][:,predict_doc.words]), 0)) * predict_doc.counts)
+            logEpichi = np.zeros((self.m_K,))
+            for node in self.tree_iter(subtree_leaves):
+                idx = self.tree_index(node)
+                for p in it.chain((node,), self.node_ancestors(node)):
+                    p_idx = self.tree_index(p)
+                    p_level = self.node_level(p)
+                    logEpichi[p_idx] = logEchi[p_idx] + logEpi[idx]
+            likelihood = np.sum(
+                np.log(np.sum(
+                    np.exp(
+                        logEpichi[ids][:,np.newaxis]
+                        + logEtheta[l2g_idx[ids],:][:,predict_doc.words]
+                    ),
+                    0
+                ))
+                * predict_doc.counts
+            )
 
         return likelihood
 
