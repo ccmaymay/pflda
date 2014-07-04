@@ -47,6 +47,6 @@ cdef class ReservoirSampler:
     cpdef size_t capacity(self)
     cpdef size_t occupied(self)
     cpdef prnt(self)
-    cpdef lowl_key get(self, idx)
+    cpdef lowl_key get(self, idx) except? 64321
     cdef lowl_key* _sample(self)
     cpdef lowl_key [::1] sample(self)

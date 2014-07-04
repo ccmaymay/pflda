@@ -18,7 +18,7 @@ def _chisq(expected, observed):
     Compute chi-squared statistic for the given sequences of expected
     and observed counts.
 
-    >>> from pylowl import _chisq
+    >>> from pylowl.core import _chisq
     >>> _chisq([3], [3]) == 0.0
     True
     >>> _chisq([1], [3]) == 4.0
@@ -67,7 +67,7 @@ cpdef srandom(unsigned int seed):
 
     Check that calling srandom with different seeds yields different
     PRNGs while calling srandom the the same seed yields the same PRNG.
-    >>> from pylowl import srandom, ReservoirSampler
+    >>> from pylowl.core import srandom, ReservoirSampler
     >>> srandom(0)
     >>> rs1 = ReservoirSampler()
     >>> ret = rs1.init(1)
@@ -101,7 +101,7 @@ cdef class BloomFilter:
     Bloom filter for string (const char *) elements.
 
     Test basic bloom filter behavior.
-    >>> from pylowl import BloomFilter
+    >>> from pylowl.core import BloomFilter
     >>> bf = BloomFilter()
     >>> ret = bf.init(4, 8)
     >>> bf.insert("hello, world", 12)
@@ -149,7 +149,7 @@ cdef class BloomFilter:
 
     Test serialization and deserialization errors.
     >>> from tempfile import mkdtemp
-    >>> from pylowl import _raises
+    >>> from pylowl.core import _raises
     >>> _raises(lambda: bf.write("/this/path/should/not/be/writable"), IOError)
     True
     >>> dirname = mkdtemp()
@@ -253,7 +253,7 @@ cdef class CountMinSketch:
     CM sketch for string (const char *) elements.
 
     Test basic CM sketch behavior.
-    >>> from pylowl import CountMinSketch
+    >>> from pylowl.core import CountMinSketch
     >>> cm = CountMinSketch()
     >>> ret = cm.init(4, 8)
     >>> cm.add("hello, world", 12, 1)
@@ -302,7 +302,7 @@ cdef class CountMinSketch:
 
     Test serialization and deserialization errors.
     >>> from tempfile import mkdtemp
-    >>> from pylowl import _raises
+    >>> from pylowl.core import _raises
     >>> _raises(lambda: cm.write("/this/path/should/not/be/writable"), IOError)
     True
     >>> dirname = mkdtemp()
@@ -430,7 +430,7 @@ cdef class ReservoirSampler:
     Reservoir sampler for lowl_key (integral) elements.
 
     Test basic reservoir sampler behavior.
-    >>> from pylowl import ReservoirSampler
+    >>> from pylowl.core import ReservoirSampler
     >>> rs = ReservoirSampler()
     >>> ret = rs.init(4)
     >>> (rs.capacity(), rs.occupied()) == (4, 0)
@@ -507,7 +507,7 @@ cdef class ReservoirSampler:
 
     Test serialization and deserialization errors.
     >>> from tempfile import mkdtemp
-    >>> from pylowl import _raises
+    >>> from pylowl.core import _raises
     >>> _raises(lambda: rs.write("/this/path/should/not/be/writable"), IOError)
     True
     >>> dirname = mkdtemp()
@@ -669,9 +669,12 @@ cdef class ReservoirSampler:
     cpdef prnt(self):
         lowl.reservoirsampler_print(self._rs)
 
-    cpdef lowl.lowl_key get(self, idx) except *:
+    cpdef lowl.lowl_key get(self, idx) except? 64321:
         cdef lowl.lowl_key k
-        _check_err(lowl.reservoirsampler_get(self._rs, idx, &k))
+        cdef int ret
+        ret = _check_err(lowl.reservoirsampler_get(self._rs, idx, &k))
+        if ret != 0:
+            return 64321
         return k
 
     cdef lowl.lowl_key* _sample(self):
@@ -697,7 +700,7 @@ class ValuedReservoirSampler(object):
     Reservoir sampler for arbitrary Python objects as elements.
 
     Test basic reservoir sampler behavior.
-    >>> from pylowl import ValuedReservoirSampler
+    >>> from pylowl.core import ValuedReservoirSampler
     >>> rs = ValuedReservoirSampler(4)
     >>> (rs.capacity(), rs.occupied()) == (4, 0)
     True
@@ -785,7 +788,7 @@ class ValuedReservoirSampler(object):
 
     Test serialization and deserialization errors.
     >>> from tempfile import mkdtemp
-    >>> from pylowl import _raises
+    >>> from pylowl.core import _raises
     >>> (fid, filename) = mkstemp()
     >>> os.close(fid)
     >>> _raises(lambda: rs.write(filename, "/this/path/should/not/be/writable"), IOError)
