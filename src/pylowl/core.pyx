@@ -264,9 +264,12 @@ cdef class ReservoirSampler:
     cpdef prnt(self):
         lowl.reservoirsampler_print(self._rs)
 
-    cpdef lowl.lowl_key get(self, idx) except *:
+    cpdef lowl.lowl_key get(self, idx) except? 64321:
         cdef lowl.lowl_key k
-        _check_err(lowl.reservoirsampler_get(self._rs, idx, &k))
+        cdef int ret
+        ret = _check_err(lowl.reservoirsampler_get(self._rs, idx, &k))
+        if ret != 0:
+            return 64321
         return k
 
     cdef lowl.lowl_key* _sample(self):
