@@ -338,7 +338,7 @@ def reservoirsampler_serialization_errors_test():
     (fid, filename) = mkstemp()
     os.close(fid)
     rs = ReservoirSampler()
-    assert raises(lambda: rs.read(filename), IOError)
+    assert raises(lambda: rs.read(filename), ValueError)
     os.remove(filename)
 
 def reservoirsampler_c_contig_test():
@@ -516,8 +516,8 @@ def valuedreservoirsampler_serialization_errors_test():
     assert raises(lambda: ValuedReservoirSampler.read("/this/path/should/not/exist", values_filename), IOError)
     (fid, empty_filename) = mkstemp()
     os.close(fid)
-    assert raises(lambda: ValuedReservoirSampler.read(filename, empty_filename), IOError)
-    assert raises(lambda: ValuedReservoirSampler.read(empty_filename, values_filename), IOError)
+    assert raises(lambda: ValuedReservoirSampler.read(filename, empty_filename), ValueError)
+    assert raises(lambda: ValuedReservoirSampler.read(empty_filename, values_filename), ValueError)
     os.remove(empty_filename)
     os.remove(filename)
     os.remove(values_filename)
