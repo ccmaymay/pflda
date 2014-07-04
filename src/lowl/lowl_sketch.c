@@ -78,10 +78,15 @@ void cmsketch_write(cmsketch* cm, FILE* fp) {
 }
 
 int cmsketch_read(cmsketch* cm, FILE* fp) {
-  fread(&(cm->width), sizeof(size_t), 1, fp);
-  fread(&(cm->depth), sizeof(size_t), 1, fp);
-  fread(&(cm->hash_key1), sizeof(char_hash), 1, fp);
-  fread(&(cm->hash_key2), sizeof(char_hash), 1, fp);
+  int ret;
+  ret = fread(&(cm->width), sizeof(size_t), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
+  ret = fread(&(cm->depth), sizeof(size_t), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
+  ret = fread(&(cm->hash_key1), sizeof(char_hash), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
+  ret = fread(&(cm->hash_key2), sizeof(char_hash), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
 
   cm->counters = malloc(cm->depth * sizeof(lowl_count*));
   if (cm->counters == NULL)
@@ -90,7 +95,9 @@ int cmsketch_read(cmsketch* cm, FILE* fp) {
     cm->counters[i] = malloc(cm->width * sizeof(lowl_count));
     if (cm->counters[i] == NULL)
       return LOWLERR_BADMALLOC;
-    fread(cm->counters[i], sizeof(lowl_count), cm->width, fp);
+
+    ret = fread(cm->counters[i], sizeof(lowl_count), cm->width, fp);
+    if (ret == 0) return LOWLERR_BADINPUT;
   }
 
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
@@ -230,18 +237,29 @@ void bloomfilter_write(bloomfilter* f, FILE* fp) {
 }
 
 int bloomfilter_read(bloomfilter* f, FILE* fp) {
+  int ret;
   f->mask = (uint32_t*) malloc(32 * sizeof(uint32_t));
   bloomfilter_setmask( f->mask );
 
-  fread(&(f->size), sizeof(unsigned int), 1, fp);
-  fread(&(f->k), sizeof(unsigned int), 1, fp);
+  ret = fread(&(f->size), sizeof(unsigned int), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
+  ret = fread(&(f->k), sizeof(unsigned int), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
+
   f->b = (uint32_t*)malloc( f->size*sizeof(uint32_t));
   if (f->b == 0) return LOWLERR_BADMALLOC;
-  fread(f->b, sizeof(uint32_t), f->size, fp);
-  fread( &(f->hash_key_to_word1), sizeof( char_hash ), 1, fp);
-  fread( &(f->hash_key_to_word2), sizeof( char_hash ), 1, fp);
-  fread( &(f->hash_key_to_bit1), sizeof( char_hash ), 1, fp);
-  fread( &(f->hash_key_to_bit2), sizeof( char_hash ), 1, fp);
+
+  ret = fread(f->b, sizeof(uint32_t), f->size, fp);
+  if (ret < f->size) return LOWLERR_BADINPUT;
+  ret = fread( &(f->hash_key_to_word1), sizeof( char_hash ), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
+  ret = fread( &(f->hash_key_to_word2), sizeof( char_hash ), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
+  ret = fread( &(f->hash_key_to_bit1), sizeof( char_hash ), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
+  ret = fread( &(f->hash_key_to_bit2), sizeof( char_hash ), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
+
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 

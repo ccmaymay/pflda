@@ -72,12 +72,18 @@ void reservoirsampler_write(reservoirsampler* rs, FILE* fp) {
 }
 
 int reservoirsampler_read(reservoirsampler* rs, FILE* fp) {
-  fread( &(rs->capacity), sizeof(size_t), 1, fp);
-  fread( &(rs->stream_pos), sizeof(size_t), 1, fp);
+  int ret;
+  ret = fread( &(rs->capacity), sizeof(size_t), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
+  ret = fread( &(rs->stream_pos), sizeof(size_t), 1, fp);
+  if (ret == 0) return LOWLERR_BADINPUT;
+
   rs->sample = malloc(sizeof(lowl_key) * rs->capacity);
-  if (rs->sample == 0)
-    return LOWLERR_BADMALLOC;
-  fread( rs->sample, sizeof( lowl_key ), reservoirsampler_occupied(rs), fp);
+  if (rs->sample == 0) return LOWLERR_BADMALLOC;
+
+  ret = fread( rs->sample, sizeof( lowl_key ), reservoirsampler_occupied(rs), fp);
+  if (ret < reservoirsampler_occupied(rs)) return LOWLERR_BADINPUT;
+
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
 }
 

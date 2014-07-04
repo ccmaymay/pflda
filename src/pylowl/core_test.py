@@ -135,7 +135,7 @@ def bloomfilter_serialization_errors_test():
     (fid, filename) = mkstemp()
     os.close(fid)
     bf = BloomFilter()
-    assert raises(lambda: bf.read(filename), IOError)
+    assert raises(lambda: bf.read(filename), ValueError)
     os.remove(filename)
 
 def bloomfilter_param_bndy_cases_test():
