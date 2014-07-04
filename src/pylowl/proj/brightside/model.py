@@ -621,7 +621,7 @@ class model(object):
             logging.debug('Log-likelihood after U components: %f (+ %f)' % (likelihood, u_ll))
 
             # E[log p(V | beta)] + H(q(V))
-            v_ll = utils.log_sticks_likelihood(uv[:,uv_ids], 1.0, self.m_beta)
+            v_ll = utils.log_sticks_likelihood(self.m_uv[:,doc.user_idx,uv_ids], 1.0, self.m_beta)
             likelihood += v_ll
             logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
 
