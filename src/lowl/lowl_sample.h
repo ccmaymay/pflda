@@ -11,6 +11,7 @@ typedef struct reservoirsampler {
   lowl_key* sample;
 } reservoirsampler;
 
+int reservoirsampler_preinit(reservoirsampler* rs);
 int reservoirsampler_init(reservoirsampler* rs, size_t capacity);
 void reservoirsampler_destroy(reservoirsampler* rs);
 int reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx,

@@ -72,10 +72,9 @@ install: $(LIB_PATH)
 	mkdir -p $(PREFIX)/lib
 	install -m 0755 $(LIB_PATH) $(PREFIX)/lib/
 
-.PHONY: tests
-test: export $(SHLIB_LIB_PATH_ENV_VAR) += $(BUILD_DIR)
+.PHONY: test
 test: $(TESTS_OBJECT)
-	$(TESTS_OBJECT)
+	$(SHLIB_LIB_PATH_ENV_VAR)=$(BUILD_DIR):$$$(SHLIB_LIB_PATH_ENV_VAR) $(TESTS_OBJECT)
 
 .PHONY: clean
 clean:
