@@ -576,13 +576,15 @@ class model(object):
 
         ab = np.zeros((2, self.m_K, self.m_depth))
         ab[0] = 1.0
-        ab_ids = []
+        ab_leaf_ids = []
+        ab_level_ids = []
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in self.node_ancestors(node):
                 p_level = self.node_level(p)
                 ab[:,idx,p_level] = [self.m_gamma1, self.m_gamma2]
-                ab_ids.append((idx,p_level))
+                ab_leaf_ids.append(idx)
+                ab_level_ids.append(p_level)
 
         nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         log_nu = np.log(nu)
@@ -614,7 +616,7 @@ class model(object):
             likelihood = 0.0
 
             # E[log p(U | gamma_1, gamma_2)] + H(q(U))
-            u_ll = utils.log_sticks_likelihood(ab[:,ab_ids], self.m_gamma1, self.m_gamma2)
+            u_ll = utils.log_sticks_likelihood(ab[:,ab_leaf_ids,ab_depth_ids], self.m_gamma1, self.m_gamma2)
             likelihood += u_ll
             logging.debug('Log-likelihood after U components: %f (+ %f)' % (likelihood, u_ll))
 
