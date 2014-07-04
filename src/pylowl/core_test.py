@@ -516,7 +516,7 @@ def valuedreservoirsampler_serialization_errors_test():
     assert raises(lambda: ValuedReservoirSampler.read("/this/path/should/not/exist", values_filename), IOError)
     (fid, empty_filename) = mkstemp()
     os.close(fid)
-    assert raises(lambda: ValuedReservoirSampler.read(filename, empty_filename), ValueError)
+    assert raises(lambda: ValuedReservoirSampler.read(filename, empty_filename), Exception)
     assert raises(lambda: ValuedReservoirSampler.read(empty_filename, values_filename), ValueError)
     os.remove(empty_filename)
     os.remove(filename)

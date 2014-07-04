@@ -333,11 +333,8 @@ class ValuedReservoirSampler(object):
     def _read(self, const char* filename, const char* values_filename):
         self.rs.read(filename)
         self.values = [None] * self.rs.capacity()
-        try:
-            with open(values_filename, 'r') as f:
-                self.values = load(f)
-        except EOFError, ex:
-            raise ValueError(ex)
+        with open(values_filename, 'r') as f:
+            self.values = load(f)
         if self.rs.occupied() < self.rs.capacity():
             self.unused_key = self.rs.occupied()
         else:
