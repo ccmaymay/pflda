@@ -558,17 +558,6 @@ class model(object):
 
         logging.debug('Initializing document variational parameters')
 
-        # q(V_{i,j}^{(d)} = 1) = 1 for j+1 = trunc[\ell] (\ell is depth)
-        uv = np.zeros((2, self.m_K))
-        uv[0] = 1.0
-        uv[1] = self.m_beta
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            s = node[:-1] + (node[-1] + 1,) # right child
-            if s not in subtree: # node is last child of its parent in subtree
-                uv[0,idx] = 1.0
-                uv[1,idx] = 0.0
-
         ab = np.zeros((2, self.m_K, self.m_depth))
         ab[0] = 1.0
         ab_leaf_ids = []
@@ -748,8 +737,15 @@ class model(object):
         # root and vice-versa)
         g2l_idx = np.zeros(self.m_K, dtype=np.uint)
 
-        prior_uv = np.zeros((2, self.m_K))
-        prior_uv[0] = 1.0
+        # q(V_{i,j}^{(d)} = 1) = 1 for j+1 = trunc[\ell] (\ell is depth)
+        self.m_uv[:,doc.user_idx,:] = [[1.], [0.]]
+        # TODO this might be useful in uv initialization (not yet implemented)
+        #for node in self.tree_iter(subtree):
+        #    idx = self.tree_index(node)
+        #    s = node[:-1] + (node[-1] + 1,) # right sibling
+        #    if s in subtree: # node is not last child of its parent in subtree
+        #        self.m_uv[:,doc.user_idx,idx] = [1.0, self.m_beta]
+
 
         prior_ab = np.zeros((2, self.m_K, self.m_depth))
         prior_ab[0] = 1.0
@@ -826,7 +822,7 @@ class model(object):
                 left_s = node[:-1] + (node[-1] - 1,)
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
-                    prior_uv[:,left_s_idx] = [1.0, self.m_beta]
+                    self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, self.m_beta]
 
                 ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
                 ids_leaves = [self.tree_index(node)
@@ -884,7 +880,7 @@ class model(object):
                     prior_ab[:,idx,p_level] = [1.0, 0.0]
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
-                    prior_uv[:,left_s_idx] = [1.0, 0.0]
+                    self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, 0.0]
 
             if best_likelihood is None: # no candidates
                 break
@@ -912,7 +908,7 @@ class model(object):
             left_s = best_node[:-1] + (best_node[-1] - 1,)
             if left_s in subtree:
                 left_s_idx = self.tree_index(left_s)
-                prior_uv[:,left_s_idx] = [1.0, self.m_beta]
+                self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, self.m_beta]
             likelihood = best_likelihood
 
             ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
