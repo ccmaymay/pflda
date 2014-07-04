@@ -80,7 +80,7 @@ def srandom_test():
 
 def bloomfilter_test():
     bf = BloomFilter()
-    ret = bf.init(4, 8)
+    ret = bf.init(8, 8)
     bf.insert("hello, world", 12)
     bf.insert("hello world", 11)
     bf.insert("hello, waldorf", 14)
@@ -118,7 +118,7 @@ def bloomfilter_serialization_test():
 
 def bloomfilter_serialization_errors_test():
     bf = BloomFilter()
-    ret = bf.init(4, 8)
+    ret = bf.init(8, 8)
     bf.insert("hello, world", 12)
     bf.insert("hello world", 11)
     bf.insert("hello, waldorf", 14)
@@ -152,7 +152,7 @@ def bloomfilter_uninitialized_deallocation_test():
 
 def cmsketch_test():
     cm = CountMinSketch()
-    ret = cm.init(4, 8)
+    ret = cm.init(8, 8)
     cm.add("hello, world", 12, 1)
     cm.add("hello world", 11, 1)
     cm.add("hello, world", 12, 4)
@@ -167,7 +167,7 @@ def cmsketch_test():
 
 def cmsketch_serialization_test():
     cm = CountMinSketch()
-    ret = cm.init(4, 8)
+    ret = cm.init(8, 8)
     cm.add("hello, world", 12, 1)
     cm.add("hello world", 11, 1)
     cm.add("hello, world", 12, 4)
@@ -191,7 +191,7 @@ def cmsketch_serialization_test():
 
 def cmsketch_serialization_errors_test():
     cm = CountMinSketch()
-    ret = cm.init(4, 8)
+    ret = cm.init(8, 8)
     cm.add("hello, world", 12, 1)
     cm.add("hello world", 11, 1)
     cm.add("hello, world", 12, 4)
@@ -214,7 +214,7 @@ def cmsketch_serialization_errors_test():
 
 def cmsketch_clear_test():
     cm = CountMinSketch()
-    ret = cm.init(4, 8)
+    ret = cm.init(8, 8)
     cm.add("hello, world", 12, 1)
     cm.add("hello world", 11, 1)
     cm.add("hello, world", 12, 4)
@@ -272,7 +272,7 @@ def reservoirsampler_positive_probability_event_test():
     rs.insert(52)
     rs.insert(7)
 
-    n = 10000
+    n = 100000
     inserted_any = False
     ejected_any = False
     inserted_xor_ejected = False
@@ -298,7 +298,7 @@ def reservoirsampler_serialization_test():
     rs.insert(3)
     rs.insert(52)
     rs.insert(7)
-    n = 10000
+    n = 100000
     for i in xrange(n):
         (inserted, idx, ejected, ejected_key) = rs.insert(i)
     sample = [rs.get(j) for j in range(4)]
@@ -373,7 +373,7 @@ def reservoirsampler_unif_expectation_test():
     reservoir.  (Run n different experiments and show that the
     distribution of 2-sets is uniform.)
     '''
-    n = 10000
+    n = 100000
     expected = [n / 28.0] * 28
     observed = dict()
     for i in range(8):
@@ -438,7 +438,7 @@ def valuedreservoirsampler_positive_probability_event_test():
     rs.insert(47)[:3] == (True, 2, False)
     rs.insert(dict(foo="bar"))[:3] == (True, 3, False)
     rs.insert(set([7, 37]))
-    n = 10000
+    n = 100000
 
     inserted_any = False
     ejected_any = False
@@ -463,7 +463,7 @@ def valuedreservoirsampler_serialization_test():
     rs.insert(47)[:3] == (True, 2, False)
     rs.insert(dict(foo="bar"))[:3] == (True, 3, False)
     rs.insert(set([7, 37]))
-    n = 10000
+    n = 100000
     for i in xrange(n):
         rs.insert(i)
 
@@ -490,7 +490,7 @@ def valuedreservoirsampler_serialization_errors_test():
     rs.insert(47)[:3] == (True, 2, False)
     rs.insert(dict(foo="bar"))[:3] == (True, 3, False)
     rs.insert(set([7, 37]))
-    n = 10000
+    n = 100000
     for i in xrange(n):
         rs.insert(i)
 
@@ -539,7 +539,7 @@ def valuedreservoirsampler_unif_expectation_test():
     reservoir.  (Run n different experiments and show that the
     distribution of 2-sets is uniform.)
     '''
-    n = 10000
+    n = 100000
     expected = [n / 28.0] * 28
     observed = dict()
     for i in range(8):
