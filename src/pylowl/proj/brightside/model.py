@@ -269,8 +269,8 @@ class model(object):
             - sp.psi(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:, np.newaxis])
         )
 
-    def update_xi(self, subtree_leaves, uv, Elogprobw_doc, doc, nu, xi, log_xi):
-        log_xi[:] = self.compute_subtree_Elogpi(subtree_leaves, uv)
+    def update_xi(self, subtree_leaves, ids_leaves, Elogprobw_doc, doc, nu, xi, log_xi):
+        log_xi[:] = self.compute_subtree_Elogpi(subtree_leaves, ids_leaves, doc.user_idx)
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
@@ -348,13 +348,13 @@ class model(object):
                 likelihood += ElogV[1,global_s_idx]
         return likelihood
 
-    def zeta_likelihood(self, subtree_leaves, uv, xi, log_xi, ids_leaves):
-        self.check_uv_edge_cases(uv, subtree_leaves, ids_leaves)
+    def zeta_likelihood(self, subtree_leaves, ids_leaves, doc, xi, log_xi, ids_leaves):
+        self.check_uv_edge_cases(doc.user_idx, subtree_leaves, ids_leaves)
         self.check_xi_edge_cases(xi)
         self.check_log_xi_edge_cases(log_xi)
         self.check_subtree_ids(subtree_leaves, ids_leaves)
 
-        Elogpi = self.compute_subtree_Elogpi(subtree_leaves, uv):
+        Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids_leaves, doc.user_idx)
         return np.sum(xi[ids_leaves] * (Elogpi[ids_leaves] - log_xi[ids_leaves]))
 
     def c_likelihood(self, subtree, subtree_leaves, ab, nu, log_nu, ids):
@@ -420,11 +420,10 @@ class model(object):
 
         return logEpi
 
-    def compute_subtree_Elogpi(self, subtree_leaves, uv):
+    def compute_subtree_Elogpi(self, subtree_leaves, ids_leaves, user_idx):
         Elogpi = np.zeros(self.m_K)
-        ids = [self.tree_index(node) for node in self.tree_iter(subtree_leaves)]
         ElogV = np.zeros((2, self.m_K))
-        ElogV[:,ids] = utils.log_beta_expectation(uv[:,ids])
+        ElogV[:,ids_leaves] = utils.log_beta_expectation(self.m_uv[:,user_idx,ids_leaves])
 
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
@@ -437,11 +436,10 @@ class model(object):
 
         return Elogpi
 
-    def compute_subtree_logEpi(self, subtree_leaves, uv):
+    def compute_subtree_logEpi(self, subtree_leaves, ids_leaves, user_idx):
         logEpi = np.zeros(self.m_K)
-        ids = [self.tree_index(node) for node in self.tree_iter(subtree_leaves)]
         logEV = np.zeros((2, self.m_K))
-        logEV[:,ids] = utils.beta_log_expectation(uv[:,ids])
+        logEV[:,ids_leaves] = utils.beta_log_expectation(self.m_uv[:,user_idx,ids_leaves])
 
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
@@ -502,12 +500,12 @@ class model(object):
             if idx in ids and node + (0,) not in subtree: # leaf in subtree
                 assert ab[0, idx] == 1. and ab[1, idx] == 0., 'leaf %s has ab = %s (require [1, 0])' % (str(node), str(ab[:, idx]))
 
-    def check_uv_edge_cases(self, uv, subtree, ids):
+    def check_uv_edge_cases(self, user_idx, subtree, ids):
         for node in self.tree_iter(subtree):
             idx = self.tree_index(node)
             s = node[:-1] + (node[-1] + 1,) # right child
             if idx in ids and s not in subtree: # node is last child of its parent in subtree
-                assert uv[0, idx] == 1. and uv[1, idx] == 0., 'right-most child %s has uv = %s (require [1, 0])' % (str(node), str(uv[:, idx]))
+                assert self.m_uv[0, user_idx, idx] == 1. and self.m_uv[1, user_idx, idx] == 0., 'right-most child %s has uv = %s (require [1, 0])' % (str(node), str(self.m_uv[:, user_idx, idx]))
 
     def check_ElogV_edge_cases(self, ElogV):
         for node in self.tree_iter():
@@ -564,15 +562,12 @@ class model(object):
         uv = np.zeros((2, self.m_K))
         uv[0] = 1.0
         uv[1] = self.m_beta
-        uv_ids = []
         for node in self.tree_iter(subtree):
             idx = self.tree_index(node)
             s = node[:-1] + (node[-1] + 1,) # right child
             if s not in subtree: # node is last child of its parent in subtree
                 uv[0,idx] = 1.0
                 uv[1,idx] = 0.0
-            else:
-                uv_ids.append(idx)
 
         ab = np.zeros((2, self.m_K, self.m_depth))
         ab[0] = 1.0
@@ -593,7 +588,7 @@ class model(object):
 
         xi = np.zeros((self.m_K,))
         log_xi = np.log(xi)
-        self.update_xi(subtree_leaves, uv, Elogprobw_doc, doc, nu, xi, log_xi)
+        self.update_xi(subtree_leaves, ids_leaves, Elogprobw_doc, doc, nu, xi, log_xi)
 
         converge = None
         likelihood = None
@@ -608,7 +603,7 @@ class model(object):
 
             self.update_nu(subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu)
             nu_sums = np.sum(nu, 1)
-            self.update_xi(subtree_leaves, uv, Elogprobw_doc, doc, nu, xi, log_xi)
+            self.update_xi(subtree_leaves, ids_leaves, Elogprobw_doc, doc, nu, xi, log_xi)
             self.update_ab(subtree_leaves, nu_sums, ab)
 
             # compute likelihood
@@ -621,7 +616,7 @@ class model(object):
             logging.debug('Log-likelihood after U components: %f (+ %f)' % (likelihood, u_ll))
 
             # E[log p(V | beta)] + H(q(V))
-            v_ll = utils.log_sticks_likelihood(self.m_uv[:,doc.user_idx,uv_ids], 1.0, self.m_beta)
+            v_ll = utils.log_sticks_likelihood(self.m_uv[:,doc.user_idx,ids_leaves], 1.0, self.m_beta)
             likelihood += v_ll
             logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
 
@@ -636,7 +631,7 @@ class model(object):
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
 
             # E[log p(zeta | V)] + H(q(zeta))
-            zeta_ll = self.zeta_likelihood(subtree_leaves, uv, xi, log_xi, ids_leaves)
+            zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, doc, xi, log_xi, ids_leaves)
             likelihood += zeta_ll
             logging.debug('Log-likelihood after zeta components: %f (+ %f)'
                 % (likelihood, zeta_ll))
@@ -688,7 +683,7 @@ class model(object):
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
 
         if predict_doc is not None:
-            logEpi = self.compute_subtree_logEpi(subtree_leaves, uv)
+            logEpi = self.compute_subtree_logEpi(subtree_leaves, doc.user_idx)
             logEchi = self.compute_subtree_logEchi(subtree, ab)
             # TODO abstract this?
             logEtheta = (
@@ -776,8 +771,7 @@ class model(object):
 
         xi = np.zeros((self.m_K,))
         log_xi = np.log(xi)
-        self.update_xi(
-            subtree_leaves, prior_uv, Elogprobw_doc, doc, nu, xi, log_xi)
+        self.update_xi(subtree_leaves, ids_leaves, Elogprobw_doc, doc, nu, xi, log_xi)
 
         # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
         z_ll = self.z_likelihood(subtree, ElogV)
@@ -792,7 +786,7 @@ class model(object):
             % (old_likelihood, c_ll))
 
         # E[log p(zeta | V)] + H(q(zeta))
-        zeta_ll = self.zeta_likelihood(subtree_leaves, prior_uv, xi, log_xi, ids_leaves)
+        zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, doc, xi, log_xi, ids_leaves)
         old_likelihood += zeta_ll
         logging.debug('Log-likelihood after zeta components: %f (+ %f)'
             % (old_likelihood, zeta_ll))
@@ -845,7 +839,7 @@ class model(object):
                 self.update_nu(subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc,
                     candidate_xi, candidate_nu, candidate_log_nu)
 
-                self.update_xi(subtree_leaves, prior_uv, Elogprobw_doc, doc,
+                self.update_xi(subtree_leaves, ids_leaves, Elogprobw_doc, doc,
                     candidate_nu, candidate_xi, candidate_log_xi)
 
                 candidate_likelihood = 0.0
@@ -863,7 +857,7 @@ class model(object):
                     % (candidate_likelihood, c_ll))
 
                 # E[log p(zeta | V)] + H(q(zeta))
-                zeta_ll = self.zeta_likelihood(subtree_leaves, prior_uv, candidate_xi, candidate_log_xi, ids_leaves)
+                zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, doc, candidate_xi, candidate_log_xi, ids_leaves)
                 candidate_likelihood += zeta_ll
                 logging.debug('Log-likelihood after zeta components: %f (+ %f)'
                     % (candidate_likelihood, zeta_ll))
@@ -1009,14 +1003,14 @@ class model(object):
         f.write(' '.join(str(Elogtheta[i]) for i in ids))
         f.write('\n')
 
-    def save_subtree_logEpi(self, f, doc, subtree_leaves, ids, uv):
-        logEpi = self.compute_subtree_logEpi(subtree_leaves, uv)
+    def save_subtree_logEpi(self, f, doc, subtree_leaves, ids_leaves, ids):
+        logEpi = self.compute_subtree_logEpi(subtree_leaves, ids_leaves, doc.user_idx)
         f.write(str(doc.identifier) + ' ')
         f.write(' '.join(str(logEpi[i]) for i in ids))
         f.write('\n')
 
-    def save_subtree_Elogpi(self, f, doc, subtree_leaves, ids, uv):
-        Elogpi = self.compute_subtree_Elogpi(subtree_leaves, uv)
+    def save_subtree_Elogpi(self, f, doc, subtree_leaves, ids_leaves, ids):
+        Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids_leaves, doc.user_idx)
         f.write(str(doc.identifier) + ' ')
         f.write(' '.join(str(Elogpi[i]) for i in ids))
         f.write('\n')
