@@ -190,22 +190,21 @@ def cmsketch_serialization_test():
     os.remove(filename)
 
 def cmsketch_serialization_errors_test():
-    assert False
-#    cm = CountMinSketch()
-#    ret = cm.init(4, 8)
-#    cm.add("hello, world", 12, 1)
-#    cm.add("hello world", 11, 1)
-#    cm.add("hello, world", 12, 4)
-#    cm.add("hello, waldorf", 14, 42)
-#
-#    assert raises(lambda: cm.write("/this/path/should/not/be/writable"), IOError)
-#
-#    dirname = mkdtemp()
-#    assert raises(lambda: cm.write(dirname), IOError)
-#    os.rmdir(dirname)
-#
-#    cm = CountMinSketch()
-#    assert raises(lambda: cm.read("/this/path/should/not/exist"), IOError)
+    cm = CountMinSketch()
+    ret = cm.init(4, 8)
+    cm.add("hello, world", 12, 1)
+    cm.add("hello world", 11, 1)
+    cm.add("hello, world", 12, 4)
+    cm.add("hello, waldorf", 14, 42)
+
+    assert raises(lambda: cm.write("/this/path/should/not/be/writable"), IOError)
+
+    dirname = mkdtemp()
+    assert raises(lambda: cm.write(dirname), IOError)
+    os.rmdir(dirname)
+
+    cm = CountMinSketch()
+    assert raises(lambda: cm.read("/this/path/should/not/exist"), IOError)
 #
 #    (fid, filename) = mkstemp()
 #    os.close(fid)

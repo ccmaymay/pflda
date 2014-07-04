@@ -47,6 +47,7 @@ cdef class BloomFilter:
         self._bf = <lowl.bloomfilter *>PyMem_Malloc(sizeof(lowl.bloomfilter))
         if self._bf is NULL:
             raise MemoryError()
+        lowl.bloomfilter_preinit(self._bf)
 
         ret = _check_err(lowl.bloomfilter_init(self._bf, size, k))
         if ret != 0:
@@ -73,6 +74,7 @@ cdef class BloomFilter:
         self._bf = <lowl.bloomfilter *>PyMem_Malloc(sizeof(lowl.bloomfilter))
         if self._bf is NULL:
             raise MemoryError()
+        lowl.bloomfilter_preinit(self._bf)
 
         f = lowl.fopen(filename, 'rb')
         if f is NULL:
@@ -120,6 +122,7 @@ cdef class CountMinSketch:
         self._cm = <lowl.cmsketch *>PyMem_Malloc(sizeof(lowl.cmsketch))
         if self._cm is NULL:
             raise MemoryError()
+        lowl.cmsketch_preinit(self._cm)
 
         ret = _check_err(lowl.cmsketch_init(self._cm, w, d))
         if ret != 0:
@@ -149,6 +152,7 @@ cdef class CountMinSketch:
         self._cm = <lowl.cmsketch *>PyMem_Malloc(sizeof(lowl.cmsketch))
         if self._cm is NULL:
             raise MemoryError()
+        lowl.cmsketch_preinit(self._cm)
 
         f = lowl.fopen(filename, 'rb')
         if f is NULL:
@@ -198,6 +202,7 @@ cdef class ReservoirSampler:
         self._rs = <lowl.reservoirsampler *>PyMem_Malloc(sizeof(lowl.reservoirsampler))
         if self._rs is NULL:
             raise MemoryError()
+        lowl.reservoirsampler_preinit(self._rs)
 
         ret = _check_err(lowl.reservoirsampler_init(self._rs, capacity))
         if ret != 0:
@@ -228,6 +233,7 @@ cdef class ReservoirSampler:
         self._rs = <lowl.reservoirsampler *>PyMem_Malloc(sizeof(lowl.reservoirsampler))
         if self._rs is NULL:
             raise MemoryError()
+        lowl.reservoirsampler_preinit(self._rs)
 
         f = lowl.fopen(filename, 'rb')
         if f is NULL:

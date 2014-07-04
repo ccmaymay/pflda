@@ -8,6 +8,11 @@
  *                                                       *
  *********************************************************/
 
+int reservoirsampler_preinit(reservoirsampler* rs) {
+  memset(rs, 0, sizeof(reservoirsampler));
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
+}
+
 int reservoirsampler_init(reservoirsampler* rs, size_t capacity) {
   rs->capacity = capacity;
   rs->stream_pos = 0;

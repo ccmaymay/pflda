@@ -14,6 +14,11 @@
  *********************************************************/
 
 
+int cmsketch_preinit(cmsketch* cm) {
+  memset(cm, 0, sizeof(cmsketch));
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
+}
+
 /* initial setup of cmsketch. */
 int cmsketch_init(cmsketch* cm, size_t w, size_t d) {
   /* w is the desired width of the sketch
@@ -91,13 +96,14 @@ int cmsketch_read(cmsketch* cm, FILE* fp) {
   cm->counters = malloc(cm->depth * sizeof(lowl_count*));
   if (cm->counters == NULL)
     return LOWLERR_BADMALLOC;
+  memset(cm->counters, 0, cm->depth * sizeof(lowl_count*));
   for (size_t i = 0; i < cm->depth; ++i) {
     cm->counters[i] = malloc(cm->width * sizeof(lowl_count));
     if (cm->counters[i] == NULL)
       return LOWLERR_BADMALLOC;
 
     ret = fread(cm->counters[i], sizeof(lowl_count), cm->width, fp);
-    if (ret == 0) return LOWLERR_BADINPUT;
+    if (ret < cm->width) return LOWLERR_BADINPUT;
   }
 
   return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
@@ -113,14 +119,14 @@ void cmsketch_clear(cmsketch* cm) {
 }
 
 void cmsketch_destroy(cmsketch* cm) {
-  for (size_t i = 0; i < cm->depth; ++i) {
-    if (cm->counters[i] != NULL)
-      free(cm->counters[i]);
-    cm->counters[i] = NULL;
-  }
-
-  if (cm->counters != NULL)
+  if (cm->counters != NULL) {
+    for (size_t i = 0; i < cm->depth; ++i) {
+      if (cm->counters[i] != NULL)
+        free(cm->counters[i]);
+      cm->counters[i] = NULL;
+    }
     free(cm->counters);
+  }
   cm->counters = NULL;
 }
 
@@ -130,6 +136,11 @@ void cmsketch_destroy(cmsketch* cm) {
  *    Based on code by Ben Van Durme and Ashwin Lall     *
  *                                                       *
  *********************************************************/
+
+int bloomfilter_preinit(bloomfilter* f) {
+  memset(f, 0, sizeof(bloomfilter));
+  return LOWLERR_NOTANERROR_ACTUALLYHUGESUCCESS_CONGRATS;
+}
 
 int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k) {
   /* numbytes is the number of bytes to use in the bloom filter.
