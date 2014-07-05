@@ -947,6 +947,14 @@ class model(object):
             rho * ss.m_uv_ss * self.m_D / ss.m_batchsize
         )
 
+    def save_global(self, output_files):
+        self.save_lambda_ss(self.output_files['lambda_ss'])
+        self.save_logEtheta(self.output_files['logEtheta'])
+        self.save_Elogtheta(self.output_files['Elogtheta'])
+        self.save_logEpi(self.output_files['logEpi'])
+        self.save_Elogpi(self.output_files['Elogpi'])
+        self.save_pickle(self.output_files['pickle'])
+
     def save_lambda_ss(self, f):
         lambdas = self.m_lambda_ss + self.m_lambda0
         self.save_rows(f, lambdas)
@@ -966,6 +974,9 @@ class model(object):
     def save_Elogpi(self, f):
         Elogpi = self.compute_Elogpi().T
         self.save_rows(f, Elogpi)
+
+    def save_pickle(self, f):
+        cPickle.dump(self, f, -1)
 
     def save_subtree_lambda_ss(self, f, doc, ids, nu_sums):
         # TODO lambda0?
@@ -991,9 +1002,6 @@ class model(object):
         global_ids = (l2g_idx[self.tree_index(nod)]
                       for nod in self.tree_iter(subtree))
         self.save_subtree_row(f, doc, global_ids)
-
-    def save_model(self, f):
-        cPickle.dump(self, f, -1)
 
     def save_rows(self, f, m):
         if f is not None:

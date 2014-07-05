@@ -16,7 +16,7 @@ OPTIONS_BASENAME = 'options'
 OUTPUT_EXTS = dict(
     (s, '.' + s)
     for s in (
-        'model',
+        'pickle',
         'lambda_ss',
         'Elogpi',
         'logEpi',
@@ -170,7 +170,7 @@ def run(**kwargs):
     if options['U'] is None:
         raise ValueError('number of users must be specified')
     num_users = options['U']
-    
+
     # Make output dir
     result_directory = options['output_dir']
     if not os.path.isdir(result_directory):
@@ -359,19 +359,11 @@ def run(**kwargs):
                 options['save_lag'] = options['save_lag'] * 2
 
             # Save the model.
-            if options['save_model']:
-                for func_ext_pair in ((m.save_lambda_ss, LAMBDA_SS_EXT),
-                                      (m.save_logEpi, LOGEPI_EXT),
-                                      (m.save_Elogpi, ELOGPI_EXT),
-                                      (m.save_logEtheta, LOGETHETA_EXT),
-                                      (m.save_Elogtheta, ELOGTHETA_EXT),
-                                      (m.save_model, MODEL_EXT)):
-                    path = os.path.join(os.path.join(
-                        result_directory,
-                        'doc_count-%d%s' % (total_doc_count, func_ext_pair[1])
-                    ))
-                    with open(path, 'w') as f:
-                        func_ext_pair[0](f)
+            output_files = make_output_files('doc_count-%d' % total_doc_count,
+                                             result_directory,
+                                             options['save_model'])
+            m.save_global(output_files)
+            close_output_files(output_files)
 
             if options['test_data_path'] is not None:
                 test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
@@ -381,20 +373,12 @@ def run(**kwargs):
         if options['max_time'] is not None and time.time() - start_time > options['max_time']:
             break
 
-    if options['save_model']:
-        logging.info("Saving the final model and topics")
-        for func_ext_pair in ((m.save_lambda_ss, LAMBDA_SS_EXT),
-                              (m.save_logEpi, LOGEPI_EXT),
-                              (m.save_Elogpi, ELOGPI_EXT),
-                              (m.save_logEtheta, LOGETHETA_EXT),
-                              (m.save_Elogtheta, ELOGTHETA_EXT),
-                              (m.save_model, MODEL_EXT)):
-            path = os.path.join(os.path.join(
-                result_directory,
-                'final%s' % func_ext_pair[1]
-            ))
-            with open(path, 'w') as f:
-                func_ext_pair[0](f)
+    # Save the model.
+    output_files = make_output_files('final',
+                                     result_directory,
+                                     options['save_model'])
+    m.save_global(output_files)
+    close_output_files(output_files)
 
     if options['streaming'] and not options['concrete']:
         train_file.close()
@@ -404,6 +388,22 @@ def run(**kwargs):
         test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
     for (s, f) in subtree_output_files.items():
+        if f is not None:
+            f.close()
+
+
+def make_output_files(basename_stem, result_directory, save_model):
+    if save_model:
+        return dict(
+            (s, open(os.path.join(result_directory, basename_stem + ext), 'w'))
+            for (s, ext) in OUTPUT_EXTS.items()
+        )
+    else:
+        return dict(None for (s, ext) in OUTPUT_EXTS.items())
+
+
+def close_output_files(output_files):
+    for (s, f) in output_files.items():
         if f is not None:
             f.close()
 
