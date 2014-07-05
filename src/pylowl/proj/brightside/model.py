@@ -640,18 +640,12 @@ class model(object):
 
             iteration += 1
 
-        self.save_subtree(self.subtree_output_files['subtree'],
-            doc, subtree, l2g_idx)
-        self.save_subtree_Elogpi(self.subtree_output_files['subtree_Elogpi'],
-            doc, subtree_leaves, ids_leaves, ids)
-        self.save_subtree_logEpi(self.subtree_output_files['subtree_logEpi'],
-            doc, subtree_leaves, ids_leaves, ids)
-        self.save_subtree_Elogtheta(self.subtree_output_files['subtree_Elogtheta'],
-            doc, ids, nu_sums)
-        self.save_subtree_logEtheta(self.subtree_output_files['subtree_logEtheta'],
-            doc, ids, nu_sums)
-        self.save_subtree_lambda_ss(self.subtree_output_files['subtree_lambda_ss'],
-            doc, ids, nu_sums)
+        self.save_subtree(doc, subtree, l2g_idx)
+        self.save_subtree_Elogpi(doc, subtree_leaves, ids_leaves, ids)
+        self.save_subtree_logEpi(doc, subtree_leaves, ids_leaves, ids)
+        self.save_subtree_Elogtheta(doc, ids, nu_sums)
+        self.save_subtree_logEtheta(doc, ids, nu_sums)
+        self.save_subtree_lambda_ss(doc, ids, nu_sums)
 
         # update the suff_stat ss
         global_ids = l2g_idx[ids]
@@ -967,33 +961,39 @@ class model(object):
         Elogpi = self.compute_Elogpi().T
         self.save_rows(f, Elogpi)
 
-    def save_subtree_lambda_ss(self, f, doc, ids, nu_sums):
-        # TODO lambda0?
-        self.save_subtree_row(f, doc, nu_sums[ids])
-
-    def save_subtree_logEtheta(self, f, doc, ids, nu_sums):
-        logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + nu_sums)
-        self.save_subtree_row(f, doc, logEtheta[ids])
-
-    def save_subtree_Elogtheta(self, f, doc, ids, nu_sums):
-        Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + nu_sums)
-        self.save_subtree_row(f, doc, Elogtheta[ids])
-
-    def save_subtree_logEpi(self, f, doc, subtree_leaves, ids_leaves, ids):
-        logEpi = self.compute_subtree_logEpi(subtree_leaves, ids_leaves, doc.user_idx)
-        self.save_subtree_row(f, doc, logEpi[ids])
-
-    def save_subtree_Elogpi(self, f, doc, subtree_leaves, ids_leaves, ids):
-        Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids_leaves, doc.user_idx)
-        self.save_subtree_row(f, doc, Elogpi[ids])
-
-    def save_subtree(self, f, doc, subtree, l2g_idx):
-        global_ids = (l2g_idx[self.tree_index(nod)]
-                      for nod in self.tree_iter(subtree))
-        self.save_subtree_row(f, doc, global_ids)
-
     def save_model(self, f):
         cPickle.dump(self, f, -1)
+
+    def save_subtree_lambda_ss(self, doc, ids, nu_sums):
+        # TODO lambda0?
+        self.save_subtree_row(self.subtree_output_files['subtree_lambda_ss'],
+                              doc, nu_sums[ids])
+
+    def save_subtree_logEtheta(self, doc, ids, nu_sums):
+        logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + nu_sums)
+        self.save_subtree_row(self.subtree_output_files['subtree_logEtheta'],
+                              doc, logEtheta[ids])
+
+    def save_subtree_Elogtheta(self, doc, ids, nu_sums):
+        Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + nu_sums)
+        self.save_subtree_row(self.subtree_output_files['subtree_Elogtheta'],
+                              doc, Elogtheta[ids])
+
+    def save_subtree_logEpi(self, doc, subtree_leaves, ids_leaves, ids):
+        logEpi = self.compute_subtree_logEpi(subtree_leaves, ids_leaves, doc.user_idx)
+        self.save_subtree_row(self.subtree_output_files['subtree_logEpi'],
+                              doc, logEpi[ids])
+
+    def save_subtree_Elogpi(self, doc, subtree_leaves, ids_leaves, ids):
+        Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids_leaves, doc.user_idx)
+        self.save_subtree_row(self.subtree_output_files['subtree_Elogpi'],
+                              doc, Elogpi[ids])
+
+    def save_subtree(self, doc, subtree, l2g_idx):
+        global_ids = (l2g_idx[self.tree_index(nod)]
+                      for nod in self.tree_iter(subtree))
+        self.save_subtree_row(self.subtree_output_files['subtree'],
+                              doc, global_ids)
 
     def save_rows(self, f, m):
         if f is not None:
