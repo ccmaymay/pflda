@@ -41,12 +41,7 @@ class model(object):
                  delta=1e-3,
                  scale=1.,
                  rho_bound=0.,
-                 subtree_f=None,
-                 subtree_Elogpi_f=None,
-                 subtree_logEpi_f=None,
-                 subtree_Elogtheta_f=None,
-                 subtree_logEtheta_f=None,
-                 subtree_lambda_ss_f=None):
+                 subtree_output_files=None):
 
         if trunc[0] != 1:
             raise ValueError('Top-level truncation must be one.')
@@ -108,12 +103,17 @@ class model(object):
 
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
-        self.subtree_f = subtree_f
-        self.subtree_Elogpi_f = subtree_Elogpi_f
-        self.subtree_logEpi_f = subtree_logEpi_f
-        self.subtree_Elogtheta_f = subtree_Elogtheta_f
-        self.subtree_logEtheta_f = subtree_logEtheta_f
-        self.subtree_lambda_ss_f = subtree_lambda_ss_f
+        if subtree_output_files is None:
+            self.subtree_output_files = dict(
+                subtree=None,
+                subtree_logEpi=None,
+                subtree_Elogpi=None,
+                subtree_logEtheta=None,
+                subtree_Elogtheta=None,
+                subtree_lambda_ss=None,
+            )
+        else:
+            self.subtree_output_files = subtree_output_files
 
     def initialize(self, docs, init_noise_weight, eff_init_samples=None):
         docs = list(docs)
@@ -640,17 +640,17 @@ class model(object):
 
             iteration += 1
 
-        self.save_subtree(self.subtree_f,
+        self.save_subtree(self.subtree_output_files['subtree'],
             doc, subtree, l2g_idx)
-        self.save_subtree_Elogpi(self.subtree_Elogpi_f,
+        self.save_subtree_Elogpi(self.subtree_output_files['subtree_Elogpi'],
             doc, subtree_leaves, ids_leaves, ids)
-        self.save_subtree_logEpi(self.subtree_logEpi_f,
+        self.save_subtree_logEpi(self.subtree_output_files['subtree_logEpi'],
             doc, subtree_leaves, ids_leaves, ids)
-        self.save_subtree_Elogtheta(self.subtree_Elogtheta_f,
+        self.save_subtree_Elogtheta(self.subtree_output_files['subtree_Elogtheta'],
             doc, ids, nu_sums)
-        self.save_subtree_logEtheta(self.subtree_logEtheta_f,
+        self.save_subtree_logEtheta(self.subtree_output_files['subtree_logEtheta'],
             doc, ids, nu_sums)
-        self.save_subtree_lambda_ss(self.subtree_lambda_ss_f,
+        self.save_subtree_lambda_ss(self.subtree_output_files['subtree_lambda_ss'],
             doc, ids, nu_sums)
 
         # update the suff_stat ss

@@ -13,18 +13,28 @@ LOG_BASENAME = 'log'
 
 OPTIONS_BASENAME = 'options'
 
-MODEL_EXT = '.model'
-LAMBDA_SS_EXT = '.lambda_ss'
-ELOGPI_EXT = '.Elogpi'
-LOGEPI_EXT = '.logEpi'
-ELOGTHETA_EXT = '.Elogtheta'
-LOGETHETA_EXT = '.logEtheta'
-SUBTREE_BASENAME = 'subtree'
-SUBTREE_ELOGPI_BASENAME = 'subtree_Elogpi'
-SUBTREE_LOGEPI_BASENAME = 'subtree_logEpi'
-SUBTREE_ELOGTHETA_BASENAME = 'subtree_Elogtheta'
-SUBTREE_LOGETHETA_BASENAME = 'subtree_logEtheta'
-SUBTREE_LAMBDA_SS_BASENAME = 'subtree_lambda_ss'
+OUTPUT_EXTS = dict(
+    (s, '.' + s)
+    for s in (
+        'model',
+        'lambda_ss',
+        'Elogpi',
+        'logEpi',
+        'Elogtheta',
+        'logEtheta',
+    )
+)
+SUBTREE_OUTPUT_BASENAMES = dict(
+    (s, s)
+    for s in (
+        'subtree',
+        'subtree_Elogpi',
+        'subtree_logEpi',
+        'subtree_Elogtheta',
+        'subtree_logEtheta',
+        'subtree_lambda_ss',
+    )
+)
 
 DEFAULT_OPTIONS = dict(
     log_level='INFO',
@@ -300,31 +310,18 @@ def run(**kwargs):
 
     trunc = tuple(int(t) for t in options['trunc'].split(','))
 
-    subtree_f = open(os.path.join(result_directory,
-        SUBTREE_BASENAME), 'w')
-    subtree_Elogpi_f = open(os.path.join(result_directory,
-        SUBTREE_ELOGPI_BASENAME), 'w')
-    subtree_logEpi_f = open(os.path.join(result_directory,
-        SUBTREE_LOGEPI_BASENAME), 'w')
-    subtree_Elogtheta_f = open(os.path.join(result_directory,
-        SUBTREE_ELOGTHETA_BASENAME), 'w')
-    subtree_logEtheta_f = open(os.path.join(result_directory,
-        SUBTREE_LOGETHETA_BASENAME), 'w')
-    subtree_lambda_ss_f = open(os.path.join(result_directory,
-        SUBTREE_LAMBDA_SS_BASENAME), 'w')
+    subtree_output_files = dict(
+        (s, open(os.path.join(result_directory, bn), 'w'))
+        for (s, bn) in SUBTREE_OUTPUT_BASENAMES.items()
+    )
 
     logging.info("Creating online nhdp instance")
     m = model(trunc, num_docs, num_types, num_users,
-                  options['lambda0'], options['beta'], options['alpha'],
-                  options['gamma1'], options['gamma2'],
-                  options['kappa'], options['iota'], options['delta'],
-                  options['scale'],
-                  subtree_f=subtree_f,
-                  subtree_Elogpi_f=subtree_Elogpi_f,
-                  subtree_logEpi_f=subtree_logEpi_f,
-                  subtree_Elogtheta_f=subtree_Elogtheta_f,
-                  subtree_logEtheta_f=subtree_logEtheta_f,
-                  subtree_lambda_ss_f=subtree_lambda_ss_f)
+              options['lambda0'], options['beta'], options['alpha'],
+              options['gamma1'], options['gamma2'],
+              options['kappa'], options['iota'], options['delta'],
+              options['scale'],
+              subtree_output_files=subtree_output_files)
 
     if options['init_samples'] is not None:
         logging.info("Initializing")
@@ -406,12 +403,9 @@ def run(**kwargs):
     if options['test_data_path'] is not None:
         test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
-    subtree_f.close()
-    subtree_Elogpi_f.close()
-    subtree_logEpi_f.close()
-    subtree_Elogtheta_f.close()
-    subtree_logEtheta_f.close()
-    subtree_lambda_ss_f.close()
+    for (s, f) in subtree_output_files.items():
+        if f is not None:
+            f.close()
 
 
 def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
