@@ -640,24 +640,18 @@ class model(object):
 
             iteration += 1
 
-        if self.subtree_f is not None:
-            self.save_subtree(self.subtree_f,
-                doc, subtree, l2g_idx)
-        if self.subtree_Elogpi_f is not None:
-            self.save_subtree_Elogpi(self.subtree_Elogpi_f,
-                doc, subtree_leaves, ids_leaves, ids)
-        if self.subtree_logEpi_f is not None:
-            self.save_subtree_logEpi(self.subtree_logEpi_f,
-                doc, subtree_leaves, ids_leaves, ids)
-        if self.subtree_Elogtheta_f is not None:
-            self.save_subtree_Elogtheta(self.subtree_Elogtheta_f,
-                doc, ids, nu_sums)
-        if self.subtree_logEtheta_f is not None:
-            self.save_subtree_logEtheta(self.subtree_logEtheta_f,
-                doc, ids, nu_sums)
-        if self.subtree_lambda_ss_f is not None:
-            self.save_subtree_lambda_ss(self.subtree_lambda_ss_f,
-                doc, ids, nu_sums)
+        self.save_subtree(self.subtree_f,
+            doc, subtree, l2g_idx)
+        self.save_subtree_Elogpi(self.subtree_Elogpi_f,
+            doc, subtree_leaves, ids_leaves, ids)
+        self.save_subtree_logEpi(self.subtree_logEpi_f,
+            doc, subtree_leaves, ids_leaves, ids)
+        self.save_subtree_Elogtheta(self.subtree_Elogtheta_f,
+            doc, ids, nu_sums)
+        self.save_subtree_logEtheta(self.subtree_logEtheta_f,
+            doc, ids, nu_sums)
+        self.save_subtree_lambda_ss(self.subtree_lambda_ss_f,
+            doc, ids, nu_sums)
 
         # update the suff_stat ss
         global_ids = l2g_idx[ids]
@@ -1002,10 +996,12 @@ class model(object):
         cPickle.dump(self, f, -1)
 
     def save_rows(self, f, m):
-        for m in v:
-            line = ' '.join([str(x) for x in v])
-            f.write('%s\n' % line)
+        if f is not None:
+            for m in v:
+                line = ' '.join([str(x) for x in v])
+                f.write('%s\n' % line)
 
     def save_subtree_row(self, f, doc, v):
-        line = ' '.join([str(x) for x in v])
-        f.write('%s %s\n' % (str(doc.identifier), line))
+        if f is not None:
+            line = ' '.join([str(x) for x in v])
+            f.write('%s %s\n' % (str(doc.identifier), line))
