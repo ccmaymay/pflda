@@ -359,11 +359,8 @@ def run(**kwargs):
                 options['save_lag'] = options['save_lag'] * 2
 
             # Save the model.
-            output_files = make_output_files('doc_count-%d' % total_doc_count,
-                                             result_directory,
-                                             options['save_model'])
-            m.save_global(output_files)
-            close_output_files(output_files)
+            save_global(m, 'doc_count-%d' % total_doc_count, result_directory,
+                        options['save_model'])
 
             if options['test_data_path'] is not None:
                 test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
@@ -374,11 +371,7 @@ def run(**kwargs):
             break
 
     # Save the model.
-    output_files = make_output_files('final',
-                                     result_directory,
-                                     options['save_model'])
-    m.save_global(output_files)
-    close_output_files(output_files)
+    save_global(m, 'final', result_directory, options['save_model'])
 
     if options['streaming'] and not options['concrete']:
         train_file.close()
@@ -390,6 +383,15 @@ def run(**kwargs):
     for (s, f) in subtree_output_files.items():
         if f is not None:
             f.close()
+
+
+def save_global(m, basename_stem, result_directory, save_model):
+    if save_model:
+        logging.info('Saving global model with stem %s' % basename_stem)
+    output_files = make_output_files(basename_stem, result_directory,
+                                     save_model)
+    m.save_global(output_files)
+    close_output_files(output_files)
 
 
 def make_output_files(basename_stem, result_directory, save_model):
