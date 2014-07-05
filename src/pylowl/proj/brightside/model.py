@@ -955,67 +955,57 @@ class model(object):
 
     def save_lambda_ss(self, f):
         lambdas = self.m_lambda_ss + self.m_lambda0
-        for row in lambdas:
-            line = ' '.join([str(x) for x in row])
-            f.write(line + '\n')
+        self.save_rows(f, lambdas)
 
     def save_logEtheta(self, f):
         logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + self.m_lambda_ss)
-        for row in logEtheta:
-            line = ' '.join([str(x) for x in row])
-            f.write(line + '\n')
+        self.save_rows(f, logEtheta)
 
     def save_Elogtheta(self, f):
         Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
-        for row in Elogtheta:
-            line = ' '.join([str(x) for x in row])
-            f.write(line + '\n')
+        self.save_rows(f, Elogtheta)
 
     def save_logEpi(self, f):
         logEpi = self.compute_logEpi().T
-        f.write('\n'.join(str(x) for x in logEpi))
-        f.write('\n')
+        self.save_rows(f, logEpi)
 
     def save_Elogpi(self, f):
         Elogpi = self.compute_Elogpi().T
-        f.write('\n'.join(str(x) for x in Elogpi))
-        f.write('\n')
+        self.save_rows(f, Elogpi)
 
     def save_subtree_lambda_ss(self, f, doc, ids, nu_sums):
         # TODO lambda0?
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(x) for x in nu_sums[ids]))
-        f.write('\n')
+        self.save_subtree_row(f, doc, nu_sums[ids])
 
     def save_subtree_logEtheta(self, f, doc, ids, nu_sums):
         logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + nu_sums)
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(logEtheta[i]) for i in ids))
-        f.write('\n')
+        self.save_subtree_row(f, doc, logEtheta[ids])
 
     def save_subtree_Elogtheta(self, f, doc, ids, nu_sums):
         Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + nu_sums)
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(Elogtheta[i]) for i in ids))
-        f.write('\n')
+        self.save_subtree_row(f, doc, Elogtheta[ids])
 
     def save_subtree_logEpi(self, f, doc, subtree_leaves, ids_leaves, ids):
         logEpi = self.compute_subtree_logEpi(subtree_leaves, ids_leaves, doc.user_idx)
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(logEpi[i]) for i in ids))
-        f.write('\n')
+        self.save_subtree_row(f, doc, logEpi[ids])
 
     def save_subtree_Elogpi(self, f, doc, subtree_leaves, ids_leaves, ids):
         Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids_leaves, doc.user_idx)
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(Elogpi[i]) for i in ids))
-        f.write('\n')
+        self.save_subtree_row(f, doc, Elogpi[ids])
 
     def save_subtree(self, f, doc, subtree, l2g_idx):
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(l2g_idx[self.tree_index(nod)])
-                         for nod in self.tree_iter(subtree)))
-        f.write('\n')
+        global_ids = (l2g_idx[self.tree_index(nod)]
+                      for nod in self.tree_iter(subtree))
+        self.save_subtree_row(f, doc, global_ids)
 
     def save_model(self, f):
         cPickle.dump(self, f, -1)
+
+    def save_rows(self, f, m):
+        for m in v:
+            line = ' '.join([str(x) for x in v])
+            f.write('%s\n' % line)
+
+    def save_subtree_row(self, f, doc, v):
+        line = ' '.join([str(x) for x in v])
+        f.write('%s %s\n' % (str(doc.identifier), line))
