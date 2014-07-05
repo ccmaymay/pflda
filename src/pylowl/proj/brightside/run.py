@@ -311,7 +311,7 @@ def run(**kwargs):
     trunc = tuple(int(t) for t in options['trunc'].split(','))
 
     subtree_output_files = dict(
-        (s, open(os.path.join(result_directory, bn), 'w'))
+        make_subtree_output_file(bn, result_directory, options['save_model'])
         for (s, bn) in SUBTREE_OUTPUT_BASENAMES.items()
     )
 
@@ -406,6 +406,13 @@ def run(**kwargs):
     for (s, f) in subtree_output_files.items():
         if f is not None:
             f.close()
+
+
+def make_subtree_output_file(basename, result_directory, save_model):
+    if save_model:
+        return open(os.path.join(result_directory, basename), 'w')
+    else:
+        return None
 
 
 def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
