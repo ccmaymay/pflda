@@ -640,22 +640,9 @@ class model(object):
 
             iteration += 1
 
-        self.save_subtree(self.subtree_output_files['subtree'],
-            doc, subtree, l2g_idx)
-        self.save_subtree_Elogpi(self.subtree_output_files['subtree_Elogpi'],
-            doc, subtree_leaves, ids_leaves, ids)
-        self.save_subtree_logEpi(self.subtree_output_files['subtree_logEpi'],
-            doc, subtree_leaves, ids_leaves, ids)
-        self.save_subtree_Elogtheta(self.subtree_output_files['subtree_Elogtheta'],
-            doc, ids, nu_sums)
-        self.save_subtree_logEtheta(self.subtree_output_files['subtree_logEtheta'],
-            doc, ids, nu_sums)
-        self.save_subtree_lambda_ss(self.subtree_output_files['subtree_lambda_ss'],
-            doc, ids, nu_sums)
-
-        # update the suff_stat ss
-        global_ids = l2g_idx[ids]
-        ss.m_tau_ss[global_ids] += 1
+        # update ss and compute doc-specific lambda ss (for save_subtree_*)
+        doc_lambda_ss = np.zeros((self.m_K, self.m_W))
+        ss.m_tau_ss[l2g_idx[ids]] += 1
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
@@ -663,7 +650,22 @@ class model(object):
                 p_level = self.node_level(p)
                 ss.m_uv_ss[users_to_batch_map[doc.user_idx], p_idx] += xi[idx]
                 for n in xrange(num_tokens):
+                    doc_lambda_ss[p_idx, batch_to_vocab_word_map[token_batch_ids[n]]] += nu[idx, n, p_level] * xi[idx]
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
+
+        # save subtree stats
+        self.save_subtree(self.subtree_output_files['subtree'],
+            doc, subtree, l2g_idx)
+        self.save_subtree_Elogpi(self.subtree_output_files['subtree_Elogpi'],
+            doc, subtree_leaves, ids_leaves, ids)
+        self.save_subtree_logEpi(self.subtree_output_files['subtree_logEpi'],
+            doc, subtree_leaves, ids_leaves, ids)
+        self.save_subtree_Elogtheta(self.subtree_output_files['subtree_Elogtheta'],
+            doc, ids, doc_lambda_ss)
+        self.save_subtree_logEtheta(self.subtree_output_files['subtree_logEtheta'],
+            doc, ids, doc_lambda_ss)
+        self.save_subtree_lambda_ss(self.subtree_output_files['subtree_lambda_ss'],
+            doc, ids, doc_lambda_ss)
 
         if predict_doc is not None:
             logEpi = self.compute_subtree_logEpi(subtree_leaves, doc.user_idx)
@@ -968,26 +970,25 @@ class model(object):
         self.save_rows(f, Elogtheta)
 
     def save_logEpi(self, f):
-        logEpi = self.compute_logEpi().T
+        logEpi = self.compute_logEpi()
         self.save_rows(f, logEpi)
 
     def save_Elogpi(self, f):
-        Elogpi = self.compute_Elogpi().T
+        Elogpi = self.compute_Elogpi()
         self.save_rows(f, Elogpi)
 
     def save_pickle(self, f):
         cPickle.dump(self, f, -1)
 
-    def save_subtree_lambda_ss(self, f, doc, ids, nu_sums):
-        # TODO lambda0?
-        self.save_subtree_row(f, doc, nu_sums[ids])
+    def save_subtree_lambda_ss(self, f, doc, ids, doc_lambda_ss):
+        self.save_subtree_row(f, doc, doc_lambda_ss[ids] + self.m_lambda0)
 
-    def save_subtree_logEtheta(self, f, doc, ids, nu_sums):
-        logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + nu_sums)
+    def save_subtree_logEtheta(self, f, doc, ids, doc_lambda_ss):
+        logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + doc_lambda_ss)
         self.save_subtree_row(f, doc, logEtheta[ids])
 
-    def save_subtree_Elogtheta(self, f, doc, ids, nu_sums):
-        Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + nu_sums)
+    def save_subtree_Elogtheta(self, f, doc, ids, doc_lambda_ss):
+        Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + doc_lambda_ss)
         self.save_subtree_row(f, doc, Elogtheta[ids])
 
     def save_subtree_logEpi(self, f, doc, subtree_leaves, ids_leaves, ids):
