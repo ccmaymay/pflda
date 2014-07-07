@@ -109,8 +109,6 @@ update_graphs = function() {
         var nodes = cluster.nodes($root[c]["subtree"]);
         var links = cluster.links(nodes);
 
-
-
         var link = svg.selectAll(".link")
         .data(links)
         .enter().append("path")
@@ -119,14 +117,12 @@ update_graphs = function() {
         .style("stroke-opacity", function(d) { return d.target.active ?
                "1" : "0.1"; });
 
-
         var node = svg.selectAll(".node")
         .data(nodes)
         .enter().append("g")
         .attr("class", "node")
         .attr("transform", function(d) { return "translate(" +
               d.y + "," + d.x + ")"; });
-
 
         node.append("circle")
         .attr("r", function(d) { return node_size(d); })
@@ -138,9 +134,6 @@ update_graphs = function() {
                (d.Elogpi+8)/8 : "0.05"; })
         .style("fill-opacity", function(d) { return d.active ?
                (d.Elogpi+8)/8 : "0.05"; });
-
-
-
 
         if(document.getElementById("showValues").checked == true){
             node.append("text")
