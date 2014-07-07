@@ -30,6 +30,8 @@ SUBTREE_OUTPUT_BASENAMES = dict(
         'subtree',
         'subtree_Elogpi',
         'subtree_logEpi',
+        'subtree_Elogchi',
+        'subtree_logEchi',
         'subtree_Elogtheta',
         'subtree_logEtheta',
         'subtree_lambda_ss',

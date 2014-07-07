@@ -108,6 +108,8 @@ class model(object):
                 subtree=None,
                 subtree_logEpi=None,
                 subtree_Elogpi=None,
+                subtree_logEchi=None,
+                subtree_Elogchi=None,
                 subtree_logEtheta=None,
                 subtree_Elogtheta=None,
                 subtree_lambda_ss=None,
@@ -660,6 +662,10 @@ class model(object):
             doc, subtree_leaves, ids_leaves, ids)
         self.save_subtree_logEpi(self.subtree_output_files['subtree_logEpi'],
             doc, subtree_leaves, ids_leaves, ids)
+        self.save_subtree_Elogchi(self.subtree_output_files['subtree_Elogchi'],
+            doc, subtree, ids, ab)
+        self.save_subtree_logEchi(self.subtree_output_files['subtree_logEchi'],
+            doc, subtree, ids, ab)
         self.save_subtree_Elogtheta(self.subtree_output_files['subtree_Elogtheta'],
             doc, ids, doc_lambda_ss)
         self.save_subtree_logEtheta(self.subtree_output_files['subtree_logEtheta'],
@@ -998,6 +1004,14 @@ class model(object):
     def save_subtree_Elogpi(self, f, doc, subtree_leaves, ids_leaves, ids):
         Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids_leaves, doc.user_idx)
         self.save_subtree_row(f, doc, Elogpi[ids])
+
+    def save_subtree_logEchi(self, f, doc, subtree, ids, ab):
+        logEchi = self.compute_subtree_logEchi(subtree, ab)
+        self.save_subtree_row(f, doc, logEchi[ids])
+
+    def save_subtree_Elogchi(self, f, doc, subtree, ids, ab):
+        Elogchi = self.compute_subtree_Elogchi(subtree, ab)
+        self.save_subtree_row(f, doc, Elogchi[ids])
 
     def save_subtree(self, f, doc, subtree, l2g_idx):
         global_ids = (l2g_idx[self.tree_index(nod)]
