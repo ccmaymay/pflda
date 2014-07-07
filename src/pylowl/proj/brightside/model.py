@@ -578,8 +578,6 @@ class model(object):
         self.update_nu(subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu)
         nu_sums = np.sum(nu, 1)
 
-        self.update_xi(subtree_leaves, ids_leaves, Elogprobw_doc, doc, nu, xi, log_xi)
-
         converge = None
         likelihood = None
         old_likelihood = None
@@ -591,9 +589,9 @@ class model(object):
             logging.debug('Updating document variational parameters (iteration: %d)' % iteration)
             # update variational parameters
 
+            self.update_xi(subtree_leaves, ids_leaves, Elogprobw_doc, doc, nu, xi, log_xi)
             self.update_nu(subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu)
             nu_sums = np.sum(nu, 1)
-            self.update_xi(subtree_leaves, ids_leaves, Elogprobw_doc, doc, nu, xi, log_xi)
             self.update_ab(subtree_leaves, nu_sums, ab)
 
             # compute likelihood
@@ -779,8 +777,6 @@ class model(object):
         self.update_nu(
             subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc, xi, nu, log_nu)
 
-        self.update_xi(subtree_leaves, ids_leaves, Elogprobw_doc, doc, nu, xi, log_xi)
-
         # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
         z_ll = self.z_likelihood(subtree, ElogV)
         old_likelihood += z_ll
@@ -805,11 +801,11 @@ class model(object):
         logging.debug('Log-likelihood after W component: %f (+ %f)'
             % (old_likelihood, w_ll))
 
-        candidate_nu = np.zeros((self.m_K, num_tokens, self.m_depth))
-        candidate_log_nu = np.log(nu)
+        candidate_nu = nu
+        candidate_log_nu = log_nu
 
-        candidate_xi = np.zeros((self.m_K,))
-        candidate_log_xi = np.log(xi)
+        candidate_xi = xi
+        candidate_log_xi = log_xi
 
         while True:
             best_node = None
@@ -844,11 +840,18 @@ class model(object):
                     % ' '.join(str(l2g_idx[i]) for i in ids))
 
                 Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
+
+                xi[:] = 0.
+                xi[ids_leaves] = 1./len(ids_leaves)
+                log_xi = np.log(xi)
+
                 self.update_nu(subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc,
                     candidate_xi, candidate_nu, candidate_log_nu)
 
                 self.update_xi(subtree_leaves, ids_leaves, Elogprobw_doc, doc,
                     candidate_nu, candidate_xi, candidate_log_xi)
+                self.update_nu(subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc,
+                    candidate_xi, candidate_nu, candidate_log_nu)
 
                 candidate_likelihood = 0.0
 
