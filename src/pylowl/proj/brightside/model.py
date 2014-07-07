@@ -104,16 +104,7 @@ class model(object):
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
         if subtree_output_files is None:
-            self.subtree_output_files = dict(
-                subtree=None,
-                subtree_logEpi=None,
-                subtree_Elogpi=None,
-                subtree_logEchi=None,
-                subtree_Elogchi=None,
-                subtree_logEtheta=None,
-                subtree_Elogtheta=None,
-                subtree_lambda_ss=None,
-            )
+            self.subtree_output_files = dict()
         else:
             self.subtree_output_files = subtree_output_files
 
@@ -656,21 +647,29 @@ class model(object):
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
 
         # save subtree stats
-        self.save_subtree(self.subtree_output_files['subtree'],
+        self.save_subtree(
+            self.subtree_output_files.get('subtree', None),
             doc, subtree, l2g_idx)
-        self.save_subtree_Elogpi(self.subtree_output_files['subtree_Elogpi'],
+        self.save_subtree_Elogpi(
+            self.subtree_output_files.get('subtree_Elogpi', None),
             doc, subtree_leaves, ids_leaves, ids)
-        self.save_subtree_logEpi(self.subtree_output_files['subtree_logEpi'],
+        self.save_subtree_logEpi(
+            self.subtree_output_files.get('subtree_logEpi', None),
             doc, subtree_leaves, ids_leaves, ids)
-        self.save_subtree_Elogchi(self.subtree_output_files['subtree_Elogchi'],
+        self.save_subtree_Elogchi(
+            self.subtree_output_files.get('subtree_Elogchi', None),
             doc, subtree, ids, ab)
-        self.save_subtree_logEchi(self.subtree_output_files['subtree_logEchi'],
+        self.save_subtree_logEchi(
+            self.subtree_output_files.get('subtree_logEchi', None),
             doc, subtree, ids, ab)
-        self.save_subtree_Elogtheta(self.subtree_output_files['subtree_Elogtheta'],
+        self.save_subtree_Elogtheta(
+            self.subtree_output_files.get('subtree_Elogtheta', None),
             doc, ids, doc_lambda_ss)
-        self.save_subtree_logEtheta(self.subtree_output_files['subtree_logEtheta'],
+        self.save_subtree_logEtheta(
+            self.subtree_output_files.get('subtree_logEtheta', None),
             doc, ids, doc_lambda_ss)
-        self.save_subtree_lambda_ss(self.subtree_output_files['subtree_lambda_ss'],
+        self.save_subtree_lambda_ss(
+            self.subtree_output_files.get('subtree_lambda_ss', None),
             doc, ids, doc_lambda_ss)
 
         if predict_doc is not None:
@@ -956,12 +955,12 @@ class model(object):
         )
 
     def save_global(self, output_files):
-        self.save_lambda_ss(self.output_files['lambda_ss'])
-        self.save_logEtheta(self.output_files['logEtheta'])
-        self.save_Elogtheta(self.output_files['Elogtheta'])
-        self.save_logEpi(self.output_files['logEpi'])
-        self.save_Elogpi(self.output_files['Elogpi'])
-        self.save_pickle(self.output_files['pickle'])
+        self.save_lambda_ss(output_files.get('lambda_ss', None))
+        self.save_logEtheta(output_files.get('logEtheta', None))
+        self.save_Elogtheta(output_files.get('Elogtheta', None))
+        self.save_logEpi(output_files.get('logEpi', None))
+        self.save_Elogpi(output_files.get('Elogpi', None))
+        self.save_pickle(output_files.get('pickle', None))
 
     def save_lambda_ss(self, f):
         lambdas = self.m_lambda_ss + self.m_lambda0

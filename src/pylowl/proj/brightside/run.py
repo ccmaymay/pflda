@@ -312,10 +312,13 @@ def run(**kwargs):
 
     trunc = tuple(int(t) for t in options['trunc'].split(','))
 
-    subtree_output_files = dict(
-        make_subtree_output_file(bn, result_directory, options['save_model'])
-        for (s, bn) in SUBTREE_OUTPUT_BASENAMES.items()
-    )
+    if options['save_model']:
+        subtree_output_files = dict(
+            open(os.path.join(result_directory, bn), 'w')
+            for (s, bn) in SUBTREE_OUTPUT_BASENAMES.items()
+        )
+    else:
+        subtree_output_files = dict()
 
     logging.info("Creating online nhdp instance")
     m = model(trunc, num_docs, num_types, num_users,
@@ -403,20 +406,13 @@ def make_output_files(basename_stem, result_directory, save_model):
             for (s, ext) in OUTPUT_EXTS.items()
         )
     else:
-        return dict(None for (s, ext) in OUTPUT_EXTS.items())
+        return dict()
 
 
 def close_output_files(output_files):
     for (s, f) in output_files.items():
         if f is not None:
             f.close()
-
-
-def make_subtree_output_file(basename, result_directory, save_model):
-    if save_model:
-        return open(os.path.join(result_directory, basename), 'w')
-    else:
-        return None
 
 
 def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
