@@ -565,13 +565,15 @@ class model(object):
                 ab_leaf_ids.append(idx)
                 ab_level_ids.append(p_level)
 
+        xi = np.zeros((self.m_K,))
+        xi[ids_leaves] = 1./len(ids_leaves)
+        log_xi = np.log(xi)
+
         nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         log_nu = np.log(nu)
         self.update_nu(subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu)
         nu_sums = np.sum(nu, 1)
 
-        xi = np.zeros((self.m_K,))
-        log_xi = np.log(xi)
         self.update_xi(subtree_leaves, ids_leaves, Elogprobw_doc, doc, nu, xi, log_xi)
 
         converge = None
@@ -763,13 +765,16 @@ class model(object):
             % ' '.join(str(l2g_idx[i]) for i in ids))
 
         Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
+
+        xi = np.zeros((self.m_K,))
+        xi[ids_leaves] = 1./len(ids_leaves)
+        log_xi = np.log(xi)
+
         nu = np.zeros((self.m_K, num_tokens, self.m_depth))
         log_nu = np.log(nu)
         self.update_nu(
             subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc, xi, nu, log_nu)
 
-        xi = np.zeros((self.m_K,))
-        log_xi = np.log(xi)
         self.update_xi(subtree_leaves, ids_leaves, Elogprobw_doc, doc, nu, xi, log_xi)
 
         # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
