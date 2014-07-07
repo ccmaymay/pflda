@@ -26,6 +26,7 @@ cdef extern from "lowl_sketch.h":
     ctypedef struct bloomfilter:
         pass
 
+    int  bloomfilter_preinit(bloomfilter* f)
     int  bloomfilter_init(bloomfilter* f, size_t size, unsigned int k)
     void bloomfilter_insert(bloomfilter* f, const char *x, size_t n)
     bint bloomfilter_query(bloomfilter* f, const char *x, size_t n)
@@ -37,6 +38,7 @@ cdef extern from "lowl_sketch.h":
     ctypedef struct cmsketch:
         pass
 
+    int cmsketch_preinit(cmsketch* cm)
     int cmsketch_init(cmsketch* cm, size_t w, size_t d)
     void cmsketch_add(cmsketch* cm, const char *x, size_t n, lowl_count delta)
     lowl_count cmsketch_query(cmsketch* cm, const char *x, size_t n)
@@ -51,6 +53,7 @@ cdef extern from "lowl_sample.h":
     ctypedef struct reservoirsampler:
         pass
 
+    int  reservoirsampler_preinit(reservoirsampler* rs)
     int  reservoirsampler_init(reservoirsampler* rs, size_t capacity)
     bint reservoirsampler_insert(reservoirsampler* rs, lowl_key x, size_t *idx, bint *ejected, lowl_key *ejected_key)
     void reservoirsampler_print(reservoirsampler* rs)

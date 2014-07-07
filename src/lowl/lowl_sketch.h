@@ -19,6 +19,7 @@ typedef struct cmsketch{
   char_hash hash_key2;
 }cmsketch; 
 
+int cmsketch_preinit(cmsketch* cm);
 int cmsketch_init(cmsketch* cm, size_t w, size_t d);
 void cmsketch_add(cmsketch* cm, const char *x, size_t len, lowl_count delta);
 lowl_count cmsketch_query(cmsketch* cm, const char *x, size_t len);
@@ -42,6 +43,7 @@ typedef struct bloomfilter {
   uint32_t* mask;
 }bloomfilter;
 
+int bloomfilter_preinit(bloomfilter* f);
 int bloomfilter_init(bloomfilter* f, size_t numbytes, unsigned int k);
 void bloomfilter_setmask( uint32_t* mask );
 void bloomfilter_insert(bloomfilter* f, const char* x, size_t len);

@@ -71,15 +71,6 @@ def generate_d3_topic_graph(trunc_csv,
                 for (t, w) in enumerate(float(w) for w in line.strip().split()):
                     node_topics[idx]['words'][t][stat_name] = w
 
-    # TODO remove this later
-    from pylowl.proj.brightside.utils import take
-    def copy_k(d, k, new_k):
-        new_d = d.copy()
-        new_d[new_k] = d[k]
-        return new_d
-    node_topics = [dict(children=[], words=list(copy_k(d, 'lambda_ss', 'weight') for d in take(sorted(node_topic['words'], key=lambda p: p['lambda_ss'], reverse=True), 10)))
-                   for node_topic in node_topics]
-
     for (stat_name, stat_filename) in (('Elogpi', Elogpi_filename),
                                        ('logEpi', logEpi_filename)):
         with open(stat_filename) as f:
