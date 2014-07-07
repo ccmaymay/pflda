@@ -271,7 +271,7 @@ class model(object):
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                log_xi[idx] += np.sum(nu[idx,:,p_level] * Elogprobw_doc[p_idx,:] * doc.counts)
+                log_xi[idx] += np.sum(nu[idx,:,p_level] * np.repeat(Elogprobw_doc[p_idx,:], doc.counts))
 
         log_xi[[self.tree_index(node) for node in self.tree_iter() if node not in subtree_leaves]] = -np.inf
         (log_xi[:], log_norm) = utils.log_normalize(log_xi)
@@ -285,7 +285,7 @@ class model(object):
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                log_nu[idx,:,p_level] = Elogchi[p_idx] + xi[idx] * np.sum(Elogprobw_doc[p_idx,:] * doc.counts)
+                log_nu[idx,:,p_level] = Elogchi[p_idx] + xi[idx] * Elogprobw_doc[p_idx,:] * doc.counts
 
         (log_nu[:,:], log_norm) = utils.log_normalize(log_nu)
         nu[:,:] = np.exp(log_nu)
@@ -378,7 +378,7 @@ class model(object):
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                likelihood += xi[idx] * np.sum(nu[idx,:,p_level] * Elogprobw_doc[p_idx,:] * doc.counts)
+                likelihood += xi[idx] * np.sum(nu[idx,:,p_level] * np.repeat(Elogprobw_doc[p_idx,:], doc.counts))
         return likelihood
 
     def compute_Elogpi(self):
