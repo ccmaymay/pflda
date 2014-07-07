@@ -1,181 +1,190 @@
 <!DOCTYPE html>
+<html>
+<head>
+
 <meta charset="utf-8">
-    <style>
-        
-        body {
-            font: sans-serif;
+<style>
+
+body {
+  font: sans-serif;
+}
+
+.node circle {
+  fill: #fff;
+  stroke: #000;
+  stroke-opacity: 0.4;
+  stroke-width: 1.5px;
+}
+
+.node {
+  font: 10px sans-serif;
+}
+
+.link {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: 0.2;
+  stroke-width: 1.5px;
+}
+
+</style>
+
+</head>
+<body>
+
+<div id="showCounts"> show counts: <input type="checkbox" onchange="update_graph();" id="showValues"/> </div>
+<div id="graphs_container">
+</div>
+
+<script src="d3.v3.js"></script>
+<script>
+
+var diagonal = d3.svg.diagonal()
+    .projection(function(d) { return [d.y, d.x]; });
+
+make_format_words = function(min_font, font_exp_scale) {
+    return function(d) {
+        top_words(d);
+        s = "<div>";
+
+        for (j = 0; j < 10; j++) {
+            word = d.words[j].word;
+            weight = d.words[j].lambda_ss;
+            if (j > 0) { s += " "; }
+            s += "<span style=\"font-size: " + Math.max(min_font,
+                                                        font_exp_scale*Math.log(weight)/Math.log(2)) + "px\">" + word +
+        "</span>";
         }
-        
-        .node circle {
-            fill: #fff;
-            stroke: #000;
-            stroke-opacity: 0.4;
-            stroke-width: 1.5px;
+        s += "</div>";
+        return s;
+    }
+}
+
+update_graph = function() {
+    graphs_container = document.getElementById("graphs_container");
+    while (graphs_container.hasChildNodes()) {
+        graphs_container.removeChild(graphs_container.firstChild);
+    }
+
+    var cluster = d3.layout.cluster()
+    .size([$height, $width - 300]);
+
+    var svg = d3.select("#graphs_container").append("svg")
+    .attr("width", $width)
+    .attr("height", $height)
+    .append("g")
+    .attr("transform", "translate(20,0)");
+
+    var nodes = cluster.nodes($root),
+    links = cluster.links(nodes);
+
+    var link = svg.selectAll(".link")
+    .data(links)
+    .enter().append("path")
+    .attr("class", "link")
+    .attr("d", diagonal);
+
+    var node = svg.selectAll(".node")
+    .data(nodes)
+    .enter().append("g")
+    .attr("class", "node")
+    .attr("transform", function(d) { return "translate(" + d.y +
+          "," + d.x + ")"; })
+
+    node.append("foreignObject")
+    .attr("width", 200)
+    .attr("height", 140)
+    .append("xhtml:body")
+    .html(make_format_words(6, 2));
+
+    if(document.getElementById("showValues").checked == true){
+        node.append("text").attr("dx",0).attr("dy",-11).style("text-anchor","start")
+        .text(function(d){return Math.pow(Math.E,d.logEpi)});
+    }
+}
+
+tree_depth = function(node) {
+    var depth = 0;
+    for (var c in node.children) {
+        child = node.children[c];
+        depth = Math.max(depth, 1 + tree_depth(child));
+    }
+    return depth;
+}
+
+
+tree_size = function(node) {
+    var size = 1;
+    for (var c in node.children) {
+        child = node.children[c];
+        size += tree_size(child);
+    }
+    return size;
+}
+
+tree_size_per_level = function(node) {
+    var sizes = [1];
+    for (var c in node.children) {
+        child = node.children[c];
+        var c_sizes = tree_size_per_level(child);
+        for (var j = 0; j < sizes.length - 1 && j < c_sizes.length; ++j) {
+            sizes[j+1] += c_sizes[j];
         }
-        
-        .node {
-            font: 10px sans-serif;
+        for (var j = sizes.length - 1; j < c_sizes.length; ++j) {
+            sizes.push(c_sizes[j]);
         }
-        
-        .link {
-            fill: none;
-            stroke: #000;
-            stroke-opacity: 0.2;
-            stroke-width: 1.5px;
+    }
+    return sizes;
+}
+
+//Figure out the top words for a node.
+top_words = function(node) {
+    //Is 10 if wants 10 words. Change for more.
+    for(i=0; i<10; i++){
+        for(j=i; j<node.words.length; j++){
+            if(node.words[j].lambda_ss > node.words[i].lambda_ss){
+                var temp = node.words[i];
+                node.words[i] = node.words[j];
+                node.words[j] = temp;
+            }
         }
-        
-        </style>
-    <body>
-        <div id="showCounts"> show counts: <input type="checkbox" onchange="update_graph();" id="showValues"/> </div>
-        <div id="graphs_container">
-        </div>
-        <script src="d3.v3.js"></script>
-        <script>
-            
-            var diagonal = d3.svg.diagonal()
-            .projection(function(d) { return [d.y, d.x]; });
-            
-            make_format_words = function(min_font, font_exp_scale) {
-                return function(d) {
-                    top_words(d);
-                    s = "<div>";
-                    
-                    for (j = 0; j < 10; j++) {
-                        word = d.words[j].word;
-                        weight = d.words[j].lambda_ss;
-                        if (j > 0) { s += " "; }
-                        s += "<span style=\"font-size: " + Math.max(min_font, 
-                                                                    font_exp_scale*Math.log(weight)/Math.log(2)) + "px\">" + word +
-                    "</span>";
-                    }
-                    s += "</div>";
-                    return s;
+    }
+
+    /*var wordList = [];
+    for(placementInList=0; placementInList<10; placementInList++){
+        var wordListMaxLambda = 0;
+        for(candidate = 0; candidate < node.words.length; candidate++){
+            if(node.words[candidate].lambda_ss > wordListMaxLambda){
+
+                var alreadyIn = false;
+                for(checkIfInList = 0; checkIfInList<placementInList; checkIfInList++){
+                    if(wordList[checkIfInList].localeCompare(wordList[placementInList])==0){
+                       alreadyIn = true;
+                       }
+                }
+                if(alreadyIn == false){
+                wordList[placementInList] = node.words[candidate].word;
+                wordListMaxLambda = node.words[candidate].lambda_ss;
+                wordList[placementInList+10] = node.words[candidate].lambda_ss;
                 }
             }
-            
-            update_graph = function() {
-                graphs_container = document.getElementById("graphs_container");
-                while (graphs_container.hasChildNodes()) {
-                    graphs_container.removeChild(graphs_container.firstChild);
-                }
-                
-                var cluster = d3.layout.cluster()
-                .size([$height, $width - 300]);
-                
-                var svg = d3.select("#graphs_container").append("svg")
-                .attr("width", $width)
-                .attr("height", $height)
-                .append("g")
-                .attr("transform", "translate(20,0)");
-                
-                var nodes = cluster.nodes($root),
-                links = cluster.links(nodes);
-                
-                var link = svg.selectAll(".link")
-                .data(links)
-                .enter().append("path")
-                .attr("class", "link")
-                .attr("d", diagonal);
-                
-                var node = svg.selectAll(".node")
-                .data(nodes)
-                .enter().append("g")
-                .attr("class", "node")
-                .attr("transform", function(d) { return "translate(" + d.y + 
-                      "," + d.x + ")"; })
-                
-                node.append("foreignObject")
-                .attr("width", 200)
-                .attr("height", 140)
-                .append("xhtml:body")
-                .html(make_format_words(6, 2));
-                
-                if(document.getElementById("showValues").checked == true){
-                    node.append("text").attr("dx",0).attr("dy",-11).style("text-anchor","start")
-                    .text(function(d){return Math.pow(Math.E,d.logEpi)});
-                }
-            }
-            
-            tree_depth = function(node) {
-                var depth = 0;
-                for (var c in node.children) {
-                    child = node.children[c];
-                    depth = Math.max(depth, 1 + tree_depth(child));
-                }
-                return depth;
-            }
-            
-            
-            tree_size = function(node) {
-                var size = 1;
-                for (var c in node.children) {
-                    child = node.children[c];
-                    size += tree_size(child);
-                }
-                return size;
-            }
-            
-            tree_size_per_level = function(node) {
-                var sizes = [1];
-                for (var c in node.children) {
-                    child = node.children[c];
-                    var c_sizes = tree_size_per_level(child);
-                    for (var j = 0; j < sizes.length - 1 && j < c_sizes.length; ++j) {
-                        sizes[j+1] += c_sizes[j];
-                    }
-                    for (var j = sizes.length - 1; j < c_sizes.length; ++j) {
-                        sizes.push(c_sizes[j]);
-                    }
-                }
-                return sizes;
-            }
-            
-            //Figure out the top words for a node.
-            top_words = function(node) {
-                //Is 10 if wants 10 words. Change for more.
-                for(i=0; i<10; i++){
-                    for(j=i; j<node.words.length; j++){
-                        if(node.words[j].lambda_ss > node.words[i].lambda_ss){
-                            var temp = node.words[i];
-                            node.words[i] = node.words[j];
-                            node.words[j] = temp;
-                        }
-                    }
-                }
-                
-                /*var wordList = [];
-                for(placementInList=0; placementInList<10; placementInList++){
-                    var wordListMaxLambda = 0;
-                    for(candidate = 0; candidate < node.words.length; candidate++){
-                        if(node.words[candidate].lambda_ss > wordListMaxLambda){
-                            
-                            var alreadyIn = false;
-                            for(checkIfInList = 0; checkIfInList<placementInList; checkIfInList++){
-                                if(wordList[checkIfInList].localeCompare(wordList[placementInList])==0){
-                                   alreadyIn = true;
-                                   }
-                            }
-                            if(alreadyIn == false){
-                            wordList[placementInList] = node.words[candidate].word;
-                            wordListMaxLambda = node.words[candidate].lambda_ss;
-                            wordList[placementInList+10] = node.words[candidate].lambda_ss;
-                            }
-                        }
-                    }
-                }
-                
-                return wordList; //wordString;*/
-            }
-            
-            d3.json("graph.json", function(error, root) {
-                    $root = root;
-                    $width = 300 * tree_depth(root) + 300;
-                    $height = 140 * Math.max.apply(null, tree_size_per_level(root));
-                    
-                    update_graph();
-                    
-                    d3.select(self.frameElement).style("height", $height + "px");
-                    });
-            
-            
-            </script>
+        }
+    }
+
+    return wordList; //wordString;*/
+}
+
+d3.json("graph.json", function(error, root) {
+    $root = root;
+    $width = 300 * tree_depth(root) + 300;
+    $height = 140 * Math.max.apply(null, tree_size_per_level(root));
+
+    update_graph();
+
+    d3.select(self.frameElement).style("height", $height + "px");
+});
+
+</script>
+
+</body>
+</html>
