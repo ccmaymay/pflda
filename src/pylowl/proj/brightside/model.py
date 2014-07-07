@@ -219,6 +219,8 @@ class model(object):
                     vocab_to_batch_word_map[w] = len(vocab_to_batch_word_map)
                     batch_to_vocab_word_map.append(w)
 
+        Ut = len(batch_to_users_map)
+
         # number of unique word types in this mini-batch
         num_tokens = sum([sum(doc.counts) for doc in docs])
         Wt = len(batch_to_vocab_word_map)
