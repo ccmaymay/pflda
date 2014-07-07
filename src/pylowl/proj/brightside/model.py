@@ -343,7 +343,7 @@ class model(object):
                 likelihood += ElogV[1,global_s_idx]
         return likelihood
 
-    def zeta_likelihood(self, subtree_leaves, ids_leaves, doc, xi, log_xi, ids_leaves):
+    def zeta_likelihood(self, subtree_leaves, ids_leaves, doc, xi, log_xi):
         self.check_uv_edge_cases(doc.user_idx, subtree_leaves, ids_leaves)
         self.check_xi_edge_cases(xi)
         self.check_log_xi_edge_cases(log_xi)
@@ -359,7 +359,7 @@ class model(object):
         self.check_subtree_ids(subtree, ids)
 
         likelihood = 0.0
-        Elogchi = self.compute_subtree_Elogchi(subtree, ab):
+        Elogchi = self.compute_subtree_Elogchi(subtree, ab)
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
@@ -615,7 +615,7 @@ class model(object):
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
 
             # E[log p(zeta | V)] + H(q(zeta))
-            zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, doc, xi, log_xi, ids_leaves)
+            zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, doc, xi, log_xi)
             likelihood += zeta_ll
             logging.debug('Log-likelihood after zeta components: %f (+ %f)'
                 % (likelihood, zeta_ll))
@@ -785,7 +785,7 @@ class model(object):
             % (old_likelihood, c_ll))
 
         # E[log p(zeta | V)] + H(q(zeta))
-        zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, doc, xi, log_xi, ids_leaves)
+        zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, doc, xi, log_xi)
         old_likelihood += zeta_ll
         logging.debug('Log-likelihood after zeta components: %f (+ %f)'
             % (old_likelihood, zeta_ll))
@@ -856,7 +856,7 @@ class model(object):
                     % (candidate_likelihood, c_ll))
 
                 # E[log p(zeta | V)] + H(q(zeta))
-                zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, doc, candidate_xi, candidate_log_xi, ids_leaves)
+                zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, doc, candidate_xi, candidate_log_xi)
                 candidate_likelihood += zeta_ll
                 logging.debug('Log-likelihood after zeta components: %f (+ %f)'
                     % (candidate_likelihood, zeta_ll))
