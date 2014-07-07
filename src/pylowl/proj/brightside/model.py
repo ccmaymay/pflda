@@ -282,13 +282,15 @@ class model(object):
         Elogchi = self.compute_subtree_Elogchi(subtree_leaves, ab)
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
+            node_level = self.node_level(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
                 log_nu[idx,:,p_level] = Elogchi[p_idx] + xi[idx] * np.repeat(Elogprobw_doc[p_idx,:], doc.counts)
+            for n in xrange(doc.total):
+                (log_nu[idx,n,:node_level+1], log_norm) = utils.log_normalize(log_nu[idx,n,:node_level+1])
 
-        (log_nu[:,:], log_norm) = utils.log_normalize(log_nu)
-        nu[:,:] = np.exp(log_nu)
+        nu[:] = np.exp(log_nu)
 
     def update_ab(self, subtree_leaves, nu_sums, ab):
         ab[0] = self.m_gamma1 + nu_sums

@@ -174,27 +174,15 @@ def log_normalize(v):
     '''
     Return pair: normalization of v and the normalizer.  (v is assumed
     to be in log space; the normalization r satisfies sum(exp(r)) = 1.
-    The normalizer is also represented in log space.)  v can also be a
-    matrix, in which case the normalization is performed column-wise
-    (each row r satisfies sum(exp(r)) = 1) and the normalizer is a
-    vector containing the normalizer for each row.
+    The normalizer is also represented in log space.)
     '''
 
     log_max = 100.0
-    if len(v.shape) == 1:
-        max_val = np.max(v)
-        log_shift = log_max - np.log(len(v) + 1.0) - max_val
-        tot = np.sum(np.exp(v + log_shift))
-        log_norm = np.log(tot) - log_shift
-        v = v - log_norm
-    else:
-        max_val = np.max(v, 1)
-        log_shift = log_max - np.log(v.shape[1] + 1.0) - max_val
-        tot = np.sum(np.exp(v + log_shift[:, np.newaxis]), 1)
-
-        log_norm = np.log(tot) - log_shift
-        v = v - log_norm[:, np.newaxis]
-
+    max_val = np.max(v)
+    log_shift = log_max - np.log(sum(v.shape) + 1.0) - max_val
+    tot = np.sum(np.exp(v + log_shift))
+    log_norm = np.log(tot) - log_shift
+    v = v - log_norm
     return (v, log_norm)
 
 
