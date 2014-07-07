@@ -215,7 +215,7 @@ d3.json("subgraphs.json", function(error, root) {
     $root = root;
 
     $num_graphs = root.length;
-    
+
    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     minimum_ELogPi_rootParent = function(min_var_param, root){
     min_var_param = 0;
@@ -227,7 +227,7 @@ d3.json("subgraphs.json", function(error, root) {
     }
     return min_var_param;
     }
-    
+
     minimum_ELogPi_subtreeChildren = function(min_var_param, node){
     if(min_var_param > node.Elogpi){
     min_var_param = node.Elogpi;
@@ -238,7 +238,7 @@ d3.json("subgraphs.json", function(error, root) {
     }
     return min_var_param;
     }
-    
+
     minimum_ELogTheta_rootParent = function(min_var_param, root){
     min_var_param = 0;
     for(indiv = 0; indiv < $num_graphs; indiv++){
@@ -249,7 +249,7 @@ d3.json("subgraphs.json", function(error, root) {
     }
     return min_var_param;
     }
-    
+
     minimum_ELogTheta_subtreeChildren = function(min_var_param, node){
     if(min_var_param > node.Elogtheta){
     min_var_param = node.Elogtheta;
@@ -260,13 +260,13 @@ d3.json("subgraphs.json", function(error, root) {
     }
     return min_var_param;
     }
-    
+
     minELogTheta = 0;
     minELogTheta = minimum_ELogTheta_rootParent(minELogTheta, $root);
     minELogPi = 0;
     minELogPi = minimum_ELogPi_rootParent(minELogPi, $root);
     //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    
+
     document.getElementById("window_size").value = $window_size;
     update_window_size();
 
