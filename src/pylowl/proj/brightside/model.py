@@ -19,7 +19,8 @@ def set_random_seed(seed):
 
 class suff_stats(object):
     def __init__(self, K, Wt, Dt, Ut):
-        self.m_batchsize = Dt
+        self.m_batch_D = Dt
+        self.m_batch_U = Ut
         self.m_uv_ss = np.zeros((Ut, K))
         self.m_tau_ss = np.zeros(K)
         self.m_lambda_ss = np.zeros((K, Wt))
@@ -942,18 +943,18 @@ class model(object):
         # Update lambda based on documents.
         self.m_lambda_ss *= (1 - rho)
         self.m_lambda_ss[:, batch_to_vocab_word_map] += (
-            rho * ss.m_lambda_ss * self.m_D / ss.m_batchsize
+            rho * ss.m_lambda_ss * self.m_D / ss.m_batch_D
         )
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
         self.m_tau_ss = (
             (1.0 - rho) * self.m_tau_ss
-            + rho * ss.m_tau_ss * self.m_D / ss.m_batchsize
+            + rho * ss.m_tau_ss * self.m_U / ss.m_batch_U
         )
 
         self.m_uv_ss *= (1 - rho)
         self.m_uv_ss[batch_to_users_map, :] += (
-            rho * ss.m_uv_ss * self.m_D / ss.m_batchsize
+            rho * ss.m_uv_ss * self.m_U / ss.m_batch_U
         )
 
     def save_global(self, output_files):
