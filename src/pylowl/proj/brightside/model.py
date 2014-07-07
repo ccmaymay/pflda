@@ -291,6 +291,8 @@ class model(object):
                 (log_nu[idx,n,:node_level+1], log_norm) = utils.log_normalize(log_nu[idx,n,:node_level+1])
 
         nu[:] = np.exp(log_nu)
+        if np.isnan(nu).any():
+            import pdb; pdb.set_trace()
 
     def update_ab(self, subtree_leaves, nu_sums, ab):
         ab[0] = self.m_gamma1 + nu_sums
