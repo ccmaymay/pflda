@@ -824,9 +824,8 @@ class model(object):
                 if p in subtree_leaves:
                     del subtree_leaves[p]
                 l2g_idx[idx] = global_idx
-                for p in self.node_ancestors(node):
-                    p_level = self.node_level(p)
-                    prior_ab[:,idx,p_level] = [self.m_gamma1, self.m_gamma2]
+                node_level = self.node_level(node)
+                prior_ab[:,idx,:node_level] = [[self.m_gamma1], [self.m_gamma2]]
                 left_s = node[:-1] + (node[-1] - 1,)
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
@@ -890,9 +889,8 @@ class model(object):
                 if node[-1] == 0 and p in subtree:
                     subtree_leaves[p] = subtree[p]
                 l2g_idx[idx] = 0
-                for p in self.node_ancestors(node):
-                    p_level = self.node_level(p)
-                    prior_ab[:,idx,p_level] = [1.0, 0.0]
+                node_level = self.node_level(node)
+                prior_ab[:,idx,:node_level] = [[1.], [0.]]
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
                     self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, 0.0]
@@ -904,27 +902,29 @@ class model(object):
             if converge < self.m_delta:
                 break
 
-            logging.debug('Selecting global node %s for local node %s'
-                % (str(best_global_node), str(best_node)))
-            logging.debug('Log-likelihood: %f' % best_likelihood)
+            node = best_node
+            global_node = best_global_node
+            likelihood = best_likelihood
 
-            subtree[best_node] = best_global_node
-            subtree_leaves[best_node] = best_global_node
-            p = best_node[:-1]
+            logging.debug('Selecting global node %s for local node %s'
+                % (str(global_node), str(node)))
+            logging.debug('Log-likelihood: %f' % likelihood)
+
+            subtree[node] = global_node
+            subtree_leaves[node] = global_node
+            p = node[:-1]
             if p in subtree_leaves:
                 del subtree_leaves[p]
-            idx = self.tree_index(best_node)
-            global_idx = self.tree_index(best_global_node)
+            idx = self.tree_index(node)
+            global_idx = self.tree_index(global_node)
             l2g_idx[idx] = global_idx
             g2l_idx[global_idx] = idx
-            for p in self.node_ancestors(best_node):
-                p_level = self.node_level(p)
-                prior_ab[:,idx,p_level] = [self.m_gamma1, self.m_gamma2]
-            left_s = best_node[:-1] + (best_node[-1] - 1,)
+            node_level = self.node_level(node)
+            prior_ab[:,idx,:node_level] = [[self.m_gamma1], [self.m_gamma2]]
+            left_s = node[:-1] + (node[-1] - 1,)
             if left_s in subtree:
                 left_s_idx = self.tree_index(left_s)
                 self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, self.m_beta]
-            likelihood = best_likelihood
 
             ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
             logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
