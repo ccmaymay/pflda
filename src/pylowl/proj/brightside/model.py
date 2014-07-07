@@ -279,7 +279,7 @@ class model(object):
 
     def update_nu(self, subtree, subtree_leaves, ab, Elogprobw_doc, doc, xi, nu, log_nu):
         log_nu[:] = -np.inf
-        Elogchi = self.compute_subtree_Elogchi(subtree, ab)
+        Elogchi = self.compute_subtree_Elogchi(subtree_leaves, ab)
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
@@ -359,7 +359,7 @@ class model(object):
         self.check_subtree_ids(subtree, ids)
 
         likelihood = 0.0
-        Elogchi = self.compute_subtree_Elogchi(subtree, ab)
+        Elogchi = self.compute_subtree_Elogchi(subtree_leaves, ab)
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
@@ -447,37 +447,35 @@ class model(object):
 
         return logEpi
 
-    def compute_subtree_Elogchi(self, subtree, ab):
+    def compute_subtree_Elogchi(self, subtree_leaves, ab):
         Elogchi = np.zeros(self.m_K)
-        ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
-        ElogU = np.zeros((2, self.m_K))
-        ElogU[:,ids] = utils.log_beta_expectation(ab[:,ids])
 
-        for node in self.tree_iter(subtree):
+        for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
+                p_level = self.node_level(p)
+                ElogU = utils.log_beta_expectation(ab[:,idx,p_level])
                 if idx == p_idx:
-                    Elogchi[idx] += ElogU[0,p_idx]
+                    Elogchi[idx] += ElogU[0]
                 else:
-                    Elogchi[idx] += ElogU[1,p_idx]
+                    Elogchi[idx] += ElogU[1]
 
         return Elogchi
 
-    def compute_subtree_logEchi(self, subtree, ab):
+    def compute_subtree_logEchi(self, subtree_leaves, ab):
         logEchi = np.zeros(self.m_K)
-        ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
-        logEU = np.zeros((2, self.m_K))
-        logEU[:,ids] = utils.beta_log_expectation(ab[:,ids])
 
-        for node in self.tree_iter(subtree):
+        for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
+                p_level = self.node_level(p)
+                logEU = utils.beta_log_expectation(ab[:,idx,p_level])
                 if idx == p_idx:
-                    logEchi[idx] += logEU[0,p_idx]
+                    logEchi[idx] += logEU[0]
                 else:
-                    logEchi[idx] += logEU[1,p_idx]
+                    logEchi[idx] += logEU[1]
 
         return logEchi
 
@@ -662,10 +660,10 @@ class model(object):
             doc, subtree_leaves, ids_leaves, ids)
         self.save_subtree_Elogchi(
             self.subtree_output_files.get('subtree_Elogchi', None),
-            doc, subtree, ids, ab)
+            doc, subtree_leaves, ids, ab)
         self.save_subtree_logEchi(
             self.subtree_output_files.get('subtree_logEchi', None),
-            doc, subtree, ids, ab)
+            doc, subtree_leaves, ids, ab)
         self.save_subtree_Elogtheta(
             self.subtree_output_files.get('subtree_Elogtheta', None),
             doc, ids, doc_lambda_ss)
@@ -678,7 +676,7 @@ class model(object):
 
         if predict_doc is not None:
             logEpi = self.compute_subtree_logEpi(subtree_leaves, doc.user_idx)
-            logEchi = self.compute_subtree_logEchi(subtree, ab)
+            logEchi = self.compute_subtree_logEchi(subtree_leaves, ab)
             # TODO abstract this?
             logEtheta = (
                 np.log(self.m_lambda0 + self.m_lambda_ss)
@@ -1011,12 +1009,12 @@ class model(object):
         Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids_leaves, doc.user_idx)
         self.save_subtree_row(f, doc, Elogpi[ids])
 
-    def save_subtree_logEchi(self, f, doc, subtree, ids, ab):
-        logEchi = self.compute_subtree_logEchi(subtree, ab)
+    def save_subtree_logEchi(self, f, doc, subtree_leaves, ids, ab):
+        logEchi = self.compute_subtree_logEchi(subtree_leaves, ab)
         self.save_subtree_row(f, doc, logEchi[ids])
 
-    def save_subtree_Elogchi(self, f, doc, subtree, ids, ab):
-        Elogchi = self.compute_subtree_Elogchi(subtree, ab)
+    def save_subtree_Elogchi(self, f, doc, subtree_leaves, ids, ab):
+        Elogchi = self.compute_subtree_Elogchi(subtree_leaves, ab)
         self.save_subtree_row(f, doc, Elogchi[ids])
 
     def save_subtree(self, f, doc, subtree, l2g_idx):
