@@ -908,8 +908,8 @@ class model(object):
         logging.debug('Log-likelihood after W component: %f (+ %f)'
             % (old_likelihood, w_ll))
 
-        candidate_nu = np.zeros((num_tokens, self.m_K))
-        candidate_log_nu = np.log(nu)
+        candidate_nu = nu
+        candidate_log_nu = log_nu
 
         while True:
             best_node = None
