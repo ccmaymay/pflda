@@ -347,8 +347,8 @@ class model(object):
 
     def zeta_likelihood(self, subtree_leaves, ids_leaves, doc, xi, log_xi):
         self.check_uv_edge_cases(doc.user_idx, subtree_leaves, ids_leaves)
-        self.check_xi_edge_cases(xi)
-        self.check_log_xi_edge_cases(log_xi)
+        self.check_xi_edge_cases(xi, ids_leaves)
+        self.check_xi_edge_cases(np.exp(log_xi), ids_leaves)
         self.check_subtree_ids(subtree_leaves, ids_leaves)
 
         Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids_leaves, doc.user_idx)
@@ -357,7 +357,7 @@ class model(object):
     def c_likelihood(self, subtree, subtree_leaves, ab, nu, log_nu, ids):
         self.check_ab_edge_cases(ab, subtree_leaves)
         self.check_nu_edge_cases(nu, subtree_leaves)
-        self.check_log_nu_edge_cases(log_nu)
+        self.check_nu_edge_cases(np.exp(log_nu), subtree_leaves)
         self.check_subtree_ids(subtree, ids)
 
         likelihood = 0.0
@@ -372,7 +372,7 @@ class model(object):
 
     def w_likelihood(self, doc, nu, xi, Elogprobw_doc, subtree_leaves):
         self.check_nu_edge_cases(nu, subtree_leaves)
-        self.check_xi_edge_cases(xi)
+        self.check_xi_edge_cases(xi, ids_leaves)
 
         likelihood = 0.0
         for node in self.tree_iter(subtree_leaves):
@@ -514,9 +514,6 @@ class model(object):
             node_level = self.node_level(node)
             nu_row = nu[idx,:,:node_level+1]
             assert la.norm(np.sum(nu_row,1) - 1, np.inf) < 1e-9, 'not all rows of nu sum to one: %s' % str(nu_row)
-
-    def check_log_nu_edge_cases(self, log_nu):
-        assert la.norm(np.sum(np.exp(log_nu),1) - 1, np.inf) < 1e-9, 'not all rows of exp(log_nu) sum to one: %s' % str(np.sum(np.exp(log_nu),1))
 
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, users_to_batch_map,
