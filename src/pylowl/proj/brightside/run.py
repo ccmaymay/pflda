@@ -13,8 +13,8 @@ LOG_BASENAME = 'log'
 
 OPTIONS_BASENAME = 'options'
 
-OUTPUT_EXTS = dict(
-    (s, '.' + s)
+OUTPUT_EXTS = (
+    (s, '.' + s, 'wb' if s == 'pickle' else 'w')
     for s in (
         'pickle',
         'lambda_ss',
@@ -24,8 +24,8 @@ OUTPUT_EXTS = dict(
         'logEtheta',
     )
 )
-SUBTREE_OUTPUT_BASENAMES = dict(
-    (s, s)
+SUBTREE_OUTPUT_BASENAMES = (
+    (s, s, 'w')
     for s in (
         'subtree',
         'subtree_Elogpi',
@@ -314,8 +314,8 @@ def run(**kwargs):
 
     if options['save_model']:
         subtree_output_files = dict(
-            open(os.path.join(result_directory, bn), 'w')
-            for (s, bn) in SUBTREE_OUTPUT_BASENAMES.items()
+            (s, open(os.path.join(result_directory, bn), mode))
+            for (s, bn, mode) in SUBTREE_OUTPUT_BASENAMES
         )
     else:
         subtree_output_files = dict()
@@ -402,8 +402,8 @@ def save_global(m, basename_stem, result_directory, save_model):
 def make_output_files(basename_stem, result_directory, save_model):
     if save_model:
         return dict(
-            (s, open(os.path.join(result_directory, basename_stem + ext), 'w'))
-            for (s, ext) in OUTPUT_EXTS.items()
+            (s, open(os.path.join(result_directory, basename_stem + ext), mode))
+            for (s, ext, mode) in OUTPUT_EXTS
         )
     else:
         return dict()
