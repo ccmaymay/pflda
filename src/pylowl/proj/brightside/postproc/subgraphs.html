@@ -62,6 +62,10 @@ $window_start = 0;
 $num_windows = 0;
 $num_graphs = 0;
 
+node_size = function(d) {
+    return d.active ? d.Elogtheta+12 : 4.5;
+}
+
 set_node_text = function(node, text) {
     new_child = document.createTextNode(text);
     while (node.hasChildNodes()) {
@@ -125,7 +129,7 @@ update_graphs = function() {
 
 
         node.append("circle")
-        .attr("r", function(d) { return d.active ? d.Elogtheta+12 : 4.5})
+        .attr("r", function(d) { return node_size(d); })
         .style("fill", function(d) {return d.active ?
                stringColor(d.Elogpi*-1) : "black"})
         .style("stroke", function(d) {return d.active ?
@@ -166,7 +170,17 @@ shift_window = function(delta) {
 }
 
 var diagonal = d3.svg.diagonal()
-.projection(function(d) { return [d.y, d.x]; });
+    .projection(function(d) { return [d.y, d.x]; })
+    .source(function (d) {
+        var s = Object.create(d.source);
+        s.y += node_size(s);
+        return s;
+    })
+    .target(function (d) {
+        var t = Object.create(d.target);
+        t.y -= node_size(t);
+        return t;
+    });
 
 tree_depth = function(node) {
     var depth = 0;
