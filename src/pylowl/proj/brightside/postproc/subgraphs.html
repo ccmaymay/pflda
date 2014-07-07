@@ -63,7 +63,7 @@ $num_windows = 0;
 $num_graphs = 0;
 
 node_size = function(d) {
-    return d.active ? d.Elogtheta+12 : 4.5;
+    return d.active ? 1+d.Elogtheta-minELogTheta : 4.5;
 }
 
 set_node_text = function(node, text) {
@@ -92,7 +92,7 @@ update_graphs = function() {
     }
 
     var stringColor =
-    d3.scale.linear().domain([0,8]).range(["red","blue"]);
+    d3.scale.linear().domain([0,-1*minELogPi]).range(["red","blue"]);
 
     for (var c = $window_start; c < $window_end; ++c) {
         var cluster = d3.layout.cluster()
@@ -109,8 +109,6 @@ update_graphs = function() {
         var nodes = cluster.nodes($root[c]["subtree"]);
         var links = cluster.links(nodes);
 
-
-
         var link = svg.selectAll(".link")
         .data(links)
         .enter().append("path")
@@ -119,14 +117,12 @@ update_graphs = function() {
         .style("stroke-opacity", function(d) { return d.target.active ?
                "1" : "0.1"; });
 
-
         var node = svg.selectAll(".node")
         .data(nodes)
         .enter().append("g")
         .attr("class", "node")
         .attr("transform", function(d) { return "translate(" +
               d.y + "," + d.x + ")"; });
-
 
         node.append("circle")
         .attr("r", function(d) { return node_size(d); })
@@ -135,12 +131,9 @@ update_graphs = function() {
         .style("stroke", function(d) {return d.active ?
                stringColor(d.Elogpi*-1) : "black"})
         .style("stroke-opacity", function(d) { return d.active ?
-               (d.Elogpi+8)/8 : "0.05"; })
+               (.001+d.Elogpi-minELogPi)/(minELogPi*-1) : "0.05"; })
         .style("fill-opacity", function(d) { return d.active ?
-               (d.Elogpi+8)/8 : "0.05"; });
-
-
-
+               (.001+d.Elogpi-minELogPi)/(minELogPi*-1) : "0.05"; });
 
         if(document.getElementById("showValues").checked == true){
             node.append("text")
@@ -222,6 +215,58 @@ d3.json("subgraphs.json", function(error, root) {
     $root = root;
 
     $num_graphs = root.length;
+
+   //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    minimum_ELogPi_rootParent = function(min_var_param, root){
+    min_var_param = 0;
+    for(indiv = 0; indiv < $num_graphs; indiv++){
+    minSubStat = minimum_ELogPi_subtreeChildren(min_var_param, root[indiv]["subtree"]);
+    if(minSubStat<min_var_param){
+    min_var_param = minSubStat;
+    }
+    }
+    return min_var_param;
+    }
+
+    minimum_ELogPi_subtreeChildren = function(min_var_param, node){
+    if(min_var_param > node.Elogpi){
+    min_var_param = node.Elogpi;
+    }
+    for (var c in node.children) {
+    child = node.children[c];
+    min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child);
+    }
+    return min_var_param;
+    }
+
+    minimum_ELogTheta_rootParent = function(min_var_param, root){
+    min_var_param = 0;
+    for(indiv = 0; indiv < $num_graphs; indiv++){
+    minSubStat = minimum_ELogTheta_subtreeChildren(min_var_param, root[indiv]["subtree"]);
+    if(minSubStat<min_var_param){
+    min_var_param = minSubStat;
+    }
+    }
+    return min_var_param;
+    }
+
+    minimum_ELogTheta_subtreeChildren = function(min_var_param, node){
+    if(min_var_param > node.Elogtheta){
+    min_var_param = node.Elogtheta;
+    }
+    for (var c in node.children) {
+    child = node.children[c];
+    min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child);
+    }
+    return min_var_param;
+    }
+
+    minELogTheta = 0;
+    minELogTheta = minimum_ELogTheta_rootParent(minELogTheta, $root);
+    minELogPi = 0;
+    minELogPi = minimum_ELogPi_rootParent(minELogPi, $root);
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
     document.getElementById("window_size").value = $window_size;
     update_window_size();
 
