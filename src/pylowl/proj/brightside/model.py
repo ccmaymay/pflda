@@ -370,7 +370,7 @@ class model(object):
                 likelihood += np.sum(nu[idx,:,p_level] * (Elogchi[p_idx] - log_nu[idx,:,p_level]))
         return likelihood
 
-    def w_likelihood(self, doc, nu, xi, Elogprobw_doc, subtree_leaves):
+    def w_likelihood(self, doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves):
         self.check_nu_edge_cases(nu, subtree_leaves)
         self.check_xi_edge_cases(xi, ids_leaves)
 
@@ -508,6 +508,9 @@ class model(object):
             if node[-1] + 1 == self.m_trunc[len(node)-1]: # node is last child of its parent in global tree
                 assert ElogV[0, idx] == 0. and ElogV[1, idx] == np.inf, 'right-most child %s has ElogV = %s (require [0, inf])' % (str(node), str(ElogV[:, idx]))
 
+    def check_xi_edge_cases(self, xi, ids_leaves):
+        assert np.sum(xi[ids_leaves]) - 1 < 1e-9, 'xi does not sum to one: %s' % str(xi)
+
     def check_nu_edge_cases(self, nu, subtree_leaves):
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
@@ -624,7 +627,7 @@ class model(object):
                 % (likelihood, zeta_ll))
 
             # E[log p(W | theta, c, zeta, z)]
-            w_ll = self.w_likelihood(doc, nu, xi, Elogprobw_doc, subtree_leaves)
+            w_ll = self.w_likelihood(doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves)
             likelihood += w_ll
             logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
 
@@ -797,7 +800,7 @@ class model(object):
             % (old_likelihood, zeta_ll))
 
         # E[log p(W | theta, c, zeta, z)]
-        w_ll = self.w_likelihood(doc, nu, xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], subtree_leaves)
+        w_ll = self.w_likelihood(doc, nu, xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], subtree_leaves, ids_leaves)
         old_likelihood += w_ll
         logging.debug('Log-likelihood after W component: %f (+ %f)'
             % (old_likelihood, w_ll))
@@ -868,7 +871,7 @@ class model(object):
                     % (candidate_likelihood, zeta_ll))
 
                 # E[log p(W | theta, c, zeta, z)]
-                w_ll = self.w_likelihood(doc, candidate_nu, candidate_xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], subtree_leaves)
+                w_ll = self.w_likelihood(doc, candidate_nu, candidate_xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], subtree_leaves, ids_leaves)
                 candidate_likelihood += w_ll
                 logging.debug('Log-likelihood after W component: %f (+ %f)'
                     % (candidate_likelihood, w_ll))
