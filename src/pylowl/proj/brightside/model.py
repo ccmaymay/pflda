@@ -285,7 +285,7 @@ class model(object):
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                log_nu[idx,:,p_level] = Elogchi[p_idx] + xi[idx] * Elogprobw_doc[p_idx,:] * doc.counts
+                log_nu[idx,:,p_level] = Elogchi[p_idx] + xi[idx] * np.repeat(Elogprobw_doc[p_idx,:], doc.counts)
 
         (log_nu[:,:], log_norm) = utils.log_normalize(log_nu)
         nu[:,:] = np.exp(log_nu)
@@ -354,7 +354,7 @@ class model(object):
 
     def c_likelihood(self, subtree, subtree_leaves, ab, nu, log_nu, ids):
         self.check_ab_edge_cases(ab, subtree_leaves)
-        self.check_nu_edge_cases(nu)
+        self.check_nu_edge_cases(nu, subtree_leaves)
         self.check_log_nu_edge_cases(log_nu)
         self.check_subtree_ids(subtree, ids)
 
@@ -368,8 +368,8 @@ class model(object):
                 likelihood += np.sum(nu[idx,:,p_level] * (Elogchi[p_idx] - log_nu[idx,:,p_level]))
         return likelihood
 
-    def w_likelihood(self, doc, nu, xi, Elogprobw_doc):
-        self.check_nu_edge_cases(nu)
+    def w_likelihood(self, doc, nu, xi, Elogprobw_doc, subtree_leaves):
+        self.check_nu_edge_cases(nu, subtree_leaves)
         self.check_xi_edge_cases(xi)
 
         likelihood = 0.0
@@ -506,8 +506,12 @@ class model(object):
             if node[-1] + 1 == self.m_trunc[len(node)-1]: # node is last child of its parent in global tree
                 assert ElogV[0, idx] == 0. and ElogV[1, idx] == np.inf, 'right-most child %s has ElogV = %s (require [0, inf])' % (str(node), str(ElogV[:, idx]))
 
-    def check_nu_edge_cases(self, nu):
-        assert la.norm(np.sum(nu,1) - 1, np.inf) < 1e-9, 'not all rows of nu sum to one: %s' % str(np.sum(nu, 1))
+    def check_nu_edge_cases(self, nu, subtree_leaves):
+        for node in self.tree_iter(subtree_leaves):
+            idx = self.tree_index(node)
+            node_level = self.node_level(node)
+            nu_row = nu[idx,:,:node_level+1]
+            assert la.norm(np.sum(nu_row,1) - 1, np.inf) < 1e-9, 'not all rows of nu sum to one: %s' % str(nu_row)
 
     def check_log_nu_edge_cases(self, log_nu):
         assert la.norm(np.sum(np.exp(log_nu),1) - 1, np.inf) < 1e-9, 'not all rows of exp(log_nu) sum to one: %s' % str(np.sum(np.exp(log_nu),1))
@@ -621,7 +625,7 @@ class model(object):
                 % (likelihood, zeta_ll))
 
             # E[log p(W | theta, c, zeta, z)]
-            w_ll = self.w_likelihood(doc, nu, xi, Elogprobw_doc, ids)
+            w_ll = self.w_likelihood(doc, nu, xi, Elogprobw_doc, subtree_leaves)
             likelihood += w_ll
             logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
 
@@ -794,7 +798,7 @@ class model(object):
             % (old_likelihood, zeta_ll))
 
         # E[log p(W | theta, c, zeta, z)]
-        w_ll = self.w_likelihood(doc, nu, xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
+        w_ll = self.w_likelihood(doc, nu, xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], subtree_leaves)
         old_likelihood += w_ll
         logging.debug('Log-likelihood after W component: %f (+ %f)'
             % (old_likelihood, w_ll))
@@ -865,7 +869,7 @@ class model(object):
                     % (candidate_likelihood, zeta_ll))
 
                 # E[log p(W | theta, c, zeta, z)]
-                w_ll = self.w_likelihood(doc, candidate_nu, candidate_xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
+                w_ll = self.w_likelihood(doc, candidate_nu, candidate_xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], subtree_leaves)
                 candidate_likelihood += w_ll
                 logging.debug('Log-likelihood after W component: %f (+ %f)'
                     % (candidate_likelihood, w_ll))
