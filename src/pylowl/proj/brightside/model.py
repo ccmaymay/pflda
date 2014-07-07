@@ -353,7 +353,7 @@ class model(object):
         return np.sum(xi[ids_leaves] * (Elogpi[ids_leaves] - log_xi[ids_leaves]))
 
     def c_likelihood(self, subtree, subtree_leaves, ab, nu, log_nu, ids):
-        self.check_ab_edge_cases(ab, subtree, ids)
+        self.check_ab_edge_cases(ab, subtree_leaves)
         self.check_nu_edge_cases(nu)
         self.check_log_nu_edge_cases(log_nu)
         self.check_subtree_ids(subtree, ids)
@@ -487,11 +487,11 @@ class model(object):
             ids_in_subtree.remove(idx)
         assert not ids_in_subtree, 'ids in id list but not in subtree: %s' % str(ids_in_subtree)
 
-    def check_ab_edge_cases(self, ab, subtree, ids):
-        for node in self.tree_iter(subtree):
+    def check_ab_edge_cases(self, ab, subtree_leaves):
+        for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
-            if idx in ids and node + (0,) not in subtree: # leaf in subtree
-                assert ab[0, idx] == 1. and ab[1, idx] == 0., 'leaf %s has ab = %s (require [1, 0])' % (str(node), str(ab[:, idx]))
+            node_level = self.node_level(node)
+            assert ab[0, idx, node_level] == 1. and ab[1, idx, node_level] == 0., 'leaf %s has ab = %s (require [1, 0])' % (str(node), str(ab[:, idx, node_level]))
 
     def check_uv_edge_cases(self, user_idx, subtree, ids):
         for node in self.tree_iter(subtree):
