@@ -70,7 +70,6 @@ class model(object):
 
         self.m_uv = np.zeros((2, self.m_U, self.m_K))
         self.m_uv[0] = 1.0
-        self.m_uv[1] = beta
         self.m_uv_ss = np.zeros((self.m_U, self.m_K))
 
         self.m_tau = np.zeros((2, self.m_K))
