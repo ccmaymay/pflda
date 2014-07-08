@@ -33,8 +33,6 @@ then
         --lambda_ss "$OUTPUT_DIR/subtree_lambda_ss" \
         --Elogpi "$OUTPUT_DIR/subtree_Elogpi" \
         --logEpi "$OUTPUT_DIR/subtree_logEpi" \
-        --Elogtheta "$OUTPUT_DIR/subtree_Elogtheta" \
-        --logEtheta "$OUTPUT_DIR/subtree_logEtheta" \
         "$TRUNC" "$VOCAB_PATH" "$OUTPUT_DIR/subgraphs.json"
 else
     python -m pylowl.proj.brightside.postproc.generate_d3_subgraphs \
@@ -42,8 +40,6 @@ else
         --lambda_ss "$OUTPUT_DIR/subtree_lambda_ss" \
         --Elogpi "$OUTPUT_DIR/subtree_Elogpi" \
         --logEpi "$OUTPUT_DIR/subtree_logEpi" \
-        --Elogtheta "$OUTPUT_DIR/subtree_Elogtheta" \
-        --logEtheta "$OUTPUT_DIR/subtree_logEtheta" \
         --identifier_re "$IDENTIFIER_RE" \
         "$TRUNC" "$VOCAB_PATH" "$OUTPUT_DIR/subgraphs.json"
 fi

@@ -24,10 +24,6 @@ def main():
                         help='Elogpi file path')
     parser.add_argument('--logEpi', type=str, required=True,
                         help='logEpi file path')
-    parser.add_argument('--Elogtheta', type=str, required=True,
-                        help='Elogtheta file path')
-    parser.add_argument('--logEtheta', type=str, required=True,
-                        help='logEtheta file path')
     parser.add_argument('--identifier_re', type=str,
                         help='regex to filter document identifiers')
 
@@ -44,8 +40,6 @@ def main():
         lambda_ss_filename=args.lambda_ss,
         Elogpi_filename=args.Elogpi,
         logEpi_filename=args.logEpi,
-        Elogtheta_filename=args.Elogtheta,
-        logEtheta_filename=args.logEtheta,
         output_filename=args.output_path,
         identifier_re=identifier_re
     )
@@ -57,8 +51,6 @@ def generate_d3_subgraphs(trunc_csv,
         lambda_ss_filename,
         Elogpi_filename,
         logEpi_filename,
-        Elogtheta_filename,
-        logEtheta_filename,
         output_filename,
         identifier_re=None):
 
@@ -71,13 +63,11 @@ def generate_d3_subgraphs(trunc_csv,
     subtree_dicts_per_id = {}
 
     with open(subtree_filename) as subtree_f, \
-         open(Elogtheta_filename) as Elogtheta_f, \
-         open(logEtheta_filename) as logEtheta_f, \
          open(Elogpi_filename) as Elogpi_f, \
          open(logEpi_filename) as logEpi_f, \
          open(lambda_ss_filename) as lambda_ss_f:
         for (subtree_line, stat_lines) in it.izip(subtree_f, it.izip(
-                Elogtheta_f, logEtheta_f, Elogpi_f, logEpi_f, lambda_ss_f)):
+                Elogpi_f, logEpi_f, lambda_ss_f)):
             pieces = subtree_line.strip().split()
             identifier = pieces[0]
             if identifier_re is not None and identifier_re.match(identifier) is None:
@@ -95,7 +85,7 @@ def generate_d3_subgraphs(trunc_csv,
                 }
 
             for (stat_name, stat_line) in it.izip(
-                    ('Elogtheta', 'logEtheta', 'Elogpi', 'logEpi', 'lambda_ss'),
+                    ('Elogpi', 'logEpi', 'lambda_ss'),
                     stat_lines):
                 stat_pieces = stat_line.strip().split()
                 if identifier != stat_pieces[0]:
