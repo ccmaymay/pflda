@@ -13,7 +13,7 @@ LOG_BASENAME = 'log'
 
 OPTIONS_BASENAME = 'options'
 
-OUTPUT_EXTS = (
+OUTPUT_EXTS = [
     (s, '.' + s, 'wb' if s == 'pickle' else 'w')
     for s in (
         'pickle',
@@ -23,8 +23,8 @@ OUTPUT_EXTS = (
         'Elogtheta',
         'logEtheta',
     )
-)
-SUBTREE_OUTPUT_BASENAMES = (
+]
+SUBTREE_OUTPUT_BASENAMES = [
     (s, s, 'w')
     for s in (
         'subtree',
@@ -34,7 +34,7 @@ SUBTREE_OUTPUT_BASENAMES = (
         'subtree_logEchi',
         'subtree_lambda_ss',
     )
-)
+]
 
 DEFAULT_OPTIONS = dict(
     log_level='INFO',

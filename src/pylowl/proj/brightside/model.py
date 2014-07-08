@@ -1020,7 +1020,7 @@ class model(object):
 
     def save_rows(self, f, m):
         if f is not None:
-            for m in v:
+            for v in m:
                 line = ' '.join([str(x) for x in v])
                 f.write('%s\n' % line)
 
