@@ -57,13 +57,13 @@ body {
 <script src="d3.v3.js"></script>
 <script>
 
-$window_size = 9;
+$window_size = 5;
 $window_start = 0;
 $num_windows = 0;
 $num_graphs = 0;
 
 node_size = function(d) {
-    return d.active ? 1+d.Elogtheta-minELogTheta : 4.5;
+    return d.active ? 1+d.Elogtheta-minELogTheta : minELogTheta/-2;
 }
 
 set_node_text = function(node, text) {
@@ -98,14 +98,15 @@ update_graphs = function() {
 
     for (var c = $window_start; c < $window_end; ++c) {
         var cluster = d3.layout.cluster()
-        .size([$height - 10, $width - 140]);
+//If there are problems, change the "-20" to, say, 2.02*minELogTheta
+        .size([$height + minELogTheta, $width + 2*minELogTheta - 20]);
 
         var identifier = $root[c]["identifier"];
         var svg = d3.select("#graphs_container").append("svg")
         .attr("width", $width)
         .attr("height", $height)
         .append("g")
-        .attr("transform", "translate(20,0)")
+        .attr("transform", "translate("+ (-1*minELogTheta + 5) +",0)")
         svg.append("title").text(identifier);
 
         var nodes = cluster.nodes($root[c]["subtree"]);
@@ -212,12 +213,8 @@ tree_size_per_level = function(node) {
 }
 
 d3.json("subgraphs.json", function(error, root) {
-    $width = 100 * tree_depth(root[0]["subtree"]) + 450;
-    $height = 15 * Math.max.apply(null,
-                                  tree_size_per_level(root[0]["subtree"])) + 10;
-    $root = root;
-
     $num_graphs = root.length;
+	$root = root;
 
     minimum_ELogPi_rootParent = function(min_var_param, root){
     min_var_param = 0;
@@ -267,6 +264,10 @@ d3.json("subgraphs.json", function(error, root) {
     minELogTheta = minimum_ELogTheta_rootParent(minELogTheta, $root);
     minELogPi = 0;
     minELogPi = minimum_ELogPi_rootParent(minELogPi, $root);
+
+	$width = minELogTheta * -3 * tree_depth(root[0]["subtree"]) + -8*minELogTheta;
+    $height = minELogTheta * -3.4 * Math.max.apply(null,
+                                  tree_size_per_level(root[0]["subtree"]));
 
     document.getElementById("window_size").value = $window_size;
     update_window_size();
