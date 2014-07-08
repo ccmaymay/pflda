@@ -236,7 +236,7 @@ d3.json("subgraphs.json", function(error, root) {
         }
         for (var c in node.children) {
             child = node.children[c];
-        min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child);
+        	min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child);
         }
         return min_var_param;
     }
