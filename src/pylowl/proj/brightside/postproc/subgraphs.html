@@ -25,12 +25,18 @@ body {
     stroke-width: 1.5px;
 }
 
+#inputWindowParameters {
+	position: fixed;
+	left: 30px;
+	top: 30px;
+}
 </style>
 
 </head>
 <body>
 
 <div>
+	<div id="inputWindowParameters">
     <div>
         navigate:
         <input type="button" onclick="shift_window(-1)"
@@ -49,6 +55,7 @@ body {
         show counts: <input type="checkbox"
         onchange="update_graphs();" id="showValues"/>
     </div>
+	</div>
 </div>
 
 <div id="graphs_container">
