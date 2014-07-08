@@ -27,7 +27,7 @@ body {
 
 #inputWindowParameters {
 	position: fixed;
-	left: 30px;
+	right: 30px;
 	top: 30px;
 }
 </style>
@@ -70,7 +70,7 @@ $num_windows = 0;
 $num_graphs = 0;
 
 node_size = function(d) {
-    return d.active ? 1+d.Elogtheta-minELogTheta : minELogTheta/-2;
+    return d.active ? 1*Math.min(Math.log(d.lambda_ss+1),10): 2;
 }
 
 set_node_text = function(node, text) {
@@ -105,15 +105,15 @@ update_graphs = function() {
 
     for (var c = $window_start; c < $window_end; ++c) {
         var cluster = d3.layout.cluster()
-//If there are problems, change the "-20" to, say, 2.02*minELogTheta
-        .size([$height + minELogTheta, $width + 2*minELogTheta - 20]);
+
+        .size([$height /*- maxLambda_ss*/, $width - 14*Math.log(maxLambda_ss)]);
 
         var identifier = $root[c]["identifier"];
         var svg = d3.select("#graphs_container").append("svg")
         .attr("width", $width)
         .attr("height", $height)
         .append("g")
-        .attr("transform", "translate("+ (-1*minELogTheta + 5) +",0)")
+        .attr("transform", "translate("+ 2.5*(Math.log(maxLambda_ss)+1) +",0)")
         svg.append("title").text(identifier);
 
         var nodes = cluster.nodes($root[c]["subtree"]);
@@ -125,7 +125,7 @@ update_graphs = function() {
         .attr("class", "link")
         .attr("d", diagonal)
         .style("stroke-opacity", function(d) { return d.target.active ?
-               "1" : "0.1"; });
+               ".8" : "0.1"; });
 
         var node = svg.selectAll(".node")
         .data(nodes)
@@ -245,35 +245,35 @@ d3.json("subgraphs.json", function(error, root) {
         return min_var_param;
     }
 
-    minimum_ELogTheta_rootParent = function(min_var_param, root){
+    maximum_Lambda_ss_rootParent = function(min_var_param, root){
         min_var_param = 0;
         for(indiv = 0; indiv < $num_graphs; indiv++){
-            minSubStat = minimum_ELogTheta_subtreeChildren(min_var_param, root[indiv]["subtree"]);
-            if(minSubStat<min_var_param){
+            minSubStat = maximum_Lambda_ss_subtreeChildren(min_var_param, root[indiv]["subtree"]);
+            if(minSubStat>min_var_param){
                 min_var_param = minSubStat;
             }
         }
         return min_var_param;
     }
 
-    minimum_ELogTheta_subtreeChildren = function(min_var_param, node){
-        if(min_var_param > node.Elogtheta){
-            min_var_param = node.Elogtheta;
+    maximum_Lambda_ss_subtreeChildren = function(min_var_param, node){
+        if(min_var_param < node.lambda_ss){
+            min_var_param = node.lambda_ss;
         }
         for (var c in node.children) {
             child = node.children[c];
-            min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child);
+            min_var_param = maximum_Lambda_ss_subtreeChildren(min_var_param, child);
         }
         return min_var_param;
     }
 
-    minELogTheta = 0;
-    minELogTheta = minimum_ELogTheta_rootParent(minELogTheta, $root);
+    maxLambda_ss = 0;
+    maxLambda_ss = maximum_Lambda_ss_rootParent(maxLambda_ss, $root);
     minELogPi = 0;
     minELogPi = minimum_ELogPi_rootParent(minELogPi, $root);
 
-	$width = minELogTheta * -3 * tree_depth(root[0]["subtree"]) + -8*minELogTheta;
-    $height = minELogTheta * -3.4 * Math.max.apply(null,
+	$width = Math.log(maxLambda_ss) * 16 * (tree_depth(root[0]["subtree"])+1) + Math.log(maxLambda_ss);
+    $height = Math.log(maxLambda_ss) * 2.5 * Math.max.apply(null,
                                   tree_size_per_level(root[0]["subtree"]));
 
     document.getElementById("window_size").value = $window_size;
