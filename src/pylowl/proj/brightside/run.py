@@ -22,8 +22,6 @@ LOGETHETA_EXT = '.logEtheta'
 SUBTREE_BASENAME = 'subtree'
 SUBTREE_ELOGPI_BASENAME = 'subtree_Elogpi'
 SUBTREE_LOGEPI_BASENAME = 'subtree_logEpi'
-SUBTREE_ELOGTHETA_BASENAME = 'subtree_Elogtheta'
-SUBTREE_LOGETHETA_BASENAME = 'subtree_logEtheta'
 SUBTREE_LAMBDA_SS_BASENAME = 'subtree_lambda_ss'
 
 DEFAULT_OPTIONS = dict(
@@ -302,10 +300,6 @@ def run(**kwargs):
         SUBTREE_ELOGPI_BASENAME), 'w')
     subtree_logEpi_f = open(os.path.join(result_directory,
         SUBTREE_LOGEPI_BASENAME), 'w')
-    subtree_Elogtheta_f = open(os.path.join(result_directory,
-        SUBTREE_ELOGTHETA_BASENAME), 'w')
-    subtree_logEtheta_f = open(os.path.join(result_directory,
-        SUBTREE_LOGETHETA_BASENAME), 'w')
     subtree_lambda_ss_f = open(os.path.join(result_directory,
         SUBTREE_LAMBDA_SS_BASENAME), 'w')
 
@@ -318,8 +312,6 @@ def run(**kwargs):
                   subtree_f=subtree_f,
                   subtree_Elogpi_f=subtree_Elogpi_f,
                   subtree_logEpi_f=subtree_logEpi_f,
-                  subtree_Elogtheta_f=subtree_Elogtheta_f,
-                  subtree_logEtheta_f=subtree_logEtheta_f,
                   subtree_lambda_ss_f=subtree_lambda_ss_f)
 
     if options['init_samples'] is not None:
@@ -405,8 +397,6 @@ def run(**kwargs):
     subtree_f.close()
     subtree_Elogpi_f.close()
     subtree_logEpi_f.close()
-    subtree_Elogtheta_f.close()
-    subtree_logEtheta_f.close()
     subtree_lambda_ss_f.close()
 
 

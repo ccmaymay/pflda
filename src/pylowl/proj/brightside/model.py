@@ -140,8 +140,6 @@ class model(object):
                  subtree_f=None,
                  subtree_Elogpi_f=None,
                  subtree_logEpi_f=None,
-                 subtree_Elogtheta_f=None,
-                 subtree_logEtheta_f=None,
                  subtree_lambda_ss_f=None):
         if trunc[0] != 1:
             raise ValueError('Top-level truncation must be one.')
@@ -198,8 +196,6 @@ class model(object):
         self.subtree_f = subtree_f
         self.subtree_Elogpi_f = subtree_Elogpi_f
         self.subtree_logEpi_f = subtree_logEpi_f
-        self.subtree_Elogtheta_f = subtree_Elogtheta_f
-        self.subtree_logEtheta_f = subtree_logEtheta_f
         self.subtree_lambda_ss_f = subtree_lambda_ss_f
 
     def initialize(self, docs, xi, omicron=None):
@@ -784,12 +780,6 @@ class model(object):
         if self.subtree_logEpi_f is not None:
             self.save_subtree_logEpi(self.subtree_logEpi_f,
                 doc, subtree, ids, ab, uv)
-        if self.subtree_Elogtheta_f is not None:
-            self.save_subtree_Elogtheta(self.subtree_Elogtheta_f,
-                doc, ids, nu_sums)
-        if self.subtree_logEtheta_f is not None:
-            self.save_subtree_logEtheta(self.subtree_logEtheta_f,
-                doc, ids, nu_sums)
         if self.subtree_lambda_ss_f is not None:
             self.save_subtree_lambda_ss(self.subtree_lambda_ss_f,
                 doc, ids, nu_sums)
@@ -1105,24 +1095,6 @@ class model(object):
         # TODO lambda0?
         f.write(str(doc.identifier) + ' ')
         f.write(' '.join(str(x) for x in nu_sums[ids]))
-        f.write('\n')
-
-    def save_subtree_logEtheta(self, f, doc, ids, nu_sums):
-        '''
-        Append log E[theta] for doc subtree to file.
-        '''
-        logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + nu_sums)
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(logEtheta[i]) for i in ids))
-        f.write('\n')
-
-    def save_subtree_Elogtheta(self, f, doc, ids, nu_sums):
-        '''
-        Append E[log theta] for doc subtree to file.
-        '''
-        Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + nu_sums)
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(Elogtheta[i]) for i in ids))
         f.write('\n')
 
     def save_subtree_logEpi(self, f, doc, subtree, ids, ab, uv):
