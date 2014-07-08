@@ -43,7 +43,6 @@ class model(object):
                  scale=1.,
                  rho_bound=0.,
                  subtree_output_files=None):
-
         if trunc[0] != 1:
             raise ValueError('Top-level truncation must be one.')
 
@@ -670,12 +669,6 @@ class model(object):
         self.save_subtree_logEchi(
             self.subtree_output_files.get('subtree_logEchi', None),
             doc, subtree_leaves, ids, ab)
-        self.save_subtree_Elogtheta(
-            self.subtree_output_files.get('subtree_Elogtheta', None),
-            doc, ids, doc_lambda_ss)
-        self.save_subtree_logEtheta(
-            self.subtree_output_files.get('subtree_logEtheta', None),
-            doc, ids, doc_lambda_ss)
         self.save_subtree_lambda_ss(
             self.subtree_output_files.get('subtree_lambda_ss', None),
             doc, ids, doc_lambda_ss)
@@ -1003,14 +996,6 @@ class model(object):
 
     def save_subtree_lambda_ss(self, f, doc, ids, doc_lambda_ss):
         self.save_subtree_row(f, doc, doc_lambda_ss[ids] + self.m_lambda0)
-
-    def save_subtree_logEtheta(self, f, doc, ids, doc_lambda_ss):
-        logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + doc_lambda_ss)
-        self.save_subtree_row(f, doc, logEtheta[ids])
-
-    def save_subtree_Elogtheta(self, f, doc, ids, doc_lambda_ss):
-        Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + doc_lambda_ss)
-        self.save_subtree_row(f, doc, Elogtheta[ids])
 
     def save_subtree_logEpi(self, f, doc, subtree_leaves, ids_leaves, ids):
         logEpi = self.compute_subtree_logEpi(subtree_leaves, ids_leaves, doc.user_idx)
