@@ -300,7 +300,7 @@ class model(object):
             idx = self.tree_index(node)
             node_level = self.node_level(node)
             ab[:, idx, node_level] = [1.0, 0.0]
-            for p in it.chain(self.node_ancestors(node)):
+            for p in self.node_ancestors(node):
                 p_level = self.node_level(p)
                 ab[1, idx, p_level] += nu_sums[idx, p_level+1:node_level+1]
 
@@ -799,6 +799,8 @@ class model(object):
         candidate_log_xi = log_xi
 
         while True:
+            import pdb; pdb.set_trace()
+
             best_node = None
             best_global_node = None
             best_likelihood = None
@@ -814,9 +816,10 @@ class model(object):
                 p = node[:-1]
                 if p in subtree_leaves:
                     del subtree_leaves[p]
+                if p in subtree:
+                    p_level = self.node_level(p)
+                    prior_ab[:,idx,p_level] = [self.m_gamma1, self.m_gamma2]
                 l2g_idx[idx] = global_idx
-                node_level = self.node_level(node)
-                prior_ab[:,idx,:node_level] = [[self.m_gamma1], [self.m_gamma2]]
                 left_s = node[:-1] + (node[-1] - 1,)
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
@@ -879,9 +882,9 @@ class model(object):
                 p = node[:-1]
                 if node[-1] == 0 and p in subtree:
                     subtree_leaves[p] = subtree[p]
+                    p_level = self.node_level(p)
+                    prior_ab[:,idx,p_level] = [1., 0.]
                 l2g_idx[idx] = 0
-                node_level = self.node_level(node)
-                prior_ab[:,idx,:node_level] = [[1.], [0.]]
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
                     self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, 0.0]
@@ -903,15 +906,16 @@ class model(object):
 
             subtree[node] = global_node
             subtree_leaves[node] = global_node
+            idx = self.tree_index(node)
+            global_idx = self.tree_index(global_node)
             p = node[:-1]
             if p in subtree_leaves:
                 del subtree_leaves[p]
-            idx = self.tree_index(node)
-            global_idx = self.tree_index(global_node)
+            if p in subtree:
+                p_level = self.node_level(p)
+                prior_ab[:,idx,p_level] = [self.m_gamma1, self.m_gamma2]
             l2g_idx[idx] = global_idx
             g2l_idx[global_idx] = idx
-            node_level = self.node_level(node)
-            prior_ab[:,idx,:node_level] = [[self.m_gamma1], [self.m_gamma2]]
             left_s = node[:-1] + (node[-1] - 1,)
             if left_s in subtree:
                 left_s_idx = self.tree_index(left_s)
