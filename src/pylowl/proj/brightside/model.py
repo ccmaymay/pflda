@@ -300,13 +300,9 @@ class model(object):
             idx = self.tree_index(node)
             node_level = self.node_level(node)
             ab[:, idx, node_level] = [1.0, 0.0]
-            for p in it.chain((node,), self.node_ancestors(node)):
-                p_idx = self.tree_index(p)
+            for p in it.chain(self.node_ancestors(node)):
                 p_level = self.node_level(p)
-                for pp in self.node_ancestors(p):
-                    pp_idx = self.tree_index(pp)
-                    pp_level = self.node_level(pp)
-                    ab[1, idx, pp_level] += nu_sums[idx, p_level]
+                ab[1, idx, p_level] += nu_sums[idx, p_level+1:node_level+1]
 
     def update_tau(self):
         self.m_tau[0] = self.m_tau_ss + 1.0
