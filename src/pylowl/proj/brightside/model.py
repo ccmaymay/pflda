@@ -1057,11 +1057,11 @@ class model(object):
 
     def save_logEpi(self, f):
         logEpi = self.compute_logEpi()
-        self.save_rows(f, logEpi)
+        self.save_rows(f, logEpi[:,np.newaxis])
 
     def save_Elogpi(self, f):
         Elogpi = self.compute_Elogpi()
-        self.save_rows(f, Elogpi)
+        self.save_rows(f, Elogpi[:,np.newaxis])
 
     def save_pickle(self, f):
         cPickle.dump(self, f, -1)
@@ -1084,7 +1084,7 @@ class model(object):
 
     def save_rows(self, f, m):
         if f is not None:
-            for m in v:
+            for v in m:
                 line = ' '.join([str(x) for x in v])
                 f.write('%s\n' % line)
 
