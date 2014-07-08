@@ -4,7 +4,7 @@ read.subtree.vec <- function(f) {
     return(list(identifier=identifier, v=v))
 }
 
-min.Elogpi <- function(filename) {
+min.subtree.elt <- function(filename) {
     f <- file(filename)
     open(f)
     eof <- FALSE
@@ -23,6 +23,6 @@ min.Elogpi <- function(filename) {
 for (d in list.files()) {
     filename <- paste(d, 'subtree_Elogpi', sep='/')
     if (file.exists(filename)) {
-        cat(filename, min.Elogpi(filename), '\n')
+        cat(filename, min.subtree.elt(filename), '\n')
     }
 }
