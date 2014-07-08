@@ -73,6 +73,7 @@ set_node_text = function(node, text) {
     }
     node.appendChild(new_child);
 }
+
 update_nav_text = function() {
     graphs_container = document.getElementById("graphs_container");
     while (graphs_container.hasChildNodes()) {
@@ -83,6 +84,7 @@ update_nav_text = function() {
     set_node_text(document.getElementById("window_end_text"), $window_end);
     set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
 }
+    
 update_graphs = function() {
     update_nav_text();
 
@@ -151,6 +153,7 @@ update_window_size = function() {
     $window_end = Math.min($window_start + $window_size, $num_graphs);
     update_graphs();
 }
+
 shift_window = function(delta) {
     $window_start += delta * $window_size;
     if ($window_start < 0) {
@@ -220,45 +223,45 @@ d3.json("subgraphs.json", function(error, root) {
     minimum_ELogPi_rootParent = function(min_var_param, root){
     min_var_param = 0;
     for(indiv = 0; indiv < $num_graphs; indiv++){
-    minSubStat = minimum_ELogPi_subtreeChildren(min_var_param, root[indiv]["subtree"]);
-    if(minSubStat<min_var_param){
-    min_var_param = minSubStat;
-    }
+        minSubStat = minimum_ELogPi_subtreeChildren(min_var_param, root[indiv]["subtree"]);
+        if(minSubStat<min_var_param){
+            min_var_param = minSubStat;
+        }
     }
     return min_var_param;
     }
 
     minimum_ELogPi_subtreeChildren = function(min_var_param, node){
-    if(min_var_param > node.Elogpi){
-    min_var_param = node.Elogpi;
-    }
-    for (var c in node.children) {
-    child = node.children[c];
-    min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child);
-    }
-    return min_var_param;
+        if(min_var_param > node.Elogpi){
+            min_var_param = node.Elogpi;
+        }
+        for (var c in node.children) {
+            child = node.children[c];
+        min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child);
+        }
+        return min_var_param;
     }
 
     minimum_ELogTheta_rootParent = function(min_var_param, root){
-    min_var_param = 0;
-    for(indiv = 0; indiv < $num_graphs; indiv++){
-    minSubStat = minimum_ELogTheta_subtreeChildren(min_var_param, root[indiv]["subtree"]);
-    if(minSubStat<min_var_param){
-    min_var_param = minSubStat;
-    }
-    }
-    return min_var_param;
+        min_var_param = 0;
+        for(indiv = 0; indiv < $num_graphs; indiv++){
+            minSubStat = minimum_ELogTheta_subtreeChildren(min_var_param, root[indiv]["subtree"]);
+            if(minSubStat<min_var_param){
+                min_var_param = minSubStat;
+            }
+        }
+        return min_var_param;
     }
 
     minimum_ELogTheta_subtreeChildren = function(min_var_param, node){
-    if(min_var_param > node.Elogtheta){
-    min_var_param = node.Elogtheta;
-    }
-    for (var c in node.children) {
-    child = node.children[c];
-    min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child);
-    }
-    return min_var_param;
+        if(min_var_param > node.Elogtheta){
+            min_var_param = node.Elogtheta;
+        }
+        for (var c in node.children) {
+            child = node.children[c];
+            min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child);
+        }
+        return min_var_param;
     }
 
     minELogTheta = 0;
