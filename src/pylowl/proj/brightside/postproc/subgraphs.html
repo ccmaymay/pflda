@@ -219,7 +219,6 @@ d3.json("subgraphs.json", function(error, root) {
 
     $num_graphs = root.length;
 
-   //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     minimum_ELogPi_rootParent = function(min_var_param, root){
     min_var_param = 0;
     for(indiv = 0; indiv < $num_graphs; indiv++){
@@ -268,7 +267,6 @@ d3.json("subgraphs.json", function(error, root) {
     minELogTheta = minimum_ELogTheta_rootParent(minELogTheta, $root);
     minELogPi = 0;
     minELogPi = minimum_ELogPi_rootParent(minELogPi, $root);
-    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     document.getElementById("window_size").value = $window_size;
     update_window_size();
