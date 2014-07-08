@@ -137,10 +137,7 @@ class model(object):
                  scale=1.,
                  rho_bound=0.,
                  adding_noise=False,
-                 subtree_f=None,
-                 subtree_Elogpi_f=None,
-                 subtree_logEpi_f=None,
-                 subtree_lambda_ss_f=None):
+                 subtree_output_files=None):
         if trunc[0] != 1:
             raise ValueError('Top-level truncation must be one.')
 
@@ -193,10 +190,10 @@ class model(object):
 
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
-        self.subtree_f = subtree_f
-        self.subtree_Elogpi_f = subtree_Elogpi_f
-        self.subtree_logEpi_f = subtree_logEpi_f
-        self.subtree_lambda_ss_f = subtree_lambda_ss_f
+        if subtree_output_files is None:
+            self.subtree_output_files = dict()
+        else:
+            self.subtree_output_files = subtree_output_files
 
     def initialize(self, docs, xi, omicron=None):
         '''
@@ -771,24 +768,25 @@ class model(object):
 
             iteration += 1
 
-        if self.subtree_f is not None:
-            self.save_subtree(self.subtree_f,
-                doc, subtree, l2g_idx)
-        if self.subtree_Elogpi_f is not None:
-            self.save_subtree_Elogpi(self.subtree_Elogpi_f,
-                doc, subtree, ids, ab, uv)
-        if self.subtree_logEpi_f is not None:
-            self.save_subtree_logEpi(self.subtree_logEpi_f,
-                doc, subtree, ids, ab, uv)
-        if self.subtree_lambda_ss_f is not None:
-            self.save_subtree_lambda_ss(self.subtree_lambda_ss_f,
-                doc, ids, nu_sums)
-
         # update the suff_stat ss
         global_ids = l2g_idx[ids]
         ss.m_tau_ss[global_ids] += 1
         for n in xrange(num_tokens):
             ss.m_lambda_ss[global_ids, token_batch_ids[n]] += nu[n, ids]
+
+        # save subtree stats
+        self.save_subtree(
+            self.subtree_output_files.get('subtree', None),
+            doc, subtree, l2g_idx)
+        self.save_subtree_Elogpi(
+            self.subtree_output_files.get('subtree_Elogpi', None),
+            doc, subtree, ids, ab, uv)
+        self.save_subtree_logEpi(
+            self.subtree_output_files.get('subtree_logEpi', None),
+            doc, subtree, ids, ab, uv)
+        self.save_subtree_lambda_ss(
+            self.subtree_output_files.get('subtree_lambda_ss', None),
+            doc, ids, nu_sums)
 
         if predict_doc is not None:
             logEpi = self.compute_subtree_logEpi(subtree, ab, uv)
@@ -1037,97 +1035,60 @@ class model(object):
             + rho * ss.m_tau_ss * self.m_D / ss.m_batchsize
         )
 
-    def save_lambda_ss(self, f):
-        '''
-        Write the topics (specified by variational parameters
-        lambda + lambda0) to file.
-        '''
+    def save_global(self, output_files):
+        self.save_lambda_ss(output_files.get('lambda_ss', None))
+        self.save_logEtheta(output_files.get('logEtheta', None))
+        self.save_Elogtheta(output_files.get('Elogtheta', None))
+        self.save_logEpi(output_files.get('logEpi', None))
+        self.save_Elogpi(output_files.get('Elogpi', None))
+        self.save_pickle(output_files.get('pickle', None))
 
+    def save_lambda_ss(self, f):
         lambdas = self.m_lambda_ss + self.m_lambda0
-        for row in lambdas:
-            line = ' '.join([str(x) for x in row])
-            f.write(line + '\n')
+        self.save_rows(f, lambdas)
 
     def save_logEtheta(self, f):
-        '''
-        Write the topics (specified by logs of variational means of
-        lambda + lambda0) to file.
-        '''
-
         logEtheta = utils.dirichlet_log_expectation(self.m_lambda0 + self.m_lambda_ss)
-        for row in logEtheta:
-            line = ' '.join([str(x) for x in row])
-            f.write(line + '\n')
+        self.save_rows(f, logEtheta)
 
     def save_Elogtheta(self, f):
-        '''
-        Write the topics (specified by variational log means of
-        lambda + lambda0) to file.
-        '''
-
         Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
-        for row in Elogtheta:
-            line = ' '.join([str(x) for x in row])
-            f.write(line + '\n')
+        self.save_rows(f, Elogtheta)
 
     def save_logEpi(self, f):
-        '''
-        Write the expected log prior to file.
-        '''
-
-        logEpi = self.compute_logEpi().T
-        f.write('\n'.join(str(x) for x in logEpi))
-        f.write('\n')
+        logEpi = self.compute_logEpi()
+        self.save_rows(f, logEpi[:,np.newaxis])
 
     def save_Elogpi(self, f):
-        '''
-        Write the log of the expected prior to file.
-        '''
+        Elogpi = self.compute_Elogpi()
+        self.save_rows(f, Elogpi[:,np.newaxis])
 
-        Elogpi = self.compute_Elogpi().T
-        f.write('\n'.join(str(x) for x in Elogpi))
-        f.write('\n')
+    def save_pickle(self, f):
+        cPickle.dump(self, f, -1)
 
-    def save_subtree_lambda_ss(self, f, doc, ids, nu_sums):
-        '''
-        Append nu sums to file.
-        '''
-        # TODO lambda0?
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(x) for x in nu_sums[ids]))
-        f.write('\n')
+    def save_subtree_lambda_ss(self, f, doc, ids, doc_lambda_ss):
+        self.save_subtree_row(f, doc, doc_lambda_ss[ids] + self.m_lambda0)
 
     def save_subtree_logEpi(self, f, doc, subtree, ids, ab, uv):
-        '''
-        Append log E[pi] for doc subtree to file.
-        '''
         logEpi = self.compute_subtree_logEpi(subtree, ab, uv)
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(logEpi[i]) for i in ids))
-        f.write('\n')
+        self.save_subtree_row(f, doc, logEpi[ids])
 
     def save_subtree_Elogpi(self, f, doc, subtree, ids, ab, uv):
-        '''
-        Append E[log pi] for doc subtree to file.
-        '''
         Elogpi = self.compute_subtree_Elogpi(subtree, ab, uv)
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(Elogpi[i]) for i in ids))
-        f.write('\n')
+        self.save_subtree_row(f, doc, Elogpi[ids])
 
     def save_subtree(self, f, doc, subtree, l2g_idx):
-        '''
-        Append document subtree to file.
-        '''
+        global_ids = (l2g_idx[self.tree_index(nod)]
+                      for nod in self.tree_iter(subtree))
+        self.save_subtree_row(f, doc, global_ids)
 
-        f.write(str(doc.identifier) + ' ')
-        f.write(' '.join(str(l2g_idx[self.tree_index(nod)])
-                         for nod in self.tree_iter(subtree)))
-        f.write('\n')
+    def save_rows(self, f, m):
+        if f is not None:
+            for v in m:
+                line = ' '.join([str(x) for x in v])
+                f.write('%s\n' % line)
 
-    def save_model(self, f):
-        '''
-        Pickle model to file.
-        '''
-
-        cPickle.dump(self, f, -1)
+    def save_subtree_row(self, f, doc, v):
+        if f is not None:
+            line = ' '.join([str(x) for x in v])
+            f.write('%s %s\n' % (str(doc.identifier), line))

@@ -13,16 +13,26 @@ LOG_BASENAME = 'log'
 
 OPTIONS_BASENAME = 'options'
 
-MODEL_EXT = '.model'
-LAMBDA_SS_EXT = '.lambda_ss'
-ELOGPI_EXT = '.Elogpi'
-LOGEPI_EXT = '.logEpi'
-ELOGTHETA_EXT = '.Elogtheta'
-LOGETHETA_EXT = '.logEtheta'
-SUBTREE_BASENAME = 'subtree'
-SUBTREE_ELOGPI_BASENAME = 'subtree_Elogpi'
-SUBTREE_LOGEPI_BASENAME = 'subtree_logEpi'
-SUBTREE_LAMBDA_SS_BASENAME = 'subtree_lambda_ss'
+OUTPUT_EXTS = [
+    (s, '.' + s, 'wb' if s == 'pickle' else 'w')
+    for s in (
+        'pickle',
+        'lambda_ss',
+        'Elogpi',
+        'logEpi',
+        'Elogtheta',
+        'logEtheta',
+    )
+]
+SUBTREE_OUTPUT_BASENAMES = [
+    (s, s, 'w')
+    for s in (
+        'subtree',
+        'subtree_Elogpi',
+        'subtree_logEpi',
+        'subtree_lambda_ss',
+    )
+]
 
 DEFAULT_OPTIONS = dict(
     log_level='INFO',
@@ -294,14 +304,13 @@ def run(**kwargs):
 
     trunc = tuple(int(t) for t in options['trunc'].split(','))
 
-    subtree_f = open(os.path.join(result_directory,
-        SUBTREE_BASENAME), 'w')
-    subtree_Elogpi_f = open(os.path.join(result_directory,
-        SUBTREE_ELOGPI_BASENAME), 'w')
-    subtree_logEpi_f = open(os.path.join(result_directory,
-        SUBTREE_LOGEPI_BASENAME), 'w')
-    subtree_lambda_ss_f = open(os.path.join(result_directory,
-        SUBTREE_LAMBDA_SS_BASENAME), 'w')
+    if options['save_model']:
+        subtree_output_files = dict(
+            (s, open(os.path.join(result_directory, bn), mode))
+            for (s, bn, mode) in SUBTREE_OUTPUT_BASENAMES
+        )
+    else:
+        subtree_output_files = dict()
 
     logging.info("Creating online nhdp instance")
     m = model(trunc, num_docs, num_types,
@@ -309,10 +318,7 @@ def run(**kwargs):
                   options['gamma1'], options['gamma2'],
                   options['kappa'], options['iota'], options['delta'],
                   options['scale'], options['adding_noise'],
-                  subtree_f=subtree_f,
-                  subtree_Elogpi_f=subtree_Elogpi_f,
-                  subtree_logEpi_f=subtree_logEpi_f,
-                  subtree_lambda_ss_f=subtree_lambda_ss_f)
+                  subtree_output_files=subtree_output_files)
 
     if options['init_samples'] is not None:
         logging.info("Initializing")
@@ -350,19 +356,8 @@ def run(**kwargs):
                 options['save_lag'] = options['save_lag'] * 2
 
             # Save the model.
-            if options['save_model']:
-                for func_ext_pair in ((m.save_lambda_ss, LAMBDA_SS_EXT),
-                                      (m.save_logEpi, LOGEPI_EXT),
-                                      (m.save_Elogpi, ELOGPI_EXT),
-                                      (m.save_logEtheta, LOGETHETA_EXT),
-                                      (m.save_Elogtheta, ELOGTHETA_EXT),
-                                      (m.save_model, MODEL_EXT)):
-                    path = os.path.join(os.path.join(
-                        result_directory,
-                        'doc_count-%d%s' % (total_doc_count, func_ext_pair[1])
-                    ))
-                    with open(path, 'w') as f:
-                        func_ext_pair[0](f)
+            save_global(m, 'doc_count-%d' % total_doc_count, result_directory,
+                        options['save_model'])
 
             if options['test_data_path'] is not None:
                 test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
@@ -372,20 +367,8 @@ def run(**kwargs):
         if options['max_time'] is not None and time.time() - start_time > options['max_time']:
             break
 
-    if options['save_model']:
-        logging.info("Saving the final model and topics")
-        for func_ext_pair in ((m.save_lambda_ss, LAMBDA_SS_EXT),
-                              (m.save_logEpi, LOGEPI_EXT),
-                              (m.save_Elogpi, ELOGPI_EXT),
-                              (m.save_logEtheta, LOGETHETA_EXT),
-                              (m.save_Elogtheta, ELOGTHETA_EXT),
-                              (m.save_model, MODEL_EXT)):
-            path = os.path.join(os.path.join(
-                result_directory,
-                'final%s' % func_ext_pair[1]
-            ))
-            with open(path, 'w') as f:
-                func_ext_pair[0](f)
+    # Save the model.
+    save_global(m, 'final', result_directory, options['save_model'])
 
     if options['streaming'] and not options['concrete']:
         train_file.close()
@@ -394,10 +377,34 @@ def run(**kwargs):
     if options['test_data_path'] is not None:
         test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
-    subtree_f.close()
-    subtree_Elogpi_f.close()
-    subtree_logEpi_f.close()
-    subtree_lambda_ss_f.close()
+    for (s, f) in subtree_output_files.items():
+        if f is not None:
+            f.close()
+
+
+def save_global(m, basename_stem, result_directory, save_model):
+    if save_model:
+        logging.info('Saving global model with stem %s' % basename_stem)
+    output_files = make_output_files(basename_stem, result_directory,
+                                     save_model)
+    m.save_global(output_files)
+    close_output_files(output_files)
+
+
+def make_output_files(basename_stem, result_directory, save_model):
+    if save_model:
+        return dict(
+            (s, open(os.path.join(result_directory, basename_stem + ext), mode))
+            for (s, ext, mode) in OUTPUT_EXTS
+        )
+    else:
+        return dict()
+
+
+def close_output_files(output_files):
+    for (s, f) in output_files.items():
+        if f is not None:
+            f.close()
 
 
 def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
