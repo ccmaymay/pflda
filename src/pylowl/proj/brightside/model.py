@@ -18,9 +18,10 @@ def set_random_seed(seed):
 
 
 class suff_stats(object):
-    def __init__(self, K, Wt, Dt, Ut):
+    def __init__(self, K, Wt, Dt, Ut, DperUt):
         self.m_batch_D = Dt
         self.m_batch_U = Ut
+        self.m_batch_DperU = DperUt
         self.m_uv_ss = np.zeros((Ut, K))
         self.m_tau_ss = np.zeros(K)
         self.m_lambda_ss = np.zeros((K, Wt))
@@ -54,6 +55,7 @@ class model(object):
         self.m_K = int(np.sum(self.m_trunc_idx_b)) # total no. nodes
         self.m_W = W
         self.m_D = D
+        self.m_DperU = D / float(U)
         self.m_depth = len(trunc)
         self.m_beta = beta
         self.m_alpha = alpha
@@ -193,6 +195,7 @@ class model(object):
 
         users_to_batch_map = dict()
         batch_to_users_map = []
+        DperUt = []
         docs_new_user = []
         # mapping from word types in this mini-batch to unique
         # consecutive integers
@@ -216,6 +219,8 @@ class model(object):
             if doc.user_idx not in users_to_batch_map:
                 batch_to_users_map.append(doc.user_idx)
                 users_to_batch_map[doc.user_idx] = len(users_to_batch_map)
+                DperUt.append(0)
+            DperUt[users_to_batch_map[doc.user_idx]] += 1
 
             for w in doc.words:
                 if w not in vocab_to_batch_word_map:
@@ -231,7 +236,7 @@ class model(object):
         logging.info('Processing %d docs spanning %d tokens, %d types'
             % (doc_count, num_tokens, Wt))
 
-        ss = suff_stats(self.m_K, Wt, doc_count, Ut)
+        ss = suff_stats(self.m_K, Wt, doc_count, Ut, DperUt)
 
         # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
         ids = [self.tree_index(node) for node in self.tree_iter()]
@@ -929,19 +934,20 @@ class model(object):
         # Update lambda based on documents.
         self.m_lambda_ss *= (1 - rho)
         self.m_lambda_ss[:, batch_to_vocab_word_map] += (
-            rho * ss.m_lambda_ss * self.m_D / ss.m_batch_D
+            rho * ss.m_lambda_ss * self.m_D / float(ss.m_batch_D)
         )
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
         self.m_tau_ss = (
             (1.0 - rho) * self.m_tau_ss
-            + rho * ss.m_tau_ss * self.m_U / ss.m_batch_U
+            + rho * ss.m_tau_ss * self.m_D / float(ss.m_batch_D)
         )
 
         self.m_uv_ss *= (1 - rho)
-        self.m_uv_ss[batch_to_users_map, :] += (
-            rho * ss.m_uv_ss * self.m_U / ss.m_batch_U
-        )
+        for user_batch_idx in xrange(ss.m_batch_U):
+            self.m_uv_ss[batch_to_users_map[user_batch_idx], :] += (
+                rho * ss.m_uv_ss[user_batch_idx] * self.m_DperU / float(ss.m_batch_DperU[user_batch_idx])
+            )
 
     def save(self, output_files):
         self.save_lambda_ss(output_files.get('lambda_ss', None))
