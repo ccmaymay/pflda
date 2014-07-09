@@ -349,7 +349,10 @@ class model(object):
         return likelihood
 
     def zeta_likelihood(self, subtree_leaves, ids_leaves, ids, doc, xi, log_xi):
-        self.check_uv_edge_cases(doc.user_idx, subtree_leaves, ids_leaves)
+        # TODO: keep around uv_ss...
+        # but handling of uv/uv_ss between subtree selections is very
+        # sketchy
+        #self.check_uv_edge_cases(doc.user_idx, subtree_leaves, ids_leaves)
         self.check_xi_edge_cases(xi, ids_leaves)
         self.check_xi_edge_cases(np.exp(log_xi), ids_leaves)
         self.check_subtree_ids(subtree_leaves, ids_leaves)
@@ -531,20 +534,16 @@ class model(object):
         batch_ids = [vocab_to_batch_word_map[w] for w in doc.words]
         token_batch_ids = np.repeat(batch_ids, doc.counts)
 
-        (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc.user_idx, ElogV)
-        self.m_user_subtrees[doc.user_idx] = subtree
-        self.m_user_l2g_ids[doc.user_idx] = l2g_idx
-        self.m_user_g2l_ids[doc.user_idx] = g2l_idx
-        #if self.m_user_subtree_selection_counters[doc.user_idx] % self.m_user_subtree_selection_interval == 0:
-        #    (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc.user_idx, ElogV)
-        #    self.m_user_subtrees[doc.user_idx] = subtree
-        #    self.m_user_l2g_ids[doc.user_idx] = l2g_idx
-        #    self.m_user_g2l_ids[doc.user_idx] = g2l_idx
-        #else:
-        #    subtree = self.m_user_subtrees[doc.user_idx]
-        #    l2g_idx = self.m_user_l2g_ids[doc.user_idx]
-        #    g2l_idx = self.m_user_g2l_ids[doc.user_idx]
-        #self.m_user_subtree_selection_counters[doc.user_idx] += 1
+        if self.m_user_subtree_selection_counters[doc.user_idx] % self.m_user_subtree_selection_interval == 0:
+            (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc.user_idx, ElogV)
+            self.m_user_subtrees[doc.user_idx] = subtree
+            self.m_user_l2g_ids[doc.user_idx] = l2g_idx
+            self.m_user_g2l_ids[doc.user_idx] = g2l_idx
+        else:
+            subtree = self.m_user_subtrees[doc.user_idx]
+            l2g_idx = self.m_user_l2g_ids[doc.user_idx]
+            g2l_idx = self.m_user_g2l_ids[doc.user_idx]
+        self.m_user_subtree_selection_counters[doc.user_idx] += 1
 
         ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
 
