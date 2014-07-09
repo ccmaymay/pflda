@@ -302,7 +302,7 @@ class model(object):
             ab[:, idx, node_level] = [1.0, 0.0]
             for p in self.node_ancestors(node):
                 p_level = self.node_level(p)
-                ab[1, idx, p_level] += nu_sums[idx, p_level+1:node_level+1]
+                ab[1, idx, p_level] += np.sum(nu_sums[idx, p_level+1:node_level+1])
 
     def update_tau(self):
         self.m_tau[0] = self.m_tau_ss + 1.0
