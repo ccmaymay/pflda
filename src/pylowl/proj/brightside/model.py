@@ -785,7 +785,7 @@ class model(object):
             % (old_likelihood, zeta_ll))
 
         # E[log p(W | theta, c, zeta, z)]
-        w_ll = self.w_likelihood(doc, nu, xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], subtree_leaves, ids_leaves)
+        w_ll = self.w_likelihood(doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves)
         old_likelihood += w_ll
         logging.debug('Log-likelihood after W component: %f (+ %f)'
             % (old_likelihood, w_ll))
@@ -862,7 +862,7 @@ class model(object):
                     % (candidate_likelihood, zeta_ll))
 
                 # E[log p(W | theta, c, zeta, z)]
-                w_ll = self.w_likelihood(doc, candidate_nu, candidate_xi, self.m_Elogprobw[l2g_idx, :][:, doc.words], subtree_leaves, ids_leaves)
+                w_ll = self.w_likelihood(doc, candidate_nu, candidate_xi, Elogprobw_doc, subtree_leaves, ids_leaves)
                 candidate_likelihood += w_ll
                 logging.debug('Log-likelihood after W component: %f (+ %f)'
                     % (candidate_likelihood, w_ll))
