@@ -829,9 +829,9 @@ class model(object):
 
                 Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
 
-                xi[:] = 0.
-                xi[ids_leaves] = 1./len(ids_leaves)
-                log_xi = np.log(xi)
+                candidate_xi[:] = 0.
+                candidate_xi[ids_leaves] = 1./len(ids_leaves)
+                candidate_log_xi = np.log(candidate_xi)
 
                 self.update_nu(subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc,
                     candidate_xi, candidate_nu, candidate_log_nu)
@@ -921,6 +921,7 @@ class model(object):
 
             old_likelihood = likelihood
 
+        logging.debug('Selecting subtree:')
         logging.debug('Log-likelihood: %f' % old_likelihood)
 
         ids = [self.tree_index(n) for n in self.tree_iter(subtree)]
