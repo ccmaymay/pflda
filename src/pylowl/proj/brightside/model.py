@@ -748,9 +748,9 @@ class model(object):
 
         old_likelihood = 0.0
 
-        ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
-        ids_leaves = [self.tree_index(node)
-                      for node in self.tree_iter(subtree_leaves)]
+        ids = [self.tree_index(n) for n in self.tree_iter(subtree)]
+        ids_leaves = [self.tree_index(n)
+                      for n in self.tree_iter(subtree_leaves)]
         logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
         logging.debug('Subtree global ids: %s'
             % ' '.join(str(l2g_idx[i]) for i in ids))
