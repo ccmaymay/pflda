@@ -61,6 +61,11 @@ class model(object):
 
         self.m_U = U
 
+        self.m_user_subtree_selection_interval = 10 # TODO (must be one or uv is off)
+        self.m_user_subtree_selection_counters = [0] * U
+        self.m_user_docs_capacity = 10 # TODO
+        self.m_user_docs_counts = [0] * U
+        self.m_user_docs = [[None] * self.m_user_docs_capacity for i in xrange(U)]
         self.m_users = [None] * U
         self.m_r_users = dict()
         self.m_user_subtrees = [None] * U
@@ -208,6 +213,9 @@ class model(object):
                 self.m_r_users[doc.user] = user_idx
                 doc.user_idx = user_idx
                 docs_new_user.append(True)
+
+            utils.reservoir_insert(self.m_user_docs[doc.user_idx], self.m_user_docs_counts[doc.user_idx], doc)
+            self.m_user_docs_counts[doc.user_idx] += 1
 
             if doc.user_idx not in users_to_batch_map:
                 batch_to_users_map.append(doc.user_idx)
@@ -523,15 +531,20 @@ class model(object):
         batch_ids = [vocab_to_batch_word_map[w] for w in doc.words]
         token_batch_ids = np.repeat(batch_ids, doc.counts)
 
-        if new_user:
-            (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc, ElogV, num_tokens)
-            self.m_user_subtrees[doc.user_idx] = subtree
-            self.m_user_l2g_ids[doc.user_idx] = l2g_idx
-            self.m_user_g2l_ids[doc.user_idx] = g2l_idx
-        else:
-            subtree = self.m_user_subtrees[doc.user_idx]
-            l2g_idx = self.m_user_l2g_ids[doc.user_idx]
-            g2l_idx = self.m_user_g2l_ids[doc.user_idx]
+        (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc.user_idx, ElogV)
+        self.m_user_subtrees[doc.user_idx] = subtree
+        self.m_user_l2g_ids[doc.user_idx] = l2g_idx
+        self.m_user_g2l_ids[doc.user_idx] = g2l_idx
+        #if self.m_user_subtree_selection_counters[doc.user_idx] % self.m_user_subtree_selection_interval == 0:
+        #    (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc.user_idx, ElogV)
+        #    self.m_user_subtrees[doc.user_idx] = subtree
+        #    self.m_user_l2g_ids[doc.user_idx] = l2g_idx
+        #    self.m_user_g2l_ids[doc.user_idx] = g2l_idx
+        #else:
+        #    subtree = self.m_user_subtrees[doc.user_idx]
+        #    l2g_idx = self.m_user_l2g_ids[doc.user_idx]
+        #    g2l_idx = self.m_user_g2l_ids[doc.user_idx]
+        #self.m_user_subtree_selection_counters[doc.user_idx] += 1
 
         ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
 
@@ -716,10 +729,13 @@ class model(object):
     def subtree_node_candidates(self, subtree):
         return utils.subtree_node_candidates(self.m_trunc, subtree)
 
-    def select_subtree(self, doc, ElogV, num_tokens):
+    def select_subtree(self, user_idx, ElogV):
         # TODO abstract stuff below, like subtree candidate
         # modifications... prone to bugs
-        logging.debug('Greedily selecting subtree for ' + str(doc.identifier))
+        logging.debug('Greedily selecting subtree for %s' % str(self.m_users[user_idx]))
+
+        docs = self.m_user_docs[user_idx][:self.m_user_docs_counts[user_idx]]
+        num_docs = len(docs)
 
         # map from local nodes in subtree to global nodes
         subtree = dict()
@@ -734,13 +750,13 @@ class model(object):
         g2l_idx = np.zeros(self.m_K, dtype=np.uint)
 
         # q(V_{i,j}^{(d)} = 1) = 1 for j+1 = trunc[\ell] (\ell is depth)
-        self.m_uv[:,doc.user_idx,:] = [[1.], [0.]]
+        self.m_uv[:,user_idx,:] = [[1.], [0.]]
         # TODO this might be useful in uv initialization (not yet implemented)
         #for node in self.tree_iter(subtree):
         #    idx = self.tree_index(node)
         #    s = node[:-1] + (node[-1] + 1,) # right sibling
         #    if s in subtree: # node is not last child of its parent in subtree
-        #        self.m_uv[:,doc.user_idx,idx] = [1.0, self.m_beta]
+        #        self.m_uv[:,user_idx,idx] = [1.0, self.m_beta]
 
 
         prior_ab = np.zeros((2, self.m_K, self.m_depth))
@@ -755,46 +771,42 @@ class model(object):
         logging.debug('Subtree global ids: %s'
             % ' '.join(str(l2g_idx[i]) for i in ids))
 
-        Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
-
-        xi = np.zeros((self.m_K,))
-        xi[ids_leaves] = 1./len(ids_leaves)
-        log_xi = np.log(xi)
-
-        nu = np.zeros((self.m_K, num_tokens, self.m_depth))
-        log_nu = np.log(nu)
-        self.update_nu(
-            subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc, xi, nu, log_nu)
-
         # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
         z_ll = self.z_likelihood(subtree, ElogV)
         old_likelihood += z_ll
         logging.debug('Log-likelihood after z components: %f (+ %f)'
             % (old_likelihood, z_ll))
 
-        # E[log p(c | U, zeta)] + H(q(c))
-        c_ll = self.c_likelihood(subtree, subtree_leaves, prior_ab, nu, log_nu, ids)
-        old_likelihood += c_ll
-        logging.debug('Log-likelihood after c components: %f (+ %f)'
-            % (old_likelihood, c_ll))
+        for (doc_idx, doc) in enumerate(docs):
+            Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
 
-        # E[log p(zeta | V)] + H(q(zeta))
-        zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, ids, doc, xi, log_xi)
-        old_likelihood += zeta_ll
-        logging.debug('Log-likelihood after zeta components: %f (+ %f)'
-            % (old_likelihood, zeta_ll))
+            xi = np.zeros((self.m_K,))
+            xi[ids_leaves] = 1./len(ids_leaves)
+            log_xi = np.log(xi)
 
-        # E[log p(W | theta, c, zeta, z)]
-        w_ll = self.w_likelihood(doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves)
-        old_likelihood += w_ll
-        logging.debug('Log-likelihood after W component: %f (+ %f)'
-            % (old_likelihood, w_ll))
+            nu = np.zeros((self.m_K, doc.total, self.m_depth))
+            log_nu = np.log(nu)
 
-        candidate_nu = nu
-        candidate_log_nu = log_nu
+            self.update_nu(
+                subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc, xi, nu, log_nu)
 
-        candidate_xi = xi
-        candidate_log_xi = log_xi
+            # E[log p(c | U, zeta)] + H(q(c))
+            c_ll = self.c_likelihood(subtree, subtree_leaves, prior_ab, nu, log_nu, ids)
+            old_likelihood += c_ll
+            logging.debug('Log-likelihood after c components: %f (+ %f)'
+                % (old_likelihood, c_ll))
+
+            # E[log p(zeta | V)] + H(q(zeta))
+            zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, ids, doc, xi, log_xi)
+            old_likelihood += zeta_ll
+            logging.debug('Log-likelihood after zeta components: %f (+ %f)'
+                % (old_likelihood, zeta_ll))
+
+            # E[log p(W | theta, c, zeta, z)]
+            w_ll = self.w_likelihood(doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves)
+            old_likelihood += w_ll
+            logging.debug('Log-likelihood after W component: %f (+ %f)'
+                % (old_likelihood, w_ll))
 
         while True:
             best_node = None
@@ -816,7 +828,7 @@ class model(object):
                 left_s = node[:-1] + (node[-1] - 1,)
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
-                    self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, self.m_beta]
+                    self.m_uv[:,user_idx,left_s_idx] = [1.0, self.m_beta]
                 subtree[node] = global_node
                 subtree_leaves[node] = global_node
 
@@ -827,20 +839,6 @@ class model(object):
                 logging.debug('Subtree global ids: %s'
                     % ' '.join(str(l2g_idx[i]) for i in ids))
 
-                Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
-
-                candidate_xi[:] = 0.
-                candidate_xi[ids_leaves] = 1./len(ids_leaves)
-                candidate_log_xi = np.log(candidate_xi)
-
-                self.update_nu(subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc,
-                    candidate_xi, candidate_nu, candidate_log_nu)
-
-                self.update_xi(subtree_leaves, ids, Elogprobw_doc, doc,
-                    candidate_nu, candidate_xi, candidate_log_xi)
-                self.update_nu(subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc,
-                    candidate_xi, candidate_nu, candidate_log_nu)
-
                 candidate_likelihood = 0.0
 
                 # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
@@ -849,23 +847,41 @@ class model(object):
                 logging.debug('Log-likelihood after z components: %f (+ %f)'
                     % (candidate_likelihood, z_ll))
 
-                # E[log p(c | U, zeta)] + H(q(c))
-                c_ll = self.c_likelihood(subtree, subtree_leaves, prior_ab, candidate_nu, candidate_log_nu, ids)
-                candidate_likelihood += c_ll
-                logging.debug('Log-likelihood after c components: %f (+ %f)'
-                    % (candidate_likelihood, c_ll))
+                for (doc_idx, doc) in enumerate(docs):
+                    Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
 
-                # E[log p(zeta | V)] + H(q(zeta))
-                zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, ids, doc, candidate_xi, candidate_log_xi)
-                candidate_likelihood += zeta_ll
-                logging.debug('Log-likelihood after zeta components: %f (+ %f)'
-                    % (candidate_likelihood, zeta_ll))
+                    candidate_xi = np.zeros((self.m_K,))
+                    candidate_xi[ids_leaves] = 1./len(ids_leaves)
+                    candidate_log_xi = np.log(candidate_xi)
 
-                # E[log p(W | theta, c, zeta, z)]
-                w_ll = self.w_likelihood(doc, candidate_nu, candidate_xi, Elogprobw_doc, subtree_leaves, ids_leaves)
-                candidate_likelihood += w_ll
-                logging.debug('Log-likelihood after W component: %f (+ %f)'
-                    % (candidate_likelihood, w_ll))
+                    candidate_nu = np.zeros((self.m_K, doc.total, self.m_depth))
+                    candidate_log_nu = np.log(candidate_nu)
+
+                    self.update_nu(subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc,
+                        candidate_xi, candidate_nu, candidate_log_nu)
+
+                    self.update_xi(subtree_leaves, ids, Elogprobw_doc, doc,
+                        candidate_nu, candidate_xi, candidate_log_xi)
+                    self.update_nu(subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc,
+                        candidate_xi, candidate_nu, candidate_log_nu)
+
+                    # E[log p(c | U, zeta)] + H(q(c))
+                    c_ll = self.c_likelihood(subtree, subtree_leaves, prior_ab, candidate_nu, candidate_log_nu, ids)
+                    candidate_likelihood += c_ll
+                    logging.debug('Log-likelihood after c components: %f (+ %f)'
+                        % (candidate_likelihood, c_ll))
+
+                    # E[log p(zeta | V)] + H(q(zeta))
+                    zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, ids, doc, candidate_xi, candidate_log_xi)
+                    candidate_likelihood += zeta_ll
+                    logging.debug('Log-likelihood after zeta components: %f (+ %f)'
+                        % (candidate_likelihood, zeta_ll))
+
+                    # E[log p(W | theta, c, zeta, z)]
+                    w_ll = self.w_likelihood(doc, candidate_nu, candidate_xi, Elogprobw_doc, subtree_leaves, ids_leaves)
+                    candidate_likelihood += w_ll
+                    logging.debug('Log-likelihood after W component: %f (+ %f)'
+                        % (candidate_likelihood, w_ll))
 
                 if best_likelihood is None or candidate_likelihood > best_likelihood:
                     best_node = node
@@ -879,7 +895,7 @@ class model(object):
                 l2g_idx[idx] = 0
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
-                    self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, 0.0]
+                    self.m_uv[:,user_idx,left_s_idx] = [1.0, 0.0]
                 del subtree[node]
                 del subtree_leaves[node]
 
@@ -910,7 +926,7 @@ class model(object):
             left_s = node[:-1] + (node[-1] - 1,)
             if left_s in subtree:
                 left_s_idx = self.tree_index(left_s)
-                self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, self.m_beta]
+                self.m_uv[:,user_idx,left_s_idx] = [1.0, self.m_beta]
             subtree[node] = global_node
             subtree_leaves[node] = global_node
 
