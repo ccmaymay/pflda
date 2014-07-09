@@ -290,8 +290,6 @@ class model(object):
                 (log_nu[idx,n,:node_level+1], log_norm) = utils.log_normalize(log_nu[idx,n,:node_level+1])
 
         nu[:] = np.exp(log_nu)
-        if np.isnan(nu).any():
-            import pdb; pdb.set_trace()
 
     def update_ab(self, subtree_leaves, nu_sums, ab):
         ab[0] = self.m_gamma1 + nu_sums
@@ -513,6 +511,7 @@ class model(object):
             idx = self.tree_index(node)
             node_level = self.node_level(node)
             nu_row = nu[idx,:,:node_level+1]
+            assert not np.isnan(nu_row).any(), 'not all rows of nu are nan-free: %s' % str(nu_row)
             assert la.norm(np.sum(nu_row,1) - 1, np.inf) < 1e-9, 'not all rows of nu sum to one: %s' % str(nu_row)
 
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
