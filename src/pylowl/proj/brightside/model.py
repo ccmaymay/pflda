@@ -812,9 +812,8 @@ class model(object):
                 p = node[:-1]
                 if p in subtree_leaves:
                     del subtree_leaves[p]
-                if p in subtree:
-                    p_level = self.node_level(p)
-                    prior_ab[:,idx,p_level] = [self.m_gamma1, self.m_gamma2]
+                node_level = self.node_level(node)
+                prior_ab[:,idx,:node_level] = [[self.m_gamma1], [self.m_gamma2]]
                 l2g_idx[idx] = global_idx
                 left_s = node[:-1] + (node[-1] - 1,)
                 if left_s in subtree:
@@ -823,9 +822,9 @@ class model(object):
                 subtree[node] = global_node
                 subtree_leaves[node] = global_node
 
-                ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
-                ids_leaves = [self.tree_index(node)
-                              for node in self.tree_iter(subtree_leaves)]
+                ids = [self.tree_index(n) for n in self.tree_iter(subtree)]
+                ids_leaves = [self.tree_index(n)
+                              for n in self.tree_iter(subtree_leaves)]
                 logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
                 logging.debug('Subtree global ids: %s'
                     % ' '.join(str(l2g_idx[i]) for i in ids))
@@ -878,8 +877,7 @@ class model(object):
                 p = node[:-1]
                 if node[-1] == 0 and p in subtree:
                     subtree_leaves[p] = subtree[p]
-                    p_level = self.node_level(p)
-                    prior_ab[:,idx,p_level] = [1., 0.]
+                prior_ab[:,idx,:node_level] = [[1.], [0.]]
                 l2g_idx[idx] = 0
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
@@ -907,9 +905,8 @@ class model(object):
             p = node[:-1]
             if p in subtree_leaves:
                 del subtree_leaves[p]
-            if p in subtree:
-                p_level = self.node_level(p)
-                prior_ab[:,idx,p_level] = [self.m_gamma1, self.m_gamma2]
+            node_level = self.node_level(node)
+            prior_ab[:,idx,:node_level] = [[self.m_gamma1], [self.m_gamma2]]
             l2g_idx[idx] = global_idx
             g2l_idx[global_idx] = idx
             left_s = node[:-1] + (node[-1] - 1,)
@@ -919,7 +916,7 @@ class model(object):
             subtree[node] = global_node
             subtree_leaves[node] = global_node
 
-            ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
+            ids = [self.tree_index(n) for n in self.tree_iter(subtree)]
             logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
             logging.debug('Subtree global ids: %s'
                 % ' '.join(str(l2g_idx[i]) for i in ids))
@@ -928,7 +925,7 @@ class model(object):
 
         logging.debug('Log-likelihood: %f' % old_likelihood)
 
-        ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
+        ids = [self.tree_index(n) for n in self.tree_iter(subtree)]
         logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
         logging.debug('Subtree global ids: %s'
             % ' '.join(str(l2g_idx[i]) for i in ids))
