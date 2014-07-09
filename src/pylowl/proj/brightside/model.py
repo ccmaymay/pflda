@@ -328,6 +328,9 @@ class model(object):
         self.m_uv[1] = self.m_beta
         for user_idx in xrange(self.m_U):
             subtree = self.m_user_subtrees[user_idx]
+            if subtree is None:
+                continue
+
             l2g_idx = self.m_user_l2g_ids[user_idx]
             for node in self.tree_iter(subtree):
                 idx = self.tree_index(node)
