@@ -522,7 +522,7 @@ class model(object):
                    batch_to_vocab_word_map, users_to_batch_map,
                    batch_to_users_map, var_converge, max_iter=100,
                    predict_doc=None, new_user=True):
-
+        user_idx = doc.user_idx
         num_tokens = sum(doc.counts)
 
         logging.debug('Performing E-step on doc spanning %d tokens, %d types'
@@ -535,16 +535,16 @@ class model(object):
         batch_ids = [vocab_to_batch_word_map[w] for w in doc.words]
         token_batch_ids = np.repeat(batch_ids, doc.counts)
 
-        if self.m_user_subtree_selection_counters[doc.user_idx] % self.m_user_subtree_selection_interval == 0:
-            (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc.user_idx, ElogV)
-            self.m_user_subtrees[doc.user_idx] = subtree
-            self.m_user_l2g_ids[doc.user_idx] = l2g_idx
-            self.m_user_g2l_ids[doc.user_idx] = g2l_idx
+        if self.m_user_subtree_selection_counters[user_idx] % self.m_user_subtree_selection_interval == 0:
+            (subtree, l2g_idx, g2l_idx) = self.select_subtree(user_idx, ElogV)
+            self.m_user_subtrees[user_idx] = subtree
+            self.m_user_l2g_ids[user_idx] = l2g_idx
+            self.m_user_g2l_ids[user_idx] = g2l_idx
         else:
-            subtree = self.m_user_subtrees[doc.user_idx]
-            l2g_idx = self.m_user_l2g_ids[doc.user_idx]
-            g2l_idx = self.m_user_g2l_ids[doc.user_idx]
-        self.m_user_subtree_selection_counters[doc.user_idx] += 1
+            subtree = self.m_user_subtrees[user_idx]
+            l2g_idx = self.m_user_l2g_ids[user_idx]
+            g2l_idx = self.m_user_g2l_ids[user_idx]
+        self.m_user_subtree_selection_counters[user_idx] += 1
 
         ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
 
@@ -612,7 +612,7 @@ class model(object):
             logging.debug('Log-likelihood after U components: %f (+ %f)' % (likelihood, u_ll))
 
             # E[log p(V | beta)] + H(q(V))
-            v_ll = utils.log_sticks_likelihood(self.m_uv[:,doc.user_idx,uv_ids], 1.0, self.m_beta)
+            v_ll = utils.log_sticks_likelihood(self.m_uv[:,user_idx,uv_ids], 1.0, self.m_beta)
             likelihood += v_ll
             logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
 
@@ -647,41 +647,47 @@ class model(object):
 
             iteration += 1
 
-        # update ss and compute doc-specific lambda ss (for save_subtree_*)
-        doc_lambda_ss = np.zeros((self.m_K, self.m_W))
+        # update ss
         ss.m_tau_ss[l2g_idx[ids]] += 1
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                ss.m_uv_ss[users_to_batch_map[doc.user_idx], p_idx] += xi[idx]
+                ss.m_uv_ss[users_to_batch_map[user_idx], p_idx] += xi[idx]
                 for n in xrange(num_tokens):
-                    doc_lambda_ss[p_idx, batch_to_vocab_word_map[token_batch_ids[n]]] += nu[idx, n, p_level] * xi[idx]
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
 
         # save subtree stats
+        user_lambda_ss = np.zeros((self.m_K, self.m_W))
+        for node in self.tree_iter(subtree_leaves):
+            idx = self.tree_index(node)
+            for p in it.chain((node,), self.node_ancestors(node)):
+                p_idx = self.tree_index(p)
+                p_level = self.node_level(p)
+                for n in xrange(num_tokens):
+                    user_lambda_ss[p_idx, batch_to_vocab_word_map[token_batch_ids[n]]] += nu[idx, n, p_level] * xi[idx]
         self.save_subtree(
             self.subtree_output_files.get('subtree', None),
-            doc, subtree, l2g_idx)
+            user_idx, subtree, l2g_idx)
         self.save_subtree_Elogpi(
             self.subtree_output_files.get('subtree_Elogpi', None),
-            doc, subtree_leaves, ids)
+            user_idx, subtree_leaves, ids)
         self.save_subtree_logEpi(
             self.subtree_output_files.get('subtree_logEpi', None),
-            doc, subtree_leaves, ids)
+            user_idx, subtree_leaves, ids)
         self.save_subtree_Elogchi(
             self.subtree_output_files.get('subtree_Elogchi', None),
-            doc, subtree_leaves, ids, ab)
+            user_idx, subtree_leaves, ids, ab)
         self.save_subtree_logEchi(
             self.subtree_output_files.get('subtree_logEchi', None),
-            doc, subtree_leaves, ids, ab)
+            user_idx, subtree_leaves, ids, ab)
         self.save_subtree_lambda_ss(
             self.subtree_output_files.get('subtree_lambda_ss', None),
-            doc, ids, np.sum(doc_lambda_ss,1))
+            user_idx, ids, np.sum(user_lambda_ss,1))
 
         if predict_doc is not None:
-            logEpi = self.compute_subtree_logEpi(subtree_leaves, ids, doc.user_idx)
+            logEpi = self.compute_subtree_logEpi(subtree_leaves, ids, user_idx)
             logEchi = self.compute_subtree_logEchi(subtree_leaves, ab)
             # TODO abstract this?
             logEtheta = (
@@ -1004,31 +1010,31 @@ class model(object):
     def save_pickle(self, f):
         cPickle.dump(self, f, -1)
 
-    def save_subtree_lambda_ss(self, f, doc, ids, doc_lambda_ss):
-        self.save_subtree_row(f, doc, doc_lambda_ss[ids] + self.m_lambda0)
+    def save_subtree_lambda_ss(self, f, user_idx, ids, user_lambda_ss):
+        self.save_subtree_row(f, user_idx, user_lambda_ss[ids] + self.m_lambda0)
 
-    def save_subtree_logEpi(self, f, doc, subtree_leaves, ids):
-        logEpi = self.compute_subtree_logEpi(subtree_leaves, ids, doc.user_idx)
-        self.save_subtree_row(f, doc, logEpi[ids])
+    def save_subtree_logEpi(self, f, user_idx, subtree_leaves, ids):
+        logEpi = self.compute_subtree_logEpi(subtree_leaves, ids, user_idx)
+        self.save_subtree_row(f, user_idx, logEpi[ids])
 
-    def save_subtree_Elogpi(self, f, doc, subtree_leaves, ids):
-        Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids, doc.user_idx)
-        self.save_subtree_row(f, doc, Elogpi[ids])
+    def save_subtree_Elogpi(self, f, user_idx, subtree_leaves, ids):
+        Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids, user_idx)
+        self.save_subtree_row(f, user_idx, Elogpi[ids])
 
-    def save_subtree_logEchi(self, f, doc, subtree_leaves, ids, ab):
+    def save_subtree_logEchi(self, f, user_idx, subtree_leaves, ids, ab):
         logEchi = self.compute_subtree_logEchi(subtree_leaves, ab)
         logEchi_subtree_num_elts = len(ids) * self.m_depth
-        self.save_subtree_row(f, doc, logEchi[ids,:].reshape((logEchi_subtree_num_elts,)))
+        self.save_subtree_row(f, user_idx, logEchi[ids,:].reshape((logEchi_subtree_num_elts,)))
 
-    def save_subtree_Elogchi(self, f, doc, subtree_leaves, ids, ab):
+    def save_subtree_Elogchi(self, f, user_idx, subtree_leaves, ids, ab):
         Elogchi = self.compute_subtree_Elogchi(subtree_leaves, ab)
         Elogchi_subtree_num_elts = len(ids) * self.m_depth
-        self.save_subtree_row(f, doc, Elogchi[ids,:].reshape((Elogchi_subtree_num_elts,)))
+        self.save_subtree_row(f, user_idx, Elogchi[ids,:].reshape((Elogchi_subtree_num_elts,)))
 
-    def save_subtree(self, f, doc, subtree, l2g_idx):
+    def save_subtree(self, f, user_idx, subtree, l2g_idx):
         global_ids = (l2g_idx[self.tree_index(nod)]
                       for nod in self.tree_iter(subtree))
-        self.save_subtree_row(f, doc, global_ids)
+        self.save_subtree_row(f, user_idx, global_ids)
 
     def save_rows(self, f, m):
         if f is not None:
@@ -1036,7 +1042,7 @@ class model(object):
                 line = ' '.join([str(x) for x in v])
                 f.write('%s\n' % line)
 
-    def save_subtree_row(self, f, doc, v):
+    def save_subtree_row(self, f, user_idx, v):
         if f is not None:
             line = ' '.join([str(x) for x in v])
-            f.write('%s %s\n' % (str(doc.identifier), line))
+            f.write('%s %s\n' % (str(self.m_users[user_idx]), line))
