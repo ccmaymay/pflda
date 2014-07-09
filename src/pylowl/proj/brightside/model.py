@@ -327,7 +327,7 @@ class model(object):
                     self.m_uv[:,user_idx,idx] = [1., 0.]
                 for s in self.node_left_siblings(node):
                     s_idx = self.tree_index(s)
-                    ss.m_uv[1, user_idx, s_idx] += self.m_uv_ss[user_idx, idx]
+                    self.m_uv[1, user_idx, s_idx] += self.m_uv_ss[user_idx, idx]
 
     def z_likelihood(self, subtree, ElogV):
         self.check_ElogV_edge_cases(ElogV)
