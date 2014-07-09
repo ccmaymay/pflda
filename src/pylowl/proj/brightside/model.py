@@ -799,8 +799,6 @@ class model(object):
         candidate_log_xi = log_xi
 
         while True:
-            import pdb; pdb.set_trace()
-
             best_node = None
             best_global_node = None
             best_likelihood = None
@@ -811,8 +809,6 @@ class model(object):
                 idx = self.tree_index(node)
                 global_idx = self.tree_index(global_node)
 
-                subtree[node] = global_node
-                subtree_leaves[node] = global_node
                 p = node[:-1]
                 if p in subtree_leaves:
                     del subtree_leaves[p]
@@ -824,6 +820,8 @@ class model(object):
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
                     self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, self.m_beta]
+                subtree[node] = global_node
+                subtree_leaves[node] = global_node
 
                 ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
                 ids_leaves = [self.tree_index(node)
@@ -877,8 +875,6 @@ class model(object):
                     best_global_node = global_node
                     best_likelihood = candidate_likelihood
 
-                del subtree[node]
-                del subtree_leaves[node]
                 p = node[:-1]
                 if node[-1] == 0 and p in subtree:
                     subtree_leaves[p] = subtree[p]
@@ -888,6 +884,8 @@ class model(object):
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
                     self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, 0.0]
+                del subtree[node]
+                del subtree_leaves[node]
 
             if best_likelihood is None: # no candidates
                 break
@@ -904,8 +902,6 @@ class model(object):
                 % (str(global_node), str(node)))
             logging.debug('Log-likelihood: %f' % likelihood)
 
-            subtree[node] = global_node
-            subtree_leaves[node] = global_node
             idx = self.tree_index(node)
             global_idx = self.tree_index(global_node)
             p = node[:-1]
@@ -920,6 +916,8 @@ class model(object):
             if left_s in subtree:
                 left_s_idx = self.tree_index(left_s)
                 self.m_uv[:,doc.user_idx,left_s_idx] = [1.0, self.m_beta]
+            subtree[node] = global_node
+            subtree_leaves[node] = global_node
 
             ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
             logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
