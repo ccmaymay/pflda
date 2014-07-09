@@ -529,7 +529,7 @@ class model(object):
         batch_ids = [vocab_to_batch_word_map[w] for w in doc.words]
         token_batch_ids = np.repeat(batch_ids, doc.counts)
 
-        if self.m_user_subtree_selection_counters[user_idx] % self.m_user_subtree_selection_interval == 0:
+        if new_user or self.m_user_subtree_selection_counters[user_idx] % self.m_user_subtree_selection_interval == 0:
             (subtree, l2g_idx, g2l_idx) = self.select_subtree(user_idx, ElogV)
             self.m_user_subtrees[user_idx] = subtree
             self.m_user_l2g_ids[user_idx] = l2g_idx
