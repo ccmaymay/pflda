@@ -74,6 +74,8 @@ DEFAULT_OPTIONS = dict(
     concrete_section_segmentation=0,
     concrete_sentence_segmentation=0,
     concrete_tokenization_list=0,
+    user_subtree_selection_interval=10,
+    user_doc_reservoir_capacity=10,
 )
 
 
@@ -155,6 +157,10 @@ def main(argv=None):
                       help="whether to save model to disk (may be big)")
     parser.add_argument("--concrete", action="store_true",
                       help="data is in concrete (concrete_vocab_path must be specified)")
+    parser.add_argument("--user_subtree_selection_interval", type=int,
+                      help="interval (in docs, per user) between subtree (re)selection")
+    parser.add_argument("--user_doc_reservoir_capacity", type=int,
+                      help="capacity of each per-user document reservoir")
 
     if argv is None:
         args = parser.parse_args(sys.argv[1:])
@@ -319,11 +325,18 @@ def run(**kwargs):
         subtree_output_files = dict()
 
     logging.info("Creating online nhdp instance")
-    m = model(trunc, num_docs, num_types, num_users,
-              options['lambda0'], options['beta'], options['alpha'],
-              options['gamma1'], options['gamma2'],
-              options['kappa'], options['iota'], options['delta'],
-              options['scale'],
+    m = model(trunc, D=num_docs, W=num_types, U=num_users,
+              lambda0=options['lambda0'],
+              beta=options['beta'],
+              alpha=options['alpha'],
+              gamma1=options['gamma1'],
+              gamma2=options['gamma2'],
+              kappa=options['kappa'],
+              iota=options['iota'],
+              delta=options['delta'],
+              scale=options['scale'],
+              user_subtree_selection_interval=options['user_subtree_selection_interval'],
+              user_doc_reservoir_capacity=options['user_doc_reservoir_capacity'],
               subtree_output_files=subtree_output_files)
 
     if options['init_samples'] is not None:

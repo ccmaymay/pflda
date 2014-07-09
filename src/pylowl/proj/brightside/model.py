@@ -42,6 +42,8 @@ class model(object):
                  delta=1e-3,
                  scale=1.,
                  rho_bound=0.,
+                 user_subtree_selection_interval=10,
+                 user_doc_reservoir_capacity=10,
                  subtree_output_files=None):
         if trunc[0] != 1:
             raise ValueError('Top-level truncation must be one.')
@@ -61,11 +63,10 @@ class model(object):
 
         self.m_U = U
 
-        self.m_user_subtree_selection_interval = 10 # TODO (must be one or uv is off)
+        self.m_user_subtree_selection_interval = user_subtree_selection_interval
         self.m_user_subtree_selection_counters = [0] * U
-        self.m_user_docs_capacity = 10 # TODO
         self.m_user_docs_counts = [0] * U
-        self.m_user_docs = [[None] * self.m_user_docs_capacity for i in xrange(U)]
+        self.m_user_docs = [[None] * user_doc_reservoir_capacity for i in xrange(U)]
         self.m_users = [None] * U
         self.m_r_users = dict()
         self.m_user_subtrees = [None] * U
