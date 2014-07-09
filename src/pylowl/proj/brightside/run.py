@@ -22,16 +22,9 @@ OUTPUT_EXTS = [
         'logEpi',
         'Elogtheta',
         'logEtheta',
-    )
-]
-SUBTREE_OUTPUT_BASENAMES = [
-    (s, s, 'w')
-    for s in (
         'subtree',
         'subtree_Elogpi',
         'subtree_logEpi',
-        'subtree_Elogchi',
-        'subtree_logEchi',
         'subtree_lambda_ss',
     )
 ]
@@ -316,14 +309,6 @@ def run(**kwargs):
 
     trunc = tuple(int(t) for t in options['trunc'].split(','))
 
-    if options['save_model']:
-        subtree_output_files = dict(
-            (s, open(os.path.join(result_directory, bn), mode))
-            for (s, bn, mode) in SUBTREE_OUTPUT_BASENAMES
-        )
-    else:
-        subtree_output_files = dict()
-
     logging.info("Creating online nhdp instance")
     m = model(trunc, D=num_docs, W=num_types, U=num_users,
               lambda0=options['lambda0'],
@@ -336,8 +321,7 @@ def run(**kwargs):
               delta=options['delta'],
               scale=options['scale'],
               user_subtree_selection_interval=options['user_subtree_selection_interval'],
-              user_doc_reservoir_capacity=options['user_doc_reservoir_capacity'],
-              subtree_output_files=subtree_output_files)
+              user_doc_reservoir_capacity=options['user_doc_reservoir_capacity'])
 
     if options['init_samples'] is not None:
         logging.info("Initializing")
@@ -375,7 +359,7 @@ def run(**kwargs):
                 options['save_lag'] = options['save_lag'] * 2
 
             # Save the model.
-            save_global(m, 'doc_count-%d' % total_doc_count, result_directory,
+            save(m, 'doc_count-%d' % total_doc_count, result_directory,
                         options['save_model'])
 
             if options['test_data_path'] is not None:
@@ -387,7 +371,7 @@ def run(**kwargs):
             break
 
     # Save the model.
-    save_global(m, 'final', result_directory, options['save_model'])
+    save(m, 'final', result_directory, options['save_model'])
 
     if options['streaming'] and not options['concrete']:
         train_file.close()
@@ -396,17 +380,13 @@ def run(**kwargs):
     if options['test_data_path'] is not None:
         test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
-    for (s, f) in subtree_output_files.items():
-        if f is not None:
-            f.close()
 
-
-def save_global(m, basename_stem, result_directory, save_model):
+def save(m, basename_stem, result_directory, save_model):
     if save_model:
-        logging.info('Saving global model with stem %s' % basename_stem)
+        logging.info('Saving model with stem %s' % basename_stem)
     output_files = make_output_files(basename_stem, result_directory,
                                      save_model)
-    m.save_global(output_files)
+    m.save(output_files)
     close_output_files(output_files)
 
 
