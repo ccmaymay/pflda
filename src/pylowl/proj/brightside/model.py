@@ -665,7 +665,7 @@ class model(object):
             doc, subtree_leaves, ids, ab)
         self.save_subtree_lambda_ss(
             self.subtree_output_files.get('subtree_lambda_ss', None),
-            doc, ids, doc_lambda_ss)
+            doc, ids, np.sum(doc_lambda_ss,1))
 
         if predict_doc is not None:
             logEpi = self.compute_subtree_logEpi(subtree_leaves, ids, doc.user_idx)
