@@ -285,7 +285,7 @@ class model(object):
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                log_nu[idx,:,p_level] = Elogchi[p_idx] + xi[idx] * np.repeat(Elogprobw_doc[p_idx,:], doc.counts)
+                log_nu[idx,:,p_level] = Elogchi[idx,p_level] + xi[idx] * np.repeat(Elogprobw_doc[p_idx,:], doc.counts)
             for n in xrange(doc.total):
                 (log_nu[idx,n,:node_level+1], log_norm) = utils.log_normalize(log_nu[idx,n,:node_level+1])
 
@@ -362,7 +362,7 @@ class model(object):
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                likelihood += np.sum(nu[idx,:,p_level] * (Elogchi[p_idx] - log_nu[idx,:,p_level]))
+                likelihood += np.sum(nu[idx,:,p_level] * (Elogchi[idx,p_level] - log_nu[idx,:,p_level]))
         return likelihood
 
     def w_likelihood(self, doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves):
@@ -445,34 +445,26 @@ class model(object):
         return logEpi
 
     def compute_subtree_Elogchi(self, subtree_leaves, ab):
-        Elogchi = np.zeros(self.m_K)
+        Elogchi = np.zeros((self.m_K,self.m_depth))
 
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
-                p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                ElogU = utils.log_beta_expectation(ab[:,idx,p_level])
-                if idx == p_idx:
-                    Elogchi[idx] += ElogU[0]
-                else:
-                    Elogchi[idx] += ElogU[1]
+                ElogU = utils.log_beta_expectation(ab[:,idx,:][:,:p_level+1])
+                Elogchi[idx,p_level] = ElogU[0,p_level] + np.sum(ElogU[1,:p_level])
 
         return Elogchi
 
     def compute_subtree_logEchi(self, subtree_leaves, ab):
-        logEchi = np.zeros(self.m_K)
+        logEchi = np.zeros((self.m_K,self.m_depth))
 
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
-                p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                logEU = utils.beta_log_expectation(ab[:,idx,p_level])
-                if idx == p_idx:
-                    logEchi[idx] += logEU[0]
-                else:
-                    logEchi[idx] += logEU[1]
+                logEU = utils.log_beta_expectation(ab[:,idx,:][:,:p_level+1])
+                logEchi[idx,p_level] = logEU[0,p_level] + np.sum(logEU[1,:p_level])
 
         return logEchi
 
@@ -689,7 +681,7 @@ class model(object):
                 for p in it.chain((node,), self.node_ancestors(node)):
                     p_idx = self.tree_index(p)
                     p_level = self.node_level(p)
-                    logEpichi[p_idx] = logEchi[p_idx] + logEpi[idx]
+                    logEpichi[p_idx] = logEchi[idx,p_level] + logEpi[idx]
             likelihood = np.sum(
                 np.log(np.sum(
                     np.exp(
@@ -1008,11 +1000,13 @@ class model(object):
 
     def save_subtree_logEchi(self, f, doc, subtree_leaves, ids, ab):
         logEchi = self.compute_subtree_logEchi(subtree_leaves, ab)
-        self.save_subtree_row(f, doc, logEchi[ids])
+        logEchi_subtree_num_elts = len(ids) * self.m_depth
+        self.save_subtree_row(f, doc, logEchi[ids,:].reshape((logEchi_subtree_num_elts,)))
 
     def save_subtree_Elogchi(self, f, doc, subtree_leaves, ids, ab):
         Elogchi = self.compute_subtree_Elogchi(subtree_leaves, ab)
-        self.save_subtree_row(f, doc, Elogchi[ids])
+        Elogchi_subtree_num_elts = len(ids) * self.m_depth
+        self.save_subtree_row(f, doc, Elogchi[ids,:].reshape((Elogchi_subtree_num_elts,)))
 
     def save_subtree(self, f, doc, subtree, l2g_idx):
         global_ids = (l2g_idx[self.tree_index(nod)]
