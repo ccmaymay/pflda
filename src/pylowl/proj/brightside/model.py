@@ -596,7 +596,7 @@ class model(object):
             likelihood = 0.0
 
             # E[log p(U | gamma_1, gamma_2)] + H(q(U))
-            u_ll = utils.log_sticks_likelihood(ab[:,ab_leaf_ids,ab_depth_ids], self.m_gamma1, self.m_gamma2)
+            u_ll = utils.log_sticks_likelihood(ab[:,ab_leaf_ids,ab_level_ids], self.m_gamma1, self.m_gamma2)
             likelihood += u_ll
             logging.debug('Log-likelihood after U components: %f (+ %f)' % (likelihood, u_ll))
 
