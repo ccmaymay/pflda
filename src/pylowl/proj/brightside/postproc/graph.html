@@ -61,6 +61,9 @@ make_format_words = function(min_font, font_exp_scale) {
 }
 
 update_graph = function() {
+	var stringColor =
+    d3.scale.linear().domain([0,-1*minELogPi]).range(["red","blue"]);
+	
     graphs_container = document.getElementById("graphs_container");
     while (graphs_container.hasChildNodes()) {
         graphs_container.removeChild(graphs_container.firstChild);
@@ -97,9 +100,16 @@ update_graph = function() {
     .append("xhtml:body")
     .html(make_format_words(6, 2));
 
+	node.append("circle")
+		.attr("r", function(d){return 10*node_sizer(d)/maxNodeSize;})
+		.style("fill", function(d) {return stringColor(d.Elogpi*-1);})
+        .style("stroke", function(d) {return stringColor(d.Elogpi*-1);})
+        .style("stroke-opacity", function(d) { return (.001+d.Elogpi-minELogPi)/(minELogPi*-1);})
+        .style("fill-opacity", function(d) { return (.001+d.Elogpi-minELogPi)/(minELogPi*-1);});
+
     if(document.getElementById("showValues").checked == true){
         node.append("text").attr("dx",0).attr("dy",-11).style("text-anchor","start")
-        .text(function(d){return Math.pow(Math.E,d.logEpi)});
+        .text(function(d){return Math.round(10000*Math.pow(Math.E,d.logEpi))/10000});
     }
 }
 
@@ -149,33 +159,47 @@ top_words = function(node) {
             }
         }
     }
+}
 
-    /*var wordList = [];
-    for(placementInList=0; placementInList<10; placementInList++){
-        var wordListMaxLambda = 0;
-        for(candidate = 0; candidate < node.words.length; candidate++){
-            if(node.words[candidate].lambda_ss > wordListMaxLambda){
-
-                var alreadyIn = false;
-                for(checkIfInList = 0; checkIfInList<placementInList; checkIfInList++){
-                    if(wordList[checkIfInList].localeCompare(wordList[placementInList])==0){
-                       alreadyIn = true;
-                       }
-                }
-                if(alreadyIn == false){
-                wordList[placementInList] = node.words[candidate].word;
-                wordListMaxLambda = node.words[candidate].lambda_ss;
-                wordList[placementInList+10] = node.words[candidate].lambda_ss;
-                }
-            }
-        }
-    }
-
-    return wordList; //wordString;*/
+node_sizer = function(node){
+	node_size = 0;
+	console.dir(node);
+	for(word = 0; word < node.words.length; word++){
+		node_size += node.words[word].lambda_ss;
+	}
+	return node_size;
 }
 
 d3.json("graph.json", function(error, root) {
     $root = root;
+
+    minimum_ELogPi_subtreeChildren = function(min_var_param, node, paramName){
+        if(min_var_param > node[paramName]){
+            min_var_param = node[paramName];
+        }
+        for (var c in node.children) {
+            child = node.children[c];
+        	min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child, paramName);
+        }
+        return min_var_param;
+    }
+
+	maximum_node_size_subtreeChildren = function(max_var_param, node){
+        if(max_var_param < node_sizer(node)){
+            max_var_param = node_sizer(node);
+        }
+        for (var c in node.children) {
+            child = node.children[c];
+        	max_var_param = maximum_node_size_subtreeChildren(max_var_param, child);
+        }
+        return max_var_param;
+    }
+
+	maxNodeSize = 0;
+	maxNodeSize = maximum_node_size_subtreeChildren(maxNodeSize, $root)
+	minELogPi = 0;
+    minELogPi = minimum_ELogPi_subtreeChildren(minELogPi, $root, "Elogpi");
+
     $width = 300 * tree_depth(root) + 300;
     $height = 140 * Math.max.apply(null, tree_size_per_level(root));
 
