@@ -4,14 +4,16 @@ set -e
 
 cd ../../../.. # repository root
 
-OUTPUT_DIR=`mktemp -d output/pylowl/proj/brightside/XXXXXX`
 TRUNC=1,5,4,3
 VOCAB_PATH=data/txt/tng.rasp.concrete.catuser/vocab
 
-rm -rf "$OUTPUT_DIR"/*
+echo "Creating output directory..."
+OUTPUT_DIR=`mktemp -d output/pylowl/proj/brightside/XXXXXX`
 
+echo "Building brightside..."
 python setup.py build --with-proj-brightside
 
+echo "Running stochastic variational inference..."
 python -m pylowl.proj.brightside.run \
     --trunc="$TRUNC" \
     --data_path='data/txt/tng.rasp.concrete.catuser/train/*' \
@@ -30,12 +32,15 @@ python -m pylowl.proj.brightside.run \
     --user_subtree_selection_interval=50 \
     --log_level=DEBUG
 
+echo "Generating D3 inputs..."
 bash src/pylowl/proj/brightside/postproc/generate_d3_inputs.sh \
     "$OUTPUT_DIR" \
     "$TRUNC" \
     "$VOCAB_PATH"
 
+echo "Linking visualization code to output directory..."
 bash src/pylowl/proj/brightside/postproc/symlink_viz_resources.sh \
     "$OUTPUT_DIR"
 
+echo "Done:"
 echo "$OUTPUT_DIR"
