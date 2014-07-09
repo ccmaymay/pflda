@@ -125,7 +125,7 @@ update_graphs = function() {
         .attr("class", "link")
         .attr("d", diagonal)
         .style("stroke-opacity", function(d) { return d.target.active ?
-               ".8" : "0.1"; });
+               "1" : "0.1"; });
 
         var node = svg.selectAll(".node")
         .data(nodes)
@@ -150,7 +150,8 @@ update_graphs = function() {
             .attr("dx", 8)
             .attr("dy", 11)
             .style("text-anchor","start")
-            .text(function(d) {return d.active ? Math.round(d.lambda_ss*10000)/10000 : null});
+            .text(function(d) {return d.active ? Math.round(d.lambda_ss*10000)/10000 : null})
+			.attr("fill", "Orange");
         }
     }
 }
