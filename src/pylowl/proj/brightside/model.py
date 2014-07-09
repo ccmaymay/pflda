@@ -669,7 +669,7 @@ class model(object):
             doc, ids, doc_lambda_ss)
 
         if predict_doc is not None:
-            logEpi = self.compute_subtree_logEpi(subtree_leaves, doc.user_idx)
+            logEpi = self.compute_subtree_logEpi(subtree_leaves, ids_leaves, doc.user_idx)
             logEchi = self.compute_subtree_logEchi(subtree_leaves, ab)
             # TODO abstract this?
             logEtheta = (
