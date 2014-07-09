@@ -323,13 +323,14 @@ class model(object):
         self.m_uv[1] = self.m_beta
         for user_idx in xrange(self.m_U):
             subtree = self.m_user_subtrees[user_idx]
+            l2g_idx = self.m_user_l2g_ids[user_idx]
             for node in self.tree_iter(subtree):
                 idx = self.tree_index(node)
                 if node[:-1] + (node[-1] + 1,) not in subtree: # rightmost child
-                    self.m_uv[:,user_idx,idx] = [1., 0.]
+                    self.m_uv[:,user_idx,l2g_idx[idx]] = [1., 0.]
                 for s in self.node_left_siblings(node):
                     s_idx = self.tree_index(s)
-                    self.m_uv[1, user_idx, s_idx] += self.m_uv_ss[user_idx, idx]
+                    self.m_uv[1, user_idx, l2g_idx[s_idx]] += self.m_uv_ss[user_idx, l2g_idx[idx]]
 
     def z_likelihood(self, subtree, ElogV):
         self.check_ElogV_edge_cases(ElogV)
@@ -345,10 +346,6 @@ class model(object):
         return likelihood
 
     def zeta_likelihood(self, subtree_leaves, ids_leaves, ids, doc, xi, log_xi):
-        # TODO: keep around uv_ss...
-        # but handling of uv/uv_ss between subtree selections is very
-        # sketchy
-        #self.check_uv_edge_cases(doc.user_idx, subtree_leaves, ids_leaves)
         self.check_xi_edge_cases(xi, ids_leaves)
         self.check_xi_edge_cases(np.exp(log_xi), ids_leaves)
         self.check_subtree_ids(subtree_leaves, ids_leaves)
@@ -420,9 +417,10 @@ class model(object):
         return logEpi
 
     def compute_subtree_Elogpi(self, subtree_leaves, ids, user_idx):
+        l2g_idx = self.m_user_l2g_ids[user_idx]
         Elogpi = np.zeros(self.m_K)
         ElogV = np.zeros((2, self.m_K))
-        ElogV[:,ids] = utils.log_beta_expectation(self.m_uv[:,user_idx,ids])
+        ElogV[:,ids] = utils.log_beta_expectation(self.m_uv[:,user_idx,l2g_idx[ids]])
 
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
@@ -436,9 +434,10 @@ class model(object):
         return Elogpi
 
     def compute_subtree_logEpi(self, subtree_leaves, ids, user_idx):
+        l2g_idx = self.m_user_l2g_ids[user_idx]
         logEpi = np.zeros(self.m_K)
         logEV = np.zeros((2, self.m_K))
-        logEV[:,ids] = utils.beta_log_expectation(self.m_uv[:,user_idx,ids])
+        logEV[:,ids] = utils.beta_log_expectation(self.m_uv[:,user_idx,l2g_idx[ids]])
 
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
@@ -488,13 +487,6 @@ class model(object):
             idx = self.tree_index(node)
             node_level = self.node_level(node)
             assert ab[0, idx, node_level] == 1. and ab[1, idx, node_level] == 0., 'leaf %s has ab = %s (require [1, 0])' % (str(node), str(ab[:, idx, node_level]))
-
-    def check_uv_edge_cases(self, user_idx, subtree, ids):
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            s = node[:-1] + (node[-1] + 1,) # right child
-            if idx in ids and s not in subtree: # node is last child of its parent in subtree
-                assert self.m_uv[0, user_idx, idx] == 1. and self.m_uv[1, user_idx, idx] == 0., 'right-most child %s has uv = %s (require [1, 0])' % (str(node), str(self.m_uv[:, user_idx, idx]))
 
     def check_ElogV_edge_cases(self, ElogV):
         for node in self.tree_iter():
@@ -558,7 +550,7 @@ class model(object):
             s = node[:-1] + (node[-1] + 1,) # right sibling
             if s in subtree: # node is not last child of its parent in subtree
                 idx = self.tree_index(node)
-                uv_ids.append(idx)
+                uv_ids.append(l2g_idx[idx])
 
         ab = np.zeros((2, self.m_K, self.m_depth))
         ab[0] = 1.0
@@ -649,7 +641,7 @@ class model(object):
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                ss.m_uv_ss[users_to_batch_map[user_idx], p_idx] += xi[idx]
+                ss.m_uv_ss[users_to_batch_map[user_idx], l2g_idx[p_idx]] += xi[idx]
                 for n in xrange(num_tokens):
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
 
@@ -658,7 +650,7 @@ class model(object):
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                self.m_user_lambda_ss_sums[user_idx,p_idx] += np.sum(nu[idx, :, p_level]) * xi[idx]
+                self.m_user_lambda_ss_sums[user_idx,l2g_idx[p_idx]] += np.sum(nu[idx, :, p_level]) * xi[idx]
 
         if predict_doc is not None:
             logEpi = self.compute_subtree_logEpi(subtree_leaves, ids, user_idx)
@@ -808,7 +800,7 @@ class model(object):
                 left_s = node[:-1] + (node[-1] - 1,)
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
-                    self.m_uv[:,user_idx,left_s_idx] = [1.0, self.m_beta]
+                    self.m_uv[:,user_idx,l2g_idx[left_s_idx]] = [1.0, self.m_beta]
                 subtree[node] = global_node
                 subtree_leaves[node] = global_node
 
@@ -875,7 +867,7 @@ class model(object):
                 l2g_idx[idx] = 0
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
-                    self.m_uv[:,user_idx,left_s_idx] = [1.0, 0.0]
+                    self.m_uv[:,user_idx,l2g_idx[left_s_idx]] = [1.0, 0.0]
                 del subtree[node]
                 del subtree_leaves[node]
 
@@ -906,7 +898,7 @@ class model(object):
             left_s = node[:-1] + (node[-1] - 1,)
             if left_s in subtree:
                 left_s_idx = self.tree_index(left_s)
-                self.m_uv[:,user_idx,left_s_idx] = [1.0, self.m_beta]
+                self.m_uv[:,user_idx,l2g_idx[left_s_idx]] = [1.0, self.m_beta]
             subtree[node] = global_node
             subtree_leaves[node] = global_node
 
@@ -989,7 +981,7 @@ class model(object):
                 user_idx, subtree_leaves, ids)
             self.save_subtree_lambda_ss(
                 output_files.get('subtree_lambda_ss', None),
-                user_idx, ids, self.m_user_lambda_ss_sums[user_idx])
+                user_idx, ids, self.m_user_lambda_ss_sums[user_idx,l2g_idx])
 
     def save_lambda_ss(self, f):
         lambdas = self.m_lambda_ss + self.m_lambda0
