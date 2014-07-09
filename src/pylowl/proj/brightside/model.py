@@ -553,6 +553,13 @@ class model(object):
 
         logging.debug('Initializing document variational parameters')
 
+        uv_ids = []
+        for node in self.tree_iter(subtree):
+            s = node[:-1] + (node[-1] + 1,) # right sibling
+            if s in subtree: # node is not last child of its parent in subtree
+                idx = self.tree_index(node)
+                uv_ids.append(idx)
+
         ab = np.zeros((2, self.m_K, self.m_depth))
         ab[0] = 1.0
         ab_leaf_ids = []
@@ -600,7 +607,7 @@ class model(object):
             logging.debug('Log-likelihood after U components: %f (+ %f)' % (likelihood, u_ll))
 
             # E[log p(V | beta)] + H(q(V))
-            v_ll = utils.log_sticks_likelihood(self.m_uv[:,doc.user_idx,ids_leaves], 1.0, self.m_beta)
+            v_ll = utils.log_sticks_likelihood(self.m_uv[:,doc.user_idx,uv_ids], 1.0, self.m_beta)
             likelihood += v_ll
             logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
 
