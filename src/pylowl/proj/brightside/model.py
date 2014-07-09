@@ -71,6 +71,7 @@ class model(object):
         self.m_user_subtrees = [None] * U
         self.m_user_l2g_ids = np.zeros((U, self.m_K), dtype=np.uint)
         self.m_user_g2l_ids = np.zeros((U, self.m_K), dtype=np.uint)
+        self.m_user_lambda_ss_sums = np.zeros((U, self.m_K))
 
         self.m_uv = np.zeros((2, self.m_U, self.m_K))
         self.m_uv[0] = 1.0
@@ -652,6 +653,13 @@ class model(object):
                 for n in xrange(num_tokens):
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
 
+        for node in self.tree_iter(subtree_leaves):
+            idx = self.tree_index(node)
+            for p in it.chain((node,), self.node_ancestors(node)):
+                p_idx = self.tree_index(p)
+                p_level = self.node_level(p)
+                self.m_user_lambda_ss_sums[user_idx,p_idx] += np.sum(nu[idx, :, p_level]) * xi[idx]
+
         if predict_doc is not None:
             logEpi = self.compute_subtree_logEpi(subtree_leaves, ids, user_idx)
             logEchi = self.compute_subtree_logEchi(subtree_leaves, ab)
@@ -970,14 +978,6 @@ class model(object):
             ids_leaves = [self.tree_index(node)
                           for node in self.tree_iter(subtree_leaves)]
 
-            user_lambda_ss = np.zeros((self.m_K,))
-            for node in self.tree_iter(subtree_leaves):
-                idx = self.tree_index(node)
-                for p in it.chain((node,), self.node_ancestors(node)):
-                    p_idx = self.tree_index(p)
-                    p_level = self.node_level(p)
-                    user_lambda_ss[p_idx] += np.sum(nu[idx, :, p_level]) * xi[idx]
-
             self.save_subtree(
                 output_files.get('subtree', None),
                 user_idx, subtree, l2g_idx)
@@ -989,7 +989,7 @@ class model(object):
                 user_idx, subtree_leaves, ids)
             self.save_subtree_lambda_ss(
                 output_files.get('subtree_lambda_ss', None),
-                user_idx, ids, user_lambda_ss)
+                user_idx, ids, self.m_user_lambda_ss_sums[user_idx])
 
     def save_lambda_ss(self, f):
         lambdas = self.m_lambda_ss + self.m_lambda0
