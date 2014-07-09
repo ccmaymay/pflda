@@ -163,7 +163,6 @@ top_words = function(node) {
 
 node_sizer = function(node){
 	node_size = 0;
-	console.dir(node);
 	for(word = 0; word < node.words.length; word++){
 		node_size += node.words[word].lambda_ss;
 	}
