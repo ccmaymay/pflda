@@ -4,7 +4,7 @@ set -e
 
 cd ../../../.. # repository root
 
-TRUNC=1,5,4,3
+TRUNC=1,5,4
 VOCAB_PATH=data/txt/tng.rasp.concrete.catuser/vocab
 
 echo "Creating output directory..."
