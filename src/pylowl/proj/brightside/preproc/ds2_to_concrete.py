@@ -26,6 +26,7 @@ def iter_docs(input_path):
             user = pieces[0]
             datetime = pieces[1]
             text = '\t'.join(pieces[5:])
+            text = ''.join(c for c in text if ord(c) < 128)
             yield dict(
                 text=text,
                 user=user,
