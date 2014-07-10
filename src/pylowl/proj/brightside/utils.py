@@ -23,9 +23,9 @@ def write_concrete(doc_dicts, output_dir):
         comm = Communication()
 
         if 'text' in d:
-            comm.text = text
+            comm.text = d['text']
         elif 'tokens' in d:
-            comm.text = ' '.join(tokens)
+            comm.text = ' '.join(d['tokens'])
 
         comm.keyValueMap = dict()
         for (k, v) in d.items():
@@ -38,7 +38,7 @@ def write_concrete(doc_dicts, output_dir):
             sentenceSegmentation = SentenceSegmentation()
             sentence = Sentence()
             tokenization = Tokenization()
-            tokenization.tokenList = [Token(text=t) for t in tokens]
+            tokenization.tokenList = [Token(text=t) for t in d['tokens']]
             sentence.tokenizationList = [tokenization]
             sentenceSegmentation.sentenceList = [sentence]
             section.sentenceSegmentation = [sentenceSegmentation]
