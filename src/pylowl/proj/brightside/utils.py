@@ -17,38 +17,41 @@ def write_concrete(docs, output_dir):
         Tokenization, Token
     )
 
-    def make_comm(tokens):
+    SPECIAL_KEYS = set(('text', 'tokens'))
+
+    def make_comm(doc):
         comm = Communication()
-        comm.text = ' '.join(tokens)
+        comm.text = doc.text
+
+        comm.keyValueMap = dict()
+        for (k, v) in doc.attrs.items():
+            if k not in SPECIAL_KEYS:
+                comm.keyValueMap[k] = v
+
         sectionSegmentation = SectionSegmentation()
         section = Section()
         sentenceSegmentation = SentenceSegmentation()
         sentence = Sentence()
         tokenization = Tokenization()
-        tokenization.tokenList = [Token(text=t) for t in tokens]
+        tokenization.tokenList = [Token(text=t) for t in doc.tokens]
         sentence.tokenizationList = [tokenization]
         sentenceSegmentation.sentenceList = [sentence]
         section.sentenceSegmentation = [sentenceSegmentation]
         sectionSegmentation.sectionList = [section]
         comm.sectionSegmentations = [sectionSegmentation]
+
         return comm
 
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
-    i = 0
-    output_path = os.path.join(output_dir, '%d.concrete' % i)
-    for doc in docs:
+    for (i, doc) in enumerate(docs):
         comm = make_comm(doc)
-        while os.path.exists(output_path):
-            i += 1
-            output_path = os.path.join(output_dir, '%d.concrete' % i)
+        output_path = os.path.join(output_dir, '%d.concrete' % i)
         with open(output_path, 'wb') as f:
             transport = TTransport.TFileObjectTransport(f)
             protocol = TBinaryProtocol.TBinaryProtocol(transport)
             comm.write(protocol)
-        i += 1
-        output_path = os.path.join(output_dir, '%d.concrete' % i)
 
 
 def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
@@ -72,7 +75,13 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
                                     if tokenization.tokenList is not None:
                                         for token in tokenization.tokenList:
                                             tokens.append(token.text)
-        return tokens
+
+        if comm.keyValueMap is None:
+            attrs = dict()
+        else:
+            attrs = comm.keyValueMap
+
+        return Document(tokens, text=comm.text, **attrs)
 
     for input_path in path_list(loc):
         with open(input_path, 'rb') as f:
@@ -80,8 +89,7 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
             protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
             comm = Communication()
             comm.read(protocolIn)
-            tokens = parse_comm(comm)
-            yield (input_path, tokens)
+            yield parse_comm(comm)
 
 
 def path_list(loc):

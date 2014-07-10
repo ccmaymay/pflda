@@ -14,12 +14,16 @@ class Document(object):
     identifier (e.g., filename and line number).
     '''
 
-    def __init__(self, type_ids, type_counts, identifier=None):
-        self.words = type_ids
-        self.length = len(self.words)
-        self.counts = type_counts
-        self.total = sum(self.counts)
-        self.identifier = identifier
+    def __init__(self, tokens, text=None, **attrs):
+        self.tokens = tokens
+        self.types = dict()
+        for token in self.tokens:
+            if token in self.types:
+                self.types[token] += 1
+            else:
+                self.types[token] = 1
+        self.text = text
+        self.attrs = attrs
 
     def split(self, train_frac):
         '''
@@ -30,56 +34,17 @@ class Document(object):
         the first ("training") document is always non-empty, while
         the second ("testing") document may be empty.
         '''
-        tokens = []
-        for (w, c) in it.izip(self.words, self.counts):
-            tokens += [w] * c
+        tokens = [t for t in self.tokens]
         random.shuffle(tokens)
+
         num_train_tokens = int(math.ceil(len(tokens) * train_frac))
         # always at least one token in training document
-        train_doc = Document.from_tokens(tokens[:num_train_tokens],
-            self.identifier)
+        train_doc = Document(tokens[:num_train_tokens],
+            text=self.text, **attrs)
         # may be empty
-        test_doc = Document.from_tokens(tokens[num_train_tokens:],
-            self.identifier)
+        test_doc = Document(tokens[num_train_tokens:],
+            text=self.text, **attrs)
         return (train_doc, test_doc)
-
-    @classmethod
-    def from_tokens(cls, tokens, identifier=None):
-        '''
-        Return document from list of tokens (where each token is an
-        integral type index).
-        '''
-        types_dict = dict()
-        for t in tokens:
-            if t in types_dict:
-                types_dict[t] += 1
-            else:
-                types_dict[t] = 1
-
-        type_ids = []
-        type_counts = []
-        for (type_id, type_count) in types_dict.items():
-            type_ids.append(type_id)
-            type_counts.append(type_count)
-
-        return Document(type_ids, type_counts, identifier)
-
-    @classmethod
-    def from_line(cls, line, identifier=None):
-        '''
-        Return document specified by line, which should be an integer
-        followed by a list of integer pairs, delimited by whitespace,
-        where the two integers within each pair are separated by a
-        colon, e.g.:
-            3 2:3 4:5 5:3
-        The first integer is the number of types in the document;
-        each pair after that contains a type index (first) and a count
-        (second).
-        '''
-        pieces = [int(i) for i in SPLIT_RE.split(line)]
-        type_ids = pieces[1::2]
-        type_counts = pieces[2::2]
-        return Document(type_ids, type_counts, identifier)
 
 
 class Corpus(object):
@@ -102,28 +67,10 @@ class Corpus(object):
                                       section_segmentation,
                                       sentence_segmentation,
                                       tokenization_list)
-        docs = [Document.from_tokens([r_vocab[t] for t in tokens],
-                                     identifier=path)
-                for (path, tokens) in concrete_docs]
+        docs = [Document([r_vocab[t] for t in tokens],
+                         text=doc.text, **doc.attrs)
+                for doc in concrete_docs]
         return Corpus(docs, len(paths))
-
-    @classmethod
-    def from_data(cls, loc):
-        '''
-        Return corpus containing all documents from a path or list
-        thereof.  Documents are loaded immediately (unlazily).
-        '''
-        docs = []
-        i = 0
-        for path in path_list(loc):
-            with open(path) as f:
-                for line in f:
-                    line = line.strip()
-                    if line:
-                        docs.append(Document.from_line(line,
-                            identifier=':'.join((path, str(i)))))
-                    i += 1
-        return Corpus(docs, len(docs))
 
     @classmethod
     def from_concrete_stream(cls, paths, r_vocab, num_docs, section_segmentation=0, sentence_segmentation=0, tokenization_list=0):
@@ -136,20 +83,9 @@ class Corpus(object):
                                       section_segmentation,
                                       sentence_segmentation,
                                       tokenization_list)
-        docs = (Document.from_tokens([r_vocab[t] for t in tokens],
-                                     identifier=path)
-                for (i, (path, tokens)) in enumerate(concrete_docs)
-                if i < num_docs)
-        return Corpus(docs, num_docs) # TODO what if too short?
-
-    @classmethod
-    def from_data_stream(cls, f, num_docs):
-        '''
-        Return corpus containing at most num_docs documents from the
-        file-like object f.  Documents are loaded lazily.
-        '''
-        docs = (Document.from_line(line.strip(), identifier=str(i))
-                for (i, line) in enumerate(f)
+        docs = (Document([r_vocab[t] for t in tokens],
+                         text=doc.text, **doc.attrs)
+                for (i, doc) in enumerate(concrete_docs)
                 if i < num_docs)
         return Corpus(docs, num_docs) # TODO what if too short?
 
