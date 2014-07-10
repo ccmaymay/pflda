@@ -84,11 +84,6 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
     from concrete.communication.ttypes import Communication
 
     def parse_comm(comm):
-        if comm.keyValueMap is not None and 'user' in comm.keyValueMap:
-            user = comm.keyValueMap['user']
-        else:
-            user = None
-
         tokens = []
         if comm.sectionSegmentations is not None:
             section_segmentation = comm.sectionSegmentations[section_segmentation_idx]
@@ -104,7 +99,14 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
                                         for token in tokenization.tokenList:
                                             tokens.append(token.text)
 
-        return (tokens, user)
+        attributes = comm.keyValueMap.copy()
+        if 'identifier' not in attributes:
+            attributes['identifier'] = loc
+
+        if comm.text is not None:
+            attributes['text'] = comm.text
+
+        return Document.from_tokens(tokens=tokens, text=text, **attributes)
 
     for input_path in path_list(loc):
         with open(input_path, 'rb') as f:
@@ -112,8 +114,7 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
             protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
             comm = Communication()
             comm.read(protocolIn)
-            (tokens, user) = parse_comm(comm)
-            yield (input_path, tokens, user)
+            yield parse_comm(comm)
 
 
 def path_list(loc):
