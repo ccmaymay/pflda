@@ -18,11 +18,8 @@ VOCAB_PATH=data/txt/tng.rasp.concrete.catuser/vocab
 echo "Creating output directory..."
 OUTPUT_DIR=`mktemp -d output/pylowl/proj/brightside/XXXXXX`
 
-echo "Building brightside..."
-python setup.py build --with-proj-brightside
-
 echo "Running stochastic variational inference..."
-python -m pylowl.proj.brightside.run \
+PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run \
     --trunc="$TRUNC" \
     --data_path='data/txt/tng.rasp.concrete.catuser/train/*' \
     --test_data_path='data/txt/tng.rasp.concrete.catuser/test/*' \
