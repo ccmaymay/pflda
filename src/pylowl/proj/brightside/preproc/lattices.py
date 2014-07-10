@@ -14,4 +14,4 @@ for loc in locs:
         lattice = TokenLattice()
         lattice.read(protocolIn)
         if lattice.cachedBestPath is not None:
-            print [t.text for t in lattice.cachedBestPath.tokenList]
+            print ' '.join([t.text for t in lattice.cachedBestPath.tokenList])
