@@ -95,7 +95,7 @@ def iter_docs(input_filename, tt, vocab):
             tokens = [tt(token) for token in pieces[1:]]
             tokens = [token for token in tokens if token in vocab]
             if tokens:
-                yield (tokens, user)
+                yield dict(tokens=tokens, user=user)
 
 
 def format_to_concrete(train_input_filename, test_input_filename, train_output_path, test_output_path, vocab_output_path, stop_list=None, dictionary=None, idf_lb=0., idf_ub=1., remove_non_alpha=False, lowercase=False, min_word_len=1, log_level='INFO'):
