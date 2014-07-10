@@ -86,7 +86,15 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
                                     if tokenization.tokenList is not None:
                                         for token in tokenization.tokenList:
                                             tokens.append(token.text)
-        return tokens
+
+        attributes = comm.keyValueMap.copy()
+        if 'identifier' not in attributes:
+            attributes['identifier'] = loc
+
+        if comm.text is not None:
+            attributes['text'] = comm.text
+
+        return Document.from_tokens(tokens=tokens, text=text, **attributes)
 
     for input_path in path_list(loc):
         with open(input_path, 'rb') as f:
@@ -94,8 +102,7 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
             protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
             comm = Communication()
             comm.read(protocolIn)
-            tokens = parse_comm(comm)
-            yield (input_path, tokens)
+            yield parse_comm(comm)
 
 
 def path_list(loc):
