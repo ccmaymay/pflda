@@ -27,6 +27,15 @@ body {
   stroke-width: 1.5px;
 }
 
+#lambda_text {
+	background-color: rgba(192,192,192, .7);
+}
+
+#showCounts {
+	position: fixed;
+	top: 30px;
+	right: 30px;
+}
 </style>
 
 </head>
@@ -58,6 +67,19 @@ make_format_words = function(min_font, font_exp_scale) {
         s += "</div>";
         return s;
     }
+}
+
+node_sizer = function(node){
+	node_size = 0;
+	for(word = 0; word < node.words.length; word++){
+		node_size += node.words[word].lambda_ss;
+	}
+	return node_size;
+}
+
+add_lambda_ss_text = function(font_size){
+	return function(d){ return "<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">" + Math.round(10000*node_sizer(d))/10000 + "</div>";
+	}
 }
 
 update_graph = function() {
@@ -101,15 +123,19 @@ update_graph = function() {
     .html(make_format_words(6, 2));
 
 	node.append("circle")
-		.attr("r", function(d){return 10*node_sizer(d)/maxNodeSize;})
+		.attr("r", function(d){return Math.max(Math.log(node_sizer(d)),2);})
 		.style("fill", function(d) {return stringColor(d.Elogpi*-1);})
         .style("stroke", function(d) {return stringColor(d.Elogpi*-1);})
         .style("stroke-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1);})
         .style("fill-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1);});
 
     if(document.getElementById("showValues").checked == true){
-        node.append("text").attr("dx",0).attr("dy",-11).style("text-anchor","start")
-        .text(function(d){return Math.round(10000*Math.pow(Math.E,d.logEpi))/10000});
+		node.append("foreignObject")
+		.attr("width", 80)
+		.attr("height", 30)
+		.attr("y", -20)
+		.append("xhtml:body")
+		.html(add_lambda_ss_text(10));
     }
 }
 
@@ -159,14 +185,6 @@ top_words = function(node) {
             }
         }
     }
-}
-
-node_sizer = function(node){
-	node_size = 0;
-	for(word = 0; word < node.words.length; word++){
-		node_size += node.words[word].lambda_ss;
-	}
-	return node_size;
 }
 
 d3.json("graph.json", function(error, root) {
