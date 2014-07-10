@@ -16,12 +16,22 @@ class Document(object):
 
     def __init__(self, tokens, text=None, **attrs):
         self.tokens = tokens
-        self.types = dict()
+
+        self.words = []
+        self.counts = []
+
+        types = dict()
         for token in self.tokens:
-            if token in self.types:
-                self.types[token] += 1
+            if token in types:
+                self.counts[types[token]] += 1
             else:
-                self.types[token] = 1
+                types[token] = len(self.words)
+                self.words.append(token)
+                self.counts.append(1)
+
+        self.length = len(self.words)
+        self.total = sum(self.counts)
+
         self.text = text
         self.attrs = attrs
 
