@@ -57,7 +57,6 @@ code = '''run(trunc=TRUNC,
     user_subtree_selection_interval=50,
     log_level='DEBUG')'''.replace('\n', ' ')
 if profile:
-    print 'Profiling...'
     import cProfile
     cProfile.run(code, os.path.join(OUTPUT_DIR, 'profile'))
 else:
