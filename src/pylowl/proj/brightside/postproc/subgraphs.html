@@ -34,6 +34,10 @@ body {
 	right: 30px;
 	top: 30px;
 }
+
+#lambda_text{
+	background-color: orange;
+}
 </style>
 
 </head>
@@ -83,6 +87,14 @@ set_node_text = function(node, text) {
         node.removeChild(node.firstChild);
     }
     node.appendChild(new_child);
+}
+
+add_lambda_ss_text = function(font_size){
+	return function(d){
+		s = "<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">"
+			+ Math.round(10000*d.lambda_ss)/10000 + "</div>";
+		return s;
+	}
 }
 
 update_nav_text = function() {
@@ -157,12 +169,16 @@ update_graphs = function() {
                (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; });
 
         if(document.getElementById("showValues").checked == true){
-            node.append("text")
+			node.append("foreignObject")
+				.attr("width", 100)
+				.attr("height", 30)
+				.append("xhtml:body")
+				.html(add_lambda_ss_text(10));
+            /*node.append("text")
             .attr("dx", 8)
             .attr("dy", 11)
             .style("text-anchor","start")
-            .text(function(d) {return d.active ? Math.round(d.lambda_ss*10000)/10000 : null})
-			.attr("fill", "Orange");
+            .text(function(d) {return d.active ? Math.round(d.lambda_ss*10000)/10000 : null});*/
         }
     }
 }
