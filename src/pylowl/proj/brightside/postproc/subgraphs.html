@@ -36,7 +36,7 @@ body {
 }
 
 #lambda_text{
-	background-color: orange;
+	background-color: #EEEEEE;
 }
 </style>
 
@@ -90,10 +90,10 @@ set_node_text = function(node, text) {
 }
 
 add_lambda_ss_text = function(font_size){
-	return function(d){
-		s = "<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">"
-			+ Math.round(10000*d.lambda_ss)/10000 + "</div>";
-		return s;
+	return function(d){ return d.active ?
+		"<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">"
+			+ Math.round(10000*d.lambda_ss)/10000 + "</div>"
+		: "" ;
 	}
 }
 
@@ -170,15 +170,10 @@ update_graphs = function() {
 
         if(document.getElementById("showValues").checked == true){
 			node.append("foreignObject")
-				.attr("width", 100)
+				.attr("width", 80)
 				.attr("height", 30)
 				.append("xhtml:body")
 				.html(add_lambda_ss_text(10));
-            /*node.append("text")
-            .attr("dx", 8)
-            .attr("dy", 11)
-            .style("text-anchor","start")
-            .text(function(d) {return d.active ? Math.round(d.lambda_ss*10000)/10000 : null});*/
         }
     }
 }
