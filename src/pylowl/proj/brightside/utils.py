@@ -7,7 +7,7 @@ import itertools as it
 import os
 
 
-def write_concrete(docs, output_dir):
+def write_concrete(doc_dicts, output_dir):
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
     from concrete.communication.ttypes import Communication
@@ -17,20 +17,34 @@ def write_concrete(docs, output_dir):
         Tokenization, Token
     )
 
-    def make_comm(tokens):
+    SPECIAL_KEYS = set(('text', 'tokens'))
+
+    def make_comm(d):
         comm = Communication()
-        comm.text = ' '.join(tokens)
-        sectionSegmentation = SectionSegmentation()
-        section = Section()
-        sentenceSegmentation = SentenceSegmentation()
-        sentence = Sentence()
-        tokenization = Tokenization()
-        tokenization.tokenList = [Token(text=t) for t in tokens]
-        sentence.tokenizationList = [tokenization]
-        sentenceSegmentation.sentenceList = [sentence]
-        section.sentenceSegmentation = [sentenceSegmentation]
-        sectionSegmentation.sectionList = [section]
-        comm.sectionSegmentations = [sectionSegmentation]
+
+        if 'text' in d:
+            comm.text = text
+        elif 'tokens' in d:
+            comm.text = ' '.join(tokens)
+
+        comm.keyValueMap = dict()
+        for (k, v) in d.items():
+            if k not in SPECIAL_KEYS:
+                comm.keyValueMap[k] = v
+
+        if 'tokens' in d:
+            sectionSegmentation = SectionSegmentation()
+            section = Section()
+            sentenceSegmentation = SentenceSegmentation()
+            sentence = Sentence()
+            tokenization = Tokenization()
+            tokenization.tokenList = [Token(text=t) for t in tokens]
+            sentence.tokenizationList = [tokenization]
+            sentenceSegmentation.sentenceList = [sentence]
+            section.sentenceSegmentation = [sentenceSegmentation]
+            sectionSegmentation.sectionList = [section]
+            comm.sectionSegmentations = [sectionSegmentation]
+
         return comm
 
     if not os.path.isdir(output_dir):
@@ -38,8 +52,8 @@ def write_concrete(docs, output_dir):
 
     i = 0
     output_path = os.path.join(output_dir, '%d.concrete' % i)
-    for doc in docs:
-        comm = make_comm(doc)
+    for d in doc_dicts:
+        comm = make_comm(d)
         while os.path.exists(output_path):
             i += 1
             output_path = os.path.join(output_dir, '%d.concrete' % i)
