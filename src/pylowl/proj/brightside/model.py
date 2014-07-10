@@ -343,10 +343,10 @@ class model(object):
             for node in self.tree_iter(subtree):
                 idx = self.tree_index(node)
                 if node[:-1] + (node[-1] + 1,) not in subtree: # rightmost child
-                    self.m_uv[:,user_idx,l2g_idx[idx]] = [1., 0.]
+                    self.m_uv[:,user_idx,idx] = [1., 0.]
                 for s in self.node_left_siblings(node):
                     s_idx = self.tree_index(s)
-                    self.m_uv[1, user_idx, l2g_idx[s_idx]] += self.m_uv_ss[user_idx, l2g_idx[idx]]
+                    self.m_uv[1, user_idx, s_idx] += self.m_uv_ss[user_idx, idx]
 
     def z_likelihood(self, subtree, ElogV):
         self.check_ElogV_edge_cases(ElogV)
@@ -435,7 +435,7 @@ class model(object):
     def compute_subtree_Elogpi(self, subtree_leaves, ids, user_idx, l2g_idx):
         Elogpi = np.zeros(self.m_K)
         ElogV = np.zeros((2, self.m_K))
-        ElogV[:,ids] = utils.log_beta_expectation(self.m_uv[:,user_idx,l2g_idx[ids]])
+        ElogV[:,ids] = utils.log_beta_expectation(self.m_uv[:,user_idx,ids])
 
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
@@ -451,7 +451,7 @@ class model(object):
     def compute_subtree_logEpi(self, subtree_leaves, ids, user_idx, l2g_idx):
         logEpi = np.zeros(self.m_K)
         logEV = np.zeros((2, self.m_K))
-        logEV[:,ids] = utils.beta_log_expectation(self.m_uv[:,user_idx,l2g_idx[ids]])
+        logEV[:,ids] = utils.beta_log_expectation(self.m_uv[:,user_idx,ids])
 
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
@@ -564,7 +564,7 @@ class model(object):
             s = node[:-1] + (node[-1] + 1,) # right sibling
             if s in subtree: # node is not last child of its parent in subtree
                 idx = self.tree_index(node)
-                uv_ids.append(l2g_idx[idx])
+                uv_ids.append(idx)
 
         ab = np.zeros((2, self.m_K, self.m_depth))
         ab[0] = 1.0
@@ -654,7 +654,7 @@ class model(object):
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                ss.m_uv_ss[users_to_batch_map[user_idx], l2g_idx[p_idx]] += xi[idx]
+                ss.m_uv_ss[users_to_batch_map[user_idx], p_idx] += xi[idx]
                 for n in xrange(num_tokens):
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
                 self.m_user_lambda_ss_sums[user_idx,l2g_idx[p_idx]] += np.sum(nu[idx, :, p_level]) * xi[idx]
@@ -730,13 +730,7 @@ class model(object):
 
         # q(V_{i,j}^{(d)} = 1) = 1 for j+1 = trunc[\ell] (\ell is depth)
         self.m_uv[:,user_idx,:] = [[1.], [0.]]
-        # TODO this might be useful in uv initialization (not yet implemented)
-        #for node in self.tree_iter(subtree):
-        #    idx = self.tree_index(node)
-        #    s = node[:-1] + (node[-1] + 1,) # right sibling
-        #    if s in subtree: # node is not last child of its parent in subtree
-        #        self.m_uv[:,user_idx,idx] = [1.0, self.m_beta]
-
+        self.m_uv_ss[:] = 0.
 
         prior_ab = np.zeros((2, self.m_K, self.m_depth))
         prior_ab[0] = 1.0
@@ -807,7 +801,7 @@ class model(object):
                 left_s = node[:-1] + (node[-1] - 1,)
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
-                    self.m_uv[:,user_idx,l2g_idx[left_s_idx]] = [1.0, self.m_beta]
+                    self.m_uv[:,user_idx,left_s_idx] = [1.0, self.m_beta]
                 subtree[node] = global_node
                 subtree_leaves[node] = global_node
 
@@ -874,7 +868,7 @@ class model(object):
                 l2g_idx[idx] = 0
                 if left_s in subtree:
                     left_s_idx = self.tree_index(left_s)
-                    self.m_uv[:,user_idx,l2g_idx[left_s_idx]] = [1.0, 0.0]
+                    self.m_uv[:,user_idx,left_s_idx] = [1.0, 0.0]
                 del subtree[node]
                 del subtree_leaves[node]
 
@@ -905,7 +899,7 @@ class model(object):
             left_s = node[:-1] + (node[-1] - 1,)
             if left_s in subtree:
                 left_s_idx = self.tree_index(left_s)
-                self.m_uv[:,user_idx,l2g_idx[left_s_idx]] = [1.0, self.m_beta]
+                self.m_uv[:,user_idx,left_s_idx] = [1.0, self.m_beta]
             subtree[node] = global_node
             subtree_leaves[node] = global_node
 
