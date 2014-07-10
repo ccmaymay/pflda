@@ -9,6 +9,10 @@ body {
     font: sans-serif;
 }
 
+.graph_container {
+    float: left;
+}
+
 .node circle {
     stroke: #000;
     stroke-width: 1.5px;
@@ -82,11 +86,6 @@ set_node_text = function(node, text) {
 }
 
 update_nav_text = function() {
-    graphs_container = document.getElementById("graphs_container");
-    while (graphs_container.hasChildNodes()) {
-        graphs_container.removeChild(graphs_container.firstChild);
-    }
-
     set_node_text(document.getElementById("window_start_text"), $window_start);
     set_node_text(document.getElementById("window_end_text"), $window_end);
     set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
@@ -108,13 +107,25 @@ update_graphs = function() {
 
         .size([$height , $width - 14*maxNodeSize]);
 
+        var graph_container = document.createElement("div");
+        graph_container.className = "graph_container";
+        graphs_container.appendChild(graph_container);
+
         var identifier = $root[c]["identifier"];
-        var svg = d3.select("#graphs_container").append("svg")
+        var identifier_container = document.createElement("div");
+        identifier_container.className = "identifier";
+        graph_container.appendChild(identifier_container);
+        var identifier_text = document.createTextNode(identifier);
+        identifier_container.appendChild(identifier_text);
+
+        var inner_graph_container = document.createElement("div");
+        graph_container.appendChild(inner_graph_container);
+
+        var svg = d3.select(inner_graph_container).append("svg")
         .attr("width", $width)
         .attr("height", $height)
         .append("g")
-        .attr("transform", "translate("+ 2.5*(maxNodeSize+1) +",0)")
-        svg.append("title").text(identifier);
+        .attr("transform", "translate("+ 2.5*(maxNodeSize+1) +",0)");
 
         var nodes = cluster.nodes($root[c]["subtree"]);
         var links = cluster.links(nodes);
