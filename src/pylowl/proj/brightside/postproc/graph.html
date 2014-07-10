@@ -104,8 +104,8 @@ update_graph = function() {
 		.attr("r", function(d){return 10*node_sizer(d)/maxNodeSize;})
 		.style("fill", function(d) {return stringColor(d.Elogpi*-1);})
         .style("stroke", function(d) {return stringColor(d.Elogpi*-1);})
-        .style("stroke-opacity", function(d) { return (.001+d.Elogpi-minELogPi)/(minELogPi*-1);})
-        .style("fill-opacity", function(d) { return (.001+d.Elogpi-minELogPi)/(minELogPi*-1);});
+        .style("stroke-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1);})
+        .style("fill-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1);});
 
     if(document.getElementById("showValues").checked == true){
         node.append("text").attr("dx",0).attr("dy",-11).style("text-anchor","start")

@@ -152,9 +152,9 @@ update_graphs = function() {
         .style("stroke", function(d) {return d.active ?
                stringColor(d.Elogpi*-1) : "black"})
         .style("stroke-opacity", function(d) { return d.active ?
-               (.001+d.Elogpi-minELogPi)/(minELogPi*-1) : "0.05"; })
+               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; })
         .style("fill-opacity", function(d) { return d.active ?
-               (.001+d.Elogpi-minELogPi)/(minELogPi*-1) : "0.05"; });
+               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; });
 
         if(document.getElementById("showValues").checked == true){
             node.append("text")
