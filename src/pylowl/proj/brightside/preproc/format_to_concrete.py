@@ -5,7 +5,7 @@ import logging
 import os
 import re
 from pylowl.proj.brightside.preproc.utils import load_word_set, write_vocab
-from pylowl.proj.brightside.utils import write_concrete
+from pylowl.proj.brightside.corpus import write_concrete
 
 
 NON_ALPHA_RE = re.compile(r'[^a-zA-Z]')

@@ -2,7 +2,7 @@
 
 
 import sys
-from pylowl.proj.brightside.utils import load_vocab
+from pylowl.proj.brightside.corpus import load_vocab
 
 
 def _map_vocab(i, vocab):

@@ -2,8 +2,8 @@
 
 
 from glob import glob
-from utils import write_vocab, make_parent_dir
-from pylowl.proj.brightside.utils import load_concrete
+from pylowl.proj.brightside.preproc.utils import write_vocab, make_parent_dir
+from pylowl.proj.brightside.corpus import load_concrete
 
 
 def extract_concrete_vocab(input_paths, section_segmentation,

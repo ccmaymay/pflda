@@ -2,8 +2,8 @@ import logging
 import time
 import os
 import sys
-from corpus import Corpus
-from utils import take, load_vocab
+from corpus import Corpus, load_vocab
+from utils import take
 from model import *
 import random
 from glob import glob
