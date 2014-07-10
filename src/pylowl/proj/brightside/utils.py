@@ -31,50 +31,39 @@ def write_concrete(doc_dicts, output_dir):
 
     SPECIAL_KEYS = set(('text', 'tokens'))
 
-    def make_comm(d):
+    def make_comm(doc):
         comm = Communication()
-
-        if 'text' in d:
-            comm.text = d['text']
-        elif 'tokens' in d:
-            comm.text = ' '.join(d['tokens'])
+        comm.text = doc.text
 
         comm.keyValueMap = dict()
-        for (k, v) in d.items():
+        for (k, v) in doc.attrs.items():
             if k not in SPECIAL_KEYS:
                 comm.keyValueMap[k] = v
 
-        if 'tokens' in d:
-            sectionSegmentation = SectionSegmentation()
-            section = Section()
-            sentenceSegmentation = SentenceSegmentation()
-            sentence = Sentence()
-            tokenization = Tokenization()
-            tokenization.tokenList = [Token(text=t) for t in d['tokens']]
-            sentence.tokenizationList = [tokenization]
-            sentenceSegmentation.sentenceList = [sentence]
-            section.sentenceSegmentation = [sentenceSegmentation]
-            sectionSegmentation.sectionList = [section]
-            comm.sectionSegmentations = [sectionSegmentation]
+        sectionSegmentation = SectionSegmentation()
+        section = Section()
+        sentenceSegmentation = SentenceSegmentation()
+        sentence = Sentence()
+        tokenization = Tokenization()
+        tokenization.tokenList = [Token(text=t) for t in doc.tokens]
+        sentence.tokenizationList = [tokenization]
+        sentenceSegmentation.sentenceList = [sentence]
+        section.sentenceSegmentation = [sentenceSegmentation]
+        sectionSegmentation.sectionList = [section]
+        comm.sectionSegmentations = [sectionSegmentation]
 
         return comm
 
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
-    i = 0
-    output_path = os.path.join(output_dir, '%d.concrete' % i)
-    for d in doc_dicts:
-        comm = make_comm(d)
-        while os.path.exists(output_path):
-            i += 1
-            output_path = os.path.join(output_dir, '%d.concrete' % i)
+    for (i, doc) in enumerate(docs):
+        comm = make_comm(doc)
+        output_path = os.path.join(output_dir, '%d.concrete' % i)
         with open(output_path, 'wb') as f:
             transport = TTransport.TFileObjectTransport(f)
             protocol = TBinaryProtocol.TBinaryProtocol(transport)
             comm.write(protocol)
-        i += 1
-        output_path = os.path.join(output_dir, '%d.concrete' % i)
 
 
 def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
@@ -99,14 +88,12 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
                                         for token in tokenization.tokenList:
                                             tokens.append(token.text)
 
-        attributes = comm.keyValueMap.copy()
-        if 'identifier' not in attributes:
-            attributes['identifier'] = loc
+        if comm.keyValueMap is None:
+            attrs = dict()
+        else:
+            attrs = comm.keyValueMap
 
-        if comm.text is not None:
-            attributes['text'] = comm.text
-
-        return Document.from_tokens(tokens=tokens, text=text, **attributes)
+        return Document(tokens, text=comm.text, **attrs)
 
     for input_path in path_list(loc):
         with open(input_path, 'rb') as f:
