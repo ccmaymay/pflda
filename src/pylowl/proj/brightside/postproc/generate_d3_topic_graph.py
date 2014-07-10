@@ -3,7 +3,8 @@
 
 import os
 import json
-from pylowl.proj.brightside.utils import load_vocab, tree_index_m, tree_index_b, tree_iter, tree_index
+from pylowl.proj.brightside.corpus import load_vocab
+from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index
 
 
 def main():
