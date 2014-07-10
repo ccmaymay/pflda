@@ -19,91 +19,6 @@ def reservoir_insert(reservoir, n, item):
         return None
 
 
-def write_concrete(doc_dicts, output_dir):
-    from thrift.transport import TTransport
-    from thrift.protocol import TBinaryProtocol
-    from concrete.communication.ttypes import Communication
-    from concrete.structure.ttypes import (
-        SectionSegmentation, Section,
-        SentenceSegmentation, Sentence,
-        Tokenization, Token
-    )
-
-    SPECIAL_KEYS = set(('text', 'tokens'))
-
-    def make_comm(doc):
-        comm = Communication()
-        comm.text = doc.text
-
-        comm.keyValueMap = dict()
-        for (k, v) in doc.attrs.items():
-            if k not in SPECIAL_KEYS:
-                comm.keyValueMap[k] = v
-
-        sectionSegmentation = SectionSegmentation()
-        section = Section()
-        sentenceSegmentation = SentenceSegmentation()
-        sentence = Sentence()
-        tokenization = Tokenization()
-        tokenization.tokenList = [Token(text=t) for t in doc.tokens]
-        sentence.tokenizationList = [tokenization]
-        sentenceSegmentation.sentenceList = [sentence]
-        section.sentenceSegmentation = [sentenceSegmentation]
-        sectionSegmentation.sectionList = [section]
-        comm.sectionSegmentations = [sectionSegmentation]
-
-        return comm
-
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir)
-
-    for (i, doc) in enumerate(docs):
-        comm = make_comm(doc)
-        output_path = os.path.join(output_dir, '%d.concrete' % i)
-        with open(output_path, 'wb') as f:
-            transport = TTransport.TFileObjectTransport(f)
-            protocol = TBinaryProtocol.TBinaryProtocol(transport)
-            comm.write(protocol)
-
-
-def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
-                  tokenization_list_idx=0):
-    from thrift.transport import TTransport
-    from thrift.protocol import TBinaryProtocol
-    from concrete.communication.ttypes import Communication
-
-    def parse_comm(comm):
-        tokens = []
-        if comm.sectionSegmentations is not None:
-            section_segmentation = comm.sectionSegmentations[section_segmentation_idx]
-            if section_segmentation.sectionList is not None:
-                for section in section_segmentation.sectionList:
-                    if section.sentenceSegmentation is not None:
-                        sentence_segmentation = section.sentenceSegmentation[sentence_segmentation_idx]
-                        if sentence_segmentation.sentenceList is not None:
-                            for sentence in sentence_segmentation.sentenceList:
-                                if sentence.tokenizationList is not None:
-                                    tokenization = sentence.tokenizationList[tokenization_list_idx]
-                                    if tokenization.tokenList is not None:
-                                        for token in tokenization.tokenList:
-                                            tokens.append(token.text)
-
-        if comm.keyValueMap is None:
-            attrs = dict()
-        else:
-            attrs = comm.keyValueMap
-
-        return Document(tokens, text=comm.text, **attrs)
-
-    for input_path in path_list(loc):
-        with open(input_path, 'rb') as f:
-            transportIn = TTransport.TFileObjectTransport(f)
-            protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
-            comm = Communication()
-            comm.read(protocolIn)
-            yield parse_comm(comm)
-
-
 def path_list(loc):
     if isinstance(loc, str):
         return [loc]
@@ -113,16 +28,6 @@ def path_list(loc):
 
 def take(g, n):
     return (x for (i, x) in it.izip(xrange(n), g))
-
-
-def _pair_first_to_int(p):
-    return (int(p[0]), p[1])
-
-
-def load_vocab(filename):
-    with open(filename) as f:
-        vocab = dict(_pair_first_to_int(line.strip().split()) for line in f)
-    return vocab
 
 
 def vector_norm(m, axis=0, ord=None):
