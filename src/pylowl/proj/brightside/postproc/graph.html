@@ -123,7 +123,7 @@ update_graph = function() {
     .html(make_format_words(6, 2));
 
 	node.append("circle")
-		.attr("r", function(d){return 10*node_sizer(d)/maxNodeSize;})
+		.attr("r", function(d){return Math.max(Math.log(node_sizer(d)),2);})
 		.style("fill", function(d) {return stringColor(d.Elogpi*-1);})
         .style("stroke", function(d) {return stringColor(d.Elogpi*-1);})
         .style("stroke-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1);})
