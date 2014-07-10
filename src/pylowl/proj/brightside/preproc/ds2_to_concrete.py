@@ -13,7 +13,7 @@ def main():
                         help='doc-per-line output directory path')
 
     args = parser.parse_args()
-    ds2_filter(
+    ds2_to_concrete(
         args.input_path,
         args.output_path,
     )
@@ -33,7 +33,7 @@ def iter_docs(input_path):
             )
 
 
-def format_to_concrete(input_path, output_path):
+def ds2_to_concrete(input_path, output_path):
     write_concrete(iter_docs(input_path), output_path)
 
 
