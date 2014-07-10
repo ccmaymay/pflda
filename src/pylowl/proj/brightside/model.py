@@ -256,6 +256,14 @@ class model(object):
             else:
                 count += predict_doc.total
 
+        # update tau ss
+        for user_batch_idx in xrange(ss.m_batch_U):
+            user_idx = batch_to_users_map[user_batch_idx]
+            subtree = self.m_user_subtrees[user_idx]
+            ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
+            l2g_idx = self.m_user_l2g_ids[user_idx]
+            ss.m_tau_ss[l2g_idx[ids]] += 1
+
         if update:
             self.update_ss_stochastic(ss, batch_to_vocab_word_map,
                                       batch_to_users_map)
@@ -641,7 +649,6 @@ class model(object):
             iteration += 1
 
         # update ss
-        ss.m_tau_ss[l2g_idx[ids]] += 1
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
@@ -650,12 +657,6 @@ class model(object):
                 ss.m_uv_ss[users_to_batch_map[user_idx], l2g_idx[p_idx]] += xi[idx]
                 for n in xrange(num_tokens):
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
-
-        for node in self.tree_iter(subtree_leaves):
-            idx = self.tree_index(node)
-            for p in it.chain((node,), self.node_ancestors(node)):
-                p_idx = self.tree_index(p)
-                p_level = self.node_level(p)
                 self.m_user_lambda_ss_sums[user_idx,l2g_idx[p_idx]] += np.sum(nu[idx, :, p_level]) * xi[idx]
 
         if predict_doc is not None:
@@ -943,7 +944,7 @@ class model(object):
 
         self.m_tau_ss = (
             (1.0 - rho) * self.m_tau_ss
-            + rho * ss.m_tau_ss * self.m_D / float(ss.m_batch_D)
+            + rho * ss.m_tau_ss * self.m_U / float(ss.m_batch_U)
         )
 
         self.m_uv_ss *= (1 - rho)
