@@ -666,7 +666,7 @@ class model(object):
     def select_subtree(self, doc, ElogV, num_tokens):
         # TODO abstract stuff below, like subtree candidate
         # modifications... prone to bugs
-        logging.debug('Greedily selecting subtree for ' + str(doc.identifier))
+        logging.debug('Greedily selecting subtree for ' + str(doc.attrs.get('identifier', None)))
 
         # map from local nodes in subtree to global nodes
         subtree = dict()
@@ -908,4 +908,4 @@ class model(object):
     def save_subtree_row(self, f, doc, v):
         if f is not None:
             line = ' '.join([str(x) for x in v])
-            f.write('%s %s\n' % (str(doc.identifier), line))
+            f.write('%s %s\n' % (str(doc.attrs.get('identifier', None)), line))
