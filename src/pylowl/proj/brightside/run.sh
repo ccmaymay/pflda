@@ -1,4 +1,12 @@
 #!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -V
+#$ -N "m1"
+#$ -q text.q
+#$ -l num_proc=1,mem_free=2G,h_rt=2:00:00
+
+printenv
 
 set -e
 
@@ -18,9 +26,9 @@ python -m pylowl.proj.brightside.run \
     --trunc="$TRUNC" \
     --data_path='data/txt/tng.rasp.concrete.catuser/train/*' \
     --test_data_path='data/txt/tng.rasp.concrete.catuser/test/*' \
-    --test_samples=100 \
-    --init_samples=200 \
-    --max_time=600 \
+    --test_samples=400 \
+    --init_samples=400 \
+    --max_time=3600 \
     --save_model \
     --output_dir="$OUTPUT_DIR" \
     --concrete \
@@ -28,7 +36,7 @@ python -m pylowl.proj.brightside.run \
     --U=20 \
     --D=11222 \
     --W=4571 \
-    --user_doc_reservoir_capacity=100 \
+    --user_doc_reservoir_capacity=200 \
     --user_subtree_selection_interval=50 \
     --log_level=DEBUG
 
