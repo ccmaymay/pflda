@@ -53,9 +53,7 @@ var diagonal = d3.svg.diagonal()
 
 make_format_words = function(min_font, font_exp_scale) {
     return function(d) {
-        top_words(d);
         s = "<div>";
-
         for (j = 0; j < 10; j++) {
             word = d.words[j].word;
             weight = d.words[j].lambda_ss;
@@ -171,20 +169,6 @@ tree_size_per_level = function(node) {
         }
     }
     return sizes;
-}
-
-//Figure out the top words for a node.
-top_words = function(node) {
-    //Is 10 if wants 10 words. Change for more.
-    for(i=0; i<10; i++){
-        for(j=i; j<node.words.length; j++){
-            if(node.words[j].lambda_ss > node.words[i].lambda_ss){
-                var temp = node.words[i];
-                node.words[i] = node.words[j];
-                node.words[j] = temp;
-            }
-        }
-    }
 }
 
 d3.json("graph.json", function(error, root) {
