@@ -183,7 +183,10 @@ class model(object):
         self.m_Elogprobw = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
 
     def process_documents(self, docs, var_converge, update=True,
-                          predict_docs=None):
+                          predict_docs=None, output_files=None):
+        if output_files is None:
+            output_files = dict()
+
         docs = list(docs)
         doc_count = len(docs)
 
@@ -248,7 +251,8 @@ class model(object):
         for (doc, predict_doc, new_user) in it.izip(docs, predict_docs, docs_new_user):
             doc_score = self.doc_e_step(doc, ss, ElogV, vocab_to_batch_word_map,
                 batch_to_vocab_word_map, users_to_batch_map, batch_to_users_map,
-                var_converge, predict_doc=predict_doc, new_user=new_user)
+                var_converge, predict_doc=predict_doc, new_user=new_user,
+                output_files=output_files)
 
             score += doc_score
             if predict_doc is None:
@@ -522,7 +526,10 @@ class model(object):
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, users_to_batch_map,
                    batch_to_users_map, var_converge, max_iter=100,
-                   predict_doc=None, new_user=True):
+                   predict_doc=None, new_user=True, output_files=None):
+        if output_files is None:
+            output_files = dict()
+
         user_idx = doc.user_idx
         num_tokens = sum(doc.counts)
 
@@ -649,6 +656,7 @@ class model(object):
             iteration += 1
 
         # update ss
+        user_doc_lambda_ss_sums = np.zeros((self.m_K,))
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
@@ -657,7 +665,13 @@ class model(object):
                 ss.m_uv_ss[users_to_batch_map[user_idx], p_idx] += xi[idx]
                 for n in xrange(num_tokens):
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
-                self.m_user_lambda_ss_sums[user_idx,l2g_idx[p_idx]] += np.sum(nu[idx, :, p_level]) * xi[idx]
+                user_doc_lambda_ss_sums[p_idx] = np.sum(nu[idx, :, p_level]) * xi[idx]
+                self.m_user_lambda_ss_sums[user_idx,l2g_idx[p_idx]] += user_doc_lambda_ss_sums[p_idx]
+
+        self.save_subtree_doc_lambda_ss(
+            output_files.get('subtree_doc_lambda_ss', None),
+            user_idx, ids, user_doc_lambda_ss_sums,
+            doc.attrs['identifier'])
 
         if predict_doc is not None:
             logEpi = self.compute_subtree_logEpi(subtree_leaves, ids, user_idx, l2g_idx)
@@ -1011,6 +1025,10 @@ class model(object):
     def save_subtree_lambda_ss(self, f, user_idx, ids, user_lambda_ss):
         self.save_subtree_row(f, user_idx, user_lambda_ss[ids] + self.m_lambda0)
 
+    def save_subtree_doc_lambda_ss(self, f, user_idx, ids, user_doc_lambda_ss, doc_identifier):
+        key = '%s %s' % (str(self.m_users[user_idx]), doc_identifier)
+        self.save_subtree_row_raw(f, key, user_doc_lambda_ss[ids] + self.m_lambda0)
+
     def save_subtree_logEpi(self, f, user_idx, subtree_leaves, ids, l2g_idx):
         logEpi = self.compute_subtree_logEpi(subtree_leaves, ids, user_idx, l2g_idx)
         self.save_subtree_row(f, user_idx, logEpi[ids])
@@ -1031,6 +1049,9 @@ class model(object):
                 f.write('%s\n' % line)
 
     def save_subtree_row(self, f, user_idx, v):
+        self.save_subtree_row_raw(f, str(self.m_users[user_idx]), line)
+
+    def save_subtree_row_raw(self, f, key, v):
         if f is not None:
             line = ' '.join([str(x) for x in v])
-            f.write('%s %s\n' % (str(self.m_users[user_idx]), line))
+            f.write('%s %s\n' % (key, line))

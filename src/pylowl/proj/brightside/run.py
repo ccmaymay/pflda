@@ -26,6 +26,7 @@ OUTPUT_EXTS = [
         'subtree_Elogpi',
         'subtree_logEpi',
         'subtree_lambda_ss',
+        'subtree_doc_lambda_ss',
     )
 ]
 
