@@ -16,6 +16,7 @@ DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
 def main():
     from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.set_defaults(words_per_topic=10)
     parser.add_argument('trunc_csv', type=str,
                         help='comma-separated list of truncations (per level)')
     parser.add_argument('vocab_path', type=str,
@@ -26,6 +27,8 @@ def main():
                         help='output file path')
     parser.add_argument('--subtree', type=str, required=True,
                         help='subtree file path')
+    parser.add_argument('--graph_lambda_ss', type=str, required=True,
+                        help='graph_lambda_ss file path')
     parser.add_argument('--lambda_ss', type=str, required=True,
                         help='lambda_ss file path')
     parser.add_argument('--doc_lambda_ss', type=str, required=True,
@@ -34,6 +37,8 @@ def main():
                         help='Elogpi file path')
     parser.add_argument('--logEpi', type=str, required=True,
                         help='logEpi file path')
+    parser.add_argument('--words_per_topic', type=int,
+                        help='number of words to output per topic')
 
     args = parser.parse_args()
 
@@ -42,11 +47,13 @@ def main():
         args.vocab_path,
         args.data_path,
         subtree_filename=args.subtree,
+        graph_lambda_ss_filename=args.graph_lambda_ss,
         lambda_ss_filename=args.lambda_ss,
         doc_lambda_ss_filename=args.doc_lambda_ss,
         Elogpi_filename=args.Elogpi,
         logEpi_filename=args.logEpi,
         output_filename=args.output_path,
+        words_per_topic=args.words_per_topic,
     )
 
 
@@ -74,11 +81,13 @@ def generate_d3_subgraphs(trunc_csv,
         vocab_filename,
         data_path,
         subtree_filename,
+        graph_lambda_ss_filename,
         lambda_ss_filename,
         doc_lambda_ss_filename,
         Elogpi_filename,
         logEpi_filename,
-        output_filename):
+        output_filename,
+        words_per_topic):
 
     vocab = load_vocab(vocab_filename)
 
@@ -88,6 +97,20 @@ def generate_d3_subgraphs(trunc_csv,
 
     subtree_dicts_per_user = {}
     node_maps_per_user = {}
+
+    node_topics = []
+    for node in tree_iter(trunc):
+        node_topics.append({
+            'words': [{'word': vocab[t]} for t in range(len(vocab))]
+        })
+    with open(graph_lambda_ss_filename) as f:
+        for (idx, line) in enumerate(f):
+            for (t, w) in enumerate(float(w) for w in line.strip().split()):
+                node_topics[idx]['words'][t]['lambda_ss'] = w
+    for node_dict in node_topics:
+        node_dict['lambda_ss_sum'] = sum(d['lambda_ss'] for d in node_dict['words'])
+        node_dict['words'].sort(key=lambda d: d['lambda_ss'], reverse=True)
+        node_dict['words'] = node_dict['words'][:words_per_topic]
 
     with open(subtree_filename) as subtree_f, \
          open(Elogpi_filename) as Elogpi_f, \
@@ -104,9 +127,12 @@ def generate_d3_subgraphs(trunc_csv,
             for node in tree_iter(trunc):
                 idx = tree_index(node, m, b)
                 active = idx in node_map
+                node_dict = node_topics[idx]
                 subtree_dicts[idx] = {
                     'active': active,
                     'children': [],
+                    'words': node_dict['words'],
+                    'global_lambda_ss_sum': node_dict['lambda_ss_sum'],
                 }
 
             for (stat_name, stat_line) in it.izip(
