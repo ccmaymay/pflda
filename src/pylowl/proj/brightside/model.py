@@ -203,13 +203,13 @@ class model(object):
         # list of unique word types, in order of first appearance
         batch_to_vocab_word_map = []
         for doc in docs:
-            if doc.user in self.m_r_users:
-                doc.user_idx = self.m_r_users[doc.user]
+            if doc.attrs['user'] in self.m_r_users:
+                doc.user_idx = self.m_r_users[doc.attrs['user']]
                 docs_new_user.append(False)
             else:
                 user_idx = len(self.m_r_users)
-                self.m_users[user_idx] = doc.user
-                self.m_r_users[doc.user] = user_idx
+                self.m_users[user_idx] = doc.attrs['user']
+                self.m_r_users[doc.attrs['user']] = user_idx
                 doc.user_idx = user_idx
                 docs_new_user.append(True)
 
