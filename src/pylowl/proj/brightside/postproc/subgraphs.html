@@ -102,7 +102,7 @@ update_nav_text = function() {
     set_node_text(document.getElementById("window_end_text"), $window_end);
     set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
 }
-    
+
 update_graphs = function() {
     update_nav_text();
 
@@ -166,7 +166,8 @@ update_graphs = function() {
         .style("stroke-opacity", function(d) { return d.active ?
                (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; })
         .style("fill-opacity", function(d) { return d.active ?
-               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; });
+               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; })
+        .on("click", function(d){ display_this_node(d) });
 
         if(document.getElementById("showValues").checked == true){
 			node.append("foreignObject")
@@ -290,6 +291,30 @@ d3.json("subgraphs.json", function(error, root) {
         return min_var_param;
     }
 
+    node_placement_rootParent = function(){
+	for(graphNum = 0; graphNum < $root.length; graphNum++){
+		$root[graphNum].node_placement = [0];
+		for(var c in $root[graphNum].children){
+			child = $root[graphNum].children[c];
+			node_placement_subtreeChildren(child, c, [0]);
+		}
+	}
+}
+
+	node_placement_subtreeChildren = function(node, placementInList, currentArray){
+		currentArray[currentArray.length] = placementInList;
+		node.node_placement = currentArray;
+		for(var c in node.children){
+			child = node.children[c];
+			nextArray = []
+			for(k = 0; k < currentArray.length; k++){
+				nextArray[k] = currentArray[k];
+			}
+			node_placement_subtreeChildren(child, c, currentArray);
+		}
+	}
+
+	node_placement_rootParent();
 	maxNodeSize = 0;
 	maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
     minELogPi = 0;
