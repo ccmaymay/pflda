@@ -70,7 +70,8 @@ def write_concrete_raw(comms, output_dir):
             comm.write(protocol)
 
 
-def load_concrete(*args, **kwargs):
+def load_concrete(loc, section_segmentation_idx=0,
+                  sentence_segmentation_idx=0, tokenization_list_idx=0):
     def parse_comm(comm):
         tokens = []
         if comm.sectionSegmentations is not None:
@@ -94,13 +95,11 @@ def load_concrete(*args, **kwargs):
 
         return Document(tokens, text=comm.text, **attrs)
 
-    for comm in load_concrete_raw(*args, **kwargs):
+    for comm in load_concrete_raw(loc):
         yield parse_comm(comm)
 
 
-def load_concrete_raw(loc, section_segmentation_idx=0,
-                      sentence_segmentation_idx=0,
-                      tokenization_list_idx=0):
+def load_concrete_raw(loc):
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
     from concrete.communication.ttypes import Communication
