@@ -1049,7 +1049,7 @@ class model(object):
                 f.write('%s\n' % line)
 
     def save_subtree_row(self, f, user_idx, v):
-        self.save_subtree_row_raw(f, str(self.m_users[user_idx]), line)
+        self.save_subtree_row_raw(f, str(self.m_users[user_idx]), v)
 
     def save_subtree_row_raw(self, f, key, v):
         if f is not None:
