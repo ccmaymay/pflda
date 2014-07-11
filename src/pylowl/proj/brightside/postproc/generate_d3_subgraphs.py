@@ -4,13 +4,13 @@
 import re
 import json
 import itertools as it
+from datetime import datetime
 from pylowl.proj.brightside.corpus import load_vocab, load_concrete_raw
 from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index
-import datetime
 
 
-EPOCH = datetime.datetime(1970, 1, 1)
-DATETIME_FORMAT = ''
+EPOCH = datetime(1970, 1, 1)
+DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
 
 def main():
@@ -55,6 +55,11 @@ def expectation(p, x):
         return sum([p_i*x_i for (p_i, x_i) in zip(p, x)])
     else:
         return None
+
+
+def normalized(weights):
+    weights_sum = float(sum(weights))
+    return [w/weights_sum for w in weights]
 
 
 def parse_datetime(datetime_str):
@@ -125,6 +130,7 @@ def generate_d3_subgraphs(trunc_csv,
     for doc in load_concrete(data_loc):
         doc_id_path_map[doc.attrs['identifier']] = doc.path
 
+    weighted_datetimes_per_user = dict((user, []) for user in subtree_dicts)
     with open(doc_lambda_ss_filename) as doc_lambda_ss_f:
         for line in doc_lambda_ss_f:
             pieces = line.strip().split()
@@ -134,16 +140,22 @@ def generate_d3_subgraphs(trunc_csv,
             datetime_float = datetime_to_float(parse_datetime(doc.timestamp))
             latitude = doc.latitude
             longitude = doc.longitude
-
             weights = [float(w) for w in pieces[2:]]
-            weights_sum = sum(weights)
-            probabilities = [w/weights_sum for w in weights]
-
             node_map = node_maps_per_user[user]
-            subtree_dicts = subtree_dicts_per_user[user]
-            for node in tree_iter(trunc):
-                idx = tree_index(node, m, b)
-                if idx in node_map:
+            for (idx, i) in node_map:
+                weighted_datetimes_per_user[user][idx].append((weights[i], datetime_float))
+
+    for user in subtree_dicts:
+        node_map = node_maps_per_user[user]
+        subtree_dicts = subtree_dicts_per_user[user]
+        for node in tree_iter(trunc):
+            idx = tree_index(node, m, b)
+            if idx in node_map:
+                weighted_datetime_floats = weighted_datetimes_per_user[user][idx]
+                weights = [wdf[0] for wdf in weighted_datetime_floats]
+                datetime_floats = [wdf[1] for wdf in weighted_datetime_floats]
+                if weights:
+                    probabilities = normalized(weights)
                     Edatetime = expectation(probabilities, datetime_floats)
                     subtree_dicts[idx]['expected_time'] = Edatetime
 
