@@ -95,8 +95,10 @@ def load_concrete(loc, section_segmentation_idx=0,
 
         return Document(tokens, text=comm.text, **attrs)
 
-    for comm in load_concrete_raw(loc):
-        yield parse_comm(comm)
+    for (comm, path) in load_concrete_raw(loc):
+        doc = parse_comm(comm)
+        doc.path = path
+        yield doc
 
 
 def load_concrete_raw(loc):
@@ -110,7 +112,7 @@ def load_concrete_raw(loc):
             protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
             comm = Communication()
             comm.read(protocolIn)
-            yield comm
+            yield (comm, input_path)
 
 
 class Document(object):
