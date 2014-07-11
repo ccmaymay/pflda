@@ -71,10 +71,11 @@ generate_d3_topic_graph(TRUNC, VOCAB_PATH,
     os.path.join(OUTPUT_DIR, 'final.Elogtheta'),
     os.path.join(OUTPUT_DIR, 'final.logEtheta'),
     os.path.join(OUTPUT_DIR, 'graph.json'))
-generate_d3_subgraphs(TRUNC, VOCAB_PATH,
+generate_d3_subgraphs(TRUNC, VOCAB_PATH, TEST_DATA_PATH,
     os.path.join(OUTPUT_DIR, 'final.subtree'),
     os.path.join(OUTPUT_DIR, 'final.lambda_ss'),
     os.path.join(OUTPUT_DIR, 'final.subtree_lambda_ss'),
+    os.path.join(OUTPUT_DIR, 'final.subtree_doc_lambda_ss'),
     os.path.join(OUTPUT_DIR, 'final.subtree_Elogpi'),
     os.path.join(OUTPUT_DIR, 'final.subtree_logEpi'),
     os.path.join(OUTPUT_DIR, 'subgraphs.json'))
