@@ -59,11 +59,11 @@ def split_train_test(input_path, output_path, train_frac):
     train_doc_ids = set(doc_ids[:doc_ids_split])
 
     write_concrete_raw(
-        (doc for (i, doc) in enumerate(load_concrete_raw(loc))
+        (comm for (i, comm) in enumerate(load_concrete_raw(loc))
          if i in train_doc_ids),
         os.path.join(output_path, 'train'))
     write_concrete_raw(
-        (doc for (i, doc) in enumerate(load_concrete_raw(loc))
+        (comm for (i, comm) in enumerate(load_concrete_raw(loc))
          if i not in train_doc_ids),
         os.path.join(output_path, 'test'))
 
