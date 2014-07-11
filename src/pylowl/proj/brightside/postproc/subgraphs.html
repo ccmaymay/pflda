@@ -60,7 +60,7 @@ body {
             id="num_graphs_text"></span>
     </div>
     <div id="showCounts">
-        show counts: <input type="checkbox"
+        <label for="showValues">show counts: </label><input type="checkbox"
         onchange="update_graphs();" id="showValues"/>
     </div>
 	</div>
@@ -167,6 +167,15 @@ update_graphs = function() {
                (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; })
         .style("fill-opacity", function(d) { return d.active ?
                (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; });
+
+        node.append("circle")
+        .attr("r", maxNodeSize)
+        .style("fill", "black")
+        .style("stroke", "black")
+        .style("stroke-opacity", "0")
+        .style("fill-opacity", "0")
+        .append("title")
+        .text(function(d){return d.words });
 
         if(document.getElementById("showValues").checked == true){
 			node.append("foreignObject")

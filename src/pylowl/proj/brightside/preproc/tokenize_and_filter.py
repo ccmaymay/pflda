@@ -70,13 +70,13 @@ def main():
     )
 
 
-def filter_token(token, stop_set, idf, idf_lb, idf_ub, dictionary_set, *token_filter_res):
+def filter_token(token, transformed_token, stop_set, idf, idf_lb, idf_ub, dictionary_set, *token_filter_res):
     return (
-        (not token)
-        or (dictionary_set is not None and token not in dictionary_set)
-        or (stop_set is not None and token in stop_set)
-        or idf[token] < idf_lb
-        or idf[token] > idf_ub
+        (not transformed_token)
+        or (dictionary_set is not None and transformed_token not in dictionary_set)
+        or (stop_set is not None and transformed_token in stop_set)
+        or idf[transformed_token] < idf_lb
+        or idf[transformed_token] > idf_ub
         or sum([r.match(token) is not None for r in token_filter_res]) > 0
     )
 
@@ -183,10 +183,10 @@ def tokenize_and_filter(train_input_path, test_input_path,
     for doc in load_concrete(train_input_loc):
         doc_types = set()
         for token in split_re.split(doc.text):
-            token = tt(token)
-            if not filter_token(token, stop_set, idf, idf_lb, idf_ub, dictionary_set, *token_filter_res):
-                if token not in vocab:
-                    vocab[token] = len(vocab)
+            transformed_token = tt(token)
+            if not filter_token(token, transformed_token, stop_set, idf, idf_lb, idf_ub, dictionary_set, *token_filter_res):
+                if transformed_token not in vocab:
+                    vocab[transformed_token] = len(vocab)
 
     write_concrete(iter_docs(train_input_loc, tt, vocab, split_re), train_output_path)
     write_concrete(iter_docs(test_input_loc, tt, vocab, split_re), test_output_path)
