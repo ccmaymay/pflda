@@ -5,10 +5,11 @@ import os
 import re
 from glob import glob
 from pylowl.proj.brightside.preproc.utils import load_word_set, write_vocab
-from pylowl.proj.brightside.corpus import load_concrete, write_concrete
+from pylowl.proj.brightside.corpus import load_concrete, write_concrete, Document
 
 
 DEFAULT_SPLIT_PATTERN = r'\s+'
+IDF_WORD_PRINT_LIMIT = 100
 
 
 def main():
@@ -88,7 +89,7 @@ def transform_token(token, lowercase, *char_filter_res):
     return token
 
 
-def iter_docs(input_loc, tt, vocab):
+def iter_docs(input_loc, tt, vocab, split_re):
     for doc in load_concrete(input_loc):
         tokens = [tt(token) for token in split_re.split(doc.text)]
         tokens = [token for token in tokens if token in vocab]
@@ -153,19 +154,29 @@ def tokenize_and_filter(train_input_path, test_input_path,
     idf_items.sort(key=lambda item: item[1])
 
     print 'Low idf:'
+    idx = 0
     for (k, v) in idf_items:
+        if v >= idf_lb:
+            break
+        idx += 1
+    for (k, v) in idf_items[max(0,idx-IDF_WORD_PRINT_LIMIT):idx+IDF_WORD_PRINT_LIMIT]:
         if v < idf_lb:
             print '(-) %06f %s' % (v, k)
-        elif v < idf_lb*2:
+        else:
             print '(+) %06f %s' % (v, k)
     print
 
     print 'High idf:'
+    idx = 0
     for (k, v) in idf_items:
-        if 1-v < (1-idf_ub):
-            print '(-) %06f %s' % (v, k)
-        elif 1-v < (1-idf_ub)*2:
+        if v > idf_ub:
+            break
+        idx += 1
+    for (k, v) in idf_items[max(0,idx-IDF_WORD_PRINT_LIMIT):idx+IDF_WORD_PRINT_LIMIT]:
+        if v <= idf_ub:
             print '(+) %06f %s' % (v, k)
+        else:
+            print '(-) %06f %s' % (v, k)
     print
 
     vocab = dict()
@@ -177,8 +188,8 @@ def tokenize_and_filter(train_input_path, test_input_path,
                 if token not in vocab:
                     vocab[token] = len(vocab)
 
-    write_concrete(iter_docs(train_input_loc, tt, vocab), train_output_path)
-    write_concrete(iter_docs(test_input_loc, tt, vocab), test_output_path)
+    write_concrete(iter_docs(train_input_loc, tt, vocab, split_re), train_output_path)
+    write_concrete(iter_docs(test_input_loc, tt, vocab, split_re), test_output_path)
     write_vocab(vocab_output_path, vocab)
 
 
