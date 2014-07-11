@@ -10,6 +10,7 @@ from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, 
 def main():
     from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.set_defaults(words_per_topic=10)
     parser.add_argument('trunc_csv', type=str,
                         help='comma-separated list of truncations (per level)')
     parser.add_argument('vocab_path', type=str,
@@ -26,6 +27,8 @@ def main():
                         help='Elogtheta file path')
     parser.add_argument('--logEtheta', type=str, required=True,
                         help='logEtheta file path')
+    parser.add_argument('--words_per_topic', type=int,
+                        help='number of words to output per topic')
 
     args = parser.parse_args()
     generate_d3_topic_graph(
@@ -36,7 +39,8 @@ def main():
         logEpi_filename=args.logEpi,
         Elogtheta_filename=args.Elogtheta,
         logEtheta_filename=args.logEtheta,
-        output_filename=args.output_path
+        output_filename=args.output_path,
+        words_per_topic=args.words_per_topic,
     )
 
 
@@ -47,7 +51,8 @@ def generate_d3_topic_graph(trunc_csv,
         logEpi_filename,
         Elogtheta_filename,
         logEtheta_filename,
-        output_filename):
+        output_filename,
+        words_per_topic):
 
     vocab = load_vocab(vocab_filename)
 
@@ -71,6 +76,10 @@ def generate_d3_topic_graph(trunc_csv,
             for (idx, line) in enumerate(f):
                 for (t, w) in enumerate(float(w) for w in line.strip().split()):
                     node_topics[idx]['words'][t][stat_name] = w
+    for node_dict in node_topics:
+        node_dict['lambda_ss_sum'] = sum(d['lambda_ss'] for d in node_dict['words'])
+        node_dict['words'].sort(key=lambda d: d['lambda_ss'], reverse=True)
+        node_dict['words'] = node_dict['words'][:WORDS_PER_TOPIC]
 
     for (stat_name, stat_filename) in (('Elogpi', Elogpi_filename),
                                        ('logEpi', logEpi_filename)):
