@@ -1,8 +1,8 @@
 .DS_Store
-build
-lib
-bin
-output
+/build
+/lib
+/bin
+/output
 .*.swp
 .*.swo
 *.pyc
@@ -11,3 +11,5 @@ output
 *.dylib
 *.o
 MANIFEST
+.ipynb_checkpoints
+/dist
