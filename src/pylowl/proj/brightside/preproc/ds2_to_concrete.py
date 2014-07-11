@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-from pylowl.proj.brightside.utils import write_concrete
+from pylowl.proj.brightside.corpus import write_concrete, Document
 
 
 def main():
@@ -21,16 +21,23 @@ def main():
 
 def iter_docs(input_path):
     with open(input_path) as f:
-        for line in f:
+        for (line_num, line) in enumerate(f):
             pieces = line.strip().split('\t')
             user = pieces[0]
             datetime = pieces[1]
+            latitude = pieces[3]
+            longitude = pieces[3]
             text = '\t'.join(pieces[5:])
-            text = ''.join(c for c in text if ord(c) < 128)
-            yield dict(
+            tokens = [t for t in text.split()
+                      if not [c for c in t if ord(c) > 127]]
+            text = ' '.join(tokens)
+            yield Document(tokens,
                 text=text,
                 user=user,
                 datetime=datetime,
+                latitude=latitude,
+                longitude=longitude,
+                identifier=str(line_num),
             )
 
 
