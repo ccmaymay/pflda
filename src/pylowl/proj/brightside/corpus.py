@@ -19,9 +19,7 @@ def load_vocab(filename):
     return vocab
 
 
-def write_concrete(docs, output_dir):
-    from thrift.transport import TTransport
-    from thrift.protocol import TBinaryProtocol
+def write_concrete(docs, *args, **kwargs):
     from concrete.communication.ttypes import Communication
     from concrete.structure.ttypes import (
         SectionSegmentation, Section,
@@ -54,11 +52,17 @@ def write_concrete(docs, output_dir):
 
         return comm
 
+    write_concrete_raw((make_comm(doc) for doc in docs), *args, **kwargs)
+
+
+def write_concrete_raw(comms, output_dir):
+    from thrift.transport import TTransport
+    from thrift.protocol import TBinaryProtocol
+
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
-    for (i, doc) in enumerate(docs):
-        comm = make_comm(doc)
+    for (i, comm) in enumerate(comms):
         output_path = os.path.join(output_dir, '%d.concrete' % i)
         with open(output_path, 'wb') as f:
             transport = TTransport.TFileObjectTransport(f)
@@ -66,12 +70,7 @@ def write_concrete(docs, output_dir):
             comm.write(protocol)
 
 
-def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
-                  tokenization_list_idx=0):
-    from thrift.transport import TTransport
-    from thrift.protocol import TBinaryProtocol
-    from concrete.communication.ttypes import Communication
-
+def load_concrete(*args, **kwargs):
     def parse_comm(comm):
         tokens = []
         if comm.sectionSegmentations is not None:
@@ -95,13 +94,24 @@ def load_concrete(loc, section_segmentation_idx=0, sentence_segmentation_idx=0,
 
         return Document(tokens, text=comm.text, **attrs)
 
+    for comm in load_concrete_raw(*args, **kwargs):
+        yield parse_comm(comm)
+
+
+def load_concrete_raw(loc, section_segmentation_idx=0,
+                      sentence_segmentation_idx=0,
+                      tokenization_list_idx=0):
+    from thrift.transport import TTransport
+    from thrift.protocol import TBinaryProtocol
+    from concrete.communication.ttypes import Communication
+
     for input_path in path_list(loc):
         with open(input_path, 'rb') as f:
             transportIn = TTransport.TFileObjectTransport(f)
             protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
             comm = Communication()
             comm.read(protocolIn)
-            yield parse_comm(comm)
+            yield comm
 
 
 class Document(object):
