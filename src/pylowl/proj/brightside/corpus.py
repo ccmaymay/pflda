@@ -152,6 +152,9 @@ class Document(object):
             text=self.text, **self.attrs)
         return (train_doc, test_doc)
 
+    def __str__(self):
+        return ' '.join(self.tokens)
+
 
 class Corpus(object):
     '''
