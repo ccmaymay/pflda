@@ -8,10 +8,13 @@ from pylowl.proj.brightside.corpus import load_vocab
 from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index
 
 
+DEFAULT_WORDS_PER_TOPIC=10
+
+
 def main():
     from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.set_defaults(words_per_topic=10)
+    parser.set_defaults(words_per_topic=DEFAULT_WORDS_PER_TOPIC)
     parser.add_argument('trunc_csv', type=str,
                         help='comma-separated list of truncations (per level)')
     parser.add_argument('vocab_path', type=str,
@@ -54,7 +57,7 @@ def generate_d3_subgraphs(trunc_csv,
         Elogpi_filename,
         logEpi_filename,
         output_filename,
-        words_per_topic):
+        words_per_topic=DEFAULT_WORDS_PER_TOPIC):
 
     vocab = load_vocab(vocab_filename)
 
