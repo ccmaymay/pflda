@@ -123,12 +123,12 @@ update_graphs = function() {
         graph_container.className = "graph_container";
         graphs_container.appendChild(graph_container);
 
-        var identifier = $root[c]["identifier"];
-        var identifier_container = document.createElement("div");
-        identifier_container.className = "identifier";
-        graph_container.appendChild(identifier_container);
-        var identifier_text = document.createTextNode(identifier);
-        identifier_container.appendChild(identifier_text);
+        var user = $root[c]["user"];
+        var user_container = document.createElement("div");
+        user_container.className = "user";
+        graph_container.appendChild(user_container);
+        var user_text = document.createTextNode(user);
+        user_container.appendChild(user_text);
 
         var inner_graph_container = document.createElement("div");
         graph_container.appendChild(inner_graph_container);
