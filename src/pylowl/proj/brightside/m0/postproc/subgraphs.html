@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="utf-8">
+<style>
+
+body {
+    font: sans-serif;
+}
+
+.graph_container {
+    float: left;
+}
+
+.node circle {
+    stroke: #000;
+    stroke-width: 1.5px;
+    fill: #000;
+}
+
+.node {
+    font: 10px sans-serif;
+}
+
+.link {
+    fill: none;
+    stroke: #000;
+    stroke-width: 1.5px;
+}
+
+#inputWindowParameters {
+	position: fixed;
+	right: 30px;
+	top: 30px;
+}
+
+#lambda_text{
+	background-color: rgba(192,192,192,.7);
+}
+</style>
+
+</head>
+<body>
+
+<div>
+	<div id="inputWindowParameters">
+    <div>
+        navigate:
+        <input type="button" onclick="shift_window(-1)"
+        value="<" />
+        <input type="button" onclick="shift_window(1)"
+        value=">" />
+        window size: <input id="window_size" maxlength="3"
+        size="3" type="text" onchange="update_window_size()" />
+    </div>
+    <div id="status">
+        showing graphs <span id="window_start_text"></span> to
+        <span id="window_end_text"></span> of <span
+            id="num_graphs_text"></span>
+    </div>
+    <div id="showCounts">
+        <label for="showValues">show counts: </label><input type="checkbox"
+        onchange="update_graphs();" id="showValues"/>
+    </div>
+	</div>
+</div>
+
+<div id="graphs_container">
+</div>
+
+<script src="d3.v3.js"></script>
+<script>
+
+$window_size = 5;
+$window_start = 0;
+$num_windows = 0;
+$num_graphs = 0;
+
+node_size = function(d) {
+    return d.active ? Math.min(Math.log(d.lambda_ss+1),10): 2;
+}
+
+set_node_text = function(node, text) {
+    new_child = document.createTextNode(text);
+    while (node.hasChildNodes()) {
+        node.removeChild(node.firstChild);
+    }
+    node.appendChild(new_child);
+}
+
+add_lambda_ss_text = function(font_size){
+	return function(d){ return d.active ?
+		"<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">"
+			+ Math.round(10000*d.lambda_ss)/10000 + "</div>"
+		: "" ;
+	}
+}
+
+update_nav_text = function() {
+    set_node_text(document.getElementById("window_start_text"), $window_start);
+    set_node_text(document.getElementById("window_end_text"), $window_end);
+    set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
+}
+    
+update_graphs = function() {
+    update_nav_text();
+
+    graphs_container = document.getElementById("graphs_container");
+    while (graphs_container.hasChildNodes()) {
+        graphs_container.removeChild(graphs_container.firstChild);
+    }
+
+    var stringColor =
+    d3.scale.linear().domain([0,-1*minELogPi]).range(["red","blue"]);
+
+    for (var c = $window_start; c < $window_end; ++c) {
+        var cluster = d3.layout.cluster()
+
+        .size([$height , $width - 14*maxNodeSize]);
+
+        var graph_container = document.createElement("div");
+        graph_container.className = "graph_container";
+        graphs_container.appendChild(graph_container);
+
+        var identifier = $root[c]["identifier"];
+        var identifier_container = document.createElement("div");
+        identifier_container.className = "identifier";
+        graph_container.appendChild(identifier_container);
+        var identifier_text = document.createTextNode(identifier);
+        identifier_container.appendChild(identifier_text);
+
+        var inner_graph_container = document.createElement("div");
+        graph_container.appendChild(inner_graph_container);
+
+        var svg = d3.select(inner_graph_container).append("svg")
+        .attr("width", $width)
+        .attr("height", $height)
+        .append("g")
+        .attr("transform", "translate("+ 2.5*(maxNodeSize+1) +",0)");
+
+        var nodes = cluster.nodes($root[c]["subtree"]);
+        var links = cluster.links(nodes);
+
+        var link = svg.selectAll(".link")
+        .data(links)
+        .enter().append("path")
+        .attr("class", "link")
+        .attr("d", diagonal)
+        .style("stroke-opacity", function(d) { return d.target.active ?
+               "1" : "0.1"; });
+
+        var node = svg.selectAll(".node")
+        .data(nodes)
+        .enter().append("g")
+        .attr("class", "node")
+        .attr("transform", function(d) { return "translate(" +
+              d.y + "," + d.x + ")"; });
+
+        node.append("circle")
+        .attr("r", function(d) { return node_size(d); })
+        .style("fill", function(d) {return d.active ?
+               stringColor(d.Elogpi*-1) : "black"})
+        .style("stroke", function(d) {return d.active ?
+               stringColor(d.Elogpi*-1) : "black"})
+        .style("stroke-opacity", function(d) { return d.active ?
+               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; })
+        .style("fill-opacity", function(d) { return d.active ?
+               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; });
+
+        if(document.getElementById("showValues").checked == true){
+			node.append("foreignObject")
+				.attr("width", 80)
+				.attr("height", 30)
+				.append("xhtml:body")
+				.html(add_lambda_ss_text(10));
+        }
+    }
+}
+
+update_window_size = function() {
+    $window_size = parseInt(document.getElementById("window_size").value, 10);
+    $num_windows = Math.ceil($num_graphs / $window_size);
+    $window_end = Math.min($window_start + $window_size, $num_graphs);
+    update_graphs();
+}
+
+shift_window = function(delta) {
+    $window_start += delta * $window_size;
+    if ($window_start < 0) {
+        $window_start = 0;
+    } else if ($window_start >= $num_graphs) {
+        $window_start = ($num_windows - 1) * $window_size;
+    }
+    $window_end = Math.min($window_start + $window_size, $num_graphs);
+    update_graphs();
+}
+
+var diagonal = d3.svg.diagonal()
+    .projection(function(d) { return [d.y, d.x]; })
+    .source(function (d) {
+        var s = Object.create(d.source);
+        s.y += node_size(s);
+        return s;
+    })
+    .target(function (d) {
+        var t = Object.create(d.target);
+        t.y -= node_size(t);
+        return t;
+    });
+
+tree_depth = function(node) {
+    var depth = 0;
+    for (var c in node.children) {
+        child = node.children[c];
+        depth = Math.max(depth, 1 + tree_depth(child));
+    }
+    return depth;
+}
+
+tree_size = function(node) {
+    var size = 1;
+    for (var c in node.children) {
+        child = node.children[c];
+        size += tree_size(child);
+    }
+    return size;
+}
+
+tree_size_per_level = function(node) {
+    var sizes = [1];
+    for (var c in node.children) {
+        child = node.children[c];
+        var c_sizes = tree_size_per_level(child);
+        for (var j = 0; j < sizes.length - 1 && j < c_sizes.length; ++j) {
+            sizes[j+1] += c_sizes[j];
+        }
+        for (var j = sizes.length - 1; j < c_sizes.length; ++j) {
+            sizes.push(c_sizes[j]);
+        }
+    }
+    return sizes;
+}
+
+d3.json("subgraphs.json", function(error, root) {
+    $num_graphs = root.length;
+	$root = root;
+
+    minimum_ELogPi_rootParent = function(min_var_param, root, paramName){
+    min_var_param = 0;
+    for(indiv = 0; indiv < $num_graphs; indiv++){
+        minSubStat = minimum_ELogPi_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
+        if(minSubStat<min_var_param){
+            min_var_param = minSubStat;
+        }
+    }
+    return min_var_param;
+    }
+
+    minimum_ELogPi_subtreeChildren = function(min_var_param, node, paramName){
+        if(min_var_param > node[paramName]){
+            min_var_param = node[paramName];
+        }
+        for (var c in node.children) {
+            child = node.children[c];
+        	min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child, paramName);
+        }
+        return min_var_param;
+    }
+
+	maximum_Node_Size_rootParent = function(min_var_param, root){
+        min_var_param = 0;
+        for(indiv = 0; indiv < $num_graphs; indiv++){
+            minSubStat = maximum_Node_Size_subtreeChildren(min_var_param, root[indiv]["subtree"]);
+            if(minSubStat>min_var_param){
+                min_var_param = minSubStat;
+            }
+        }
+        return min_var_param;
+    }
+
+	maximum_Node_Size_subtreeChildren = function(min_var_param, node){
+        if(min_var_param < node_size(node)){
+            min_var_param = node_size(node);
+        }
+        for (var c in node.children) {
+            child = node.children[c];
+            min_var_param = maximum_Node_Size_subtreeChildren(min_var_param, child);
+        }
+        return min_var_param;
+    }
+
+	maxNodeSize = 0;
+	maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
+    minELogPi = 0;
+    minELogPi = minimum_ELogPi_rootParent(minELogPi, $root, "Elogpi");
+
+	$width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"])+1) + maxNodeSize;
+    $height = maxNodeSize * 2.5 * Math.max.apply(null,
+                                  tree_size_per_level(root[0]["subtree"]));
+
+    document.getElementById("window_size").value = $window_size;
+    update_window_size();
+
+    d3.select(self.frameElement).style("height", $height + "px");
+});
+
+</script>
+
+</body>
+</html>
