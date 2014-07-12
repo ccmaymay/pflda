@@ -142,7 +142,7 @@ def generate_d3_subgraphs(trunc_csv,
                     stat_lines):
                 stat_pieces = stat_line.strip().split()
                 if user != stat_pieces[0]:
-                    raise Exception('user do not match: %s and %s'
+                    raise Exception('users do not match: %s and %s'
                                     % (user, stat_pieces[0]))
                 weights = [float(w) for w in stat_pieces[1:]]
                 for node in tree_iter(trunc):
