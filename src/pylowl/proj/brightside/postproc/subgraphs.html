@@ -262,6 +262,18 @@ tree_size_per_level = function(node) {
     return sizes;
 }
 
+lookup_node = function(subtree, placement) {
+    return lookup_node_helper(subtree, placement.slice(1));
+}
+
+lookup_node_helper = function(node, placement) {
+    if (placement.length == 0) {
+        return node;
+    } else {
+        return lookup_node_helper(node.children[placement[0]], placement.slice(1));
+    }
+}
+
 d3.json("subgraphs.json", function(error, root) {
     $num_graphs = root.length;
 	$root = root;
