@@ -325,6 +325,7 @@ d3.json("subgraphs.json", function(error, root) {
 	maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
 	maxEtime = maximum_param_rootParent($root, "expected_time");
     minEtime = minimum_param_rootParent($root, "expected_time");
+    minELogPi = minimum_param_rootParent($root, "Elogpi");
 
 	$width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"])+1) + maxNodeSize;
     $height = maxNodeSize * 2.5 * Math.max.apply(null,
