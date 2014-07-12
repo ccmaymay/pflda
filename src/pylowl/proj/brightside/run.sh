@@ -28,7 +28,6 @@ PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.run \
     --max_time=3600 \
     --save_model \
     --output_dir="$OUTPUT_DIR" \
-    --concrete \
     --concrete_vocab_path="$VOCAB_PATH" \
     --U=20 \
     --D=11222 \
