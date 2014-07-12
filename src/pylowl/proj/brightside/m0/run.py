@@ -2,9 +2,9 @@ import logging
 import time
 import os
 import sys
-from corpus import Corpus, load_vocab
-from utils import take
-from m0 import *
+from pylowl.proj.brightside.corpus import Corpus, load_vocab
+from pylowl.proj.brightside.utils import take
+from pylowl.proj.brightside.m0.core import *
 import random
 from glob import glob
 

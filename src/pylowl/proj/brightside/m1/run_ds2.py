@@ -9,9 +9,9 @@
 import sys
 import os
 import tempfile
-from pylowl.proj.brightside.run import run
-from pylowl.proj.brightside.postproc.generate_d3_topic_graph import generate_d3_topic_graph
-from pylowl.proj.brightside.postproc.generate_d3_subgraphs import generate_d3_subgraphs
+from pylowl.proj.brightside.m1.run import run
+from pylowl.proj.brightside.m1.postproc.generate_d3_topic_graph import generate_d3_topic_graph
+from pylowl.proj.brightside.m1.postproc.generate_d3_subgraphs import generate_d3_subgraphs
 
 profile = ('--profile' in sys.argv[1:])
 
