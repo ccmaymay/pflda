@@ -61,7 +61,7 @@ def generate_d3_subgraphs(trunc_csv,
     m = tree_index_m(trunc)
     b = tree_index_b(trunc)
 
-    subtree_dicts_per_id = {}
+    subtree_dicts_per_user = {}
 
     with open(subtree_filename) as subtree_f, \
          open(Elogpi_filename) as Elogpi_f, \
@@ -96,11 +96,11 @@ def generate_d3_subgraphs(trunc_csv,
                     if idx in node_map:
                         subtree_dicts[idx][stat_name] = weights[node_map[idx]]
 
-            subtree_dicts_per_id[user] = subtree_dicts
+            subtree_dicts_per_user[user] = subtree_dicts
 
     json_data = []
 
-    for (user, subtree_dicts) in subtree_dicts_per_id.items():
+    for (user, subtree_dicts) in subtree_dicts_per_user.items():
         num_active = 0
         for node in tree_iter(trunc):
             idx = tree_index(node, m, b)
