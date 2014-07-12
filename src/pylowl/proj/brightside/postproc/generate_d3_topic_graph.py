@@ -7,10 +7,13 @@ from pylowl.proj.brightside.corpus import load_vocab
 from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index
 
 
+DEFAULT_WORDS_PER_TOPIC=10
+
+
 def main():
     from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.set_defaults(words_per_topic=10)
+    parser.set_defaults(words_per_topic=DEFAULT_WORDS_PER_TOPIC)
     parser.add_argument('trunc_csv', type=str,
                         help='comma-separated list of truncations (per level)')
     parser.add_argument('vocab_path', type=str,
@@ -52,7 +55,7 @@ def generate_d3_topic_graph(trunc_csv,
         Elogtheta_filename,
         logEtheta_filename,
         output_filename,
-        words_per_topic):
+        words_per_topic=DEFAULT_WORDS_PER_TOPIC):
 
     vocab = load_vocab(vocab_filename)
 
@@ -79,7 +82,7 @@ def generate_d3_topic_graph(trunc_csv,
     for node_dict in node_topics:
         node_dict['lambda_ss_sum'] = sum(d['lambda_ss'] for d in node_dict['words'])
         node_dict['words'].sort(key=lambda d: d['lambda_ss'], reverse=True)
-        node_dict['words'] = node_dict['words'][:WORDS_PER_TOPIC]
+        node_dict['words'] = node_dict['words'][:words_per_topic]
 
     for (stat_name, stat_filename) in (('Elogpi', Elogpi_filename),
                                        ('logEpi', logEpi_filename)):

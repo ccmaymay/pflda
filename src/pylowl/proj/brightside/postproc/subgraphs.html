@@ -97,6 +97,17 @@ add_lambda_ss_text = function(font_size){
 	}
 }
 
+format_words = function(d) {
+    s = "";
+    for (w in d.words) {
+        if (w > 0) {
+            s += " ";
+        }
+        s += d.words[w]['word'];
+    }
+    return s;
+}
+
 update_nav_text = function() {
     set_node_text(document.getElementById("window_start_text"), $window_start);
     set_node_text(document.getElementById("window_end_text"), $window_end);
@@ -123,12 +134,12 @@ update_graphs = function() {
         graph_container.className = "graph_container";
         graphs_container.appendChild(graph_container);
 
-        var identifier = $root[c]["identifier"];
-        var identifier_container = document.createElement("div");
-        identifier_container.className = "identifier";
-        graph_container.appendChild(identifier_container);
-        var identifier_text = document.createTextNode(identifier);
-        identifier_container.appendChild(identifier_text);
+        var user = $root[c]["user"];
+        var user_container = document.createElement("div");
+        user_container.className = "user";
+        graph_container.appendChild(user_container);
+        var user_text = document.createTextNode(user);
+        user_container.appendChild(user_text);
 
         var inner_graph_container = document.createElement("div");
         graph_container.appendChild(inner_graph_container);
@@ -176,7 +187,7 @@ update_graphs = function() {
         .style("stroke-opacity", "0")
         .style("fill-opacity", "0")
         .append("title")
-        .text(function(d){return d.words });
+        .text(format_words);
 
         if(document.getElementById("showValues").checked == true){
 			node.append("foreignObject")
@@ -324,7 +335,7 @@ d3.json("subgraphs.json", function(error, root) {
 	}
 
 	node_placement_rootParent();
-	maxNodeSize = 0;
+    maxNodeSize = 0;
 	maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
     minELogPi = 0;
     minELogPi = minimum_ELogPi_rootParent(minELogPi, $root, "Elogpi");
