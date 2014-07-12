@@ -94,7 +94,7 @@ def generate_d3_subgraphs(trunc_csv,
         for (subtree_line, stat_lines) in it.izip(subtree_f, it.izip(
                 Elogpi_f, logEpi_f, lambda_ss_f)):
             pieces = subtree_line.strip().split()
-            identifier = pieces[0]
+            user = pieces[0]
             node_map = dict((p[1], p[0]) for p in
                             enumerate([int(i) for i in pieces[1:]]))
 
@@ -114,20 +114,20 @@ def generate_d3_subgraphs(trunc_csv,
                     ('Elogpi', 'logEpi', 'lambda_ss'),
                     stat_lines):
                 stat_pieces = stat_line.strip().split()
-                if identifier != stat_pieces[0]:
-                    raise Exception('identifiers do not match: %s and %s'
-                                    % (identifier, stat_pieces[0]))
+                if user != stat_pieces[0]:
+                    raise Exception('users do not match: %s and %s'
+                                    % (user, stat_pieces[0]))
                 weights = [float(w) for w in stat_pieces[1:]]
                 for node in tree_iter(trunc):
                     idx = tree_index(node, m, b)
                     if idx in node_map:
                         subtree_dicts[idx][stat_name] = weights[node_map[idx]]
 
-            subtree_dicts_per_id[identifier] = subtree_dicts
+            subtree_dicts_per_id[user] = subtree_dicts
 
     json_data = []
 
-    for (identifier, subtree_dicts) in subtree_dicts_per_id.items():
+    for (user, subtree_dicts) in subtree_dicts_per_id.items():
         num_active = 0
         for node in tree_iter(trunc):
             idx = tree_index(node, m, b)
@@ -137,7 +137,7 @@ def generate_d3_subgraphs(trunc_csv,
                 p_idx = tree_index(p, m, b)
                 subtree_dicts[p_idx]['children'].append(subtree_dicts[idx])
         json_data.append({
-            'identifier': identifier,
+            'user': user,
             'subtree': subtree_dicts[0],
             'num_active': num_active
         })
