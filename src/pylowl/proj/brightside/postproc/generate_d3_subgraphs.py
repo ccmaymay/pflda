@@ -3,9 +3,10 @@
 
 import re
 import json
+from glob import glob
 import itertools as it
 from datetime import datetime
-from pylowl.proj.brightside.corpus import load_vocab, load_concrete_raw
+from pylowl.proj.brightside.corpus import load_vocab, load_concrete
 from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index
 
 
@@ -157,24 +158,27 @@ def generate_d3_subgraphs(trunc_csv,
     for doc in load_concrete(data_loc):
         doc_id_path_map[doc.attrs['identifier']] = doc.path
 
-    weighted_datetimes_per_user = dict((user, []) for user in subtree_dicts)
+    weighted_datetimes_per_user = dict(
+        (
+            user,
+            [[] for idx in range(len(subtree_dicts))]
+        )
+        for user in subtree_dicts_per_user
+    )
     with open(doc_lambda_ss_filename) as doc_lambda_ss_f:
         for line in doc_lambda_ss_f:
             pieces = line.strip().split()
             user = pieces[0]
             doc_identifier = pieces[1]
-            doc = load_concrete(doc_id_path_map[doc_identifier])
-            datetime_float = datetime_to_float(parse_datetime(doc.timestamp))
-            latitude = doc.latitude
-            longitude = doc.longitude
+            doc = list(load_concrete(doc_id_path_map[doc_identifier]))[0]
+            datetime_float = datetime_to_float(parse_datetime(doc.attrs['datetime']))
             weights = [float(w) for w in pieces[2:]]
             node_map = node_maps_per_user[user]
-            for (idx, i) in node_map:
+            for (idx, i) in node_map.items():
                 weighted_datetimes_per_user[user][idx].append((weights[i], datetime_float))
 
-    for user in subtree_dicts:
+    for (user, subtree_dicts) in subtree_dicts_per_user.items():
         node_map = node_maps_per_user[user]
-        subtree_dicts = subtree_dicts_per_user[user]
         for node in tree_iter(trunc):
             idx = tree_index(node, m, b)
             if idx in node_map:
