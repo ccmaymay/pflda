@@ -34,7 +34,7 @@ def main():
                         help='number of words to output per topic')
 
     args = parser.parse_args()
-    generate_d3_topic_graph(
+    generate_d3_graph(
         args.trunc_csv,
         args.vocab_path,
         lambda_ss_filename=args.lambda_ss,
@@ -47,7 +47,7 @@ def main():
     )
 
 
-def generate_d3_topic_graph(trunc_csv,
+def generate_d3_graph(trunc_csv,
         vocab_filename,
         lambda_ss_filename,
         Elogpi_filename,

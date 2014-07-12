@@ -4,7 +4,7 @@ import numpy.linalg as la
 import numpy.random as nprand
 import scipy.special as sp
 import itertools as it
-import utils
+import pylowl.proj.brightside.utils as utils
 import random
 import cPickle
 

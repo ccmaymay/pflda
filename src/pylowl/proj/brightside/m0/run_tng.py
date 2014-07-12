@@ -10,7 +10,7 @@ import sys
 import os
 import tempfile
 from pylowl.proj.brightside.run import run
-from pylowl.proj.brightside.postproc.generate_d3_topic_graph import generate_d3_topic_graph
+from pylowl.proj.brightside.postproc.generate_d3_graph import generate_d3_graph
 from pylowl.proj.brightside.postproc.generate_d3_subgraphs import generate_d3_subgraphs
 
 profile = ('--profile' in sys.argv[1:])
@@ -60,7 +60,7 @@ else:
     exec code
 
 print 'Generating D3 inputs...'
-generate_d3_topic_graph(TRUNC, VOCAB_PATH,
+generate_d3_graph(TRUNC, VOCAB_PATH,
     os.path.join(OUTPUT_DIR, 'final.lambda_ss'),
     os.path.join(OUTPUT_DIR, 'final.Elogpi'),
     os.path.join(OUTPUT_DIR, 'final.logEpi'),
