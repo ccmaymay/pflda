@@ -97,6 +97,17 @@ add_lambda_ss_text = function(font_size){
 	}
 }
 
+format_words = function(d) {
+    s = "";
+    for (w in d.words) {
+        if (w > 0) {
+            s += " ";
+        }
+        s += d.words[w]['word'];
+    }
+    return s;
+}
+
 update_nav_text = function() {
     set_node_text(document.getElementById("window_start_text"), $window_start);
     set_node_text(document.getElementById("window_end_text"), $window_end);
@@ -175,7 +186,7 @@ update_graphs = function() {
         .style("stroke-opacity", "0")
         .style("fill-opacity", "0")
         .append("title")
-        .text(function(d){return d.words });
+        .text(format_words);
 
         if(document.getElementById("showValues").checked == true){
 			node.append("foreignObject")
