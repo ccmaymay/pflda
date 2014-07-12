@@ -335,17 +335,19 @@ def save_and_test(m, basename_stem, result_directory, save_model,
                   test_data_path, c_test_train, c_test_test, batchsize,
                   var_converge, test_samples):
     if save_model:
-        # Save the model.
         logging.info('Saving model with stem %s' % basename_stem)
         output_files = make_output_files(basename_stem,
                                          result_directory)
-        m.save(output_files)
     else:
         output_files = dict()
+
     if test_data_path is not None:
         test_nhdp_predictive(m, c_test_train, c_test_test, batchsize,
                              var_converge, test_samples, output_files)
-    close_output_files(output_files)
+
+    if save_model:
+        m.save(output_files)
+        close_output_files(output_files)
 
 
 def make_output_files(basename_stem, result_directory):
