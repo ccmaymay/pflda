@@ -2,7 +2,7 @@ import numpy as np
 from numpy.testing import assert_almost_equal, assert_array_equal, assert_array_almost_equal
 
 from corpus import Document
-from model import *
+from m0 import *
 
 
 def update_ss_stochastic_1_t_0_trivial_test():

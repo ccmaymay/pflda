@@ -4,7 +4,7 @@ import os
 import sys
 from corpus import Corpus, load_vocab
 from utils import take
-from model import *
+from m1 import *
 import random
 from glob import glob
 
