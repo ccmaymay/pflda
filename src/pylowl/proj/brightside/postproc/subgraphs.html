@@ -98,12 +98,13 @@ add_lambda_ss_text = function(font_size){
 }
 
 format_words = function(d) {
+    var graph_node = lookup_node($graph_root, d.node_placement);
     s = "";
-    for (w in d.words) {
+    for (w in graph_node.words) {
         if (w > 0) {
             s += " ";
         }
-        s += d.words[w]['word'];
+        s += graph_node.words[w]['word'];
     }
     return s;
 }
@@ -274,91 +275,91 @@ lookup_node_helper = function(node, placement) {
     }
 }
 
-d3.json("subgraphs.json", function(error, root) {
-    $num_graphs = root.length;
-	$root = root;
+d3.json("graph.json", function(error, graph_root) {
+    $graph_root = graph_root;
+    d3.json("subgraphs.json", function(error, root) {
+        $num_graphs = root.length;
+        $root = root;
 
-    minimum_ELogPi_rootParent = function(min_var_param, root, paramName){
-    min_var_param = 0;
-    for(indiv = 0; indiv < $num_graphs; indiv++){
-        minSubStat = minimum_ELogPi_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
-        if(minSubStat<min_var_param){
-            min_var_param = minSubStat;
-        }
-    }
-    return min_var_param;
-    }
-
-    minimum_ELogPi_subtreeChildren = function(min_var_param, node, paramName){
-        if(min_var_param > node[paramName]){
-            min_var_param = node[paramName];
-        }
-        for (var c in node.children) {
-            child = node.children[c];
-        	min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child, paramName);
-        }
-        return min_var_param;
-    }
-
-	maximum_Node_Size_rootParent = function(min_var_param, root){
+        minimum_ELogPi_rootParent = function(min_var_param, root, paramName){
         min_var_param = 0;
         for(indiv = 0; indiv < $num_graphs; indiv++){
-            minSubStat = maximum_Node_Size_subtreeChildren(min_var_param, root[indiv]["subtree"]);
-            if(minSubStat>min_var_param){
+            minSubStat = minimum_ELogPi_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
+            if(minSubStat<min_var_param){
                 min_var_param = minSubStat;
             }
         }
         return min_var_param;
+        }
+
+        minimum_ELogPi_subtreeChildren = function(min_var_param, node, paramName){
+            if(min_var_param > node[paramName]){
+                min_var_param = node[paramName];
+            }
+            for (var c in node.children) {
+                child = node.children[c];
+                min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child, paramName);
+            }
+            return min_var_param;
+        }
+
+        maximum_Node_Size_rootParent = function(min_var_param, root){
+            min_var_param = 0;
+            for(indiv = 0; indiv < $num_graphs; indiv++){
+                minSubStat = maximum_Node_Size_subtreeChildren(min_var_param, root[indiv]["subtree"]);
+                if(minSubStat>min_var_param){
+                    min_var_param = minSubStat;
+                }
+            }
+            return min_var_param;
+        }
+
+        maximum_Node_Size_subtreeChildren = function(min_var_param, node){
+            if(min_var_param < node_size(node)){
+                min_var_param = node_size(node);
+            }
+            for (var c in node.children) {
+                child = node.children[c];
+                min_var_param = maximum_Node_Size_subtreeChildren(min_var_param, child);
+            }
+            return min_var_param;
+        }
+
+        node_placement_rootParent = function(){
+        for(graphNum = 0; graphNum < $root.length; graphNum++){
+            node_placement_subtreeChildren($root[graphNum].subtree, 0, []);
+        }
     }
 
-	maximum_Node_Size_subtreeChildren = function(min_var_param, node){
-        if(min_var_param < node_size(node)){
-            min_var_param = node_size(node);
+        node_placement_subtreeChildren = function(node, placementInList, currentArray){
+            var myArray = [];
+            for(k = 0; k < currentArray.length; k++){
+                myArray[k] = currentArray[k];
+            }
+            myArray[myArray.length] = placementInList;
+            node.node_placement = myArray;
+
+            for(var c in node.children){
+                child = node.children[c];
+                node_placement_subtreeChildren(child, c, myArray);
+            }
         }
-        for (var c in node.children) {
-            child = node.children[c];
-            min_var_param = maximum_Node_Size_subtreeChildren(min_var_param, child);
-        }
-        return min_var_param;
-    }
 
-    node_placement_rootParent = function(){
-	for(graphNum = 0; graphNum < $root.length; graphNum++){
-		$root[graphNum].node_placement = [0];
-		for(var c in $root[graphNum].children){
-			child = $root[graphNum].children[c];
-			node_placement_subtreeChildren(child, c, [0]);
-		}
-	}
-}
+        node_placement_rootParent();
+        maxNodeSize = 0;
+        maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
+        minELogPi = 0;
+        minELogPi = minimum_ELogPi_rootParent(minELogPi, $root, "Elogpi");
 
-	node_placement_subtreeChildren = function(node, placementInList, currentArray){
-		currentArray[currentArray.length] = placementInList;
-		node.node_placement = currentArray;
-		for(var c in node.children){
-			child = node.children[c];
-			nextArray = []
-			for(k = 0; k < currentArray.length; k++){
-				nextArray[k] = currentArray[k];
-			}
-			node_placement_subtreeChildren(child, c, currentArray);
-		}
-	}
+        $width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"])+1) + maxNodeSize;
+        $height = maxNodeSize * 2.5 * Math.max.apply(null,
+                                      tree_size_per_level(root[0]["subtree"]));
 
-	node_placement_rootParent();
-    maxNodeSize = 0;
-	maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
-    minELogPi = 0;
-    minELogPi = minimum_ELogPi_rootParent(minELogPi, $root, "Elogpi");
+        document.getElementById("window_size").value = $window_size;
+        update_window_size();
 
-	$width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"])+1) + maxNodeSize;
-    $height = maxNodeSize * 2.5 * Math.max.apply(null,
-                                  tree_size_per_level(root[0]["subtree"]));
-
-    document.getElementById("window_size").value = $window_size;
-    update_window_size();
-
-    d3.select(self.frameElement).style("height", $height + "px");
+        d3.select(self.frameElement).style("height", $height + "px");
+    });
 });
 
 </script>
