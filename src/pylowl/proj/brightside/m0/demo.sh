@@ -3,7 +3,7 @@
 set -e
 
 # cd to repository root
-cd ../../../../
+cd ../../../../../
 
 # put build dir in python path
 DISTUTILS_PLATFORM=`python -c 'import distutils.util; print distutils.util.get_platform()'`

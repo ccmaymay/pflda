@@ -25,7 +25,7 @@ for (k, v) in os.environ.items():
     print '    %s: %s' % (k, v)
 print
 
-os.chdir('../../../..') # repository root
+os.chdir('../../../../..') # repository root
 
 TRUNC = '1,5,4'
 DATA_DIR = 'data/txt/ds2'
