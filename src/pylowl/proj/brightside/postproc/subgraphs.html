@@ -267,10 +267,10 @@ d3.json("subgraphs.json", function(error, root) {
 	$root = root;
 
     minimum_param_rootParent = function(root, paramName){
-    min_var_param = 0;
+    var min_var_param = null;
     for(indiv = 0; indiv < $num_graphs; indiv++){
         minSubStat = minimum_param_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
-        if(minSubStat < min_var_param){
+        if(min_var_param === null || minSubStat < min_var_param){
             min_var_param = minSubStat;
         }
     }
@@ -278,7 +278,7 @@ d3.json("subgraphs.json", function(error, root) {
     }
 
     minimum_param_subtreeChildren = function(min_var_param, node, paramName){
-        if(min_var_param > node[paramName]){
+        if((min_var_param === null || min_var_param > node[paramName]) && paramName in node){
             min_var_param = node[paramName];
         }
         for (var c in node.children) {
@@ -289,10 +289,10 @@ d3.json("subgraphs.json", function(error, root) {
     }
 
 	maximum_param_rootParent = function(root, paramName){
-    max_var_param = 0;
+    var max_var_param = null;
     for(indiv = 0; indiv < $num_graphs; indiv++){
         maxSubStat = maximum_param_subtreeChildren(max_var_param, root[indiv]["subtree"], paramName);
-        if(maxSubStat > max_var_param){
+        if(max_var_param === null || maxSubStat > max_var_param){
             max_var_param = maxSubStat;
         }
     }
@@ -300,7 +300,7 @@ d3.json("subgraphs.json", function(error, root) {
     }
 
 	maximum_param_subtreeChildren = function(max_var_param, node, paramName){
-        if(max_var_param < node[paramName]){
+        if((max_var_param === null || max_var_param > node[paramName]) && paramName in node){
             max_var_param = node[paramName];
         }
         for (var c in node.children) {
@@ -332,7 +332,6 @@ d3.json("subgraphs.json", function(error, root) {
         return min_var_param;
     }
 
-	maxNodeSize = 0;
 	maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
 	maxEtime = maximum_param_rootParent($root, "expected_time");
     minEtime = minimum_param_rootParent($root, "expected_time");
