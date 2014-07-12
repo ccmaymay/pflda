@@ -23,8 +23,6 @@ def main():
                         help='output file path')
     parser.add_argument('--subtree', type=str, required=True,
                         help='subtree file path')
-    parser.add_argument('--graph_lambda_ss', type=str, required=True,
-                        help='graph_lambda_ss file path')
     parser.add_argument('--lambda_ss', type=str, required=True,
                         help='lambda_ss file path')
     parser.add_argument('--Elogpi', type=str, required=True,
@@ -40,7 +38,6 @@ def main():
         args.trunc_csv,
         args.vocab_path,
         subtree_filename=args.subtree,
-        graph_lambda_ss_filename=args.graph_lambda_ss,
         lambda_ss_filename=args.lambda_ss,
         Elogpi_filename=args.Elogpi,
         logEpi_filename=args.logEpi,
@@ -52,7 +49,6 @@ def main():
 def generate_d3_subgraphs(trunc_csv,
         vocab_filename,
         subtree_filename,
-        graph_lambda_ss_filename,
         lambda_ss_filename,
         Elogpi_filename,
         logEpi_filename,
@@ -65,26 +61,6 @@ def generate_d3_subgraphs(trunc_csv,
     m = tree_index_m(trunc)
     b = tree_index_b(trunc)
 
-    node_topics = []
-    for node in tree_iter(trunc):
-        node_topics.append({
-            'words': [{'word': vocab[t]} for t in range(len(vocab))]
-        })
-    with open(graph_lambda_ss_filename) as f:
-        for (idx, line) in enumerate(f):
-            for (t, w) in enumerate(float(w) for w in line.strip().split()):
-                node_topics[idx]['words'][t]['lambda_ss'] = w
-    for node_dict in node_topics:
-        node_dict['lambda_ss_sum'] = sum(d['lambda_ss'] for d in node_dict['words'])
-        node_dict['words'].sort(key=lambda d: d['lambda_ss'], reverse=True)
-        node_dict['words'] = node_dict['words'][:words_per_topic]
-
-    for (stat_name, stat_filename) in (('Elogpi', Elogpi_filename),
-                                       ('logEpi', logEpi_filename)):
-        with open(stat_filename) as f:
-            for (idx, line) in enumerate(f):
-                w = float(line.strip())
-                node_topics[idx][stat_name] = w
     subtree_dicts_per_id = {}
 
     with open(subtree_filename) as subtree_f, \
@@ -102,12 +78,9 @@ def generate_d3_subgraphs(trunc_csv,
             for node in tree_iter(trunc):
                 idx = tree_index(node, m, b)
                 active = idx in node_map
-                node_dict = node_topics[idx]
                 subtree_dicts[idx] = {
                     'active': active,
                     'children': [],
-                    'words': node_dict['words'],
-                    'global_lambda_ss_sum': node_dict['lambda_ss_sum'],
                 }
 
             for (stat_name, stat_line) in it.izip(
