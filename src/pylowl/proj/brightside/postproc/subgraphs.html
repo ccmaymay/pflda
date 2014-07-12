@@ -310,6 +310,7 @@ d3.json("subgraphs.json", function(error, root) {
         return min_var_param;
     }
 
+    maxNodeSize = 0;
 	maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
     minELogPi = 0;
     minELogPi = minimum_ELogPi_rootParent(minELogPi, $root, "Elogpi");
