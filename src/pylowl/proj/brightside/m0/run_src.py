@@ -117,8 +117,7 @@ if __name__ == '__main__':
 
     print 'Generating D3 inputs...'
     generate_d3_graph(output_dir, os.path.join(output_dir, 'graph.json'))
-    generate_d3_subgraphs(output_dir, os.path.join(output_dir, 'subgraphs.json'),
-                          doc_id_re=re.compile(r'.*/test/\d+\.concrete$'))
+    generate_d3_subgraphs(output_dir, os.path.join(output_dir, 'subgraphs.json'))
 
     print 'Linking visualization code to output directory...'
     for basename in ('subgraphs.html',):
