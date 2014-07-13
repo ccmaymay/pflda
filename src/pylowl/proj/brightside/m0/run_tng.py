@@ -63,7 +63,7 @@ else:
 print 'Generating D3 inputs...'
 generate_d3_graph(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'graph.json'))
 generate_d3_subgraphs(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'subgraphs.json'),
-                      identifier_re=re.compile(r'.*/test/\d+\.concrete$'))
+                      doc_id_re=re.compile(r'.*/test/\d+\.concrete$'))
 
 print 'Linking visualization code to output directory...'
 for basename in ('graph.html', 'subgraphs.html', 'd3.v3.js'):

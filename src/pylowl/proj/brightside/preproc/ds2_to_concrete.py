@@ -37,7 +37,7 @@ def iter_docs(input_path):
                 datetime=datetime,
                 latitude=latitude,
                 longitude=longitude,
-                identifier=str(line_num),
+                id=str(line_num),
             )
 
 

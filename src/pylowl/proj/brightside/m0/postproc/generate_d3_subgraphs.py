@@ -14,24 +14,24 @@ def main():
                         help='path to dir where model was saved')
     parser.add_argument('output_path', type=str,
                         help='output file path')
-    parser.add_argument('--identifier_re', type=str,
-                        help='regex to filter document identifiers')
+    parser.add_argument('--doc_id_re', type=str,
+                        help='regex to filter document ids')
 
     args = parser.parse_args()
-    if args.identifier_re is None:
-        identifier_re = None
+    if args.doc_id_re is None:
+        doc_id_re = None
     else:
-        identifier_re = re.compile(args.identifier_re)
+        doc_id_re = re.compile(args.doc_id_re)
 
     generate_d3_subgraphs(
         args.result_dir,
         args.output_path,
-        identifier_re=identifier_re
+        doc_id_re=doc_id_re
     )
 
 
 def generate_d3_subgraphs(result_dir, output_filename,
-                          identifier_re=None):
+                          doc_id_re=None):
     options = load_options(os.path.join(result_dir, 'options'))
     trunc_csv = options['trunc']
     subtree_filename = os.path.join(result_dir, 'subtree')
@@ -52,8 +52,8 @@ def generate_d3_subgraphs(result_dir, output_filename,
         for (subtree_line, stat_lines) in it.izip(subtree_f, it.izip(
                 Elogpi_f, logEpi_f, lambda_ss_f)):
             pieces = subtree_line.strip().split()
-            identifier = pieces[0]
-            if identifier_re is not None and identifier_re.match(identifier) is None:
+            doc_id = pieces[0]
+            if doc_id_re is not None and doc_id_re.match(doc_id) is None:
                 continue
             node_map = dict((p[1], p[0]) for p in
                             enumerate([int(i) for i in pieces[1:]]))
@@ -71,20 +71,20 @@ def generate_d3_subgraphs(result_dir, output_filename,
                     ('Elogpi', 'logEpi', 'lambda_ss'),
                     stat_lines):
                 stat_pieces = stat_line.strip().split()
-                if identifier != stat_pieces[0]:
-                    raise Exception('identifiers do not match: %s and %s'
-                                    % (identifier, stat_pieces[0]))
+                if doc_id != stat_pieces[0]:
+                    raise Exception('doc ids do not match: %s and %s'
+                                    % (doc_id, stat_pieces[0]))
                 weights = [float(w) for w in stat_pieces[1:]]
                 for node in tree_iter(trunc):
                     idx = tree_index(node, m, b)
                     if idx in node_map:
                         subtree_dicts[idx][stat_name] = weights[node_map[idx]]
 
-            subtree_dicts_per_id[identifier] = subtree_dicts
+            subtree_dicts_per_id[doc_id] = subtree_dicts
 
     json_data = []
 
-    for (identifier, subtree_dicts) in subtree_dicts_per_id.items():
+    for (doc_id, subtree_dicts) in subtree_dicts_per_id.items():
         num_active = 0
         for node in tree_iter(trunc):
             idx = tree_index(node, m, b)
@@ -94,7 +94,7 @@ def generate_d3_subgraphs(result_dir, output_filename,
                 p_idx = tree_index(p, m, b)
                 subtree_dicts[p_idx]['children'].append(subtree_dicts[idx])
         json_data.append({
-            'identifier': identifier,
+            'doc_id': doc_id,
             'subtree': subtree_dicts[0],
             'num_active': num_active
         })

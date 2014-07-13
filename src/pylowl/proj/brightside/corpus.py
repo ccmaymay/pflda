@@ -27,10 +27,11 @@ def write_concrete(docs, *args, **kwargs):
         Tokenization, TokenList, Token
     )
 
-    SPECIAL_KEYS = set(('text', 'tokens'))
+    SPECIAL_KEYS = set(('id', 'text', 'tokens'))
 
     def make_comm(doc):
         comm = Communication()
+        comm.id = doc.id
         comm.text = doc.text
 
         comm.keyValueMap = dict()
@@ -93,7 +94,7 @@ def load_concrete(loc, section_segmentation_idx=0,
         else:
             attrs = comm.keyValueMap
 
-        return Document(tokens, text=comm.text, **attrs)
+        return Document(tokens, id=comm.id, text=comm.text, **attrs)
 
     for (comm, path) in load_concrete_raw(loc):
         doc = parse_comm(comm)
@@ -118,10 +119,10 @@ def load_concrete_raw(loc):
 class Document(object):
     '''
     A single document: a list of type-count pairs and an optional
-    identifier (e.g., filename and line number).
+    id (e.g., filename and line number).
     '''
 
-    def __init__(self, tokens, text=None, **attrs):
+    def __init__(self, tokens, id=None, text=None, **attrs):
         self.tokens = tokens
 
         self.words = []
@@ -139,6 +140,7 @@ class Document(object):
         self.length = len(self.words)
         self.total = sum(self.counts)
 
+        self.id = id
         self.text = text
         self.attrs = attrs
 
@@ -157,10 +159,10 @@ class Document(object):
         num_train_tokens = int(math.ceil(len(tokens) * train_frac))
         # always at least one token in training document
         train_doc = Document(tokens[:num_train_tokens],
-            text=self.text, **self.attrs)
+            id=self.id, text=self.text, **self.attrs)
         # may be empty
         test_doc = Document(tokens[num_train_tokens:],
-            text=self.text, **self.attrs)
+            id=self.id, text=self.text, **self.attrs)
         return (train_doc, test_doc)
 
     def __str__(self):
@@ -188,7 +190,7 @@ class Corpus(object):
                                       sentence_segmentation,
                                       tokenization_list)
         docs = [Document([r_vocab[t] for t in doc.tokens],
-                         text=doc.text, **doc.attrs)
+                         id=doc.id, text=doc.text, **doc.attrs)
                 for doc in concrete_docs]
         return Corpus(docs, len(paths))
 
@@ -204,7 +206,7 @@ class Corpus(object):
                                       sentence_segmentation,
                                       tokenization_list)
         docs = (Document([r_vocab[t] for t in doc.tokens],
-                         text=doc.text, **doc.attrs)
+                         id=doc.id, text=doc.text, **doc.attrs)
                 for (i, doc) in enumerate(concrete_docs)
                 if i < num_docs)
         return Corpus(docs, num_docs) # TODO what if too short?

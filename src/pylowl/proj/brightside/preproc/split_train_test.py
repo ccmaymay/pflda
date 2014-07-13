@@ -34,19 +34,19 @@ def split_train_test(input_path, output_path, train_frac, shuffle):
     loc = glob(input_path)
 
     num_docs = len(loc)
-    doc_ids = range(num_docs)
+    doc_indices = range(num_docs)
     if shuffle:
-        random.shuffle(doc_ids)
-    doc_ids_split = int(math.ceil(train_frac * num_docs))
-    train_doc_ids = set(doc_ids[:doc_ids_split])
+        random.shuffle(doc_indices)
+    doc_indices_split = int(math.ceil(train_frac * num_docs))
+    train_doc_indices = set(doc_indices[:doc_indices_split])
 
     write_concrete_raw(
         (comm for (i, (comm, path)) in enumerate(load_concrete_raw(loc))
-         if i in train_doc_ids),
+         if i in train_doc_indices),
         os.path.join(output_path, 'train'))
     write_concrete_raw(
         (comm for (i, (comm, path)) in enumerate(load_concrete_raw(loc))
-         if i not in train_doc_ids),
+         if i not in train_doc_indices),
         os.path.join(output_path, 'test'))
 
 

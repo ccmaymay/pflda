@@ -144,20 +144,20 @@ class model(object):
                 for j in xrange(num_children):
                     c_node = node + (j,)
                     c_ids[j] = self.tree_index(c_node)
-                node_doc_ids = np.where(cluster_assignments == idx)[0]
-                if len(node_doc_ids) > 0:
-                    node_kmeans_data = [kmeans_data[i] for i in node_doc_ids]
+                node_doc_indices = np.where(cluster_assignments == idx)[0]
+                if len(node_doc_indices) > 0:
+                    node_kmeans_data = [kmeans_data[i] for i in node_doc_indices]
                     (node_cluster_assignments, node_cluster_means) = utils.kmeans_sparse(
                         node_kmeans_data, Wt, num_children, norm=1)
-                    cluster_assignments[node_doc_ids] = c_ids[node_cluster_assignments]
+                    cluster_assignments[node_doc_indices] = c_ids[node_cluster_assignments]
                     cluster_means[c_ids,:] = node_cluster_means
                     logging.debug('Node %s:' % str(node))
                     for i in xrange(num_children):
                         w_order = np.argsort(cluster_means[c_ids[i],:])
                         logging.debug('\t%s' % ' '.join(str(batch_to_vocab_word_map[w_order[j]]) for j in xrange(Wt-1, max(-1,Wt-11), -1)))
-                    for i in xrange(len(node_doc_ids)):
+                    for i in xrange(len(node_doc_indices)):
                         x = kmeans_data[i]
-                        cluster = cluster_assignments[node_doc_ids[i]]
+                        cluster = cluster_assignments[node_doc_indices[i]]
                         # note, here we are only computing the
                         # difference between the non-zero components
                         # of x[1] and the corresponding components of
@@ -666,7 +666,7 @@ class model(object):
     def select_subtree(self, doc, ElogV, num_tokens):
         # TODO abstract stuff below, like subtree candidate
         # modifications... prone to bugs
-        logging.debug('Greedily selecting subtree for ' + str(doc.attrs.get('identifier', None)))
+        logging.debug('Greedily selecting subtree for ' + str(doc.id))
 
         # map from local nodes in subtree to global nodes
         subtree = dict()
@@ -908,4 +908,4 @@ class model(object):
     def save_subtree_row(self, f, doc, v):
         if f is not None:
             line = ' '.join([str(x) for x in v])
-            f.write('%s %s\n' % (str(doc.attrs.get('identifier', None)), line))
+            f.write('%s %s\n' % (str(doc.id), line))

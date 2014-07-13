@@ -1,7 +1,7 @@
 read.subtree.vec <- function(f) {
-    identifier <- scan(f, 'c', 1, quiet=TRUE)
+    doc.id <- scan(f, 'c', 1, quiet=TRUE)
     v <- scan(f, nlines=1, quiet=TRUE)
-    return(list(identifier=identifier, v=v))
+    return(list(doc.id=doc.id, v=v))
 }
 
 min.subtree.elt <- function(filename) {
@@ -12,7 +12,7 @@ min.subtree.elt <- function(filename) {
     while (! eof) {
         r <- read.subtree.vec(f)
         m <- min(r$v, m)
-        if (length(r$identifier) == 0) {
+        if (length(r$doc.id) == 0) {
             eof <- TRUE
         }
     }

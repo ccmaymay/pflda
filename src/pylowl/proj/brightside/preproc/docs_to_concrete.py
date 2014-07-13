@@ -30,7 +30,7 @@ def main(input_pattern, output_dir):
                 tokens.extend(token for token in SPLIT_RE.split(line)
                               if token and not is_num(token))
         if tokens:
-            docs.append(Document(tokens, identifier=path))
+            docs.append(Document(tokens, id=path))
     write_concrete(docs, output_dir)
 
 
