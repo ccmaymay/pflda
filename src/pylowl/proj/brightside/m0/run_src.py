@@ -118,4 +118,4 @@ if __name__ == '__main__':
     shutil.rmtree(data_dir)
 
     print 'Done:'
-    print OUTPUT_DIR
+    print output_dir
