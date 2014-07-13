@@ -19,6 +19,17 @@ def reservoir_insert(reservoir, n, item):
         return None
 
 
+def load_options(path):
+    options = dict()
+    with open(path) as f:
+        for line in f:
+            i = line.find(': ')
+            k = line[:i]
+            v = line[i+1:]
+            options[k] = v
+    return options
+
+
 def path_list(loc):
     if isinstance(loc, str):
         return [loc]

@@ -8,6 +8,7 @@
 
 import sys
 import os
+import re
 import tempfile
 from pylowl.proj.brightside.run import run
 from pylowl.proj.brightside.postproc.generate_d3_graph import generate_d3_graph
@@ -60,19 +61,9 @@ else:
     exec code
 
 print 'Generating D3 inputs...'
-generate_d3_graph(TRUNC, VOCAB_PATH,
-    os.path.join(OUTPUT_DIR, 'final.lambda_ss'),
-    os.path.join(OUTPUT_DIR, 'final.Elogpi'),
-    os.path.join(OUTPUT_DIR, 'final.logEpi'),
-    os.path.join(OUTPUT_DIR, 'final.Elogtheta'),
-    os.path.join(OUTPUT_DIR, 'final.logEtheta'),
-    os.path.join(OUTPUT_DIR, 'graph.json'))
-generate_d3_subgraphs(TRUNC, VOCAB_PATH,
-    os.path.join(OUTPUT_DIR, 'final.subtree'),
-    os.path.join(OUTPUT_DIR, 'final.subtree_lambda_ss'),
-    os.path.join(OUTPUT_DIR, 'final.subtree_Elogpi'),
-    os.path.join(OUTPUT_DIR, 'final.subtree_logEpi'),
-    os.path.join(OUTPUT_DIR, 'subgraphs.json'))
+generate_d3_graph(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'graph.json'))
+generate_d3_subgraphs(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'subgraphs.json'),
+                      identifier_re=re.compile(r'.*/test/\d+\.concrete$'))
 
 print 'Linking visualization code to output directory...'
 for basename in ('graph.html', 'subgraphs.html', 'd3.v3.js'):

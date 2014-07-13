@@ -44,10 +44,10 @@ code = '''run(trunc=TRUNC,
     test_data_path=TEST_DATA_PATH,
     test_samples=1000,
     init_samples=1000,
-    max_time=3600,
+    max_time=120,
     save_model=True,
     output_dir=OUTPUT_DIR,
-    concrete_vocab_path=VOCAB_PATH,
+    vocab_path=VOCAB_PATH,
     U=9474,
     D=210531,
     W=10212,
@@ -63,19 +63,8 @@ else:
     exec code
 
 print 'Generating D3 inputs...'
-generate_d3_graph(TRUNC, VOCAB_PATH,
-    os.path.join(OUTPUT_DIR, 'final.lambda_ss'),
-    os.path.join(OUTPUT_DIR, 'final.Elogpi'),
-    os.path.join(OUTPUT_DIR, 'final.logEpi'),
-    os.path.join(OUTPUT_DIR, 'final.Elogtheta'),
-    os.path.join(OUTPUT_DIR, 'final.logEtheta'),
-    os.path.join(OUTPUT_DIR, 'graph.json'))
-generate_d3_subgraphs(TRUNC, VOCAB_PATH,
-    os.path.join(OUTPUT_DIR, 'final.subtree'),
-    os.path.join(OUTPUT_DIR, 'final.subtree_lambda_ss'),
-    os.path.join(OUTPUT_DIR, 'final.subtree_Elogpi'),
-    os.path.join(OUTPUT_DIR, 'final.subtree_logEpi'),
-    os.path.join(OUTPUT_DIR, 'subgraphs.json'))
+generate_d3_graph(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'graph.json'))
+generate_d3_subgraphs(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'subgraphs.json'))
 
 print 'Linking visualization code to output directory...'
 for basename in ('graph.html', 'subgraphs.html', 'd3.v3.js'):
