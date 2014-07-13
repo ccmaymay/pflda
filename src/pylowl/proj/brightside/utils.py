@@ -7,6 +7,9 @@ import itertools as it
 import os
 
 
+OPTIONS_KV_DELIM = ': '
+
+
 def reservoir_insert(reservoir, n, item):
     if n < len(reservoir):
         reservoir[n] = item
@@ -23,9 +26,10 @@ def load_options(path):
     options = dict()
     with open(path) as f:
         for line in f:
-            i = line.find(': ')
+            line = line.strip()
+            i = line.find(OPTIONS_KV_DELIM)
             k = line[:i]
-            v = line[i+1:]
+            v = line[i+len(OPTIONS_KV_DELIM):]
             options[k] = v
     return options
 
