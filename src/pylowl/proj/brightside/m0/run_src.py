@@ -37,7 +37,8 @@ MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/m0/postproc'
 
 def src_path_filter(path):
     ext = path[path.rfind('.'):]
-    return (ext in SRC_EXTENSIONS and 'src/pylowl/' not in path)
+    return (ext in SRC_EXTENSIONS
+            and not (ext == '.c' and 'src/pylowl/' in path))
 
 
 def is_num(s):
