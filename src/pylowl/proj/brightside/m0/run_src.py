@@ -81,7 +81,7 @@ if __name__ == '__main__':
     print 'Creating output directory...'
     if not os.path.isdir(OUTPUT_DIR_BASE):
         os.makedirs(OUTPUT_DIR_BASE)
-    output_dir = tempfile.mkdtemp(dir=OUTPUT_DIR_BASE)
+    output_dir = tempfile.mkdtemp(dir=OUTPUT_DIR_BASE, prefix='')
 
     print 'Running stochastic variational inference...'
     code = '''run(trunc=TRUNC,
