@@ -19,7 +19,7 @@ def is_num(s):
         return True
 
 
-def main(input_pattern, output_dir):
+def docs_to_concrete(input_pattern, output_dir):
     paths = glob(input_pattern)
     paths.sort()
     docs = []
@@ -36,4 +36,4 @@ def main(input_pattern, output_dir):
 
 if __name__ == '__main__':
     import sys
-    main(*sys.argv[1:])
+    docs_to_concrete(*sys.argv[1:])
