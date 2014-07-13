@@ -67,7 +67,7 @@ DEFAULT_OPTIONS = dict(
     fixed_lag=False,
     save_model=False,
     init_samples=None,
-    concrete_vocab_path=None,
+    vocab_path=None,
     concrete_section_segmentation=0,
     concrete_sentence_segmentation=0,
     concrete_tokenization_list=0,
@@ -134,7 +134,7 @@ def main(argv=None):
                       help="number of test documents (None: auto)")
     parser.add_argument("--scale", type=float,
                       help="scaling parameter for learning rate")
-    parser.add_argument("--concrete_vocab_path", type=str,
+    parser.add_argument("--vocab_path", type=str,
                       help="path to vocab for concrete data")
     parser.add_argument("--concrete_section_segmentation", type=int,
                       help="concrete section segmentation index")
@@ -206,7 +206,7 @@ def run(**kwargs):
         train_filenames = glob(options['data_path'])
         train_filenames.sort()
 
-        vocab = load_vocab(options['concrete_vocab_path'])
+        vocab = load_vocab(options['vocab_path'])
         r_vocab = dict((v, k) for (k, v) in vocab.items())
         if num_types != len(vocab):
             raise ValueError('specified vocab length is wrong')
@@ -236,7 +236,7 @@ def run(**kwargs):
         else:
             num_docs = options['D']
 
-        vocab = load_vocab(options['concrete_vocab_path'])
+        vocab = load_vocab(options['vocab_path'])
         r_vocab = dict((v, k) for (k, v) in vocab.items())
         num_types = len(vocab)
 

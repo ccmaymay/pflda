@@ -44,7 +44,7 @@ TRUNC=1,2,2
 # run for at most 60 seconds (plus overhead)
 PYTHONOPTIMIZE=1 python -m pylowl.proj.brightside.m0.run \
     --trunc="$TRUNC" \
-    --concrete_vocab_path="$VOCAB_PATH" \
+    --vocab_path="$VOCAB_PATH" \
     --data_path="$DATA_DIR"/'*' \
     --test_data_path="$DATA_DIR"/'*' \
     --save_model \
