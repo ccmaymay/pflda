@@ -30,6 +30,7 @@ os.chdir('../../../../..') # repository root
 TRUNC = '1,5,4'
 DATA_DIR = 'data/txt/ds2'
 POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
+MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/m1/postproc'
 VOCAB_PATH = os.path.join(DATA_DIR, 'vocab')
 TRAIN_DATA_PATH = os.path.join(DATA_DIR, 'train/*')
 TEST_DATA_PATH = os.path.join(DATA_DIR, 'test/*')
@@ -67,7 +68,10 @@ generate_d3_graph(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'graph.json'))
 generate_d3_subgraphs(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'subgraphs.json'))
 
 print 'Linking visualization code to output directory...'
-for basename in ('graph.html', 'subgraphs.html', 'd3.v3.js'):
+for basename in ('graph.html', 'subgraphs.html'):
+    os.symlink(os.path.abspath(os.path.join(MY_POSTPROC_DIR, basename)),
+        os.path.join(OUTPUT_DIR, basename))
+for basename in ('d3.v3.js',):
     os.symlink(os.path.abspath(os.path.join(POSTPROC_DIR, basename)),
         os.path.join(OUTPUT_DIR, basename))
 

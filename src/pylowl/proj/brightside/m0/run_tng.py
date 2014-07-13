@@ -10,9 +10,9 @@ import sys
 import os
 import re
 import tempfile
-from pylowl.proj.brightside.run import run
-from pylowl.proj.brightside.postproc.generate_d3_graph import generate_d3_graph
-from pylowl.proj.brightside.postproc.generate_d3_subgraphs import generate_d3_subgraphs
+from pylowl.proj.brightside.m0.run import run
+from pylowl.proj.brightside.m0.postproc.generate_d3_graph import generate_d3_graph
+from pylowl.proj.brightside.m0.postproc.generate_d3_subgraphs import generate_d3_subgraphs
 
 profile = ('--profile' in sys.argv[1:])
 
@@ -31,6 +31,7 @@ os.chdir('../../../../..') # repository root
 TRUNC = '1,5,4'
 DATA_DIR = 'data/txt/tng.rasp.concrete.catuser'
 POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
+MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/m0/postproc'
 VOCAB_PATH = os.path.join(DATA_DIR, 'vocab')
 TRAIN_DATA_PATH = os.path.join(DATA_DIR, 'train/*')
 TEST_DATA_PATH = os.path.join(DATA_DIR, 'test/*')
@@ -66,7 +67,10 @@ generate_d3_subgraphs(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'subgraphs.json'),
                       doc_id_re=re.compile(r'.*/test/\d+\.concrete$'))
 
 print 'Linking visualization code to output directory...'
-for basename in ('graph.html', 'subgraphs.html', 'd3.v3.js'):
+for basename in ('graph.html', 'subgraphs.html'):
+    os.symlink(os.path.abspath(os.path.join(MY_POSTPROC_DIR, basename)),
+        os.path.join(OUTPUT_DIR, basename))
+for basename in ('d3.v3.js',):
     os.symlink(os.path.abspath(os.path.join(POSTPROC_DIR, basename)),
         os.path.join(OUTPUT_DIR, basename))
 
