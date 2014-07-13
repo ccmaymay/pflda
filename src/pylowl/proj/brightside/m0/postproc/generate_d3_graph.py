@@ -65,7 +65,7 @@ def generate_d3_graph(result_dir, output_filename,
     for node_dict in node_topics:
         node_dict['lambda_ss_sum'] = sum(d['lambda_ss'] for d in node_dict['words'])
         node_dict['words'].sort(key=lambda d: d['lambda_ss'], reverse=True)
-        node_dict['words'] = node_dict['words'][:WORDS_PER_TOPIC]
+        node_dict['words'] = node_dict['words'][:words_per_topic]
 
     for (stat_name, stat_filename) in (('Elogpi', Elogpi_filename),
                                        ('logEpi', logEpi_filename)):
