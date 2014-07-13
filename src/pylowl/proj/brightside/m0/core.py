@@ -284,7 +284,8 @@ class model(object):
         # TODO oHDP: only add Elogpi if iter < 3
         log_nu[:,:] = np.repeat(Elogprobw_doc, doc.counts, axis=1).T + Elogpi # N x K
         log_nu[:,[self.tree_index(node) for node in self.tree_iter() if node not in subtree]] = -np.inf
-        (log_nu[:,:], log_norm) = utils.log_normalize(log_nu)
+        for n in xrange(doc.total):
+            (log_nu[n,:], log_norm) = utils.log_normalize(log_nu[n,:])
         nu[:,:] = np.exp(log_nu)
 
     def update_uv(self, subtree, nu_sums, uv):
