@@ -57,18 +57,22 @@ def write_concrete(docs, *args, **kwargs):
 
 
 def write_concrete_raw(comms, output_dir):
-    from thrift.transport import TTransport
-    from thrift.protocol import TBinaryProtocol
-
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
     for (i, comm) in enumerate(comms):
         output_path = os.path.join(output_dir, '%d.concrete' % i)
-        with open(output_path, 'wb') as f:
-            transport = TTransport.TFileObjectTransport(f)
-            protocol = TBinaryProtocol.TBinaryProtocol(transport)
-            comm.write(protocol)
+        write_concrete_comm_raw(comm, output_path)
+
+
+def write_concrete_comm_raw(comm, path):
+    from thrift.transport import TTransport
+    from thrift.protocol import TBinaryProtocol
+
+    with open(path, 'wb') as f:
+        transport = TTransport.TFileObjectTransport(f)
+        protocol = TBinaryProtocol.TBinaryProtocol(transport)
+        comm.write(protocol)
 
 
 def load_concrete(loc, section_segmentation_idx=0,
@@ -103,17 +107,27 @@ def load_concrete(loc, section_segmentation_idx=0,
 
 
 def load_concrete_raw(loc):
+    for input_path in path_list(loc):
+        yield (load_concrete_comm_raw(input_path), input_path)
+
+
+def load_concrete_comm_raw(path):
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
     from concrete.communication.ttypes import Communication
 
-    for input_path in path_list(loc):
-        with open(input_path, 'rb') as f:
-            transportIn = TTransport.TFileObjectTransport(f)
-            protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
-            comm = Communication()
-            comm.read(protocolIn)
-            yield (comm, input_path)
+    comm = Communication()
+    with open(path, 'rb') as f:
+        transportIn = TTransport.TFileObjectTransport(f)
+        protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
+        comm.read(protocolIn)
+    return comm
+
+
+def update_concrete_raw(loc, transform):
+    for (comm, path) in load_concrete_raw(loc):
+        transform(comm)
+        write_concrete_comm_raw(comm, path)
 
 
 class Document(object):
