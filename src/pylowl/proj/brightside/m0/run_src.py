@@ -13,11 +13,11 @@ import shutil
 import re
 import tempfile
 from glob import glob
+from pylowl.proj.brightside.corpus import write_concrete_doc, Document
 from pylowl.proj.brightside.m0.run import run
 from pylowl.proj.brightside.m0.postproc.generate_d3_graph import generate_d3_graph
 from pylowl.proj.brightside.m0.postproc.generate_d3_subgraphs import generate_d3_subgraphs
 from pylowl.proj.brightside.preproc.extract_concrete_vocab import extract_concrete_vocab
-from pylowl.proj.brightside.preproc.docs_to_concrete import docs_to_concrete
 
 
 # TODO:
@@ -25,6 +25,7 @@ from pylowl.proj.brightside.preproc.docs_to_concrete import docs_to_concrete
 # export PYTHONOPTIMIZE=1
 
 
+SPLIT_RE = re.compile(r'\W+')
 SRC_EXTENSIONS = ('.py', '.sh', '.c', '.h', '.pxd', '.pyx')
 
 # paths are relative to littleowl repo root
@@ -34,23 +35,35 @@ POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
 MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/m0/postproc'
 
 
-
 def src_path_filter(path):
     ext = path[path.rfind('.'):]
     return (ext in SRC_EXTENSIONS and 'src/pylowl/' not in path)
 
 
+def is_num(s):
+    try:
+        float(s)
+    except ValueError:
+        return False
+    else:
+        return True
+
+
 def make_data(input_dir, output_dir):
-    temp_output_dir = tempfile.mkdtemp()
     i = 0
     for (dirpath, dirnames, filenames) in os.walk(input_dir):
         for filename in filenames:
             path = os.path.join(dirpath, filename)
             if src_path_filter(path):
-                shutil.copy(path, os.path.join(temp_output_dir, str(i)))
-                i += 1
-    docs_to_concrete(os.path.join(temp_output_dir, '*'), output_dir)
-    shutil.rmtree(temp_output_dir)
+                tokens = []
+                with open(path) as f:
+                    for line in f:
+                        tokens.extend(token for token in SPLIT_RE.split(line)
+                                      if token and not is_num(token))
+                if tokens:
+                    output_path = os.path.join(output_dir, '%d.concrete' % i)
+                    write_concrete_doc(Document(tokens, id=path), output_path)
+                    i += 1
 
 
 if __name__ == '__main__':
