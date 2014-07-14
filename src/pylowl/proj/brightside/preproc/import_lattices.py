@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 
-import sys
-from glob import glob
+import os
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 from concrete.structure.ttypes import TokenLattice
