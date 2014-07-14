@@ -37,8 +37,10 @@ TRAIN_DATA_PATH = os.path.join(DATA_DIR, 'train/*')
 TEST_DATA_PATH = os.path.join(DATA_DIR, 'test/*')
 
 print 'Creating output directory...'
-OUTPUT_DIR = tempfile.mkdtemp(prefix='', suffix='',
-    dir='output/pylowl/proj/brightside/m0')
+OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/m0'
+if not os.path.isdir(OUTPUT_DIR_BASE):
+    os.makedirs(OUTPUT_DIR_BASE)
+OUTPUT_DIR = tempfile.mkdtemp(prefix='', suffix='', dir=OUTPUT_DIR_BASE)
 
 print 'Running stochastic variational inference...'
 code = '''run(trunc=TRUNC,
