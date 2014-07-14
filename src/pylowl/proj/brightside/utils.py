@@ -46,13 +46,6 @@ def nested_file_paths(root_dir, path_filter=None):
     return paths
 
 
-def path_list(loc):
-    if isinstance(loc, str):
-        return [loc]
-    else:
-        return loc
-
-
 def take(g, n):
     return (x for (i, x) in it.izip(xrange(n), g))
 
