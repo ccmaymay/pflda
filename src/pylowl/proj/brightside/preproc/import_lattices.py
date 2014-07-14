@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+import sys
 import os
 from pylowl.proj.brightside.corpus import load_lattice_best_tokens, write_concrete_docs, Document
 
@@ -8,12 +9,19 @@ from pylowl.proj.brightside.corpus import load_lattice_best_tokens, write_concre
 def load_aggregate_lattice_best_tokens(input_dir):
     for video_dir_name in os.listdir(input_dir):
         video_dir = os.path.join(input_dir, video_dir_name)
-        tokens = []
-        for frame_filename in os.listdir(video_dir):
-            frame_path = os.path.join(video_dir, frame_filename)
-            lattice_best = load_lattice_best_tokens(frame_path)
-            if lattice_best is not None:
-                tokens.extend(lattice_best)
+        if os.path.isdir(video_dir):
+            tokens = []
+            for frame_filename in os.listdir(video_dir):
+                frame_path = os.path.join(video_dir, frame_filename)
+                if os.path.isfile(frame_path):
+                    lattice_best = None
+                    try:
+                        lattice_best = load_lattice_best_tokens(frame_path)
+                    except:
+                        sys.stderr.write('Warning: failed to load lattice from %s' % frame_path)
+                    else:
+                        if lattice_best is not None:
+                            tokens.extend(lattice_best)
         if tokens:
             yield (tokens, video_dir)
 
@@ -29,5 +37,4 @@ def import_lattices(input_dir, output_dir):
 
 
 if __name__ == '__main__':
-    import sys
     import_lattices(*sys.argv[1:])
