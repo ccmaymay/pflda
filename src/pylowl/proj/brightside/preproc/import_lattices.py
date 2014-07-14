@@ -13,16 +13,24 @@ def load_lattice_best_tokens(path):
         protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
         lattice = TokenLattice()
         lattice.read(protocolIn)
-        return lattice.cachedBestPath
+        best_path = lattice.cachedBestPath
+        if best_path is None:
+            return None
+        else:
+            token_list = best_path.tokenList
+            if token_list is None:
+                return None
+            else:
+                return [t.text for t in token_list]
 
 
 def load_aggregate_lattice_best_tokens(input_dir):
     for video_dir_name in os.listdir(input_dir):
         video_dir = os.path.join(input_dir, video_dir_name)
         tokens = []
-        for frame_filename in os.listdor(video_dir):
+        for frame_filename in os.listdir(video_dir):
             frame_path = os.path.join(video_dir, frame_filename)
-            lattice_best = load_lattice_best(frame_path)
+            lattice_best = load_lattice_best_tokens(frame_path)
             if lattice_best is not None:
                 tokens.extend(lattice_best)
         if tokens:
