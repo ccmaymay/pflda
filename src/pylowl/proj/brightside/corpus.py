@@ -55,7 +55,7 @@ def doc_to_concrete_comm(doc):
     return comm
 
 
-def write_concrete_docs(docs, output_dir)
+def write_concrete_docs(docs, output_dir):
     write_concrete_comms((doc_to_concrete_comm(doc) for doc in docs),
                          output_dir)
 

@@ -33,8 +33,8 @@ DATA_DIR = 'data/txt/tng'
 POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
 MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/m0/postproc'
 VOCAB_PATH = os.path.join(DATA_DIR, 'vocab')
-TRAIN_DATA_PATH = os.path.join(DATA_DIR, 'train/*')
-TEST_DATA_PATH = os.path.join(DATA_DIR, 'test/*')
+TRAIN_DATA_DIR = os.path.join(DATA_DIR, 'train')
+TEST_DATA_DIR = os.path.join(DATA_DIR, 'test')
 
 print 'Creating output directory...'
 OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/m0'
@@ -44,11 +44,11 @@ OUTPUT_DIR = tempfile.mkdtemp(prefix='', suffix='', dir=OUTPUT_DIR_BASE)
 
 print 'Running stochastic variational inference...'
 code = '''run(trunc=TRUNC,
-    data_path=TRAIN_DATA_PATH,
-    test_data_path=TEST_DATA_PATH,
+    data_dir=TRAIN_DATA_DIR,
+    test_data_dir=TEST_DATA_DIR,
     test_samples=400,
     init_samples=400,
-    max_time=3600,
+    max_time=360,
     save_model=True,
     output_dir=OUTPUT_DIR,
     vocab_path=VOCAB_PATH,

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 
-from pylowl.proj.brightside.preproc.utils import write_vocab, make_parent_dir, nested_file_paths
+from pylowl.proj.brightside.utils import nested_file_paths
+from pylowl.proj.brightside.preproc.utils import write_vocab, make_parent_dir
 from pylowl.proj.brightside.corpus import load_concrete_docs
 
 
