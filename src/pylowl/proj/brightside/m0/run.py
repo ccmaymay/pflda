@@ -3,10 +3,9 @@ import time
 import os
 import sys
 from pylowl.proj.brightside.corpus import Corpus, load_vocab
-from pylowl.proj.brightside.utils import take
+from pylowl.proj.brightside.utils import take, nested_file_paths
 from pylowl.proj.brightside.m0.core import *
 import random
-from glob import glob
 
 
 LOG_BASENAME = 'log'
@@ -54,8 +53,8 @@ DEFAULT_OPTIONS = dict(
     max_time=None,
     var_converge=0.0001,
     random_seed=None,
-    data_path=None,
-    test_data_path=None,
+    data_dir=None,
+    test_data_dir=None,
     output_dir='output',
     test_samples=None,
     test_train_frac=0.9,
@@ -118,10 +117,10 @@ def main(argv=None):
                       help="relative change on doc lower bound")
     parser.add_argument("--random_seed", type=int,
                       help="the random seed (None: auto)")
-    parser.add_argument("--data_path", type=str,
-                      help="training data path or glob pattern")
-    parser.add_argument("--test_data_path", type=str,
-                      help="testing data path")
+    parser.add_argument("--data_dir", type=str,
+                      help="training data dir path")
+    parser.add_argument("--test_data_dir", type=str,
+                      help="testing data dir path")
     parser.add_argument("--test_train_frac", type=float,
                       help="fraction of testing docs on which to infer local distributions")
     parser.add_argument("--output_dir", type=str,
@@ -203,7 +202,7 @@ def run(**kwargs):
         num_types = options['W']
         # TODO multiple files?
 
-        train_filenames = glob(options['data_path'])
+        train_filenames = nested_file_paths(options['data_dir'])
         train_filenames.sort()
 
         vocab = load_vocab(options['vocab_path'])
@@ -217,8 +216,8 @@ def run(**kwargs):
             options['concrete_sentence_segmentation'],
             options['concrete_tokenization_list'],
         )
-        if options['test_data_path'] is not None:
-            test_filenames = glob(options['test_data_path'])
+        if options['test_data_dir'] is not None:
+            test_filenames = nested_file_paths(options['test_data_dir'])
             test_filenames.sort()
             (c_test_train, c_test_test) = Corpus.from_concrete(
                 test_filenames, r_vocab,
@@ -228,7 +227,7 @@ def run(**kwargs):
             ).split_within_docs(options['test_train_frac'])
 
     else:
-        train_filenames = glob(options['data_path'])
+        train_filenames = nested_file_paths(options['data_dir'])
         train_filenames.sort()
 
         if options['D'] is None:
@@ -246,8 +245,8 @@ def run(**kwargs):
             options['concrete_sentence_segmentation'],
             options['concrete_tokenization_list'],
         )
-        if options['test_data_path'] is not None:
-            test_filenames = glob(options['test_data_path'])
+        if options['test_data_dir'] is not None:
+            test_filenames = nested_file_paths(options['test_data_dir'])
             test_filenames.sort()
             (c_test_train, c_test_test) = Corpus.from_concrete(
                 test_filenames, r_vocab,
@@ -316,7 +315,7 @@ def run(**kwargs):
             save_global(m, 'doc_count-%d' % total_doc_count, result_directory,
                         options['save_model'])
 
-            if options['test_data_path'] is not None:
+            if options['test_data_dir'] is not None:
                 test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
         if options['max_iter'] is not None and iteration > options['max_iter']:
@@ -328,7 +327,7 @@ def run(**kwargs):
     save_global(m, 'final', result_directory, options['save_model'])
 
     # Making final predictions.
-    if options['test_data_path'] is not None:
+    if options['test_data_dir'] is not None:
         test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
     for (s, f) in subtree_output_files.items():

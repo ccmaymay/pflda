@@ -34,6 +34,18 @@ def load_options(path):
     return options
 
 
+def nested_file_paths(root_dir, path_filter=None):
+    if path_filter is None:
+        path_filter = lambda p: not os.path.basename(p).startswith('.')
+    paths = []
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        for filename in filenames:
+            p = os.path.join(dirpath, filename)
+            if path_filter(p):
+                paths.append(p)
+    return paths
+
+
 def path_list(loc):
     if isinstance(loc, str):
         return [loc]

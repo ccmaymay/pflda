@@ -12,8 +12,8 @@ import os
 import shutil
 import re
 import tempfile
-from glob import glob
 from pylowl.proj.brightside.corpus import write_concrete_doc, Document
+from pylowl.proj.brightside.utils import nested_file_paths
 from pylowl.proj.brightside.m0.run import run
 from pylowl.proj.brightside.m0.postproc.generate_d3_graph import generate_d3_graph
 from pylowl.proj.brightside.m0.postproc.generate_d3_subgraphs import generate_d3_subgraphs
@@ -84,13 +84,13 @@ if __name__ == '__main__':
 
     data_dir = tempfile.mkdtemp()
     make_data('src', data_dir)
-    train_data_path = os.path.join(data_dir, '*')
+    train_data_dir = data_dir
     # TODO would be nice if we didn't test on training data...
-    test_data_path = os.path.join(data_dir, '*')
+    test_data_dir = data_dir
 
     (fd, vocab_path) = tempfile.mkstemp()
     os.close(fd)
-    extract_concrete_vocab(glob(train_data_path), 0, 0, 0, vocab_path)
+    extract_concrete_vocab(nested_file_paths(train_data_dir), 0, 0, 0, vocab_path)
 
     print 'Creating output directory...'
     if not os.path.isdir(OUTPUT_DIR_BASE):
@@ -99,8 +99,8 @@ if __name__ == '__main__':
 
     print 'Running stochastic variational inference...'
     code = '''run(trunc=TRUNC,
-        data_path=train_data_path,
-        test_data_path=test_data_path,
+        data_dir=train_data_dir,
+        test_data_dir=test_data_dir,
         test_samples=50,
         init_samples=50,
         batchsize=20,
