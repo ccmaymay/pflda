@@ -5,7 +5,7 @@ import os
 import re
 from pylowl.proj.brightside.preproc.utils import load_word_set, write_vocab
 from pylowl.proj.brightside.utils import nested_file_paths
-from pylowl.proj.brightside.corpus import load_concrete, write_concrete, Document
+from pylowl.proj.brightside.corpus import load_concrete_docs, write_concrete_docs, Document
 
 
 DEFAULT_SPLIT_PATTERN = r'\s+'
@@ -90,7 +90,7 @@ def transform_token(token, lowercase, *char_filter_res):
 
 
 def iter_docs(input_paths, tt, vocab, split_re):
-    for doc in load_concrete(input_paths):
+    for doc in load_concrete_docs(input_paths):
         tokens = [tt(token) for token in split_re.split(doc.text)]
         tokens = [token for token in tokens if token in vocab]
         if tokens:
@@ -137,7 +137,7 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
     test_input_paths = nested_file_paths(test_input_dir)
 
     df = dict()
-    for doc in load_concrete(train_input_paths):
+    for doc in load_concrete_docs(train_input_paths):
         doc_types = set()
         for token in split_re.split(doc.text):
             token = tt(token)
@@ -180,16 +180,20 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
     print
 
     vocab = dict()
-    for doc in load_concrete(train_input_paths):
+    for doc in load_concrete_docs(train_input_paths):
         doc_types = set()
         for token in split_re.split(doc.text):
             transformed_token = tt(token)
-            if not filter_token(token, transformed_token, stop_set, idf, idf_lb, idf_ub, dictionary_set, *token_filter_res):
+            if not filter_token(token, transformed_token, stop_set, idf,
+                                idf_lb, idf_ub, dictionary_set,
+                                *token_filter_res):
                 if transformed_token not in vocab:
                     vocab[transformed_token] = len(vocab)
 
-    write_concrete(iter_docs(train_input_paths, tt, vocab, split_re), train_output_dir)
-    write_concrete(iter_docs(test_input_paths, tt, vocab, split_re), test_output_dir)
+    write_concrete_docs(iter_docs(train_input_paths, tt, vocab, split_re),
+                        train_output_dir)
+    write_concrete_docs(iter_docs(test_input_paths, tt, vocab, split_re),
+                        test_output_dir)
     write_vocab(vocab_output_path, vocab)
 
 

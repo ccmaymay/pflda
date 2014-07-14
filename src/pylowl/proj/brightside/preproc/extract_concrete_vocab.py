@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 
-from pylowl.proj.brightside.preproc.utils import write_vocab, make_parent_dir, nested_file_paths
-from pylowl.proj.brightside.corpus import load_concrete
+from pylowl.proj.brightside.utils import nested_file_paths
+from pylowl.proj.brightside.preproc.utils import write_vocab, make_parent_dir
+from pylowl.proj.brightside.corpus import load_concrete_docs
 
 
 def extract_concrete_vocab(input_paths, section_segmentation,
@@ -10,7 +11,7 @@ def extract_concrete_vocab(input_paths, section_segmentation,
                            vocab_output_path):
     make_parent_dir(vocab_output_path)
 
-    concrete_docs = load_concrete(input_paths,
+    concrete_docs = load_concrete_docs(input_paths,
                                   int(section_segmentation),
                                   int(sentence_segmentation),
                                   int(tokenization_list))

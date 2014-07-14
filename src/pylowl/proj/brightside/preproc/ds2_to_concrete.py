@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-from pylowl.proj.brightside.corpus import write_concrete, Document
+from pylowl.proj.brightside.corpus import write_concrete_docs, Document
 
 
 def main():
@@ -9,13 +9,13 @@ def main():
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument('input_path', type=str,
                         help='doc-per-line input file path')
-    parser.add_argument('output_path', type=str,
-                        help='doc-per-line output directory path')
+    parser.add_argument('output_dir', type=str,
+                        help='output directory path')
 
     args = parser.parse_args()
     ds2_to_concrete(
         args.input_path,
-        args.output_path,
+        args.output_dir,
     )
 
 
@@ -41,8 +41,8 @@ def iter_docs(input_path):
             )
 
 
-def ds2_to_concrete(input_path, output_path):
-    write_concrete(iter_docs(input_path), output_path)
+def ds2_to_concrete(input_path, output_dir):
+    write_concrete_docs(iter_docs(input_path), output_dir)
 
 
 if __name__ == '__main__':

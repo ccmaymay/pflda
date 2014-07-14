@@ -3,7 +3,16 @@ import re
 import random
 import math
 import itertools as it
-from utils import path_list
+
+from thrift.transport import TTransport
+from thrift.protocol import TBinaryProtocol
+
+from concrete.communication.ttypes import Communication
+from concrete.structure.ttypes import (
+    SectionSegmentation, Section,
+    SentenceSegmentation, Sentence,
+    Tokenization, TokenList, Token
+)
 
 
 SPLIT_RE = re.compile(r'[ :]')
@@ -22,13 +31,6 @@ def load_vocab(filename):
 
 
 def doc_to_concrete_comm(doc):
-    from concrete.communication.ttypes import Communication
-    from concrete.structure.ttypes import (
-        SectionSegmentation, Section,
-        SentenceSegmentation, Sentence,
-        Tokenization, TokenList, Token
-    )
-
     comm = Communication()
     comm.id = doc.id
     comm.text = doc.text
@@ -53,28 +55,25 @@ def doc_to_concrete_comm(doc):
     return comm
 
 
-def write_concrete(docs, *args, **kwargs):
-    write_concrete_raw((doc_to_concrete_comm(doc) for doc in docs),
-                       *args, **kwargs)
+def write_concrete_docs(docs, output_dir):
+    write_concrete_comms((doc_to_concrete_comm(doc) for doc in docs),
+                         output_dir)
 
 
-def write_concrete_raw(comms, output_dir):
+def write_concrete_comms(comms, output_dir):
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
     for (i, comm) in enumerate(comms):
         output_path = os.path.join(output_dir, '%d.concrete' % i)
-        write_concrete_comm_raw(comm, output_path)
+        write_concrete_comm(comm, output_path)
 
 
 def write_concrete_doc(doc, path):
-    write_concrete_comm_raw(doc_to_concrete_comm(doc), path)
+    write_concrete_comm(doc_to_concrete_comm(doc), path)
 
 
-def write_concrete_comm_raw(comm, path):
-    from thrift.transport import TTransport
-    from thrift.protocol import TBinaryProtocol
-
+def write_concrete_comm(comm, path):
     with open(path, 'wb') as f:
         transport = TTransport.TFileObjectTransport(f)
         protocol = TBinaryProtocol.TBinaryProtocol(transport)
@@ -106,9 +105,9 @@ def concrete_comm_to_doc(comm, section_segmentation_idx=0,
     return Document(tokens, id=comm.id, text=comm.text, **attrs)
 
 
-def load_concrete(loc, section_segmentation_idx=0,
-                  sentence_segmentation_idx=0, tokenization_list_idx=0):
-    for (comm, path) in load_concrete_raw(loc):
+def load_concrete_docs(paths, section_segmentation_idx=0,
+                       sentence_segmentation_idx=0, tokenization_list_idx=0):
+    for (comm, path) in load_concrete_comms(paths):
         doc = concrete_comm_to_doc(comm, section_segmentation_idx,
                                    sentence_segmentation_idx,
                                    tokenization_list_idx)
@@ -116,24 +115,20 @@ def load_concrete(loc, section_segmentation_idx=0,
         yield doc
 
 
-def load_concrete_raw(loc):
-    for input_path in path_list(loc):
-        yield (load_concrete_comm_raw(input_path), input_path)
+def load_concrete_comms(paths):
+    for input_path in paths:
+        yield (load_concrete_comm(input_path), input_path)
 
 
 def load_concrete_doc(path, section_segmentation_idx=0,
                       sentence_segmentation_idx=0, tokenization_list_idx=0):
-    return concrete_comm_to_doc(load_concrete_comm_raw(path),
+    return concrete_comm_to_doc(load_concrete_comm(path),
                                 section_segmentation_idx,
                                 sentence_segmentation_idx,
                                 tokenization_list_idx)
 
 
-def load_concrete_comm_raw(path):
-    from thrift.transport import TTransport
-    from thrift.protocol import TBinaryProtocol
-    from concrete.communication.ttypes import Communication
-
+def load_concrete_comm(path):
     comm = Communication()
     with open(path, 'rb') as f:
         transportIn = TTransport.TFileObjectTransport(f)
@@ -142,10 +137,10 @@ def load_concrete_comm_raw(path):
     return comm
 
 
-def update_concrete_raw(loc, transform):
-    for (comm, path) in load_concrete_raw(loc):
+def update_concrete_comms(paths, transform):
+    for (comm, path) in load_concrete_comm(paths):
         transform(comm)
-        write_concrete_comm_raw(comm, path)
+        write_concrete_comm(comm, path)
 
 
 class Document(object):
@@ -217,7 +212,7 @@ class Corpus(object):
         Return corpus containing all documents from a list of concrete
         document paths.  Documents are loaded immediately (unlazily).
         '''
-        concrete_docs = load_concrete(paths,
+        concrete_docs = load_concrete_docs(paths,
                                       section_segmentation,
                                       sentence_segmentation,
                                       tokenization_list)
@@ -233,7 +228,7 @@ class Corpus(object):
         of concrete document paths.  Documents are loaded lazily.
         '''
         # TODO: pass file-like object(s) instead of paths
-        concrete_docs = load_concrete(paths,
+        concrete_docs = load_concrete_docs(paths,
                                       section_segmentation,
                                       sentence_segmentation,
                                       tokenization_list)

@@ -104,7 +104,7 @@ if __name__ == '__main__':
         test_samples=50,
         init_samples=50,
         batchsize=20,
-        max_time=900,
+        max_time=90,
         save_model=True,
         output_dir=output_dir,
         vocab_path=vocab_path,

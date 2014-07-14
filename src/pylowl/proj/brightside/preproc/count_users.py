@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 
-from glob import glob
-from pylowl.proj.brightside.corpus import load_concrete
+from pylowl.proj.brightside.corpus import load_concrete_docs
 from pylowl.proj.brightside.utils import nested_file_paths
 
 
@@ -18,7 +17,7 @@ def main():
 
 def count_users(paths):
     users = dict()
-    for doc in load_concrete(paths):
+    for doc in load_concrete_docs(paths):
         user = doc.attrs['user']
         if user in users:
             users[user] += 1
