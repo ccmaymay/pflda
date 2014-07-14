@@ -2,7 +2,7 @@ import numpy as np
 import numpy.linalg as la
 from numpy.testing import assert_almost_equal, assert_array_equal, assert_array_almost_equal
 
-from utils import *
+from pylowl.proj.brightside.utils import *
 
 
 def beta_log_expectation_trivial_unif_test():

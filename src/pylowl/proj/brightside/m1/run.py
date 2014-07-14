@@ -2,11 +2,10 @@ import logging
 import time
 import os
 import sys
-from corpus import Corpus, load_vocab
-from utils import take
-from model import *
+from pylowl.proj.brightside.corpus import Corpus, load_vocab
+from pylowl.proj.brightside.utils import take, nested_file_paths
+from pylowl.proj.brightside.m1.core import *
 import random
-from glob import glob
 
 
 LOG_BASENAME = 'log'
@@ -51,8 +50,8 @@ DEFAULT_OPTIONS = dict(
     max_time=None,
     var_converge=0.0001,
     random_seed=None,
-    data_path=None,
-    test_data_path=None,
+    data_dir=None,
+    test_data_dir=None,
     output_dir='output',
     test_samples=None,
     test_train_frac=0.9,
@@ -63,7 +62,7 @@ DEFAULT_OPTIONS = dict(
     fixed_lag=False,
     save_model=False,
     init_samples=None,
-    concrete_vocab_path=None,
+    vocab_path=None,
     concrete_section_segmentation=0,
     concrete_sentence_segmentation=0,
     concrete_tokenization_list=0,
@@ -118,10 +117,10 @@ def main(argv=None):
                       help="relative change on doc lower bound")
     parser.add_argument("--random_seed", type=int,
                       help="the random seed (None: auto)")
-    parser.add_argument("--data_path", type=str,
-                      help="training data path or glob pattern")
-    parser.add_argument("--test_data_path", type=str,
-                      help="testing data path")
+    parser.add_argument("--data_dir", type=str,
+                      help="training data dir path")
+    parser.add_argument("--test_data_dir", type=str,
+                      help="testing data dir path")
     parser.add_argument("--test_train_frac", type=float,
                       help="fraction of testing docs on which to infer local distributions")
     parser.add_argument("--output_dir", type=str,
@@ -134,7 +133,7 @@ def main(argv=None):
                       help="number of test documents (None: auto)")
     parser.add_argument("--scale", type=float,
                       help="scaling parameter for learning rate")
-    parser.add_argument("--concrete_vocab_path", type=str,
+    parser.add_argument("--vocab_path", type=str,
                       help="path to vocab for concrete data")
     parser.add_argument("--concrete_section_segmentation", type=int,
                       help="concrete section segmentation index")
@@ -209,10 +208,10 @@ def run(**kwargs):
         num_types = options['W']
         # TODO multiple files?
 
-        train_filenames = glob(options['data_path'])
+        train_filenames = nested_file_paths(options['data_dir'])
         train_filenames.sort()
 
-        vocab = load_vocab(options['concrete_vocab_path'])
+        vocab = load_vocab(options['vocab_path'])
         r_vocab = dict((v, k) for (k, v) in vocab.items())
         if num_types != len(vocab):
             raise ValueError('specified vocab length is wrong')
@@ -223,8 +222,8 @@ def run(**kwargs):
             options['concrete_sentence_segmentation'],
             options['concrete_tokenization_list'],
         )
-        if options['test_data_path'] is not None:
-            test_filenames = glob(options['test_data_path'])
+        if options['test_data_dir'] is not None:
+            test_filenames = nested_file_paths(options['test_data_dir'])
             test_filenames.sort()
             (c_test_train, c_test_test) = Corpus.from_concrete(
                 test_filenames, r_vocab,
@@ -234,7 +233,7 @@ def run(**kwargs):
             ).split_within_docs(options['test_train_frac'])
 
     else:
-        train_filenames = glob(options['data_path'])
+        train_filenames = nested_file_paths(options['data_dir'])
         train_filenames.sort()
 
         if options['D'] is None:
@@ -242,7 +241,7 @@ def run(**kwargs):
         else:
             num_docs = options['D']
 
-        vocab = load_vocab(options['concrete_vocab_path'])
+        vocab = load_vocab(options['vocab_path'])
         r_vocab = dict((v, k) for (k, v) in vocab.items())
         num_types = len(vocab)
 
@@ -252,8 +251,8 @@ def run(**kwargs):
             options['concrete_sentence_segmentation'],
             options['concrete_tokenization_list'],
         )
-        if options['test_data_path'] is not None:
-            test_filenames = glob(options['test_data_path'])
+        if options['test_data_dir'] is not None:
+            test_filenames = nested_file_paths(options['test_data_dir'])
             test_filenames.sort()
             (c_test_train, c_test_test) = Corpus.from_concrete(
                 test_filenames, r_vocab,
@@ -317,7 +316,7 @@ def run(**kwargs):
 
             save_and_test(m, 'doc_count-%d' % total_doc_count,
                           result_directory, options['save_model'],
-                          options['test_data_path'], c_test_train, c_test_test,
+                          options['test_data_dir'], c_test_train, c_test_test,
                           batchsize, options['var_converge'],
                           options['test_samples'])
 
@@ -327,12 +326,12 @@ def run(**kwargs):
             break
 
     save_and_test(m, 'final', result_directory, options['save_model'],
-                  options['test_data_path'], c_test_train, c_test_test,
+                  options['test_data_dir'], c_test_train, c_test_test,
                   batchsize, options['var_converge'], options['test_samples'])
 
 
 def save_and_test(m, basename_stem, result_directory, save_model,
-                  test_data_path, c_test_train, c_test_test, batchsize,
+                  test_data_dir, c_test_train, c_test_test, batchsize,
                   var_converge, test_samples):
     if save_model:
         logging.info('Saving model with stem %s' % basename_stem)
@@ -341,7 +340,7 @@ def save_and_test(m, basename_stem, result_directory, save_model,
     else:
         output_files = dict()
 
-    if test_data_path is not None:
+    if test_data_dir is not None:
         test_nhdp_predictive(m, c_test_train, c_test_test, batchsize,
                              var_converge, test_samples, output_files)
 

@@ -7,6 +7,9 @@ import itertools as it
 import os
 
 
+OPTIONS_KV_DELIM = ': '
+
+
 def reservoir_insert(reservoir, n, item):
     if n < len(reservoir):
         reservoir[n] = item
@@ -17,6 +20,30 @@ def reservoir_insert(reservoir, n, item):
             reservoir[i] = item
             return i
         return None
+
+
+def load_options(path):
+    options = dict()
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            i = line.find(OPTIONS_KV_DELIM)
+            k = line[:i]
+            v = line[i+len(OPTIONS_KV_DELIM):]
+            options[k] = v
+    return options
+
+
+def nested_file_paths(root_dir, path_filter=None):
+    if path_filter is None:
+        path_filter = lambda p: not os.path.basename(p).startswith('.')
+    paths = []
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        for filename in filenames:
+            p = os.path.join(dirpath, filename)
+            if path_filter(p):
+                paths.append(p)
+    return paths
 
 
 def path_list(loc):

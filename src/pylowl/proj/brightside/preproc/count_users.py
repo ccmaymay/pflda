@@ -3,23 +3,22 @@
 
 from glob import glob
 from pylowl.proj.brightside.corpus import load_concrete
+from pylowl.proj.brightside.utils import nested_file_paths
 
 
 def main():
     from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument('input_path', type=str,
+    parser.add_argument('input_dir', type=str,
                         help='input directory path')
 
     args = parser.parse_args()
-    count_users(args.input_path)
+    count_users(nested_file_paths(args.input_dir))
 
 
-def count_users(input_path):
-    input_loc = glob(input_path)
-
+def count_users(paths):
     users = dict()
-    for doc in load_concrete(input_loc):
+    for doc in load_concrete(paths):
         user = doc.attrs['user']
         if user in users:
             users[user] += 1

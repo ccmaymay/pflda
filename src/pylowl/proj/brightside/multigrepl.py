@@ -1,13 +1,12 @@
 #!/bin/bash
 
 
-from glob import glob
 import re
 
 
-def main(path_pattern, *line_patterns):
+def multigrepl(paths, *line_patterns):
     line_res = [re.compile(line_pattern) for line_pattern in line_patterns]
-    for path in glob(path_pattern):
+    for path in paths:
         unmatched_res = dict(enumerate(line_res))
         with open(path) as f:
             for line in f:
@@ -25,4 +24,5 @@ def main(path_pattern, *line_patterns):
 
 if __name__ == '__main__':
     import sys
-    main(*sys.argv[1:])
+    from glob import glob
+    multigrepl(glob(sys.argv[1]), sys.argv[2:])

@@ -8,6 +8,8 @@ from utils import path_list
 
 SPLIT_RE = re.compile(r'[ :]')
 
+SPECIAL_DOC_ATTRS = set(('id', 'text', 'tokens'))
+
 
 def _pair_first_to_int(p):
     return (int(p[0]), p[1])
@@ -19,7 +21,7 @@ def load_vocab(filename):
     return vocab
 
 
-def write_concrete(docs, *args, **kwargs):
+def doc_to_concrete_comm(doc):
     from concrete.communication.ttypes import Communication
     from concrete.structure.ttypes import (
         SectionSegmentation, Section,
@@ -27,101 +29,132 @@ def write_concrete(docs, *args, **kwargs):
         Tokenization, TokenList, Token
     )
 
-    SPECIAL_KEYS = set(('text', 'tokens'))
+    comm = Communication()
+    comm.id = doc.id
+    comm.text = doc.text
 
-    def make_comm(doc):
-        comm = Communication()
-        comm.text = doc.text
+    comm.keyValueMap = dict()
+    for (k, v) in doc.attrs.items():
+        if k not in SPECIAL_DOC_ATTRS:
+            comm.keyValueMap[k] = v
 
-        comm.keyValueMap = dict()
-        for (k, v) in doc.attrs.items():
-            if k not in SPECIAL_KEYS:
-                comm.keyValueMap[k] = v
+    sectionSegmentation = SectionSegmentation()
+    section = Section()
+    sentenceSegmentation = SentenceSegmentation()
+    sentence = Sentence()
+    tokenization = Tokenization()
+    tokenization.tokenList = TokenList([Token(text=t) for t in doc.tokens])
+    sentence.tokenizationList = [tokenization]
+    sentenceSegmentation.sentenceList = [sentence]
+    section.sentenceSegmentation = [sentenceSegmentation]
+    sectionSegmentation.sectionList = [section]
+    comm.sectionSegmentations = [sectionSegmentation]
 
-        sectionSegmentation = SectionSegmentation()
-        section = Section()
-        sentenceSegmentation = SentenceSegmentation()
-        sentence = Sentence()
-        tokenization = Tokenization()
-        tokenization.tokenList = TokenList([Token(text=t) for t in doc.tokens])
-        sentence.tokenizationList = [tokenization]
-        sentenceSegmentation.sentenceList = [sentence]
-        section.sentenceSegmentation = [sentenceSegmentation]
-        sectionSegmentation.sectionList = [section]
-        comm.sectionSegmentations = [sectionSegmentation]
+    return comm
 
-        return comm
 
-    write_concrete_raw((make_comm(doc) for doc in docs), *args, **kwargs)
+def write_concrete(docs, *args, **kwargs):
+    write_concrete_raw((doc_to_concrete_comm(doc) for doc in docs),
+                       *args, **kwargs)
 
 
 def write_concrete_raw(comms, output_dir):
-    from thrift.transport import TTransport
-    from thrift.protocol import TBinaryProtocol
-
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
     for (i, comm) in enumerate(comms):
         output_path = os.path.join(output_dir, '%d.concrete' % i)
-        with open(output_path, 'wb') as f:
-            transport = TTransport.TFileObjectTransport(f)
-            protocol = TBinaryProtocol.TBinaryProtocol(transport)
-            comm.write(protocol)
+        write_concrete_comm_raw(comm, output_path)
+
+
+def write_concrete_doc(doc, path):
+    write_concrete_comm_raw(doc_to_concrete_comm(doc), path)
+
+
+def write_concrete_comm_raw(comm, path):
+    from thrift.transport import TTransport
+    from thrift.protocol import TBinaryProtocol
+
+    with open(path, 'wb') as f:
+        transport = TTransport.TFileObjectTransport(f)
+        protocol = TBinaryProtocol.TBinaryProtocol(transport)
+        comm.write(protocol)
+
+
+def concrete_comm_to_doc(comm, section_segmentation_idx=0,
+                         sentence_segmentation_idx=0, tokenization_list_idx=0):
+    tokens = []
+    if comm.sectionSegmentations is not None:
+        section_segmentation = comm.sectionSegmentations[section_segmentation_idx]
+        if section_segmentation.sectionList is not None:
+            for section in section_segmentation.sectionList:
+                if section.sentenceSegmentation is not None:
+                    sentence_segmentation = section.sentenceSegmentation[sentence_segmentation_idx]
+                    if sentence_segmentation.sentenceList is not None:
+                        for sentence in sentence_segmentation.sentenceList:
+                            if sentence.tokenizationList is not None:
+                                tokenization = sentence.tokenizationList[tokenization_list_idx]
+                                if tokenization.tokenList is not None:
+                                    for token in tokenization.tokenList.tokens:
+                                        tokens.append(token.text)
+
+    if comm.keyValueMap is None:
+        attrs = dict()
+    else:
+        attrs = comm.keyValueMap
+
+    return Document(tokens, id=comm.id, text=comm.text, **attrs)
 
 
 def load_concrete(loc, section_segmentation_idx=0,
                   sentence_segmentation_idx=0, tokenization_list_idx=0):
-    def parse_comm(comm):
-        tokens = []
-        if comm.sectionSegmentations is not None:
-            section_segmentation = comm.sectionSegmentations[section_segmentation_idx]
-            if section_segmentation.sectionList is not None:
-                for section in section_segmentation.sectionList:
-                    if section.sentenceSegmentation is not None:
-                        sentence_segmentation = section.sentenceSegmentation[sentence_segmentation_idx]
-                        if sentence_segmentation.sentenceList is not None:
-                            for sentence in sentence_segmentation.sentenceList:
-                                if sentence.tokenizationList is not None:
-                                    tokenization = sentence.tokenizationList[tokenization_list_idx]
-                                    if tokenization.tokenList is not None:
-                                        for token in tokenization.tokenList.tokens:
-                                            tokens.append(token.text)
-
-        if comm.keyValueMap is None:
-            attrs = dict()
-        else:
-            attrs = comm.keyValueMap
-
-        return Document(tokens, text=comm.text, **attrs)
-
     for (comm, path) in load_concrete_raw(loc):
-        doc = parse_comm(comm)
+        doc = concrete_comm_to_doc(comm, section_segmentation_idx,
+                                   sentence_segmentation_idx,
+                                   tokenization_list_idx)
         doc.path = path
         yield doc
 
 
 def load_concrete_raw(loc):
+    for input_path in path_list(loc):
+        yield (load_concrete_comm_raw(input_path), input_path)
+
+
+def load_concrete_doc(path, section_segmentation_idx=0,
+                      sentence_segmentation_idx=0, tokenization_list_idx=0):
+    return concrete_comm_to_doc(load_concrete_comm_raw(path),
+                                section_segmentation_idx,
+                                sentence_segmentation_idx,
+                                tokenization_list_idx)
+
+
+def load_concrete_comm_raw(path):
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
     from concrete.communication.ttypes import Communication
 
-    for input_path in path_list(loc):
-        with open(input_path, 'rb') as f:
-            transportIn = TTransport.TFileObjectTransport(f)
-            protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
-            comm = Communication()
-            comm.read(protocolIn)
-            yield (comm, input_path)
+    comm = Communication()
+    with open(path, 'rb') as f:
+        transportIn = TTransport.TFileObjectTransport(f)
+        protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
+        comm.read(protocolIn)
+    return comm
+
+
+def update_concrete_raw(loc, transform):
+    for (comm, path) in load_concrete_raw(loc):
+        transform(comm)
+        write_concrete_comm_raw(comm, path)
 
 
 class Document(object):
     '''
     A single document: a list of type-count pairs and an optional
-    identifier (e.g., filename and line number).
+    id (e.g., filename and line number).
     '''
 
-    def __init__(self, tokens, text=None, **attrs):
+    def __init__(self, tokens, id=None, text=None, **attrs):
         self.tokens = tokens
 
         self.words = []
@@ -139,6 +172,7 @@ class Document(object):
         self.length = len(self.words)
         self.total = sum(self.counts)
 
+        self.id = id
         self.text = text
         self.attrs = attrs
 
@@ -157,10 +191,10 @@ class Document(object):
         num_train_tokens = int(math.ceil(len(tokens) * train_frac))
         # always at least one token in training document
         train_doc = Document(tokens[:num_train_tokens],
-            text=self.text, **self.attrs)
+            id=self.id, text=self.text, **self.attrs)
         # may be empty
         test_doc = Document(tokens[num_train_tokens:],
-            text=self.text, **self.attrs)
+            id=self.id, text=self.text, **self.attrs)
         return (train_doc, test_doc)
 
     def __str__(self):
@@ -188,7 +222,7 @@ class Corpus(object):
                                       sentence_segmentation,
                                       tokenization_list)
         docs = [Document([r_vocab[t] for t in doc.tokens],
-                         text=doc.text, **doc.attrs)
+                         id=doc.id, text=doc.text, **doc.attrs)
                 for doc in concrete_docs]
         return Corpus(docs, len(paths))
 
@@ -204,7 +238,7 @@ class Corpus(object):
                                       sentence_segmentation,
                                       tokenization_list)
         docs = (Document([r_vocab[t] for t in doc.tokens],
-                         text=doc.text, **doc.attrs)
+                         id=doc.id, text=doc.text, **doc.attrs)
                 for (i, doc) in enumerate(concrete_docs)
                 if i < num_docs)
         return Corpus(docs, num_docs) # TODO what if too short?

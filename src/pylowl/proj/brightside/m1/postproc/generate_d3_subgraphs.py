@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
 
+import os
 import re
 import json
 from glob import glob
 import itertools as it
 from datetime import datetime
-from pylowl.proj.brightside.corpus import load_vocab, load_concrete
-from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index
+from pylowl.proj.brightside.corpus import load_concrete
+from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index, load_options, nested_file_paths
 
 
 EPOCH = datetime(1970, 1, 1)
@@ -18,41 +19,15 @@ DEFAULT_WORDS_PER_TOPIC=10
 def main():
     from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.set_defaults(words_per_topic=DEFAULT_WORDS_PER_TOPIC)
-    parser.add_argument('trunc_csv', type=str,
-                        help='comma-separated list of truncations (per level)')
-    parser.add_argument('vocab_path', type=str,
-                        help='vocab file path')
-    parser.add_argument('data_path', type=str,
-                        help='data path')
+    parser.add_argument('result_dir', type=str,
+                        help='path to dir where model was saved')
     parser.add_argument('output_path', type=str,
                         help='output file path')
-    parser.add_argument('--subtree', type=str, required=True,
-                        help='subtree file path')
-    parser.add_argument('--lambda_ss', type=str, required=True,
-                        help='lambda_ss file path')
-    parser.add_argument('--doc_lambda_ss', type=str, required=True,
-                        help='per-doc lambda_ss file path')
-    parser.add_argument('--Elogpi', type=str, required=True,
-                        help='Elogpi file path')
-    parser.add_argument('--logEpi', type=str, required=True,
-                        help='logEpi file path')
-    parser.add_argument('--words_per_topic', type=int,
-                        help='number of words to output per topic')
 
     args = parser.parse_args()
-
     generate_d3_subgraphs(
-        args.trunc_csv,
-        args.vocab_path,
-        args.data_path,
-        subtree_filename=args.subtree,
-        lambda_ss_filename=args.lambda_ss,
-        doc_lambda_ss_filename=args.doc_lambda_ss,
-        Elogpi_filename=args.Elogpi,
-        logEpi_filename=args.logEpi,
-        output_filename=args.output_path,
-        words_per_topic=args.words_per_topic,
+        args.result_dir,
+        args.output_path,
     )
 
 
@@ -76,18 +51,15 @@ def datetime_to_float(d):
     return (d - EPOCH).total_seconds()
 
 
-def generate_d3_subgraphs(trunc_csv,
-        vocab_filename,
-        data_path,
-        subtree_filename,
-        lambda_ss_filename,
-        doc_lambda_ss_filename,
-        Elogpi_filename,
-        logEpi_filename,
-        output_filename,
-        words_per_topic=DEFAULT_WORDS_PER_TOPIC):
-
-    vocab = load_vocab(vocab_filename)
+def generate_d3_subgraphs(result_dir, output_filename):
+    options = load_options(os.path.join(result_dir, 'options'))
+    trunc_csv = options['trunc']
+    test_data_dir = options['test_data_dir']
+    subtree_filename = os.path.join(result_dir, 'final.subtree')
+    lambda_ss_filename = os.path.join(result_dir, 'final.subtree_lambda_ss')
+    doc_lambda_ss_filename = os.path.join(result_dir, 'final.subtree_doc_lambda_ss')
+    Elogpi_filename = os.path.join(result_dir, 'final.subtree_Elogpi')
+    logEpi_filename = os.path.join(result_dir, 'final.subtree_logEpi')
 
     trunc = [int(t) for t in trunc_csv.split(',')]
     m = tree_index_m(trunc)
@@ -133,8 +105,8 @@ def generate_d3_subgraphs(trunc_csv,
             node_maps_per_user[user] = node_map
 
     doc_id_path_map = dict()
-    data_loc = glob(data_path)
-    for doc in load_concrete(data_loc):
+    test_data_paths = nested_file_paths(test_data_dir)
+    for doc in load_concrete(test_data_paths):
         doc_id_path_map[doc.attrs['identifier']] = doc.path
 
     weighted_datetimes_per_user = dict(

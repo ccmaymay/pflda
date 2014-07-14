@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 
-from glob import glob
-from pylowl.proj.brightside.preproc.utils import write_vocab, make_parent_dir
+from pylowl.proj.brightside.preproc.utils import write_vocab, make_parent_dir, nested_file_paths
 from pylowl.proj.brightside.corpus import load_concrete
 
 
@@ -23,14 +22,9 @@ def extract_concrete_vocab(input_paths, section_segmentation,
     write_vocab(vocab_output_path, vocab)
 
 
-def main(input_pattern, section_segmentation,
-         sentence_segmentation, tokenization_list,
-         vocab_output_path):
-    extract_concrete_vocab(glob(input_pattern), section_segmentation,
-                           sentence_segmentation, tokenization_list,
-                           vocab_output_path)
-
-
 if __name__ == '__main__':
     import sys
-    main(*sys.argv[1:])
+    paths = [path for d in sys.argv[1:] for path in nested_file_paths(d)]
+    extract_concrete_vocab(paths, section_segmentation,
+                           sentence_segmentation, tokenization_list,
+                           vocab_output_path)
