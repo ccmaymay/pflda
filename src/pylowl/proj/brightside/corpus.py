@@ -212,7 +212,7 @@ class Corpus(object):
         Return corpus containing all documents from a list of concrete
         document paths.  Documents are loaded immediately (unlazily).
         '''
-        concrete_docs = load_concrete(paths,
+        concrete_docs = load_concrete_docs(paths,
                                       section_segmentation,
                                       sentence_segmentation,
                                       tokenization_list)
@@ -228,7 +228,7 @@ class Corpus(object):
         of concrete document paths.  Documents are loaded lazily.
         '''
         # TODO: pass file-like object(s) instead of paths
-        concrete_docs = load_concrete(paths,
+        concrete_docs = load_concrete_docs(paths,
                                       section_segmentation,
                                       sentence_segmentation,
                                       tokenization_list)

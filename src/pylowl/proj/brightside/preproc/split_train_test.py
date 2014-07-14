@@ -4,7 +4,7 @@
 import math
 import os
 import random
-from pylowl.proj.brightside.corpus import load_concrete_raw, write_concrete_raw, Document
+from pylowl.proj.brightside.corpus import load_concrete_comms, write_concrete_comms, Document
 from pylowl.proj.brightside.utils import nested_file_paths
 
 
@@ -38,12 +38,12 @@ def split_train_test(input_paths, output_dir, train_frac, shuffle):
     doc_indices_split = int(math.ceil(train_frac * num_docs))
     train_doc_indices = set(doc_indices[:doc_indices_split])
 
-    write_concrete_raw(
-        (comm for (i, (comm, path)) in enumerate(load_concrete_raw(input_paths))
+    write_concrete_comms(
+        (comm for (i, (comm, path)) in enumerate(load_concrete_comms(input_paths))
          if i in train_doc_indices),
         os.path.join(output_dir, 'train'))
-    write_concrete_raw(
-        (comm for (i, (comm, path)) in enumerate(load_concrete_raw(input_paths))
+    write_concrete_comms(
+        (comm for (i, (comm, path)) in enumerate(load_concrete_comms(input_paths))
          if i not in train_doc_indices),
         os.path.join(output_dir, 'test'))
 
