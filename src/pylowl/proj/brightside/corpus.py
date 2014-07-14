@@ -11,7 +11,8 @@ from concrete.communication.ttypes import Communication
 from concrete.structure.ttypes import (
     SectionSegmentation, Section,
     SentenceSegmentation, Sentence,
-    Tokenization, TokenList, Token
+    Tokenization, TokenList, Token,
+    TokenLattice
 )
 
 
@@ -141,6 +142,23 @@ def update_concrete_comms(paths, transform):
     for (comm, path) in load_concrete_comm(paths):
         transform(comm)
         write_concrete_comm(comm, path)
+
+
+def load_lattice_best_tokens(path):
+    with open(path, 'rb') as f:
+        transportIn = TTransport.TFileObjectTransport(f)
+        protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
+        lattice = TokenLattice()
+        lattice.read(protocolIn)
+        best_path = lattice.cachedBestPath
+        if best_path is None:
+            return None
+        else:
+            token_list = best_path.tokenList
+            if token_list is None:
+                return None
+            else:
+                return [t.text for t in token_list]
 
 
 class Document(object):

@@ -2,26 +2,7 @@
 
 
 import os
-from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol
-from concrete.structure.ttypes import TokenLattice
-
-
-def load_lattice_best_tokens(path):
-    with open(path, 'rb') as f:
-        transportIn = TTransport.TFileObjectTransport(f)
-        protocolIn = TBinaryProtocol.TBinaryProtocol(transportIn)
-        lattice = TokenLattice()
-        lattice.read(protocolIn)
-        best_path = lattice.cachedBestPath
-        if best_path is None:
-            return None
-        else:
-            token_list = best_path.tokenList
-            if token_list is None:
-                return None
-            else:
-                return [t.text for t in token_list]
+from pylowl.proj.brightside.corpus import load_lattice_best_tokens, write_concrete_docs, Document
 
 
 def load_aggregate_lattice_best_tokens(input_dir):
@@ -37,9 +18,14 @@ def load_aggregate_lattice_best_tokens(input_dir):
             yield (tokens, video_dir)
 
 
-def import_lattices(input_dir, output_dir):
+def load_docs_from_concrete_lattices(input_dir):
     for (agg_tokens, video_dir) in load_aggregate_lattice_best_tokens(input_dir):
-        print agg_tokens, video_dir
+        yield Document(agg_tokens, id=video_dir)
+
+
+def import_lattices(input_dir, output_dir):
+    write_concrete_docs(load_docs_from_concrete_lattices(input_dir),
+                        output_dir)
 
 
 if __name__ == '__main__':
