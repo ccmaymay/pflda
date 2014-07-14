@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 
-from glob import glob
 from pylowl.proj.brightside.corpus import load_concrete
 from pylowl.proj.brightside.utils import nested_file_paths
 
