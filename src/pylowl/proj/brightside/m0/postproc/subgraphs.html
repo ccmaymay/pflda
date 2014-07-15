@@ -118,18 +118,70 @@ update_nav_text = function() {
     set_node_text(document.getElementById("window_end_text"), $window_end);
     set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
 }
-    
-filter_node_first = function(node){
-	var rootIndex = 0;
-	for(graph in $root){
-		if(lookup_node($root[graph]["subtree"], node.node_placement).active == true){
-			var temp = $root[graph];
-			$root[graph] = $root[rootIndex];
-			$root[rootIndex] = temp;
-			rootIndex++;
+
+compare_int_arrays = function(array1, array2){
+	var equal = true;
+	if(array1 != null && array2 != null){
+		if(array1.length == array2.length){
+			for(index = 0; index < array1.length; index++){
+				if(array1[index] != array2[index]){
+					equal = false;
+				}
+			}
+		}else{
+			equal = false;
+		}
+	}else{
+		equal = false;
+	}
+	return equal;
+}
+
+index_in_array = function(innerArray, outerArray){
+	var index_in_array = -1;
+	for(arrayx = 0; arrayx < outerArray.length; arrayx++){
+		if(compare_int_arrays(innerArray, outerArray[arrayx]) == true){
+			index_in_array = arrayx;
+			break;
 		}
 	}
+	return index_in_array;
+}
+
+node_sort_array = [];
+
+filter_node_first = function(node){
+	var end_sort = $root.length;
+	var root_index = 0;
+	if(node != null){
+		if(index_in_array(node.node_placement, node_sort_array) == -1){
+			node_sort_array[node_sort_array.length] = node.node_placement;
+			for(graphNum = 0; graphNum < $root.length; graphNum++){
+				lookup_node($root[graphNum]["subtree"], node.node_placement).circled = true;
+			}
+		}else{
+			var indexOfNode = index_in_array(node.node_placement, node_sort_array);
+			node_sort_array.splice(indexOfNode,1);
+			for(graphNum = 0; graphNum < $root.length; graphNum++){
+				lookup_node($root[graphNum]["subtree"], node.node_placement).circled = false;
+			}
+			filter_node_first(null);
+		}
+	}
+	for(CirNode = 0; CirNode < node_sort_array.length; CirNode++){
+		for(graphNum = 0; graphNum < end_sort; graphNum++){
+			if(lookup_node($root[graphNum]["subtree"], node_sort_array[CirNode]).active == true){
+				var temp = $root[graphNum];
+				$root[graphNum] = $root[root_index];
+				$root[root_index] = temp;
+				root_index++;
+			}
+		}
+		end_sort = root_index;
+		root_index = 0;
+	}
 	update_graphs();
+	
 }
 
 update_graphs = function() {
@@ -200,9 +252,9 @@ update_graphs = function() {
         .attr("r", maxNodeSize)
         .style("fill", "black")
         .style("stroke", "black")
-        .style("stroke-opacity", "0")
+        .style("stroke-opacity", function(d){return d.active ? (d.circled? "1":"0"): (d.circled? ".15":"0")})
         .style("fill-opacity", "0")
-        .on("click", function(d){filter_node_first(d)})
+		.on("click", function(d){filter_node_first(d)})
         .append("title")
         .text(format_words);
 
@@ -343,10 +395,10 @@ d3.json("graph.json", function(error, graph_root) {
         }
 
         node_placement_rootParent = function(){
-            for(graphNum = 0; graphNum < $root.length; graphNum++){
-                node_placement_subtreeChildren($root[graphNum].subtree, 0, []);
-            }
+        for(graphNum = 0; graphNum < $root.length; graphNum++){
+            node_placement_subtreeChildren($root[graphNum].subtree, 0, []);
         }
+    }
 
         node_placement_subtreeChildren = function(node, placementInList, currentArray){
             var myArray = [];
@@ -363,7 +415,6 @@ d3.json("graph.json", function(error, graph_root) {
         }
 
         node_placement_rootParent();
-
         maxNodeSize = 0;
         maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
         minELogPi = 0;
