@@ -3,56 +3,46 @@ for forest-structured (Bayesian nonparametric) topic models.  It also
 contains some utilities concerning geo-tagged Twitter data, ALNC, and
 Freebase.
 
-Currently only one observational model, M0, is implemented.  M0 is
+Currently two observational models, M0 and M1, are implemented.  M0 is
 the nested hierarchical Dirichlet process (nHDP) topic model from the
-literature.[1]
+literature.[1]  M1 is a personalized topic model, based on M0, in which
+each user draws a topic tree from the global tree, each document is a
+path from a user's tree, and each token is drawn from a topic along the
+corresponding document's path.  See notes/ for technical details.
 
 The inference code is based on onlinehdp[2], which was in turn based on
 onlinelda[3], according to comments in the onlinehdp source.
 
 Dependencies (in addition to pylowl dependencies):
 * numpy and scipy
-* d3, for visualization (see note below)
-* python-concrete and python-thrift, if you want to read and/or write
-  concrete data
-* nose, if you want to run unit tests
+* d3, for visualization (see comment immediately below this list)
+* a web browser supporting javascript, for visualization
+* python-concrete and python-thrift
 
 The master branch includes a copy of d3 under postproc/ .  The min
 branch is identical to master, at the time of writing, except that d3
 has been removed.
 
-To get up and running quickly, run demo.sh from the current directory
-(the brightside project directory):
+To get up and running quickly, build littleowl with brightside included
+and invoke src/pylowl/proj/brightside/m0/run_src.py to train on the
+littleowl source tree.  From the littleowl repository root:
 
-$ bash demo.sh
+$ python setup.py build --with-proj-brightside
+$ export PYTHONPATH="$PWD/build/lib.linux-x86_64-2.7:$PYTHONPATH"
+$ export PYTHONOPTIMIZE=1
+$ pushd src/pylowl/proj/brightside/m0
+$ python run_src.py
+$ popd
 
-demo.sh has a few comments---I suggest reading it.  At a high level, it
-builds littleowl with brightside, creates a toy concrete dataset from
-the source tree, runs M0 for a minute, and does all postprocessing
-needed for visualization.  When it's done, all that stands between you
-and an underwhelming topic tree is a web server.
-
-demo.sh should have all the steps you need to get going on real data.
-Note that concrete support is built in now, but you do need to
-extract a vocabulary mapping beforehand.  (This is demonstrated in
-demo.sh.  The zeroes are indices for section segmentation, sentence
-segmentation, and tokenization list.)  Also, we assume the data has
-already been divided into training and testing sets, and that all
-preprocessing has been performed.
+run_src.py is short---I suggest reading it.  At a high level, it
+creates a toy concrete dataset from the source tree, runs M0 for a
+few minute, does all postprocessing needed for visualization, and
+symlinks the visualization code to the M0 model output directory.
+When it's done, all that stands between you and a colorful topic
+tree is a web server.
 
 You can see command-line arguments for learning parameters, etc. with:
-$ python -m pylowl.proj.brightside.run -h
-(from the repository root, after doing:
-$ export PYTHONPATH="build/lib.linux-x86_64-2.7:$PYTHONPATH"
-or something similar)
-
-The data specifications are glob patterns so you'll end up doing
-something like:
-$ python -m pylowl.proj.brightside.run \
-    --data_path='/path/to/nested/data/*/*' \
-    --test_data_path='/path/to/nested/test_data/*/*' \
-    ...
-(note the quotes)
+$ python -m pylowl.proj.brightside.m0.run -h
 
 [1] arXiv:1210.6738
     (Paisley, Wang, Blei, and Jordan (2014))
