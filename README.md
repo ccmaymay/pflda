@@ -44,10 +44,13 @@ To install `pylowl` to your user directory (generally `$HOME/.local` on Linux) w
 $ python setup.py install --with-proj-bglda --with-proj-pflda --user
 ```
 
-Running `brightside`, a nonparametric tree-structured topic model learned by stochastic variational inference, is more involved.  However, the details have been hashed out in an example script.  The following command builds brightside, constructs a dataset from the source tree, and runs stochastic variational inference for a short period of time on that dataset:
+To build and run the nHDP model in `brightside` on the littleowl source tree (note this will overwrite the installation of the particle filter and gibbs sampler for LDA, if you are following along in the README linearly):
 
 ```
-$ pushd src/pylowl/proj/brightside && bash demo.sh && popd
+$ python setup.py install --with-proj-brightside --user
+$ pushd src/pylowl/proj/brightside/m0
+$ python run_src.py
+$ popd
 ```
 
 For help, pass the `--help` flag to `setup.py`, e.g.:

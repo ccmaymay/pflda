@@ -2,7 +2,7 @@
 #$ -cwd
 #$ -j y
 #$ -V
-#$ -N "m1-src"
+#$ -N "m0-src"
 #$ -q text.q
 #$ -l num_proc=1,mem_free=1G,h_rt=1:00:00
 
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     for basename in ('subgraphs.html',):
         os.symlink(os.path.abspath(os.path.join(MY_POSTPROC_DIR, basename)),
             os.path.join(output_dir, basename))
-    for basename in ('d3.v3.js', 'graph.html'):
+    for basename in ('d3.v3.js', 'core.js', 'graph.html'):
         os.symlink(os.path.abspath(os.path.join(POSTPROC_DIR, basename)),
             os.path.join(output_dir, basename))
 

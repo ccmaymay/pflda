@@ -53,7 +53,6 @@ code = '''run(trunc=TRUNC,
     vocab_path=VOCAB_PATH,
     U=20,
     D=11222,
-    W=4571,
     streaming=True,
     user_doc_reservoir_capacity=200,
     user_subtree_selection_interval=50,
@@ -73,7 +72,7 @@ print 'Linking visualization code to output directory...'
 for basename in ('subgraphs.html',):
     os.symlink(os.path.abspath(os.path.join(MY_POSTPROC_DIR, basename)),
         os.path.join(OUTPUT_DIR, basename))
-for basename in ('d3.v3.js', 'graph.html'):
+for basename in ('d3.v3.js', 'core.js', 'graph.html'):
     os.symlink(os.path.abspath(os.path.join(POSTPROC_DIR, basename)),
         os.path.join(OUTPUT_DIR, basename))
 

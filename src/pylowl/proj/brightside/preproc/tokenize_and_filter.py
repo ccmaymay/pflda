@@ -51,6 +51,8 @@ def main():
                         help='inclusive IDF upper bound')
     parser.add_argument('--lowercase', action='store_true',
                         help='convert all tokens to lower case')
+    parser.add_argument('--tokenized', action='store_true',
+                        help='if true, use existing tokens stored in doc')
 
     args = parser.parse_args()
     tokenize_and_filter(
@@ -67,7 +69,12 @@ def main():
         idf_lb=args.idf_lb,
         idf_ub=args.idf_ub,
         lowercase=args.lowercase,
+        tokenized=args.tokenized,
     )
+
+
+def as_ascii(s):
+    return ''.join((c if ord(c) < 128 else '?') for c in s)
 
 
 def filter_token(token, transformed_token, stop_set, idf, idf_lb, idf_ub, dictionary_set, *token_filter_res):
@@ -89,19 +96,20 @@ def transform_token(token, lowercase, *char_filter_res):
     return token
 
 
-def iter_docs(input_paths, tt, vocab, split_re):
+def iter_docs(input_paths, tt, vocab, tokenize):
     for doc in load_concrete_docs(input_paths):
-        tokens = [tt(token) for token in split_re.split(doc.text)]
+        tokens = [tt(token) for token in tokenize(doc)]
         tokens = [token for token in tokens if token in vocab]
         if tokens:
-            yield Document(tokens, text=doc.text, **doc.attrs)
+            yield Document(tokens, id=doc.id, text=doc.text, **doc.attrs)
 
 
 def tokenize_and_filter(train_input_dir, test_input_dir,
                   train_output_dir, test_output_dir, vocab_output_path,
                   stop_list=None, dictionary=None, idf_lb=0., idf_ub=1.,
                   lowercase=False, split_pattern=DEFAULT_SPLIT_PATTERN,
-                  char_filter_patterns=None, token_filter_patterns=None):
+                  char_filter_patterns=None, token_filter_patterns=None,
+                  tokenized=False):
     if dictionary is None:
         dictionary_set = None
     else:
@@ -131,6 +139,7 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
     token_filter_res = [re.compile(r) for r in token_filter_patterns]
     char_filter_res = [re.compile(r) for r in char_filter_patterns]
 
+    tokenize = lambda doc: doc.tokens if tokenized else split_re.split(doc.text)
     tt = lambda token: transform_token(token, lowercase, *char_filter_res)
 
     train_input_paths = nested_file_paths(train_input_dir)
@@ -139,7 +148,7 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
     df = dict()
     for doc in load_concrete_docs(train_input_paths):
         doc_types = set()
-        for token in split_re.split(doc.text):
+        for token in tokenize(doc):
             token = tt(token)
             doc_types.add(token)
         for t in doc_types:
@@ -161,9 +170,9 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
         idx += 1
     for (k, v) in idf_items[max(0,idx-IDF_WORD_PRINT_LIMIT):idx+IDF_WORD_PRINT_LIMIT]:
         if v < idf_lb:
-            print '(-) %06f %s' % (v, k)
+            print '(-) %06f %s' % (v, as_ascii(k))
         else:
-            print '(+) %06f %s' % (v, k)
+            print '(+) %06f %s' % (v, as_ascii(k))
     print
 
     print 'High idf:'
@@ -174,15 +183,15 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
         idx += 1
     for (k, v) in idf_items[max(0,idx-IDF_WORD_PRINT_LIMIT):idx+IDF_WORD_PRINT_LIMIT]:
         if v <= idf_ub:
-            print '(+) %06f %s' % (v, k)
+            print '(+) %06f %s' % (v, as_ascii(k))
         else:
-            print '(-) %06f %s' % (v, k)
+            print '(-) %06f %s' % (v, as_ascii(k))
     print
 
     vocab = dict()
     for doc in load_concrete_docs(train_input_paths):
         doc_types = set()
-        for token in split_re.split(doc.text):
+        for token in tokenize(doc):
             transformed_token = tt(token)
             if not filter_token(token, transformed_token, stop_set, idf,
                                 idf_lb, idf_ub, dictionary_set,
@@ -190,9 +199,9 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
                 if transformed_token not in vocab:
                     vocab[transformed_token] = len(vocab)
 
-    write_concrete_docs(iter_docs(train_input_paths, tt, vocab, split_re),
+    write_concrete_docs(iter_docs(train_input_paths, tt, vocab, tokenize),
                         train_output_dir)
-    write_concrete_docs(iter_docs(test_input_paths, tt, vocab, split_re),
+    write_concrete_docs(iter_docs(test_input_paths, tt, vocab, tokenize),
                         test_output_dir)
     write_vocab(vocab_output_path, vocab)
 

@@ -2,7 +2,7 @@
 #$ -cwd
 #$ -j y
 #$ -V
-#$ -N "m1-tng"
+#$ -N "m0-tng"
 #$ -q text.q
 #$ -l num_proc=1,mem_free=2G,h_rt=2:00:00
 
@@ -53,7 +53,6 @@ code = '''run(trunc=TRUNC,
     output_dir=OUTPUT_DIR,
     vocab_path=VOCAB_PATH,
     D=11222,
-    W=4571,
     streaming=True,
     log_level='DEBUG')'''.replace('\n', ' ')
 if profile:
@@ -65,14 +64,13 @@ else:
 
 print 'Generating D3 inputs...'
 generate_d3_graph(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'graph.json'))
-generate_d3_subgraphs(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'subgraphs.json'),
-                      doc_id_re=re.compile(r'.*/test/\d+\.concrete$'))
+generate_d3_subgraphs(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'subgraphs.json'))
 
 print 'Linking visualization code to output directory...'
 for basename in ('subgraphs.html',):
     os.symlink(os.path.abspath(os.path.join(MY_POSTPROC_DIR, basename)),
         os.path.join(OUTPUT_DIR, basename))
-for basename in ('d3.v3.js', 'graph.html'):
+for basename in ('d3.v3.js', 'core.js', 'graph.html'):
     os.symlink(os.path.abspath(os.path.join(POSTPROC_DIR, basename)),
         os.path.join(OUTPUT_DIR, basename))
 
