@@ -101,7 +101,7 @@ def iter_docs(input_paths, tt, vocab, tokenize):
         tokens = [tt(token) for token in tokenize(doc)]
         tokens = [token for token in tokens if token in vocab]
         if tokens:
-            yield Document(tokens, text=doc.text, **doc.attrs)
+            yield Document(tokens, id=doc.id, text=doc.text, **doc.attrs)
 
 
 def tokenize_and_filter(train_input_dir, test_input_dir,
