@@ -28,14 +28,19 @@ body {
 }
 
 #lambda_text {
-	background-color: rgba(192,192,192, .8);
+    border: 1px solid black;
+	background-color: rgba(255,255,255, .85);
+    display: inline-block;
+    padding: 2px;
 }
 
 #showCounts {
+    border: 1px solid black;
 	position: fixed;
-	top: 30px;
-	right: 30px;
-    background-color: rgba(255,255,255,.8);
+	right: 0;
+	top: 0;
+    background-color: rgba(255,255,255,.85);
+    padding: 10px;
 }
 </style>
 
@@ -82,7 +87,7 @@ node_sizer = function(node){
 }
 
 add_lambda_ss_text = function(font_size){
-	return function(d){ return "<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">" + Math.round(10000*node_sizer(d))/10000 + "</div>";
+	return function(d){ return "<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">" + Math.round(1000*node_sizer(d))/1000 + "</div>";
 	}
 }
 
@@ -135,7 +140,7 @@ update_graph = function() {
 
     if(document.getElementById("showValues").checked == true){
 		node.append("foreignObject")
-		.attr("width", 80)
+		.attr("width", 200)
 		.attr("height", 30)
 		.attr("y", -20)
 		.append("xhtml:body")

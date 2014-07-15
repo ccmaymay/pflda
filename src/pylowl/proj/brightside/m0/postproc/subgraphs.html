@@ -11,6 +11,7 @@ body {
 
 .graph_container {
     float: left;
+    padding: 10px;
 }
 
 .node circle {
@@ -30,14 +31,19 @@ body {
 }
 
 #inputWindowParameters {
+    border: 1px solid black;
 	position: fixed;
-	right: 30px;
-	top: 30px;
-    background-color: rgba(255,255,255,.8);
+	right: 0;
+	top: 0;
+    background-color: rgba(255,255,255,.85);
+    padding: 10px;
 }
 
 #lambda_text{
-	background-color: rgba(192,192,192,.8);
+    border: 1px solid black;
+	background-color: rgba(255,255,255,.85);
+    display: inline-block;
+    padding: 2px;
 }
 </style>
 
@@ -96,7 +102,7 @@ set_node_text = function(node, text) {
 add_lambda_ss_text = function(font_size){
 	return function(d){ return d.active ?
 		"<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">"
-			+ Math.round(10000*d.lambda_ss)/10000 + "</div>"
+			+ Math.round(1000*d.lambda_ss)/1000 + "</div>"
 		: "" ;
 	}
 }
@@ -260,7 +266,7 @@ update_graphs = function() {
 
         if(document.getElementById("showValues").checked == true){
 			node.append("foreignObject")
-				.attr("width", 80)
+				.attr("width", 200)
 				.attr("height", 30)
 				.append("xhtml:body")
 				.html(add_lambda_ss_text(10));
