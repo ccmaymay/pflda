@@ -88,7 +88,7 @@ $num_windows = 0;
 $num_graphs = 0;
 
 node_size = function(d) {
-    return d.active ? Math.min(Math.log(d.lambda_ss+1),10): 2;
+    return d.active ? Math.max(Math.min(Math.log(d.lambda_ss),10),2);
 }
 
 set_node_text = function(node, text) {
@@ -244,7 +244,7 @@ update_graphs = function() {
               d.y + "," + d.x + ")"; });
 
         node.append("circle")
-        .attr("r", function(d) { return node_size(d); })
+		.attr("r", function(d){return node_size(d);})
         .style("fill", function(d) {return d.active ?
                stringColor(d.Elogpi*-1) : "black"})
         .style("stroke", function(d) {return d.active ?
