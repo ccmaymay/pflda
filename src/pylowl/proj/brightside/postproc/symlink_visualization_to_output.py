@@ -8,7 +8,7 @@ def symlink_to_dir_force(dest_dir, *sources):
     for source in sources:
         basename = os.path.basename(source)
         dest = os.path.join(dest_dir, basename)
-        if os.path.isfile(dest):
+        if os.path.isfile(dest) or os.path.islink(dest):
             os.remove(dest)
         os.symlink(source, dest)
 
