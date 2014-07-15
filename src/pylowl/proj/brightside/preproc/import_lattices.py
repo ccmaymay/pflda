@@ -18,7 +18,7 @@ def load_aggregate_lattice_best_tokens(input_dir):
                     try:
                         lattice_best = load_lattice_best_tokens(frame_path)
                     except:
-                        sys.stderr.write('Warning: failed to load lattice from %s' % frame_path)
+                        sys.stderr.write('Warning: failed to load lattice from %s\n' % frame_path)
                     else:
                         if lattice_best is not None:
                             tokens.extend(lattice_best)
