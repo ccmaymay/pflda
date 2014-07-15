@@ -32,7 +32,6 @@ DEFAULT_OPTIONS = dict(
     log_level='INFO',
     trunc='1,20,10,5',
     D=None,
-    W=None,
     U=None,
     lambda0=0.01,
     beta=1.0,
@@ -82,8 +81,6 @@ def main(argv=None):
                       help="comma-separated list of truncations (per level)")
     parser.add_argument("--D", type=int,
                       help="number of documents (None: auto)")
-    parser.add_argument("--W", type=int,
-                      help="size of vocabulary (None: auto)")
     parser.add_argument("--U", type=int,
                       help="number of users")
     parser.add_argument("--lambda0", type=float,
@@ -141,7 +138,7 @@ def main(argv=None):
     parser.add_argument("--concrete_tokenization_list", type=int,
                       help="concrete tokenization list index")
     parser.add_argument("--streaming", action="store_true",
-                      help="process data in streaming fashion (D and W must be specified)")
+                      help="process data in streaming fashion (D must be specified)")
     parser.add_argument("--fixed_lag", action="store_true",
                       help="fixing a saving lag")
     parser.add_argument("--save_model", action="store_true",
@@ -201,19 +198,15 @@ def run(**kwargs):
     if options['streaming']:
         if options['D'] is None:
             raise ValueError('D must be specified in streaming mode')
-        if options['W'] is None:
-            raise ValueError('W must be specified in streaming mode')
         num_docs = options['D']
-        num_types = options['W']
         # TODO multiple files?
 
         train_filenames = nested_file_paths(options['data_dir'])
         train_filenames.sort()
 
         vocab = load_vocab(options['vocab_path'])
+        num_types = len(vocab)
         r_vocab = dict((v, k) for (k, v) in vocab.items())
-        if num_types != len(vocab):
-            raise ValueError('specified vocab length is wrong')
 
         c_train = Corpus.from_concrete_stream(
             train_filenames, r_vocab, num_docs,

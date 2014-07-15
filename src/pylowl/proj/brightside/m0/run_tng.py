@@ -53,7 +53,6 @@ code = '''run(trunc=TRUNC,
     output_dir=OUTPUT_DIR,
     vocab_path=VOCAB_PATH,
     D=11222,
-    W=4571,
     streaming=True,
     log_level='DEBUG')'''.replace('\n', ' ')
 if profile:
