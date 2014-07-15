@@ -52,8 +52,6 @@ code = '''run(trunc=TRUNC,
     save_model=True,
     output_dir=OUTPUT_DIR,
     vocab_path=VOCAB_PATH,
-    D=11222,
-    streaming=True,
     log_level='DEBUG')'''.replace('\n', ' ')
 if profile:
     print 'Profiling...'
