@@ -27,7 +27,7 @@ print
 os.chdir('../../../../..') # repository root
 
 TRUNC = '1,5,4'
-DATA_DIR = 'data/txt/gten.split.filtered'
+DATA_DIR = 'data/txt/gten"
 POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
 MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/m0/postproc'
 VOCAB_PATH = os.path.join(DATA_DIR, 'vocab')
