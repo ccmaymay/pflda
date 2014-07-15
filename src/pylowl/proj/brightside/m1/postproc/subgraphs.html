@@ -88,7 +88,7 @@ $num_windows = 0;
 $num_graphs = 0;
 
 node_size = function(d) {
-    return d.active ? (Math.max(Math.min(Math.log(d.lambda_ss),10),0)+3) : 3;
+    return d.active ? (Math.max(Math.min(Math.log(d.lambda_ss),10),0)+2) : 2;
 }
 
 set_node_text = function(node, text) {
@@ -251,12 +251,12 @@ update_graphs = function() {
         .style("stroke", function(d) {return d.active ?
                stringColor(d.Elogpi*-1) : "black"})
         .style("stroke-opacity", function(d) { return d.active ?
-               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; })
+               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.1"; })
         .style("fill-opacity", function(d) { return d.active ?
-               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; });
+               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.1"; });
 
         node.append("circle")
-        .attr("r", maxNodeSize)
+        .attr("r", maxNodeSize + 1)
         .style("fill", "black")
         .style("stroke", "black")
         .style("stroke-opacity", function(d){return d.active ? (d.circled? "1":"0"): (d.circled? ".15":"0")})
@@ -427,9 +427,8 @@ d3.json("graph.json", function(error, graph_root) {
         minELogPi = 0;
         minELogPi = minimum_ELogPi_rootParent(minELogPi, $root, "Elogpi");
 
-        $width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"])+1) + maxNodeSize;
-        $height = maxNodeSize * 2.5 * Math.max.apply(null,
-                                      tree_size_per_level(root[0]["subtree"]));
+        $width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"]) + 1) + maxNodeSize;
+        $height = maxNodeSize * 3 * Math.max.apply(null, tree_size_per_level(root[0]["subtree"])) + maxNodeSize;
 
         document.getElementById("window_size").value = $window_size;
         update_window_size();
