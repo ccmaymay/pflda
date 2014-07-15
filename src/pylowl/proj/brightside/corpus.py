@@ -2,6 +2,7 @@ import os
 import re
 import random
 import math
+import codecs
 import itertools as it
 
 from thrift.transport import TTransport
@@ -26,7 +27,7 @@ def _pair_first_to_int(p):
 
 
 def load_vocab(filename):
-    with open(filename) as f:
+    with codecs.open(filename, encoding='utf-8') as f:
         vocab = dict(_pair_first_to_int(line.strip().split()) for line in f)
     return vocab
 

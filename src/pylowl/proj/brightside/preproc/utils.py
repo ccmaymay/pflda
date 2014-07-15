@@ -1,9 +1,10 @@
 import os
+import codecs
 
 
 def load_word_set(filename):
     word_set = set()
-    with open(filename) as f:
+    with codecs.open(filename, encoding='utf-8') as f:
         for line in f:
             word_set.add(line.strip())
     return word_set
@@ -11,9 +12,9 @@ def load_word_set(filename):
 
 def write_vocab(output_filename, vocab):
     make_parent_dir(output_filename)
-    with open(output_filename, 'w') as out_f:
+    with codecs.open(output_filename, mode='w', encoding='utf-8') as out_f:
         for (word, word_id) in vocab.items():
-            out_f.write('%d %s\n' % (word_id, word))
+            out_f.write(u'%d %s\n' % (word_id, word))
 
 
 def get_path_suffix(path, stem):
