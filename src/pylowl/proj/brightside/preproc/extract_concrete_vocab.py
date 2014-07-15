@@ -25,7 +25,11 @@ def extract_concrete_vocab(input_paths, section_segmentation,
 
 if __name__ == '__main__':
     import sys
-    paths = [path for d in sys.argv[1:] for path in nested_file_paths(d)]
+    paths = nested_file_paths(sys.argv[1])
+    section_segmentation = int(sys.argv[2])
+    sentence_segmentation = int(sys.argv[3])
+    tokenization_list = int(sys.argv[4])
+    vocab_output_path = sys.argv[5]
     extract_concrete_vocab(paths, section_segmentation,
                            sentence_segmentation, tokenization_list,
                            vocab_output_path)
