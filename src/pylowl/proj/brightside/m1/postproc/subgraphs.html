@@ -115,6 +115,19 @@ update_nav_text = function() {
     set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
 }
 
+filter_node_first = function(node){
+	var rootIndex = 0;
+	for(graph in $root){
+		if(lookup_node($root[graph]["subtree"], node.node_placement).active == true){
+			var temp = $root[graph];
+			$root[graph] = $root[rootIndex];
+			$root[rootIndex] = temp;
+			rootIndex++;
+		}
+	}
+	update_graphs();
+}
+
 update_graphs = function() {
     update_nav_text();
 
@@ -186,6 +199,7 @@ update_graphs = function() {
         .style("stroke", "black")
         .style("stroke-opacity", "0")
         .style("fill-opacity", "0")
+        .on("click", function(d){filter_node_first(d)})
         .append("title")
         .text(format_words);
 
