@@ -87,7 +87,7 @@ lambda_ss_sum = function(node){
 }
 
 node_size = function(node){
-    return Math.max(Math.min(Math.log(lambda_ss_sum(node)),40),2);
+    return Math.max(Math.min(Math.log(lambda_ss_sum(node)),40),0)+3;
 }
 
 add_lambda_ss_text = function(font_size){
