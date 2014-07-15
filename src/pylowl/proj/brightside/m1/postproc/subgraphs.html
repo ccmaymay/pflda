@@ -252,7 +252,7 @@ update_graphs = function() {
         .attr("r", maxNodeSize)
         .style("fill", "black")
         .style("stroke", "black")
-        .style("stroke-opacity", function(d){return d.active ? (d.circled? "1":"0"): "0"})
+        .style("stroke-opacity", function(d){return d.active ? (d.circled? "1":"0"): (d.circled? ".15":"0")})
         .style("fill-opacity", "0")
 		.on("click", function(d){filter_node_first(d)})
         .append("title")
