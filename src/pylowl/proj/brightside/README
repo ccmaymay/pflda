@@ -15,13 +15,9 @@ onlinelda[3], according to comments in the onlinehdp source.
 
 Dependencies (in addition to pylowl dependencies):
 * numpy and scipy
-* d3, for visualization (see comment immediately below this list)
+* d3, for visualization (v3, included with source)
 * a web browser supporting javascript, for visualization
-* python-concrete and python-thrift
-
-The master branch includes a copy of d3 under postproc/ .  The min
-branch is identical to master, at the time of writing, except that d3
-has been removed.
+* python-concrete and python-thrift (3.3pre)
 
 To get up and running quickly, build littleowl with brightside included
 and invoke src/pylowl/proj/brightside/m0/run_src.py to train on the
