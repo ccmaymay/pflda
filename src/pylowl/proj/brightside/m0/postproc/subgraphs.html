@@ -88,7 +88,7 @@ $num_windows = 0;
 $num_graphs = 0;
 
 node_size = function(d) {
-    return d.active ? Math.max(Math.min(Math.log(d.lambda_ss),10),2);
+    return d.active ? Math.max(Math.min(Math.log(d.lambda_ss),10),2) : 2;
 }
 
 set_node_text = function(node, text) {
