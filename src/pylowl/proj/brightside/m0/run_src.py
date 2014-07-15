@@ -2,7 +2,7 @@
 #$ -cwd
 #$ -j y
 #$ -V
-#$ -N "m1-src"
+#$ -N "m0-src"
 #$ -q text.q
 #$ -l num_proc=1,mem_free=1G,h_rt=1:00:00
 

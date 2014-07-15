@@ -2,7 +2,7 @@
 #$ -cwd
 #$ -j y
 #$ -V
-#$ -N "m1-tng"
+#$ -N "m0-tng"
 #$ -q text.q
 #$ -l num_proc=1,mem_free=2G,h_rt=2:00:00
 

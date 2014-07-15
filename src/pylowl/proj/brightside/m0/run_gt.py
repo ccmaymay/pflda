@@ -2,7 +2,7 @@
 #$ -cwd
 #$ -j y
 #$ -V
-#$ -N "m1-gt"
+#$ -N "m0-gt"
 #$ -q text.q
 #$ -l num_proc=1,mem_free=2G,h_rt=2:00:00
 
@@ -27,7 +27,7 @@ print
 os.chdir('../../../../..') # repository root
 
 TRUNC = '1,5,4'
-DATA_DIR = 'data/txt/gten'
+DATA_DIR = 'data/txt/gten.split.filtered'
 POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
 MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/m0/postproc'
 VOCAB_PATH = os.path.join(DATA_DIR, 'vocab')
@@ -50,9 +50,8 @@ run(trunc=TRUNC,
     save_model=True,
     output_dir=OUTPUT_DIR,
     vocab_path=VOCAB_PATH,
-    D=11222,
-    W=4571,
-    streaming=True,
+    D=1763,
+    W=6152,
     log_level='DEBUG')
 
 print 'Generating D3 inputs...'
