@@ -26,9 +26,7 @@ littleowl source tree.  From the littleowl repository root:
 $ python setup.py build --with-proj-brightside
 $ export PYTHONPATH="$PWD/build/lib.linux-x86_64-2.7:$PYTHONPATH"
 $ export PYTHONOPTIMIZE=1
-$ pushd src/pylowl/proj/brightside/m0
-$ python run_src.py
-$ popd
+$ python src/pylowl/proj/brightside/m0/run_src.py
 
 run_src.py is short---I suggest reading it.  At a high level, it
 creates a toy concrete dataset from the source tree, runs M0 for a

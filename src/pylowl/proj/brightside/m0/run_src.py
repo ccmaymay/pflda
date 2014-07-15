@@ -35,6 +35,12 @@ POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
 MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/m0/postproc'
 
 
+if not os.path.isdir(POSTPROC_DIR):
+    sys.stderr.write('%s does not exist.\n' % POSTPROC_DIR)
+    sys.stderr.write('Postprocessing will fail.\n')
+    sys.stderr.write('Note that this script should be run from the littleowl repository root.\n')
+
+
 def src_path_filter(path):
     ext = path[path.rfind('.'):]
     return (ext in SRC_EXTENSIONS
@@ -79,8 +85,6 @@ if __name__ == '__main__':
     for (k, v) in os.environ.items():
         print '    %s: %s' % (k, v)
     print
-
-    os.chdir('../../../../..') # repository root
 
     data_dir = tempfile.mkdtemp()
     make_data('src', data_dir)

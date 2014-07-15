@@ -25,8 +25,6 @@ for (k, v) in os.environ.items():
     print '    %s: %s' % (k, v)
 print
 
-os.chdir('../../../../..') # repository root
-
 TRUNC = '1,5,4'
 DATA_DIR = 'data/txt/ds2'
 POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
@@ -34,6 +32,11 @@ MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/m1/postproc'
 VOCAB_PATH = os.path.join(DATA_DIR, 'vocab')
 TRAIN_DATA_DIR = os.path.join(DATA_DIR, 'train')
 TEST_DATA_DIR = os.path.join(DATA_DIR, 'test')
+
+if not os.path.isdir(POSTPROC_DIR):
+    sys.stderr.write('%s does not exist.\n' % POSTPROC_DIR)
+    sys.stderr.write('Postprocessing will fail.\n')
+    sys.stderr.write('Note that this script should be run from the littleowl repository root.\n')
 
 print 'Creating output directory...'
 OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/m1'
