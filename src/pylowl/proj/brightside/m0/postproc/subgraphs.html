@@ -97,12 +97,37 @@ add_lambda_ss_text = function(font_size){
 	}
 }
 
+format_words = function(d) {
+    var graph_node = lookup_node($graph_root, d.node_placement);
+    s = "";
+    for (w in graph_node.words) {
+        if (w > 0) {
+            s += " ";
+        }
+        s += graph_node.words[w]['word'];
+    }
+    return s;
+}
+
 update_nav_text = function() {
     set_node_text(document.getElementById("window_start_text"), $window_start);
     set_node_text(document.getElementById("window_end_text"), $window_end);
     set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
 }
     
+filter_node_first = function(node){
+	var rootIndex = 0;
+	for(graph in $root){
+		if(lookup_node($root[graph]["subtree"], node.node_placement).active == true){
+			var temp = $root[graph];
+			$root[graph] = $root[rootIndex];
+			$root[rootIndex] = temp;
+			rootIndex++;
+		}
+	}
+	update_graphs();
+}
+
 update_graphs = function() {
     update_nav_text();
 
@@ -166,6 +191,16 @@ update_graphs = function() {
                (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; })
         .style("fill-opacity", function(d) { return d.active ?
                (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.05"; });
+
+        node.append("circle")
+        .attr("r", maxNodeSize)
+        .style("fill", "black")
+        .style("stroke", "black")
+        .style("stroke-opacity", "0")
+        .style("fill-opacity", "0")
+        .on("click", function(d){filter_node_first(d)})
+        .append("title")
+        .text(format_words);
 
         if(document.getElementById("showValues").checked == true){
 			node.append("foreignObject")
@@ -241,67 +276,104 @@ tree_size_per_level = function(node) {
     return sizes;
 }
 
-d3.json("subgraphs.json", function(error, root) {
-    $num_graphs = root.length;
-	$root = root;
+lookup_node = function(subtree, placement) {
+    return lookup_node_helper(subtree, placement.slice(1));
+}
 
-    minimum_ELogPi_rootParent = function(min_var_param, root, paramName){
-    min_var_param = 0;
-    for(indiv = 0; indiv < $num_graphs; indiv++){
-        minSubStat = minimum_ELogPi_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
-        if(minSubStat<min_var_param){
-            min_var_param = minSubStat;
-        }
+lookup_node_helper = function(node, placement) {
+    if (placement.length == 0) {
+        return node;
+    } else {
+        return lookup_node_helper(node.children[placement[0]], placement.slice(1));
     }
-    return min_var_param;
-    }
+}
 
-    minimum_ELogPi_subtreeChildren = function(min_var_param, node, paramName){
-        if(min_var_param > node[paramName]){
-            min_var_param = node[paramName];
-        }
-        for (var c in node.children) {
-            child = node.children[c];
-        	min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child, paramName);
-        }
-        return min_var_param;
-    }
+d3.json("graph.json", function(error, graph_root) {
+    $graph_root = graph_root;
+    d3.json("subgraphs.json", function(error, root) {
+        $num_graphs = root.length;
+        $root = root;
 
-	maximum_Node_Size_rootParent = function(min_var_param, root){
+        minimum_ELogPi_rootParent = function(min_var_param, root, paramName){
         min_var_param = 0;
         for(indiv = 0; indiv < $num_graphs; indiv++){
-            minSubStat = maximum_Node_Size_subtreeChildren(min_var_param, root[indiv]["subtree"]);
-            if(minSubStat>min_var_param){
+            minSubStat = minimum_ELogPi_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
+            if(minSubStat<min_var_param){
                 min_var_param = minSubStat;
             }
         }
         return min_var_param;
-    }
-
-	maximum_Node_Size_subtreeChildren = function(min_var_param, node){
-        if(min_var_param < node_size(node)){
-            min_var_param = node_size(node);
         }
-        for (var c in node.children) {
-            child = node.children[c];
-            min_var_param = maximum_Node_Size_subtreeChildren(min_var_param, child);
+
+        minimum_ELogPi_subtreeChildren = function(min_var_param, node, paramName){
+            if(min_var_param > node[paramName]){
+                min_var_param = node[paramName];
+            }
+            for (var c in node.children) {
+                child = node.children[c];
+                min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child, paramName);
+            }
+            return min_var_param;
         }
-        return min_var_param;
-    }
 
-	maxNodeSize = 0;
-	maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
-    minELogPi = 0;
-    minELogPi = minimum_ELogPi_rootParent(minELogPi, $root, "Elogpi");
+        maximum_Node_Size_rootParent = function(min_var_param, root){
+            min_var_param = 0;
+            for(indiv = 0; indiv < $num_graphs; indiv++){
+                minSubStat = maximum_Node_Size_subtreeChildren(min_var_param, root[indiv]["subtree"]);
+                if(minSubStat>min_var_param){
+                    min_var_param = minSubStat;
+                }
+            }
+            return min_var_param;
+        }
 
-	$width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"])+1) + maxNodeSize;
-    $height = maxNodeSize * 2.5 * Math.max.apply(null,
-                                  tree_size_per_level(root[0]["subtree"]));
+        maximum_Node_Size_subtreeChildren = function(min_var_param, node){
+            if(min_var_param < node_size(node)){
+                min_var_param = node_size(node);
+            }
+            for (var c in node.children) {
+                child = node.children[c];
+                min_var_param = maximum_Node_Size_subtreeChildren(min_var_param, child);
+            }
+            return min_var_param;
+        }
 
-    document.getElementById("window_size").value = $window_size;
-    update_window_size();
+        node_placement_rootParent = function(){
+            for(graphNum = 0; graphNum < $root.length; graphNum++){
+                node_placement_subtreeChildren($root[graphNum].subtree, 0, []);
+            }
+        }
 
-    d3.select(self.frameElement).style("height", $height + "px");
+        node_placement_subtreeChildren = function(node, placementInList, currentArray){
+            var myArray = [];
+            for(k = 0; k < currentArray.length; k++){
+                myArray[k] = currentArray[k];
+            }
+            myArray[myArray.length] = placementInList;
+            node.node_placement = myArray;
+
+            for(var c in node.children){
+                child = node.children[c];
+                node_placement_subtreeChildren(child, c, myArray);
+            }
+        }
+
+        node_placement_rootParent();
+
+        maxNodeSize = 0;
+        maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
+        minELogPi = 0;
+        minELogPi = minimum_ELogPi_rootParent(minELogPi, $root, "Elogpi");
+
+        $width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"])+1) + maxNodeSize;
+        $height = maxNodeSize * 2.5 * Math.max.apply(null,
+                                      tree_size_per_level(root[0]["subtree"]));
+
+        document.getElementById("window_size").value = $window_size;
+        update_window_size();
+
+        d3.select(self.frameElement).style("height", $height + "px");
+    });
 });
 
 </script>
