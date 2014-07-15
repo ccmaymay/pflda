@@ -428,7 +428,9 @@ d3.json("graph.json", function(error, graph_root) {
         minELogPi = minimum_ELogPi_rootParent(minELogPi, $root, "Elogpi");
 
         $width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"]) + 1) + maxNodeSize;
-        $height = maxNodeSize * 3 * Math.max.apply(null, tree_size_per_level(root[0]["subtree"])) + maxNodeSize;
+        sizes = tree_size_per_level(root[0]["subtree"]);
+        var eff_size = sizes[sizes.length - 1] + (sizes.length > 1 ? sizes[sizes.length - 2] : 0);
+        $height = maxNodeSize * 2.5 * eff_size + maxNodeSize;
 
         document.getElementById("window_size").value = $window_size;
         update_window_size();
