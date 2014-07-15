@@ -73,6 +73,10 @@ def main():
     )
 
 
+def as_ascii(s):
+    return ''.join((c if ord(c) < 128 else '?') for c in s)
+
+
 def filter_token(token, transformed_token, stop_set, idf, idf_lb, idf_ub, dictionary_set, *token_filter_res):
     return (
         (not transformed_token)
@@ -166,9 +170,9 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
         idx += 1
     for (k, v) in idf_items[max(0,idx-IDF_WORD_PRINT_LIMIT):idx+IDF_WORD_PRINT_LIMIT]:
         if v < idf_lb:
-            print u'(-) %06f %s'.encode('utf-8') % (v, k)
+            print '(-) %06f %s' % (v, as_ascii(k))
         else:
-            print u'(+) %06f %s'.encode('utf-8') % (v, k)
+            print '(+) %06f %s' % (v, as_ascii(k))
     print
 
     print 'High idf:'
@@ -179,9 +183,9 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
         idx += 1
     for (k, v) in idf_items[max(0,idx-IDF_WORD_PRINT_LIMIT):idx+IDF_WORD_PRINT_LIMIT]:
         if v <= idf_ub:
-            print u'(+) %06f %s'.encode('utf-8') % (v, k)
+            print '(+) %06f %s' % (v, as_ascii(k))
         else:
-            print u'(-) %06f %s'.encode('utf-8') % (v, k)
+            print '(-) %06f %s' % (v, as_ascii(k))
     print
 
     vocab = dict()
