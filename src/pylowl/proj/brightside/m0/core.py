@@ -182,7 +182,7 @@ class model(object):
         self.m_Elogprobw = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
 
     def process_documents(self, docs, var_converge, update=True,
-                          predict_docs=None):
+                          predict_docs=None, save_model=False):
         docs = list(docs)
         doc_count = len(docs)
 
@@ -235,7 +235,8 @@ class model(object):
         count = 0
         for (doc, predict_doc) in it.izip(docs, predict_docs):
             doc_score = self.doc_e_step(doc, ss, ElogV, vocab_to_batch_word_map,
-                batch_to_vocab_word_map, var_converge, predict_doc=predict_doc)
+                batch_to_vocab_word_map, var_converge, predict_doc=predict_doc,
+                save_model=save_model)
 
             score += doc_score
             if predict_doc is None:
@@ -506,7 +507,7 @@ class model(object):
 
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, var_converge, max_iter=100,
-                   predict_doc=None):
+                   predict_doc=None, save_model=False):
         num_tokens = sum(doc.counts)
 
         logging.debug('Performing E-step on doc spanning %d tokens, %d types'
@@ -621,19 +622,20 @@ class model(object):
         for n in xrange(num_tokens):
             ss.m_lambda_ss[global_ids, token_batch_ids[n]] += nu[n, ids]
 
-        # save subtree stats
-        self.save_subtree(
-            self.subtree_output_files.get('subtree', None),
-            doc, subtree, l2g_idx)
-        self.save_subtree_Elogpi(
-            self.subtree_output_files.get('subtree_Elogpi', None),
-            doc, subtree, ids, ab, uv)
-        self.save_subtree_logEpi(
-            self.subtree_output_files.get('subtree_logEpi', None),
-            doc, subtree, ids, ab, uv)
-        self.save_subtree_lambda_ss(
-            self.subtree_output_files.get('subtree_lambda_ss', None),
-            doc, ids, nu_sums)
+        if save_model:
+            # save subtree stats
+            self.save_subtree(
+                self.subtree_output_files.get('subtree', None),
+                doc, subtree, l2g_idx)
+            self.save_subtree_Elogpi(
+                self.subtree_output_files.get('subtree_Elogpi', None),
+                doc, subtree, ids, ab, uv)
+            self.save_subtree_logEpi(
+                self.subtree_output_files.get('subtree_logEpi', None),
+                doc, subtree, ids, ab, uv)
+            self.save_subtree_lambda_ss(
+                self.subtree_output_files.get('subtree_lambda_ss', None),
+                doc, ids, nu_sums)
 
         if predict_doc is not None:
             logEpi = self.compute_subtree_logEpi(subtree, ab, uv)

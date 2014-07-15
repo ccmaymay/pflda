@@ -2,7 +2,6 @@
 
 
 import os
-import re
 import json
 import itertools as it
 from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index, load_options
@@ -15,24 +14,15 @@ def main():
                         help='path to dir where model was saved')
     parser.add_argument('output_path', type=str,
                         help='output file path')
-    parser.add_argument('--doc_id_re', type=str,
-                        help='regex to filter document ids')
 
     args = parser.parse_args()
-    if args.doc_id_re is None:
-        doc_id_re = None
-    else:
-        doc_id_re = re.compile(args.doc_id_re)
-
     generate_d3_subgraphs(
         args.result_dir,
         args.output_path,
-        doc_id_re=doc_id_re
     )
 
 
-def generate_d3_subgraphs(result_dir, output_filename,
-                          doc_id_re=None):
+def generate_d3_subgraphs(result_dir, output_filename):
     options = load_options(os.path.join(result_dir, 'options'))
     trunc_csv = options['trunc']
     subtree_filename = os.path.join(result_dir, 'subtree')
@@ -54,8 +44,6 @@ def generate_d3_subgraphs(result_dir, output_filename,
                 Elogpi_f, logEpi_f, lambda_ss_f)):
             pieces = subtree_line.strip().split()
             doc_id = pieces[0]
-            if doc_id_re is not None and doc_id_re.match(doc_id) is None:
-                continue
             node_map = dict((p[1], p[0]) for p in
                             enumerate([int(i) for i in pieces[1:]]))
 

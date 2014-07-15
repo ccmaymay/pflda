@@ -374,7 +374,8 @@ def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
         batch = take(docs_generator, batchsize)
 
         (score, count, doc_count) = m.process_documents(
-            batch, var_converge, update=False)
+            batch, var_converge, update=False,
+            save_model=True)
         total_score += score
         total_count += count
 
@@ -403,7 +404,8 @@ def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         test_batch = take(test_docs_generator, batchsize)
 
         (score, count, doc_count) = m.process_documents(
-            train_batch, var_converge, update=False, predict_docs=test_batch)
+            train_batch, var_converge, update=False, predict_docs=test_batch,
+            save_model=True)
         total_score += score
         total_count += count
 
