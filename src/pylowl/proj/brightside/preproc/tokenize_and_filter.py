@@ -166,9 +166,9 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
         idx += 1
     for (k, v) in idf_items[max(0,idx-IDF_WORD_PRINT_LIMIT):idx+IDF_WORD_PRINT_LIMIT]:
         if v < idf_lb:
-            print '(-) %06f %s' % (v, k)
+            print u'(-) %06f %s'.encode('utf-8') % (v, k)
         else:
-            print '(+) %06f %s' % (v, k)
+            print u'(+) %06f %s'.encode('utf-8') % (v, k)
     print
 
     print 'High idf:'
@@ -179,9 +179,9 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
         idx += 1
     for (k, v) in idf_items[max(0,idx-IDF_WORD_PRINT_LIMIT):idx+IDF_WORD_PRINT_LIMIT]:
         if v <= idf_ub:
-            print '(+) %06f %s' % (v, k)
+            print u'(+) %06f %s'.encode('utf-8') % (v, k)
         else:
-            print '(-) %06f %s' % (v, k)
+            print u'(-) %06f %s'.encode('utf-8') % (v, k)
     print
 
     vocab = dict()
