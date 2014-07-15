@@ -71,7 +71,6 @@ body {
 
 <script src="d3.v3.js"></script>
 <script>
-
 $window_size = 5;
 $window_start = 0;
 $num_windows = 0;
@@ -115,17 +114,37 @@ update_nav_text = function() {
     set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
 }
 
+node_sort_array = [];
+
 filter_node_first = function(node){
-	var rootIndex = 0;
-	for(graph in $root){
-		if(lookup_node($root[graph]["subtree"], node.node_placement).active == true){
-			var temp = $root[graph];
-			$root[graph] = $root[rootIndex];
-			$root[rootIndex] = temp;
-			rootIndex++;
+	var end_sort = $root.length;
+	var root_index = 0;
+	if(node_sort_array.indexOf(node) == -1){
+		node_sort_array[node_sort_array.length] = node;
+		for(graphNum = 0; graphNum < $root.length; graphNum++){
+			lookup_node($root[graphNum]["subtree"], node.node_placement).circled = true;
+		}
+	}else{
+		var indexOfNode = node_sort_array.indexOf(node);
+		node_sort_array.splice(indexOfNode,1);
+		for(graphNum = 0; graphNum < $root.length; graphNum++){
+			lookup_node($root[graphNum]["subtree"], node.node_placement).circled = false;
 		}
 	}
+	for(CirNode = 0; CirNode < node_sort_array.length; CirNode++){
+		for(graphNum = 0; graphNum < end_sort; graphNum++){
+			if(lookup_node($root[graphNum]["subtree"], node_sort_array[CirNode].node_placement).active == true){
+				var temp = $root[graphNum];
+				$root[graphNum] = $root[root_index];
+				$root[root_index] = temp;
+				root_index++;
+			}
+		}
+		end_sort = root_index;
+		root_index = 0;
+	}
 	update_graphs();
+	
 }
 
 update_graphs = function() {
@@ -197,9 +216,9 @@ update_graphs = function() {
         .attr("r", maxNodeSize)
         .style("fill", "black")
         .style("stroke", "black")
-        .style("stroke-opacity", "0")
+        .style("stroke-opacity", function(d){return d.circled? "1":"0"})
         .style("fill-opacity", "0")
-        .on("click", function(d){filter_node_first(d)})
+		.on("click", function(d){filter_node_first(d)})
         .append("title")
         .text(format_words);
 
