@@ -124,7 +124,7 @@ if __name__ == '__main__':
     for basename in ('subgraphs.html',):
         os.symlink(os.path.abspath(os.path.join(MY_POSTPROC_DIR, basename)),
             os.path.join(output_dir, basename))
-    for basename in ('d3.v3.js', 'graph.html'):
+    for basename in ('d3.v3.js', 'core.js', 'graph.html'):
         os.symlink(os.path.abspath(os.path.join(POSTPROC_DIR, basename)),
             os.path.join(output_dir, basename))
 

@@ -73,7 +73,7 @@ print 'Linking visualization code to output directory...'
 for basename in ('subgraphs.html',):
     os.symlink(os.path.abspath(os.path.join(MY_POSTPROC_DIR, basename)),
         os.path.join(OUTPUT_DIR, basename))
-for basename in ('d3.v3.js', 'graph.html'):
+for basename in ('d3.v3.js', 'core.js', 'graph.html'):
     os.symlink(os.path.abspath(os.path.join(POSTPROC_DIR, basename)),
         os.path.join(OUTPUT_DIR, basename))
 

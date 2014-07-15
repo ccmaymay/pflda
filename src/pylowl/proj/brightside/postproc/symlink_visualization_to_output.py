@@ -34,9 +34,11 @@ def symlink_model_visualization_to_output(littleowl_dir, output_dir, model_name,
 def symlink_visualization_to_output(littleowl_dir, output_dir):
     graph_html_path = os.path.join(littleowl_dir,
         'src/pylowl/proj/brightside/postproc/graph.html')
+    core_js_path = os.path.join(littleowl_dir,
+        'src/pylowl/proj/brightside/postproc/core.js')
     d3_js_path = os.path.join(littleowl_dir,
         'src/pylowl/proj/brightside/postproc/d3.v3.js')
-    global_sources = (graph_html_path, d3_js_path)
+    global_sources = (graph_html_path, core_js_path, d3_js_path)
 
     symlink_model_visualization_to_output(littleowl_dir, output_dir, 'm0',
                                           *global_sources)
