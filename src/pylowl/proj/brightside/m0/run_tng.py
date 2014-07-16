@@ -44,6 +44,9 @@ OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/m0'
 if not os.path.isdir(OUTPUT_DIR_BASE):
     os.makedirs(OUTPUT_DIR_BASE)
 OUTPUT_DIR = tempfile.mkdtemp(prefix='', suffix='', dir=OUTPUT_DIR_BASE)
+umask = os.umask(0o022) # whatever, python
+os.umask(umask) # set umask back
+os.chmod(OUTPUT_DIR, 0o0755 & ~umask)
 
 print 'Running stochastic variational inference...'
 code = '''run(trunc=TRUNC,

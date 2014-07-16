@@ -87,6 +87,9 @@ if __name__ == '__main__':
     print
 
     data_dir = tempfile.mkdtemp()
+    umask = os.umask(0o022) # whatever, python
+    os.umask(umask) # set umask back
+    os.chmod(data_dir, 0o0755 & ~umask)
     make_data('src', data_dir)
     train_data_dir = data_dir
     # TODO would be nice if we didn't test on training data...
@@ -100,6 +103,7 @@ if __name__ == '__main__':
     if not os.path.isdir(OUTPUT_DIR_BASE):
         os.makedirs(OUTPUT_DIR_BASE)
     output_dir = tempfile.mkdtemp(dir=OUTPUT_DIR_BASE, prefix='')
+    os.chmod(output_dir, 0o0755 & ~umask)
 
     print 'Running stochastic variational inference...'
     code = '''run(trunc=TRUNC,
