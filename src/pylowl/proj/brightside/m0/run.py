@@ -45,8 +45,8 @@ DEFAULT_OPTIONS = dict(
     kappa=0.5,
     iota=1.0,
     delta=1e-3,
-    omicron=None,
-    xi=0.5,
+    eff_init_samples=None,
+    init_noise_weight=0.5,
     batchsize=100,
     max_iter=None,
     max_time=None,
@@ -60,7 +60,6 @@ DEFAULT_OPTIONS = dict(
     save_lag=500,
     pass_ratio=0.5,
     scale=1.0,
-    adding_noise=False,
     streaming=False,
     fixed_lag=False,
     save_model=False,
@@ -100,10 +99,10 @@ def main(argv=None):
                       help="slow down")
     parser.add_argument("--delta", type=float,
                       help="greedy subtree selection stopping crit")
-    parser.add_argument("--omicron", type=float,
+    parser.add_argument("--eff_init_samples", type=float,
                       help="effective no. documents in initialization (None: actual)")
-    parser.add_argument("--xi", type=float,
-                      help="fraction of topic mass derived from data in initialization")
+    parser.add_argument("--init_noise_weight", type=float,
+                      help="fraction of topic mass derived from Dirichlet noise in initialization")
     parser.add_argument("--batchsize", type=int,
                       help="batch size")
     parser.add_argument("--max_iter", type=int,
@@ -138,8 +137,6 @@ def main(argv=None):
                       help="concrete sentence segmentation index")
     parser.add_argument("--concrete_tokenization_list", type=int,
                       help="concrete tokenization list index")
-    parser.add_argument("--adding_noise", action="store_true",
-                      help="add noise to the first couple of iterations")
     parser.add_argument("--streaming", action="store_true",
                       help="process data in streaming fashion (D must be specified)")
     parser.add_argument("--fixed_lag", action="store_true",
@@ -262,17 +259,22 @@ def run(**kwargs):
         subtree_output_files = dict()
 
     logging.info("Creating online nhdp instance")
-    m = model(trunc, num_docs, num_types,
-                  options['lambda0'], options['beta'], options['alpha'],
-                  options['gamma1'], options['gamma2'],
-                  options['kappa'], options['iota'], options['delta'],
-                  options['scale'], options['adding_noise'],
-                  subtree_output_files=subtree_output_files)
+    m = model(trunc, D=num_docs, W=num_types,
+              lambda0=options['lambda0'],
+              beta=options['beta'],
+              alpha=options['alpha'],
+              gamma1=options['gamma1'],
+              gamma2=options['gamma2'],
+              kappa=options['kappa'],
+              iota=options['iota'],
+              delta=options['delta'],
+              scale=options['scale'],
+              subtree_output_files=subtree_output_files)
 
     if options['init_samples'] is not None:
         logging.info("Initializing")
         init_docs = take(c_train.docs, options['init_samples'])
-        m.initialize(init_docs, options['xi'], options['omicron'])
+        m.initialize(init_docs, options['init_noise_weight'], options['eff_init_samples'])
 
     iteration = 0
     total_doc_count = 0
