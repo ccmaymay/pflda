@@ -30,47 +30,29 @@ class suff_stats(object):
 
 class model(object):
     def __init__(self,
-                 trunc,
+                 K,
+                 L,
                  D,
                  W,
                  lambda0=0.01,
                  beta=1.,
                  alpha=1.,
-                 gamma1=1./3.,
-                 gamma2=2./3.,
                  kappa=0.5,
                  iota=1.,
-                 delta=1e-3,
                  scale=1.,
                  rho_bound=0.,
                  subtree_output_files=None):
-        if trunc[0] != 1:
-            raise ValueError('Top-level truncation must be one.')
-
-        self.m_trunc = trunc
-        self.m_trunc_idx_b = utils.tree_index_b(trunc)
-        self.m_trunc_idx_m = utils.tree_index_m(trunc)
-
-        self.m_K = int(np.sum(self.m_trunc_idx_b)) # total no. nodes
+        self.m_K = K
+        self.m_L = L
         self.m_W = W
         self.m_D = D
-        self.m_depth = len(trunc)
         self.m_beta = beta
         self.m_alpha = alpha
-        self.m_gamma1 = gamma1
-        self.m_gamma2 = gamma2
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
         self.m_tau[1] = alpha
-        # make a uniform at beginning
-        # TODO why? and how is this uniform?
-        # self.m_tau[1] = range(self.m_K, 0, -1)
-        for global_node in self.tree_iter():
-            global_node_idx = self.tree_index(global_node)
-            if global_node[-1] + 1 == self.m_trunc[len(global_node)-1]: # right-most child in truncated tree
-                self.m_tau[0,global_node_idx] = 1.0
-                self.m_tau[1,global_node_idx] = 0.0
+        self.m_tau[1,self.m_K-1] = 0.
 
         self.m_tau_ss = np.zeros(self.m_K)
 
@@ -87,7 +69,6 @@ class model(object):
 
         self.m_iota = iota
         self.m_kappa = kappa
-        self.m_delta = delta
         self.m_scale = scale
         self.m_rho_bound = rho_bound
         self.m_t = 0
@@ -125,46 +106,11 @@ class model(object):
         ]
 
         logging.debug('Initialization means:')
-        cluster_assignments = np.zeros(num_samples, dtype=np.uint)
-        cluster_means = np.zeros((self.m_K, Wt)) # TODO big!
-        for node in self.tree_iter():
-            if len(node) < len(self.m_trunc): # not leaf
-                idx = self.tree_index(node)
-                num_children = self.m_trunc[len(node)]
-                c_ids = np.zeros(num_children, dtype=np.uint)
-                for j in xrange(num_children):
-                    c_node = node + (j,)
-                    c_ids[j] = self.tree_index(c_node)
-                node_doc_indices = np.where(cluster_assignments == idx)[0]
-                if len(node_doc_indices) > 0:
-                    node_kmeans_data = [kmeans_data[i] for i in node_doc_indices]
-                    (node_cluster_assignments, node_cluster_means) = utils.kmeans_sparse(
-                        node_kmeans_data, Wt, num_children, norm=1)
-                    cluster_assignments[node_doc_indices] = c_ids[node_cluster_assignments]
-                    cluster_means[c_ids,:] = node_cluster_means
-                    logging.debug('Node %s:' % str(node))
-                    for i in xrange(num_children):
-                        w_order = np.argsort(cluster_means[c_ids[i],:])
-                        logging.debug('\t%s' % ' '.join(str(batch_to_vocab_word_map[w_order[j]]) for j in xrange(Wt-1, max(-1,Wt-11), -1)))
-                    for i in xrange(len(node_doc_indices)):
-                        x = kmeans_data[i]
-                        cluster = cluster_assignments[node_doc_indices[i]]
-                        # note, here we are only computing the
-                        # difference between the non-zero components
-                        # of x[1] and the corresponding components of
-                        # cluster_means... but this is okay because we
-                        # assume x[1] > 0, so cluster_means > 0, so when
-                        # we threshold (below), the differences of all
-                        # components where x[1] is zero will be zeroed.
-                        new_features = x[1] - cluster_means[cluster,x[0]]
-                        new_features[new_features < 0] = 0
-                        nf_sum = np.sum(new_features)
-                        if nf_sum > 0:
-                            new_features /= nf_sum
-                        kmeans_data[i] = (x[0], new_features)
-                else:
-                    logging.debug('Node %d: no docs' % idx)
-                    cluster_means[c_ids,:] = cluster_means[idx,:]
+        (cluster_assignments, cluster_means) = utils.kmeans_sparse(
+            kmeans_data, Wt, self.m_K, norm=1)
+        for i in xrange(self.m_K):
+            w_order = np.argsort(cluster_means[i,:])
+            logging.debug('\t%s' % ' '.join(str(batch_to_vocab_word_map[w_order[j]]) for j in xrange(Wt-1, max(-1,Wt-11), -1)))
 
         self.m_lambda_ss = eff_init_samples * init_noise_weight * nprand.dirichlet(100 * np.ones(self.m_W) / float(self.m_W), self.m_K)
         self.m_lambda_ss[:, batch_to_vocab_word_map] += eff_init_samples * (1 - init_noise_weight) * cluster_means
