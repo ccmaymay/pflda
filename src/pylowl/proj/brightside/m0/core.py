@@ -140,6 +140,21 @@ class model(object):
                     node_kmeans_data = [kmeans_data[i] for i in node_doc_indices]
                     (node_cluster_assignments, node_cluster_means) = utils.kmeans_sparse(
                         node_kmeans_data, Wt, num_children, norm=1)
+
+                    # sort by word counts (decreasing)
+                    node_cluster_word_counts = np.zeros(num_children, dtype=np.uint)
+                    for i in xrange(num_children):
+                        node_cluster_docs = np.where(node_cluster_assignments == i)[0]
+                        for j in node_cluster_docs:
+                            node_cluster_word_counts[i] += docs[node_doc_indices[j]].total
+                    reverse_cluster_order = np.argsort(node_cluster_word_counts)
+                    cluster_order = reverse_cluster_order[::-1]
+                    cluster_order_rindex = np.zeros(num_children, dtype=np.uint)
+                    for i in xrange(num_children):
+                        cluster_order_rindex[cluster_order[i]] = i
+                    node_cluster_means[:] = node_cluster_means[cluster_order]
+                    node_cluster_assignments[:] = cluster_order_rindex[node_cluster_assignments]
+
                     cluster_assignments[node_doc_indices] = c_ids[node_cluster_assignments]
                     cluster_means[c_ids,:] = node_cluster_means
                     logging.debug('Node %s:' % str(node))
