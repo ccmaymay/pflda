@@ -105,9 +105,19 @@ class model(object):
             for doc in docs
         ]
 
-        logging.debug('Initialization means:')
         (cluster_assignments, cluster_means) = utils.kmeans_sparse(
             kmeans_data, Wt, self.m_K, norm=1)
+
+        # sort by word counts (decreasing)
+        cluster_word_counts = np.zeros(self.m_K, dtype=np.uint)
+        for i in xrange(self.m_K):
+            cluster_docs = np.where(cluster_assignments == i)[0]
+            for j in cluster_docs:
+                cluster_word_counts[i] += docs[j].total
+        reverse_cluster_order = np.argsort(cluster_word_counts)
+        cluster_means[:] = cluster_means[reverse_cluster_order[::-1]]
+
+        logging.debug('Initialization means:')
         for i in xrange(self.m_K):
             w_order = np.argsort(cluster_means[i,:])
             logging.debug('\t%s' % ' '.join(str(batch_to_vocab_word_map[w_order[j]]) for j in xrange(Wt-1, max(-1,Wt-11), -1)))
