@@ -316,7 +316,10 @@ def run(**kwargs):
 
         if options['max_iter'] is not None and iteration > options['max_iter']:
             break
-        if options['max_time'] is not None and time.time() - start_time > options['max_time']:
+
+        delta_time = time.time() - start_time
+        logging.info('Elapsed time %d s' % delta_time)
+        if options['max_time'] is not None and delta_time > options['max_time']:
             break
 
     # Save the model.
