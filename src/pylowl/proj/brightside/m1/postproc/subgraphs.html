@@ -154,6 +154,19 @@ index_in_array = function(innerArray, outerArray){
 	return index_in_array;
 }
 
+
+qsort = function(a) {
+    if (a.length == 0) return [];
+ 
+    var left = [], right = [], pivot = a[0].total_lambda_ss;
+ 
+    for (var i = 1; i < a.length; i++) {
+        a[i].total_lambda_ss > pivot ? left.push(a[i]) : right.push(a[i]);
+    }
+ 
+    return qsort(left).concat(a[0], qsort(right));
+}
+
 node_sort_array = [];
 
 filter_node_first = function(node){
@@ -162,20 +175,20 @@ filter_node_first = function(node){
 	if(node != null){
 		if(index_in_array(node.node_placement, node_sort_array) == -1){
 			node_sort_array[node_sort_array.length] = node.node_placement;
-			for(graphNum = 0; graphNum < $root.length; graphNum++){
+			for(var graphNum = 0; graphNum < $root.length; graphNum++){
 				lookup_node($root[graphNum]["subtree"], node.node_placement).circled = true;
 			}
 		}else{
 			var indexOfNode = index_in_array(node.node_placement, node_sort_array);
 			node_sort_array.splice(indexOfNode,1);
-			for(graphNum = 0; graphNum < $root.length; graphNum++){
+			for(var graphNum = 0; graphNum < $root.length; graphNum++){
 				lookup_node($root[graphNum]["subtree"], node.node_placement).circled = false;
 			}
 			filter_node_first(null);
 		}
 	}
 	for(CirNode = 0; CirNode < node_sort_array.length; CirNode++){
-		for(graphNum = 0; graphNum < end_sort; graphNum++){
+		for(var graphNum = 0; graphNum < end_sort; graphNum++){
 			if(lookup_node($root[graphNum]["subtree"], node_sort_array[CirNode]).active == true){
 				var temp = $root[graphNum];
 				$root[graphNum] = $root[root_index];
@@ -186,8 +199,52 @@ filter_node_first = function(node){
 		end_sort = root_index;
 		root_index = 0;
 	}
-	update_graphs();
+
+	for(var graphNum = 0; graphNum < $root.length; graphNum++){
+		var graphLambda = 0;
+		for(var nodeInd = 0; nodeInd < node_sort_array.length; nodeInd++){
+			if(lookup_node($root[graphNum]["subtree"], node_sort_array[nodeInd]).active == true){
+				graphLambda += lookup_node($root[graphNum]["subtree"], node_sort_array[nodeInd]).lambda_ss;
+			}
+		}
+		$root[graphNum].total_lambda_ss = graphLambda;
+	}
+
+	var end_first_part_qsort = 0;
+	for(var graphNum = 0; graphNum < $root.length; graphNum++){
+		var addOne = 1;
+		for(var nodeInd = 0; nodeInd < node_sort_array.length; nodeInd++){
+			if(lookup_node($root[graphNum]["subtree"], node_sort_array[nodeInd]).active == false){
+				addOne = 0;
+			}
+		}
+		end_first_part_qsort += addOne;
+	}
 	
+	//NOTE: BESIDES ADDING ELEMENTS TO THESE ARRAYS AND REORDERING THEM, DO NOTHING ELSE. ALIASING CAN BE MEAN.
+	var firstArr = [];
+	var secondArr = [];
+	
+	for(var graphNum = 0; graphNum < end_first_part_qsort; graphNum++){
+		firstArr[graphNum] = $root[graphNum];
+	}
+	
+	for(var graphNum = end_first_part_qsort; graphNum < $root.length; graphNum++){
+		secondArr[graphNum-firstArr.length] = $root[graphNum];
+	}
+	
+	firstArr = qsort(firstArr);
+	secondArr = qsort(secondArr);
+	
+	for(var index = 0; index < secondArr.length; index++){
+		firstArr[firstArr.length] = secondArr[index];
+	}
+	
+	for(var graphNum = 0; graphNum < firstArr.length; graphNum++){
+		$root[graphNum] = firstArr[graphNum];
+	}
+
+	update_graphs();
 }
 
 update_graphs = function() {
@@ -212,7 +269,6 @@ update_graphs = function() {
 
         var user = $root[c]["user"];
         var user_container = document.createElement("div");
-        user_container.className = "user";
         graph_container.appendChild(user_container);
         var user_text = document.createTextNode(user);
         user_container.appendChild(user_text);
@@ -402,7 +458,7 @@ d3.json("graph.json", function(error, graph_root) {
         }
 
         node_placement_rootParent = function(){
-        for(graphNum = 0; graphNum < $root.length; graphNum++){
+        for(var graphNum = 0; graphNum < $root.length; graphNum++){
             node_placement_subtreeChildren($root[graphNum].subtree, 0, []);
         }
     }
