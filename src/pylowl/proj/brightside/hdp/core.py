@@ -218,17 +218,6 @@ class model(object):
                         s_idx = self.tree_index(s)
                         uv[1,s_idx] += nu_sums[idx]
 
-    def update_ab(self, subtree, nu_sums, ab):
-        ab[0] = self.m_gamma1 + nu_sums
-        ab[1] = self.m_gamma2
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            if node + (0,) not in subtree: # leaf in subtree
-                ab[:,idx] = [1.0, 0.0]
-            for p in self.node_ancestors(node):
-                p_idx = self.tree_index(p)
-                ab[1,p_idx] += nu_sums[idx]
-
     def update_tau(self):
         self.m_tau[0] = self.m_tau_ss + 1.0
         self.m_tau[1] = self.m_alpha
@@ -295,108 +284,6 @@ class model(object):
 
         return np.sum(nu[:,ids].T * np.repeat(Elogprobw_doc[ids,:], doc.counts, axis=1))
 
-    def compute_Elogpi(self):
-        ids = [self.tree_index(node) for node in self.tree_iter()]
-        ElogV = utils.log_beta_expectation(self.m_tau)
-        Elogpi = np.zeros(self.m_K)
-
-        for node in self.tree_iter():
-            idx = self.tree_index(node)
-            for p in it.chain((node,), self.node_ancestors(node)):
-                p_idx = self.tree_index(p)
-
-                Elogpi[idx] += ElogV[0,p_idx]
-                for s in self.node_left_siblings(p):
-                    s_idx = self.tree_index(s)
-                    Elogpi[idx] += ElogV[1,s_idx]
-
-        return Elogpi
-
-    def compute_logEpi(self):
-        ids = [self.tree_index(node) for node in self.tree_iter()]
-        logEV = utils.beta_log_expectation(self.m_tau)
-        logEpi = np.zeros(self.m_K)
-
-        for node in self.tree_iter():
-            idx = self.tree_index(node)
-            for p in it.chain((node,), self.node_ancestors(node)):
-                p_idx = self.tree_index(p)
-
-                logEpi[idx] += logEV[0,p_idx]
-                for s in self.node_left_siblings(p):
-                    s_idx = self.tree_index(s)
-                    logEpi[idx] += logEV[1,s_idx]
-
-        return logEpi
-
-    def compute_subtree_Elogpi(self, subtree, ab, uv):
-        Elogpi = np.zeros(self.m_K)
-        ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
-        ElogV = np.zeros((2, self.m_K))
-        ElogV[:,ids] = utils.log_beta_expectation(uv[:,ids])
-        ElogU = np.zeros((2, self.m_K))
-        ElogU[:,ids] = utils.log_beta_expectation(ab[:,ids])
-
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            for p in it.chain((node,), self.node_ancestors(node)):
-                p_idx = self.tree_index(p)
-
-                # contributions from switching probabilities
-                if idx == p_idx:
-                    Elogpi[idx] += ElogU[0,p_idx]
-                else:
-                    Elogpi[idx] += ElogU[1,p_idx]
-
-                # contributions from stick proportions
-                Elogpi[idx] += ElogV[0,p_idx]
-                for s in self.node_left_siblings(p):
-                    s_idx = self.tree_index(s)
-                    Elogpi[idx] += ElogV[1,s_idx]
-
-        return Elogpi
-
-    def compute_subtree_logEpi(self, subtree, ab, uv):
-        logEpi = np.zeros(self.m_K)
-        ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
-        logEV = np.zeros((2, self.m_K))
-        logEV[:,ids] = utils.beta_log_expectation(uv[:,ids])
-        logEU = np.zeros((2, self.m_K))
-        logEU[:,ids] = utils.beta_log_expectation(ab[:,ids])
-
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            for p in it.chain((node,), self.node_ancestors(node)):
-                p_idx = self.tree_index(p)
-
-                # contributions from switching probabilities
-                if idx == p_idx:
-                    logEpi[idx] += logEU[0,p_idx]
-                else:
-                    logEpi[idx] += logEU[1,p_idx]
-
-                # contributions from stick proportions
-                logEpi[idx] += logEV[0,p_idx]
-                for s in self.node_left_siblings(p):
-                    s_idx = self.tree_index(s)
-                    logEpi[idx] += logEV[1,s_idx]
-
-        return logEpi
-
-    def check_subtree_ids(self, subtree, ids):
-        ids_in_subtree = set(ids)
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            assert idx in ids_in_subtree, 'id %d in subtree but not in id list' % idx
-            ids_in_subtree.remove(idx)
-        assert not ids_in_subtree, 'ids in id list but not in subtree: %s' % str(ids_in_subtree)
-
-    def check_ab_edge_cases(self, ab, subtree, ids):
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            if idx in ids and node + (0,) not in subtree: # leaf in subtree
-                assert ab[0, idx] == 1. and ab[1, idx] == 0., 'leaf %s has ab = %s (require [1, 0])' % (str(node), str(ab[:, idx]))
-
     def check_uv_edge_cases(self, uv, subtree, ids):
         for node in self.tree_iter(subtree):
             idx = self.tree_index(node)
@@ -436,12 +323,12 @@ class model(object):
         logging.debug('Initializing document variational parameters')
 
         # q(V_{i,j}^{(d)} = 1) = 1 for j+1 = trunc[\ell] (\ell is depth)
-        uv = np.zeros((2, self.m_T))
+        uv = np.zeros((2, self.m_L))
         uv[0] = 1.0
         uv[1] = self.m_beta
-        uv_ids = range(self.m_T - 1)
+        uv_ids = range(self.m_L - 1)
 
-        nu = np.zeros((num_tokens, self.m_T))
+        nu = np.zeros((num_tokens, self.m_L))
         log_nu = np.log(nu)
         self.update_nu(uv, Elogprobw_doc, doc, nu, log_nu)
         nu_sums = np.sum(nu, 0)
@@ -521,24 +408,6 @@ class model(object):
 
         return likelihood
 
-    def node_ancestors(self, node):
-        return utils.node_ancestors(node)
-
-    def node_left_siblings(self, node):
-        return utils.node_left_siblings(node)
-
-    def tree_iter(self, subtree=None):
-        if subtree is None:
-            return utils.tree_iter(self.m_trunc)
-        else:
-            return (n for n in utils.tree_iter(self.m_trunc) if n in subtree)
-
-    def tree_index(self, x):
-        return utils.tree_index(x, self.m_trunc_idx_m, self.m_trunc_idx_b)
-
-    def subtree_node_candidates(self, subtree):
-        return utils.subtree_node_candidates(self.m_trunc, subtree)
-
     def update_ss_stochastic(self, ss, batch_to_vocab_word_map):
         # rho will be between 0 and 1, and says how much to weight
         # the information we got from this mini-batch.
@@ -589,22 +458,6 @@ class model(object):
 
     def save_pickle(self, f):
         cPickle.dump(self, f, -1)
-
-    def save_subtree_lambda_ss(self, f, doc, ids, doc_lambda_ss):
-        self.save_subtree_row(f, doc, doc_lambda_ss[ids] + self.m_lambda0)
-
-    def save_subtree_logEpi(self, f, doc, subtree, ids, ab, uv):
-        logEpi = self.compute_subtree_logEpi(subtree, ab, uv)
-        self.save_subtree_row(f, doc, logEpi[ids])
-
-    def save_subtree_Elogpi(self, f, doc, subtree, ids, ab, uv):
-        Elogpi = self.compute_subtree_Elogpi(subtree, ab, uv)
-        self.save_subtree_row(f, doc, Elogpi[ids])
-
-    def save_subtree(self, f, doc, subtree, l2g_idx):
-        global_ids = (l2g_idx[self.tree_index(nod)]
-                      for nod in self.tree_iter(subtree))
-        self.save_subtree_row(f, doc, global_ids)
 
     def save_rows(self, f, m):
         if f is not None:
