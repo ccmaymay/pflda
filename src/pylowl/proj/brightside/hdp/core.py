@@ -160,7 +160,6 @@ class model(object):
         ss = suff_stats(self.m_K, Wt, doc_count)
 
         # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
-        ids = [self.tree_index(node) for node in self.tree_iter()]
         ElogV = utils.log_beta_expectation(self.m_tau)
 
         # run variational inference on some new docs
@@ -432,43 +431,23 @@ class model(object):
         batch_ids = [vocab_to_batch_word_map[w] for w in doc.words]
         token_batch_ids = np.repeat(batch_ids, doc.counts)
 
-        (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc, ElogV, num_tokens)
-        ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
-
-        Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
+        Elogprobw_doc = self.m_Elogprobw[:, doc.words]
 
         logging.debug('Initializing document variational parameters')
 
         # q(V_{i,j}^{(d)} = 1) = 1 for j+1 = trunc[\ell] (\ell is depth)
-        uv = np.zeros((2, self.m_K))
+        uv = np.zeros((2, self.m_T))
         uv[0] = 1.0
         uv[1] = self.m_beta
-        uv_ids = []
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            s = node[:-1] + (node[-1] + 1,) # right child
-            if s not in subtree: # node is last child of its parent in subtree
-                uv[0,idx] = 1.0
-                uv[1,idx] = 0.0
-            else:
-                uv_ids.append(idx)
+        uv_ids = range(self.m_T - 1)
 
-        ab = np.zeros((2, self.m_K))
-        ab[0] = self.m_gamma1
-        ab[1] = self.m_gamma2
-        ab_ids = []
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            if node + (0,) not in subtree: # leaf in subtree
-                ab[0,idx] = 1.0
-                ab[1,idx] = 0.0
-            else:
-                ab_ids.append(idx)
-
-        nu = np.zeros((num_tokens, self.m_K))
+        nu = np.zeros((num_tokens, self.m_T))
         log_nu = np.log(nu)
-        self.update_nu(subtree, ab, uv, Elogprobw_doc, doc, nu, log_nu)
+        self.update_nu(uv, Elogprobw_doc, doc, nu, log_nu)
         nu_sums = np.sum(nu, 0)
+
+        # TODO index?
+        Elogpi = utils.log_beta_expectation(uv)
 
         converge = None
         likelihood = None
@@ -480,28 +459,23 @@ class model(object):
         while iteration < max_iter and (converge is None or converge < 0.0 or converge > var_converge):
             logging.debug('Updating document variational parameters (iteration: %d)' % iteration)
             # update variational parameters
-
-            self.update_nu(subtree, ab, uv, Elogprobw_doc, doc, nu, log_nu)
+            self.update_phi(Elogprobw_doc, doc, ElogV, nu, phi, log_phi)
+            self.update_nu(Elogprobw_doc, doc, Elogpi, phi, nu, log_nu)
             nu_sums = np.sum(nu, 0)
-            self.update_uv(subtree, nu_sums, uv)
-            self.update_ab(subtree, nu_sums, ab)
+            self.update_uv(nu_sums, uv)
+            Elogpi = utils.log_beta_expectation(uv)
 
             # compute likelihood
 
             likelihood = 0.0
-
-            # E[log p(U | gamma_1, gamma_2)] + H(q(U))
-            u_ll = utils.log_sticks_likelihood(ab[:,ab_ids], self.m_gamma1, self.m_gamma2)
-            likelihood += u_ll
-            logging.debug('Log-likelihood after U components: %f (+ %f)' % (likelihood, u_ll))
 
             # E[log p(V | beta)] + H(q(V))
             v_ll = utils.log_sticks_likelihood(uv[:,uv_ids], 1.0, self.m_beta)
             likelihood += v_ll
             logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
 
-            # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
-            z_ll = self.z_likelihood(subtree, ElogV)
+            # E[log p(z | V)] + H(q(z))
+            z_ll = self.z_likelihood(ElogV, phi, log_phi)
             likelihood += z_ll
             logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
 
@@ -509,12 +483,12 @@ class model(object):
             # TODO is it a bug that the equivalent computation in
             # oHDP does not account for types appearing more than
             # once?  (Uses . rather than ._all .)
-            c_ll = self.c_likelihood(subtree, ab, uv, nu, log_nu, ids)
+            c_ll = self.c_likelihood(Elogpi, nu, log_nu)
             likelihood += c_ll
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
 
             # E[log p(W | theta, c, z)]
-            w_ll = self.w_likelihood(doc, nu, Elogprobw_doc, ids)
+            w_ll = self.w_likelihood(doc, nu, phi, Elogprobw_doc)
             likelihood += w_ll
             logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
 
@@ -528,35 +502,22 @@ class model(object):
 
             iteration += 1
 
-        # update the suff_stat ss
-        global_ids = l2g_idx[ids]
-        ss.m_tau_ss[global_ids] += 1
-        for n in xrange(num_tokens):
-            ss.m_lambda_ss[global_ids, token_batch_ids[n]] += nu[n, ids]
+        # update the suff_stat ss TODO...
+        ss.m_tau_ss += phi_sums
+        ss.m_lambda_ss[:, token_batch_ids] += np.dot(phi.T, nu.T * doc.counts)
 
         if save_model:
-            # save subtree stats
-            self.save_subtree(
-                self.subtree_output_files.get('subtree', None),
-                doc, subtree, l2g_idx)
-            self.save_subtree_Elogpi(
-                self.subtree_output_files.get('subtree_Elogpi', None),
-                doc, subtree, ids, ab, uv)
-            self.save_subtree_logEpi(
-                self.subtree_output_files.get('subtree_logEpi', None),
-                doc, subtree, ids, ab, uv)
-            self.save_subtree_lambda_ss(
-                self.subtree_output_files.get('subtree_lambda_ss', None),
-                doc, ids, nu_sums)
+            pass # TODO
 
         if predict_doc is not None:
-            logEpi = self.compute_subtree_logEpi(subtree, ab, uv)
-            # TODO abstract this?
-            logEtheta = (
-                np.log(self.m_lambda0 + self.m_lambda_ss)
-                - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
-            )
-            likelihood = np.sum(np.log(np.sum(np.exp(logEpi[ids][:,np.newaxis] + logEtheta[l2g_idx[ids],:][:,predict_doc.words]), 0)) * predict_doc.counts)
+            pass # TODO
+            #logEpi = utils.beta_log_expectation(uv)
+            ## TODO abstract this?
+            #logEtheta = (
+            #    np.log(self.m_lambda0 + self.m_lambda_ss)
+            #    - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
+            #)
+            #likelihood = np.sum(np.log(np.sum(np.exp(logEpi[:,np.newaxis] + phi.T * logEtheta[:,predict_doc.words]), 0)) * predict_doc.counts)
 
         return likelihood
 
@@ -577,175 +538,6 @@ class model(object):
 
     def subtree_node_candidates(self, subtree):
         return utils.subtree_node_candidates(self.m_trunc, subtree)
-
-    def select_subtree(self, doc, ElogV, num_tokens):
-        # TODO abstract stuff below, like subtree candidate
-        # modifications... prone to bugs
-        logging.debug('Greedily selecting subtree for ' + str(doc.id))
-
-        # map from local nodes in subtree to global nodes
-        subtree = dict()
-        subtree[(0,)] = (0,) # root
-        # map from local (subtree) node indices to global indices
-        l2g_idx = np.zeros(self.m_K, dtype=np.uint)
-        # map from global node indices to local (subtree) node indices;
-        # unmapped global nodes are left at zero (note that there is no
-        # ambiguity here, as the local root only maps to the global
-        # root and vice-versa)
-        g2l_idx = np.zeros(self.m_K, dtype=np.uint)
-
-        prior_uv = np.zeros((2, self.m_K))
-        prior_uv[0] = 1.0
-
-        prior_ab = np.zeros((2, self.m_K))
-        prior_ab[0] = 1.0
-
-        old_likelihood = 0.0
-
-        ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
-        logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
-        logging.debug('Subtree global ids: %s'
-            % ' '.join(str(l2g_idx[i]) for i in ids))
-
-        Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
-        nu = np.zeros((num_tokens, self.m_K))
-        log_nu = np.log(nu)
-        self.update_nu(
-            subtree, prior_ab, prior_uv, Elogprobw_doc, doc, nu, log_nu)
-
-        # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
-        z_ll = self.z_likelihood(subtree, ElogV)
-        old_likelihood += z_ll
-        logging.debug('Log-likelihood after z components: %f (+ %f)'
-            % (old_likelihood, z_ll))
-
-        # E[log p(c | U, V)] + H(q(c))
-        # TODO is it a bug that the equivalent computation in
-        # oHDP does not account for types appearing more than
-        # once?  (Uses . rather than ._all .)
-        c_ll = self.c_likelihood(subtree, prior_ab, prior_uv, nu, log_nu, ids)
-        old_likelihood += c_ll
-        logging.debug('Log-likelihood after c components: %f (+ %f)'
-            % (old_likelihood, c_ll))
-
-        # E[log p(W | theta, c, z)]
-        w_ll = self.w_likelihood(doc, nu, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
-        old_likelihood += w_ll
-        logging.debug('Log-likelihood after W component: %f (+ %f)'
-            % (old_likelihood, w_ll))
-
-        candidate_nu = nu
-        candidate_log_nu = log_nu
-
-        while True:
-            best_node = None
-            best_global_node = None
-            best_likelihood = None
-
-            for (node, global_node) in self.subtree_node_candidates(subtree):
-                logging.debug('Candidate: global node %s for local node %s'
-                    % (str(global_node), str(node)))
-                idx = self.tree_index(node)
-                global_idx = self.tree_index(global_node)
-
-                subtree[node] = global_node
-                l2g_idx[idx] = global_idx
-                p = node[:-1]
-                if p in subtree and node[-1] == 0:
-                    p_idx = self.tree_index(p)
-                    prior_ab[:,p_idx] = [self.m_gamma1, self.m_gamma2]
-                left_s = p + (node[-1] - 1,)
-                if left_s in subtree:
-                    left_s_idx = self.tree_index(left_s)
-                    prior_uv[:,left_s_idx] = [1.0, self.m_beta]
-
-                ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
-                logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
-                logging.debug('Subtree global ids: %s'
-                    % ' '.join(str(l2g_idx[i]) for i in ids))
-
-                Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
-                self.update_nu(subtree, prior_ab, prior_uv, Elogprobw_doc, doc,
-                    candidate_nu, candidate_log_nu)
-
-                candidate_likelihood = 0.0
-
-                # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
-                z_ll = self.z_likelihood(subtree, ElogV)
-                candidate_likelihood += z_ll
-                logging.debug('Log-likelihood after z components: %f (+ %f)'
-                    % (candidate_likelihood, z_ll))
-
-                # E[log p(c | U, V)] + H(q(c))
-                # TODO is it a bug that the equivalent computation in
-                # oHDP does not account for types appearing more than
-                # once?  (Uses . rather than ._all .)
-                c_ll = self.c_likelihood(subtree, prior_ab, prior_uv, candidate_nu, candidate_log_nu, ids)
-                candidate_likelihood += c_ll
-                logging.debug('Log-likelihood after c components: %f (+ %f)'
-                    % (candidate_likelihood, c_ll))
-
-                # E[log p(W | theta, c, z)]
-                w_ll = self.w_likelihood(doc, candidate_nu, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
-                candidate_likelihood += w_ll
-                logging.debug('Log-likelihood after W component: %f (+ %f)'
-                    % (candidate_likelihood, w_ll))
-
-                if best_likelihood is None or candidate_likelihood > best_likelihood:
-                    best_node = node
-                    best_global_node = global_node
-                    best_likelihood = candidate_likelihood
-
-                del subtree[node]
-                l2g_idx[idx] = 0
-                if p in subtree and node[-1] == 0:
-                    p_idx = self.tree_index(p)
-                    prior_ab[:,p_idx] = [1.0, 0.0]
-                if left_s in subtree:
-                    left_s_idx = self.tree_index(left_s)
-                    prior_uv[:,left_s_idx] = [1.0, 0.0]
-
-            if best_likelihood is None: # no candidates
-                break
-
-            converge = (best_likelihood - old_likelihood) / abs(old_likelihood)
-            if converge < self.m_delta:
-                break
-
-            logging.debug('Selecting global node %s for local node %s'
-                % (str(best_global_node), str(best_node)))
-            logging.debug('Log-likelihood: %f' % best_likelihood)
-
-            subtree[best_node] = best_global_node
-            idx = self.tree_index(best_node)
-            global_idx = self.tree_index(best_global_node)
-            l2g_idx[idx] = global_idx
-            g2l_idx[global_idx] = idx
-            p = best_node[:-1]
-            if p in subtree and best_node[-1] == 0:
-                p_idx = self.tree_index(p)
-                prior_ab[:,p_idx] = [self.m_gamma1, self.m_gamma2]
-            left_s = p + (best_node[-1] - 1,)
-            if left_s in subtree:
-                left_s_idx = self.tree_index(left_s)
-                prior_uv[:,left_s_idx] = [1.0, self.m_beta]
-            likelihood = best_likelihood
-
-            ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
-            logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
-            logging.debug('Subtree global ids: %s'
-                % ' '.join(str(l2g_idx[i]) for i in ids))
-
-            old_likelihood = likelihood
-
-        logging.debug('Log-likelihood: %f' % old_likelihood)
-
-        ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
-        logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
-        logging.debug('Subtree global ids: %s'
-            % ' '.join(str(l2g_idx[i]) for i in ids))
-
-        return (subtree, l2g_idx, g2l_idx)
 
     def update_ss_stochastic(self, ss, batch_to_vocab_word_map):
         # rho will be between 0 and 1, and says how much to weight
