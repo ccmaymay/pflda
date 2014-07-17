@@ -50,7 +50,7 @@ def take(g, n):
     return (x for (i, x) in it.izip(xrange(n), g))
 
 
-def compute_Elog_sbc_stop(self, ab, n):
+def Elog_sbc_stop(self, ab):
     '''
     Return expected log stopping probabilities of stick-breaking
     construction with relative weights ab.
@@ -64,7 +64,7 @@ def compute_Elog_sbc_stop(self, ab, n):
     return Elog_sbc_stop
 
 
-def compute_logE_sbc_stop(self, ab):
+def logE_sbc_stop(self, ab):
     '''
     Return log expected stopping probabilities of stick-breaking
     construction with relative weights ab.

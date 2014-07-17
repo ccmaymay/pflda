@@ -160,7 +160,7 @@ class model(object):
         ss = suff_stats(self.m_K, Wt, doc_count)
 
         # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
-        ElogV = utils.log_beta_expectation(self.m_tau)
+        ElogV = utils.Elog_sbc_stop(self.m_tau)
 
         # run variational inference on some new docs
         score = 0.0
@@ -190,45 +190,29 @@ class model(object):
             - sp.psi(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:, np.newaxis])
         )
 
-    def update_nu(self, subtree, ab, uv, Elogprobw_doc, doc, nu, log_nu):
-        Elogpi = self.compute_subtree_Elogpi(subtree, ab, uv)
-
+    def update_nu(self, uv, Elogprobw_doc, doc, Elogpi, phi, nu, log_nu):
         # TODO oHDP: only add Elogpi if iter < 3
-        log_nu[:,:] = np.repeat(Elogprobw_doc, doc.counts, axis=1).T + Elogpi # N x K
-        log_nu[:,[self.tree_index(node) for node in self.tree_iter() if node not in subtree]] = -np.inf
+        log_nu[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1).T, phi) + Elogpi # N x L
         for n in xrange(doc.total):
             (log_nu[n,:], log_norm) = utils.log_normalize(log_nu[n,:])
         nu[:,:] = np.exp(log_nu)
 
-    def update_uv(self, subtree, nu_sums, uv):
-        uv[0] = 1.0
+    def update_uv(self, nu_sums, uv):
+        uv[0] = 1.0 + nu_sums
         uv[1] = self.m_beta
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            if node[:-1] + (node[-1] + 1,) not in subtree: # last child of this node in subtree
-                uv[:,idx] = [1.0, 0.0]
-            for p in it.chain((node,), self.node_ancestors(node)):
-                if len(p) > 1: # not root
-                    p_idx = self.tree_index(p)
-                    if p[:-1] + (p[-1] + 1,) in subtree:
-                        uv[0,p_idx] += nu_sums[idx]
-
-                    # left siblings of this ancestor
-                    for s in self.node_left_siblings(p):
-                        s_idx = self.tree_index(s)
-                        uv[1,s_idx] += nu_sums[idx]
+        uv[1,1:] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
 
     def update_tau(self):
-        self.m_tau[0] = self.m_tau_ss + 1.0
+        self.m_tau[0] = 1.0 + self.m_tau_ss
         self.m_tau[1] = self.m_alpha
-        for global_node in self.tree_iter():
-            global_node_idx = self.tree_index(global_node)
-            if global_node[-1] + 1 == self.m_trunc[len(global_node)-1]: # right-most child in truncated tree
-                self.m_tau[0,global_node_idx] = 1.0
-                self.m_tau[1,global_node_idx] = 0.0
-            for global_s in self.node_left_siblings(global_node):
-                global_s_idx = self.tree_index(global_s)
-                self.m_tau[1,global_s_idx] += self.m_tau_ss[global_node_idx]
+        self.m_tau[1,1:] += np.flipud(np.cumsum(np.flipud(self.m_tau_ss[1:])))
+
+    def update_phi(self, Elogprobw_doc, doc, ElogV, nu, phi, log_phi):
+        # TODO oHDP: only add ElogV if iter < 3
+        log_phi[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), nu).T + ElogV
+        for i in xrange(self.m_L):
+            (log_phi[i,:], log_norm) = utils.log_normalize(log_phi[i,:])
+        phi[:,:] = np.exp(log_phi)
 
     def z_likelihood(self, subtree, ElogV):
         self.check_ElogV_edge_cases(ElogV)
@@ -334,7 +318,7 @@ class model(object):
         nu_sums = np.sum(nu, 0)
 
         # TODO index?
-        Elogpi = utils.log_beta_expectation(uv)
+        Elogpi = utils.Elog_sbc_stop(uv)
 
         converge = None
         likelihood = None
@@ -350,7 +334,7 @@ class model(object):
             self.update_nu(Elogprobw_doc, doc, Elogpi, phi, nu, log_nu)
             nu_sums = np.sum(nu, 0)
             self.update_uv(nu_sums, uv)
-            Elogpi = utils.log_beta_expectation(uv)
+            Elogpi = utils.Elog_sbc_stop(uv)
 
             # compute likelihood
 
@@ -398,7 +382,7 @@ class model(object):
 
         if predict_doc is not None:
             pass # TODO
-            #logEpi = utils.beta_log_expectation(uv)
+            #logEpi = utils.Elog_sbc_stop(uv)
             ## TODO abstract this?
             #logEtheta = (
             #    np.log(self.m_lambda0 + self.m_lambda_ss)
