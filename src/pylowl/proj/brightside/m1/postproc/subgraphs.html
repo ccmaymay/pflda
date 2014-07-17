@@ -175,20 +175,20 @@ filter_node_first = function(node){
 	if(node != null){
 		if(index_in_array(node.node_placement, node_sort_array) == -1){
 			node_sort_array[node_sort_array.length] = node.node_placement;
-			for(graphNum = 0; graphNum < $root.length; graphNum++){
+			for(var graphNum = 0; graphNum < $root.length; graphNum++){
 				lookup_node($root[graphNum]["subtree"], node.node_placement).circled = true;
 			}
 		}else{
 			var indexOfNode = index_in_array(node.node_placement, node_sort_array);
 			node_sort_array.splice(indexOfNode,1);
-			for(graphNum = 0; graphNum < $root.length; graphNum++){
+			for(var graphNum = 0; graphNum < $root.length; graphNum++){
 				lookup_node($root[graphNum]["subtree"], node.node_placement).circled = false;
 			}
 			filter_node_first(null);
 		}
 	}
 	for(CirNode = 0; CirNode < node_sort_array.length; CirNode++){
-		for(graphNum = 0; graphNum < end_sort; graphNum++){
+		for(var graphNum = 0; graphNum < end_sort; graphNum++){
 			if(lookup_node($root[graphNum]["subtree"], node_sort_array[CirNode]).active == true){
 				var temp = $root[graphNum];
 				$root[graphNum] = $root[root_index];
@@ -200,21 +200,21 @@ filter_node_first = function(node){
 		root_index = 0;
 	}
 
-	for(graphNum = 0; graphNum < $root.length; graphNum++){
-		graphLambda = 0;
-		for(nodeInd = 0; nodeInd < node_sort_array.length; nodeInd++){
+	for(var graphNum = 0; graphNum < $root.length; graphNum++){
+		var graphLambda = 0;
+		for(var nodeInd = 0; nodeInd < node_sort_array.length; nodeInd++){
 			if(lookup_node($root[graphNum]["subtree"], node_sort_array[nodeInd]).active == true){
-				graphLambda += lookup_node($root[0]["subtree"], node_sort_array[nodeInd]).lambda_ss;
+				graphLambda += lookup_node($root[graphNum]["subtree"], node_sort_array[nodeInd]).lambda_ss;
 			}
 		}
 		$root[graphNum].total_lambda_ss = graphLambda;
 	}
 
-	end_first_part_qsort = 0;
-	for(graphNum = 0; graphNum < $root.length; graphNum++){
-		addOne = 1;
-		for(nodeInd = 0; nodeInd < node_sort_array.length; nodeInd++){
-			if(lookup_node($root[0]["subtree"], node_sort_array[nodeInd]).active == false){
+	var end_first_part_qsort = 0;
+	for(var graphNum = 0; graphNum < $root.length; graphNum++){
+		var addOne = 1;
+		for(var nodeInd = 0; nodeInd < node_sort_array.length; nodeInd++){
+			if(lookup_node($root[graphNum]["subtree"], node_sort_array[nodeInd]).active == false){
 				addOne = 0;
 			}
 		}
@@ -225,11 +225,11 @@ filter_node_first = function(node){
 	var firstArr = [];
 	var secondArr = [];
 	
-	for(graphNum = 0; graphNum < end_first_part_qsort; graphNum++){
+	for(var graphNum = 0; graphNum < end_first_part_qsort; graphNum++){
 		firstArr[graphNum] = $root[graphNum];
 	}
 	
-	for(graphNum = end_first_part_qsort; graphNum < $root.length; graphNum++){
+	for(var graphNum = end_first_part_qsort; graphNum < $root.length; graphNum++){
 		secondArr[graphNum-firstArr.length] = $root[graphNum];
 	}
 	
@@ -237,13 +237,13 @@ filter_node_first = function(node){
 	secondArr = qsort(secondArr);
 	
 	for(var index = 0; index < secondArr.length; index++){
-		firstArr[firstArr.length + index] = secondArr[index];
+		firstArr[firstArr.length] = secondArr[index];
 	}
 	
-	for(graphNum = 0; graphNum < firstArr.length; graphNum++){
+	for(var graphNum = 0; graphNum < firstArr.length; graphNum++){
 		$root[graphNum] = firstArr[graphNum];
 	}
-	
+
 	update_graphs();
 }
 
@@ -459,7 +459,7 @@ d3.json("graph.json", function(error, graph_root) {
         }
 
         node_placement_rootParent = function(){
-        for(graphNum = 0; graphNum < $root.length; graphNum++){
+        for(var graphNum = 0; graphNum < $root.length; graphNum++){
             node_placement_subtreeChildren($root[graphNum].subtree, 0, []);
         }
     }
