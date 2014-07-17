@@ -197,7 +197,8 @@ class model(object):
             (log_nu[n,:], log_norm) = utils.log_normalize(log_nu[n,:])
         nu[:,:] = np.exp(log_nu)
 
-    def update_uv(self, nu_sums, uv):
+    def update_uv(self, nu, uv):
+        nu_sums = np.sum(nu, 0)
         uv[0] = 1.0 + nu_sums
         uv[1] = self.m_beta
         uv[1,1:] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
@@ -312,13 +313,17 @@ class model(object):
         uv[1] = self.m_beta
         uv_ids = range(self.m_L - 1)
 
-        nu = np.zeros((num_tokens, self.m_L))
-        log_nu = np.log(nu)
-        self.update_nu(uv, Elogprobw_doc, doc, nu, log_nu)
-        nu_sums = np.sum(nu, 0)
-
         # TODO index?
         Elogpi = utils.Elog_sbc_stop(uv)
+
+        nu = np.ones((num_tokens, self.m_L)) / self.m_L
+        log_nu = np.log(nu)
+
+        phi = np.zeros((self.m_L, self.m_K)) / self.m_K
+        log_phi = np.log(phi)
+
+        self.update_phi(Elogprobw_doc, doc, ElogV, nu, phi, log_phi)
+        self.update_nu(Elogprobw_doc, doc, Elogpi, phi, nu, log_nu)
 
         converge = None
         likelihood = None
@@ -332,8 +337,8 @@ class model(object):
             # update variational parameters
             self.update_phi(Elogprobw_doc, doc, ElogV, nu, phi, log_phi)
             self.update_nu(Elogprobw_doc, doc, Elogpi, phi, nu, log_nu)
-            nu_sums = np.sum(nu, 0)
-            self.update_uv(nu_sums, uv)
+            self.update_uv(nu, uv)
+
             Elogpi = utils.Elog_sbc_stop(uv)
 
             # compute likelihood
