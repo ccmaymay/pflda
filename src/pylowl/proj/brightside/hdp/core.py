@@ -41,7 +41,7 @@ class model(object):
                  iota=1.,
                  scale=1.,
                  rho_bound=0.,
-                 subtree_output_files=None):
+                 sublist_output_files=None):
         self.m_K = K
         self.m_L = L
         self.m_W = W
@@ -76,10 +76,10 @@ class model(object):
 
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
-        if subtree_output_files is None:
-            self.subtree_output_files = dict()
+        if sublist_output_files is None:
+            self.sublist_output_files = dict()
         else:
-            self.subtree_output_files = subtree_output_files
+            self.sublist_output_files = sublist_output_files
 
     def initialize(self, docs, init_noise_weight, eff_init_samples=None):
         docs = list(docs)
@@ -389,7 +389,7 @@ class model(object):
                 line = ' '.join([str(x) for x in v])
                 f.write('%s\n' % line)
 
-    def save_subtree_row(self, f, doc, v):
+    def save_sublist_row(self, f, doc, v):
         if f is not None:
             line = ' '.join([str(x) for x in v])
             f.write('%s %s\n' % (str(doc.id), line))
