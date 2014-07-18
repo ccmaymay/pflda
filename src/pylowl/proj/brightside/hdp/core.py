@@ -327,14 +327,13 @@ class model(object):
                 doc, nu)
 
         if predict_doc is not None:
-            pass # TODO
-            #logEpi = utils.Elog_sbc_stop(uv)
-            ## TODO abstract this?
-            #logEtheta = (
-            #    np.log(self.m_lambda0 + self.m_lambda_ss)
-            #    - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
-            #)
-            #likelihood = np.sum(np.log(np.sum(np.exp(logEpi[:,np.newaxis] + phi.T * logEtheta[:,predict_doc.words]), 0)) * predict_doc.counts)
+            logEpi = utils.Elog_sbc_stop(uv)
+            # TODO abstract this?
+            logEtheta = (
+                np.log(self.m_lambda0 + self.m_lambda_ss)
+                - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
+            )
+            likelihood = np.sum(np.log(np.sum(np.exp(logEpi[:,np.newaxis] + np.dot(phi, logEtheta[:,predict_doc.words])), 0)) * predict_doc.counts)
 
         return likelihood
 
