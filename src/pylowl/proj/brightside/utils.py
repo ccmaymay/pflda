@@ -60,7 +60,6 @@ def Elog_sbc_stop(ab):
     Elog_sbc_stop = np.zeros(n)
     Elog_sbc_stop[:n-1] = ElogX[0,:n-1]
     Elog_sbc_stop[1:] += np.cumsum(ElogX[1,:n-1])
-    Elog_sbc_stop[n-1] = 1.
     return Elog_sbc_stop
 
 
@@ -74,7 +73,6 @@ def logE_sbc_stop(ab):
     logE_sbc_stop = np.zeros(n)
     logE_sbc_stop[:n-1] = logEX[0,:n-1]
     logE_sbc_stop[1:] += np.cumsum(logEX[1,:n-1])
-    logE_sbc_stop[n-1] = 1.
     return logE_sbc_stop
 
 
