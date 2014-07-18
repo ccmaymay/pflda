@@ -201,7 +201,7 @@ class model(object):
         nu_sums = np.sum(nu, 0)
         uv[0] = 1.0 + nu_sums
         uv[1] = self.m_beta
-        uv[1,1:] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
+        uv[1,:self.m_L-1] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
 
     def update_tau(self):
         self.m_tau[0] = 1.0 + self.m_tau_ss
