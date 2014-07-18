@@ -215,77 +215,14 @@ class model(object):
             (log_phi[i,:], log_norm) = utils.log_normalize(log_phi[i,:])
         phi[:,:] = np.exp(log_phi)
 
-    def z_likelihood(self, subtree, ElogV):
-        self.check_ElogV_edge_cases(ElogV)
+    def z_likelihood(self, ElogV, phi, log_phi):
+        return np.sum(phi * (ElogV - log_phi))
 
-        likelihood = 0.0
-        for node in self.tree_iter(subtree):
-            global_node = subtree[node]
-            global_idx = self.tree_index(global_node)
-            likelihood += ElogV[0,global_idx]
-            for global_s in self.node_left_siblings(global_node):
-                global_s_idx = self.tree_index(global_s)
-                likelihood += ElogV[1,global_s_idx]
-        return likelihood
-
-    def c_likelihood(self, subtree, ab, uv, nu, log_nu, ids):
-        self.check_ab_edge_cases(ab, subtree, ids)
-        self.check_uv_edge_cases(uv, subtree, ids)
-        self.check_nu_edge_cases(nu)
-        self.check_log_nu_edge_cases(log_nu)
-        self.check_subtree_ids(subtree, ids)
-
-        log_prob_c = np.zeros(self.m_K)
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            log_prob_c[idx] += (
-                sp.psi(ab[0,idx])
-                - sp.psi(np.sum(ab[:,idx]))
-            )
-            if len(node) > 1: # not root
-                for p in it.chain((node,), self.node_ancestors(node)):
-                    p_idx = self.tree_index(p)
-                    if len(p) < len(node): # equivalent to: p != node
-                        log_prob_c[idx] += (
-                            sp.psi(ab[1,p_idx])
-                            - sp.psi(np.sum(ab[:,p_idx]))
-                        )
-                    log_prob_c[idx] += (
-                        sp.psi(uv[0,p_idx])
-                        - sp.psi(np.sum(uv[:,p_idx]))
-                    )
-                    for s in self.node_left_siblings(p):
-                        s_idx = self.tree_index(s)
-                        log_prob_c[idx] += (
-                            sp.psi(uv[1,s_idx])
-                            - sp.psi(np.sum(uv[:,s_idx]))
-                        )
-
-        assert (log_prob_c <= 0).all()
-        return np.sum(nu[:,ids] * (log_prob_c[ids][np.newaxis,:] - log_nu[:,ids]))
+    def c_likelihood(self, Elogpi, nu, log_nu):
+        return np.sum(nu * (Elogpi - log_nu))
 
     def w_likelihood(self, doc, nu, phi, Elogprobw_doc):
-        self.check_nu_edge_cases(nu)
         return np.sum(nu.T * np.dot(phi, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
-
-    def check_uv_edge_cases(self, uv, subtree, ids):
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            s = node[:-1] + (node[-1] + 1,) # right child
-            if idx in ids and s not in subtree: # node is last child of its parent in subtree
-                assert uv[0, idx] == 1. and uv[1, idx] == 0., 'right-most child %s has uv = %s (require [1, 0])' % (str(node), str(uv[:, idx]))
-
-    def check_ElogV_edge_cases(self, ElogV):
-        for node in self.tree_iter():
-            idx = self.tree_index(node)
-            if node[-1] + 1 == self.m_trunc[len(node)-1]: # node is last child of its parent in global tree
-                assert ElogV[0, idx] == 0. and ElogV[1, idx] == np.inf, 'right-most child %s has ElogV = %s (require [0, inf])' % (str(node), str(ElogV[:, idx]))
-
-    def check_nu_edge_cases(self, nu):
-        assert la.norm(np.sum(nu,1) - 1, np.inf) < 1e-9, 'not all rows of nu sum to one: %s' % str(np.sum(nu, 1))
-
-    def check_log_nu_edge_cases(self, log_nu):
-        assert la.norm(np.sum(np.exp(log_nu),1) - 1, np.inf) < 1e-9, 'not all rows of exp(log_nu) sum to one: %s' % str(np.sum(np.exp(log_nu),1))
 
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, var_converge, max_iter=100,
@@ -310,7 +247,6 @@ class model(object):
         uv = np.zeros((2, self.m_L))
         uv[0] = 1.0
         uv[1] = self.m_beta
-        uv_ids = range(self.m_L - 1)
 
         # TODO index?
         Elogpi = utils.Elog_sbc_stop(uv)
@@ -345,7 +281,7 @@ class model(object):
             likelihood = 0.0
 
             # E[log p(V | beta)] + H(q(V))
-            v_ll = utils.log_sticks_likelihood(uv[:,uv_ids], 1.0, self.m_beta)
+            v_ll = utils.log_sticks_likelihood(uv[:,:self.m_L-1], 1.0, self.m_beta)
             likelihood += v_ll
             logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
 
