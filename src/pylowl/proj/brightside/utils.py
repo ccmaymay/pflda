@@ -50,6 +50,32 @@ def take(g, n):
     return (x for (i, x) in it.izip(xrange(n), g))
 
 
+def Elog_sbc_stop(ab):
+    '''
+    Return expected log stopping probabilities of stick-breaking
+    construction with relative weights ab.
+    '''
+    ElogX = log_beta_expectation(ab)
+    n = ab.shape[1]
+    Elog_sbc_stop = np.zeros(n)
+    Elog_sbc_stop[:n-1] = ElogX[0,:n-1]
+    Elog_sbc_stop[1:] += np.cumsum(ElogX[1,:n-1])
+    return Elog_sbc_stop
+
+
+def logE_sbc_stop(ab):
+    '''
+    Return log expected stopping probabilities of stick-breaking
+    construction with relative weights ab.
+    '''
+    logEX = beta_log_expectation(ab)
+    n = ab.shape[1]
+    logE_sbc_stop = np.zeros(n)
+    logE_sbc_stop[:n-1] = logEX[0,:n-1]
+    logE_sbc_stop[1:] += np.cumsum(logEX[1,:n-1])
+    return logE_sbc_stop
+
+
 def vector_norm(m, axis=0, ord=None):
     '''
     Return vector norm across specified axis of matrix (axis 0 by
