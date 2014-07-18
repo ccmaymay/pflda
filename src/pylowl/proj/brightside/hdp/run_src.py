@@ -28,8 +28,8 @@ SRC_EXTENSIONS = ('.py', '.sh', '.c', '.h', '.pxd', '.pyx')
 
 # paths are relative to littleowl repo root
 OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/hdp'
-K = 100
-L = 20
+K = 20
+L = 10
 
 
 # TODO

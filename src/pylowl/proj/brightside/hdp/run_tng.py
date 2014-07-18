@@ -24,8 +24,8 @@ for (k, v) in os.environ.items():
     print '    %s: %s' % (k, v)
 print
 
-K = 100
-L = 20
+K = 20
+L = 10
 DATA_DIR = 'data/txt/tng'
 VOCAB_PATH = os.path.join(DATA_DIR, 'vocab')
 TRAIN_DATA_DIR = os.path.join(DATA_DIR, 'train')
