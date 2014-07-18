@@ -264,10 +264,9 @@ class model(object):
         assert (log_prob_c <= 0).all()
         return np.sum(nu[:,ids] * (log_prob_c[ids][np.newaxis,:] - log_nu[:,ids]))
 
-    def w_likelihood(self, doc, nu, Elogprobw_doc, ids):
+    def w_likelihood(self, doc, nu, phi, Elogprobw_doc):
         self.check_nu_edge_cases(nu)
-
-        return np.sum(nu[:,ids].T * np.repeat(Elogprobw_doc[ids,:], doc.counts, axis=1))
+        return np.sum(nu.T * np.dot(phi, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
 
     def check_uv_edge_cases(self, uv, subtree, ids):
         for node in self.tree_iter(subtree):
