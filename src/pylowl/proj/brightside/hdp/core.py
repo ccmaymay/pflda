@@ -190,9 +190,9 @@ class model(object):
             - sp.psi(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:, np.newaxis])
         )
 
-    def update_nu(self, uv, Elogprobw_doc, doc, Elogpi, phi, nu, log_nu):
+    def update_nu(self, Elogprobw_doc, doc, Elogpi, phi, nu, log_nu):
         # TODO oHDP: only add Elogpi if iter < 3
-        log_nu[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1).T, phi) + Elogpi # N x L
+        log_nu[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1).T, phi.T) + Elogpi # N x L
         for n in xrange(doc.total):
             (log_nu[n,:], log_norm) = utils.log_normalize(log_nu[n,:])
         nu[:,:] = np.exp(log_nu)
@@ -373,11 +373,11 @@ class model(object):
         self.save_rows(f, Elogtheta)
 
     def save_logEpi(self, f):
-        logEpi = self.compute_logEpi()
+        logEpi = utils.logE_sbc_stop(self.m_tau)
         self.save_rows(f, logEpi[:,np.newaxis])
 
     def save_Elogpi(self, f):
-        Elogpi = self.compute_Elogpi()
+        Elogpi = utils.Elog_sbc_stop(self.m_tau)
         self.save_rows(f, Elogpi[:,np.newaxis])
 
     def save_pickle(self, f):
