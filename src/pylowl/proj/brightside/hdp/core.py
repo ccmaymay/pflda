@@ -190,9 +190,10 @@ class model(object):
             - sp.psi(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:, np.newaxis])
         )
 
-    def update_nu(self, Elogprobw_doc, doc, Elogpi, phi, nu, log_nu):
-        # TODO oHDP: only add Elogpi if iter < 3
-        log_nu[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1).T, phi.T) + Elogpi # N x L
+    def update_nu(self, Elogprobw_doc, doc, Elogpi, phi, nu, log_nu, incorporate_prior=True):
+        log_nu[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1).T, phi.T)
+        if incorporate_prior:
+            log_nu[:,:] += Elogpi
         for n in xrange(doc.total):
             (log_nu[n,:], log_norm) = utils.log_normalize(log_nu[n,:])
         nu[:,:] = np.exp(log_nu)
@@ -208,9 +209,10 @@ class model(object):
         self.m_tau[1] = self.m_alpha
         self.m_tau[1,1:] += np.flipud(np.cumsum(np.flipud(self.m_tau_ss[1:])))
 
-    def update_phi(self, Elogprobw_doc, doc, ElogV, nu, phi, log_phi):
-        # TODO oHDP: only add ElogV if iter < 3
-        log_phi[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), nu).T + ElogV
+    def update_phi(self, Elogprobw_doc, doc, ElogV, nu, phi, log_phi, incorporate_prior=True):
+        log_phi[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), nu).T
+        if incorporate_prior:
+            log_phi[:,:] += ElogV
         for i in xrange(self.m_L):
             (log_phi[i,:], log_norm) = utils.log_normalize(log_phi[i,:])
         phi[:,:] = np.exp(log_phi)
