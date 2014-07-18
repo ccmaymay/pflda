@@ -408,6 +408,7 @@ class online_hdp:
         # update the suff_stat ss
         # this time it only contains information from one doc
         ss.m_uv_ss += np.sum(var_phi, 0)
+        # TODO what is * doc.counts doing here?!  (wrong)
         ss.m_lambda_ss[:, batchids] += np.dot(var_phi.T, zeta.T * doc.counts)
 
         return likelihood

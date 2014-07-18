@@ -313,9 +313,9 @@ class model(object):
 
             iteration += 1
 
-        # update the suff_stat ss TODO...
-        ss.m_tau_ss += phi_sums
-        ss.m_lambda_ss[:, token_batch_ids] += np.dot(phi.T, nu.T * doc.counts)
+        ss.m_tau_ss += np.sum(phi, 0)
+        for n in xrange(num_tokens):
+            ss.m_lambda_ss[:, token_batch_ids[n]] += np.dot(phi.T, nu[n,:])
 
         if save_model:
             pass # TODO
