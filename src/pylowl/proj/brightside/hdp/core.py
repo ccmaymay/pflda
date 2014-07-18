@@ -203,11 +203,13 @@ class model(object):
         uv[0] = 1.0 + nu_sums
         uv[1] = self.m_beta
         uv[1,:self.m_L-1] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
+        uv[:,self.m_L-1] = [1., 0.]
 
     def update_tau(self):
         self.m_tau[0] = 1.0 + self.m_tau_ss
         self.m_tau[1] = self.m_alpha
         self.m_tau[1,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_tau_ss[1:])))
+        self.m_tau[:,self.m_K-1] = [1., 0.]
 
     def update_phi(self, Elogprobw_doc, doc, ElogV, nu, phi, log_phi, incorporate_prior=True):
         log_phi[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), nu).T
