@@ -207,7 +207,7 @@ class model(object):
     def update_tau(self):
         self.m_tau[0] = 1.0 + self.m_tau_ss
         self.m_tau[1] = self.m_alpha
-        self.m_tau[1,1:] += np.flipud(np.cumsum(np.flipud(self.m_tau_ss[1:])))
+        self.m_tau[1,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_tau_ss[1:])))
 
     def update_phi(self, Elogprobw_doc, doc, ElogV, nu, phi, log_phi, incorporate_prior=True):
         log_phi[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), nu).T
