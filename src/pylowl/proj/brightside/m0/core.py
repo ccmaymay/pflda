@@ -9,9 +9,6 @@ import random
 import cPickle
 
 
-# TODO assert var beta/dirichlet parameters no smaller than prior
-
-
 def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -565,9 +562,6 @@ class model(object):
             logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
 
             # E[log p(c | U, V)] + H(q(c))
-            # TODO is it a bug that the equivalent computation in
-            # oHDP does not account for types appearing more than
-            # once?  (Uses . rather than ._all .)
             c_ll = self.c_likelihood(subtree, ab, uv, nu, log_nu, ids)
             likelihood += c_ll
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
