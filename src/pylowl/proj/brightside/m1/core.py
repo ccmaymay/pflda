@@ -9,9 +9,6 @@ import random
 import cPickle
 
 
-# TODO assert var beta/dirichlet parameters no smaller than prior
-
-
 def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
