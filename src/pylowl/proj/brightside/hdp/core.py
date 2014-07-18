@@ -243,22 +243,18 @@ class model(object):
 
         logging.debug('Initializing document variational parameters')
 
-        # q(V_{i,j}^{(d)} = 1) = 1 for j+1 = trunc[\ell] (\ell is depth)
         uv = np.zeros((2, self.m_L))
-        uv[0] = 1.0
+        uv[0] = 1.
         uv[1] = self.m_beta
+        uv[1,self.m_L-1] = 0.
 
-        # TODO index?
         Elogpi = utils.Elog_sbc_stop(uv)
-
-        nu = np.ones((num_tokens, self.m_L)) / self.m_L
-        log_nu = np.log(nu)
 
         phi = np.zeros((self.m_L, self.m_K)) / self.m_K
         log_phi = np.log(phi)
 
-        self.update_phi(Elogprobw_doc, doc, ElogV, nu, phi, log_phi)
-        self.update_nu(Elogprobw_doc, doc, Elogpi, phi, nu, log_nu)
+        nu = np.ones((num_tokens, self.m_L)) / self.m_L
+        log_nu = np.log(nu)
 
         converge = None
         likelihood = None
@@ -273,7 +269,6 @@ class model(object):
             self.update_phi(Elogprobw_doc, doc, ElogV, nu, phi, log_phi)
             self.update_nu(Elogprobw_doc, doc, Elogpi, phi, nu, log_nu)
             self.update_uv(nu, uv)
-
             Elogpi = utils.Elog_sbc_stop(uv)
 
             # compute likelihood
