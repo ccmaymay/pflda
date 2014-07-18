@@ -265,6 +265,8 @@ def run(**kwargs):
         init_docs = take(c_train.docs, options['init_samples'])
         m.initialize(init_docs, options['init_noise_weight'], options['eff_init_samples'])
 
+    save_global(m, 'init', result_directory, options['save_model'])
+
     iteration = 0
     total_doc_count = 0
 
