@@ -318,7 +318,19 @@ class model(object):
             ss.m_lambda_ss[:, token_batch_ids[n]] += np.dot(phi.T, nu[n,:])
 
         if save_model:
-            pass # TODO
+            # save sublist stats
+            self.save_sublist(
+                self.sublist_output_files.get('sublist', None),
+                doc, phi)
+            self.save_sublist_Elogpi(
+                self.sublist_output_files.get('sublist_Elogpi', None),
+                doc, uv)
+            self.save_sublist_logEpi(
+                self.sublist_output_files.get('sublist_logEpi', None),
+                doc, uv)
+            self.save_sublist_lambda_ss(
+                self.sublist_output_files.get('sublist_lambda_ss', None),
+                doc, nu)
 
         if predict_doc is not None:
             pass # TODO
@@ -382,6 +394,22 @@ class model(object):
 
     def save_pickle(self, f):
         cPickle.dump(self, f, -1)
+
+    def save_sublist_lambda_ss(self, f, doc, nu):
+        nu_sums = np.sum(nu, 0)
+        self.save_sublist_row(f, doc, nu_sums + self.m_lambda0)
+
+    def save_sublist_logEpi(self, f, doc, uv):
+        logEpi = utils.logE_sbc_stop(uv)
+        self.save_sublist_row(f, doc, logEpi)
+
+    def save_sublist_Elogpi(self, f, doc, uv):
+        Elogpi = utils.Elog_sbc_stop(uv)
+        self.save_sublist_row(f, doc, Elogpi)
+
+    def save_sublist(self, f, doc, phi):
+        flat_phi = phi.reshape(self.m_L * self.m_K)
+        self.save_sublist_row(f, doc, flat_phi)
 
     def save_rows(self, f, m):
         if f is not None:
