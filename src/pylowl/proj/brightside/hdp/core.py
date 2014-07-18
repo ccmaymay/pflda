@@ -268,6 +268,7 @@ class model(object):
             # update variational parameters
             self.update_phi(Elogprobw_doc, doc, ElogV, nu, phi, log_phi)
             self.update_nu(Elogprobw_doc, doc, Elogpi, phi, nu, log_nu)
+            # TODO why?!
             self.update_uv(nu, uv)
             Elogpi = utils.Elog_sbc_stop(uv)
 
