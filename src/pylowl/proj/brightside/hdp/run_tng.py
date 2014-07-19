@@ -11,6 +11,7 @@ import os
 import re
 import tempfile
 from pylowl.proj.brightside.hdp.run import run
+from pylowl.proj.brightside.hdp.postproc.generate_d3_graph import generate_d3_graph
 
 profile = ('--profile' in sys.argv[1:])
 

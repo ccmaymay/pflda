@@ -15,6 +15,7 @@ import tempfile
 from pylowl.proj.brightside.corpus import write_concrete_doc, Document
 from pylowl.proj.brightside.utils import nested_file_paths
 from pylowl.proj.brightside.hdp.run import run
+from pylowl.proj.brightside.hdp.postproc.generate_d3_graph import generate_d3_graph
 from pylowl.proj.brightside.preproc.extract_concrete_vocab import extract_concrete_vocab
 
 
