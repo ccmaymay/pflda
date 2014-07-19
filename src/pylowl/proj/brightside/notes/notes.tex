@@ -547,7 +547,7 @@ Some ways we could augment the following visualization:
 
 
 
-\section*{nHDP/nCRP hybrid topic model (M1)}
+\section*{nHDP/nCRP hybrid personalized topic model (M1)}
 
 \subsection*{True model}
 
@@ -571,6 +571,65 @@ The ELBO component for $W^{(u)}_{dn}$
 
 
 \subsection*{Variational model}
+
+
+
+\section*{HDP}
+
+
+
+\section*{Supervised HDP (sHDP)}
+
+\subsection*{True model}
+
+\begin{itemize}
+\item $\displaystyle H = \Dirichlet\left(\lambda_0 \one_\V\right)$ global distribution over words (cardinality $\V$)
+\item $G \sim \DP\left(\alpha H\right)$ global topics
+    \begin{itemize}
+    \item $\theta_k \sim H$
+    \item $V_k \sim \Beta(1, \alpha)$
+    \end{itemize}
+\item $p \sim \Dirichlet(\omega_0)$ class proportions
+\item $G^{(m)} \sim \DP\left(\beta G\right)$ per-class topics
+    \begin{itemize}
+    \item $\theta_j^{(m)} \sim G$
+    \item $V_j^{(m)} \sim \Beta(1, \beta)$
+    \end{itemize}
+\item $y_{jk}^{(m)} = V_k \prod_{k'<k} (1 - V_{k'})$ class to global topic pointers
+\item $x_d \sim \Discrete(p)$ observed document class
+\item $G^{(d)} \sim \DP\left(\gamma G^{(m=x_d)}\right)$ per-document topics
+    \begin{itemize}
+    \item $\theta_i^{(d)} \sim G^{(m=x_d)}$
+    \item $V_i^{(d)} \sim \Beta(1, \gamma)$
+    \end{itemize}
+\item $z_{ij}^{(d)} = V_j^{(m=x_d)} \prod_{j'<j} (1 - V_{j'}^{(m=x_d)})$ document to class topic pointers
+\item $c_{dn}(i) = V_i^{(d)} \prod_{i'<i} (1 - V_{i'}^{(d)})$ topic assignments
+\end{itemize}
+
+
+\subsection*{Variational model}
+
+Global variables:
+\begin{itemize}
+\item $\displaystyle q(\theta_k) = \Dirichlet(\theta_k \mid \lambda_k)$
+\item $\displaystyle q(V_k) = \Beta(V_k \mid \tau_k^{(1)}, \tau_k^{(1)})$
+\item $q(p) = \Dirichlet(p \mid \omega)$
+\end{itemize}
+Class-wise variables:
+\begin{itemize}
+\item $\displaystyle q(V_j^{(m)}) = \Beta(V_j^{(m)} \mid a_j^{(m)}, b_j^{(m)})$
+\item $q(y_j^{(m)}) = \Discrete(y_j^{(m)} \mid \psi_j^{(m)})$
+\end{itemize}
+Document-wise variables:
+\begin{itemize}
+\item $q(x_d) = \Discrete(x_d \mid \mu_d)$
+\item $\displaystyle q(V_i^{(d)}) = \Beta(V_i^{(d)} \mid u_i^{(d)}, v_i^{(d)})$
+\item $q(z_i^{(d)}) = \Discrete(z_i^{(d)} \mid \varphi_i^{(d)})$
+\item $\displaystyle q(c_{dn}) = \Discrete(c_{dn} \mid \nu_{dn})$
+\end{itemize}
+
+
+\subsection*{ELBO}
 
 
 
