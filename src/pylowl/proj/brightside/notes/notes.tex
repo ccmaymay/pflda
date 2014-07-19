@@ -646,6 +646,109 @@ Document-wise variables:
     &\qquad + \sum_{d,n} \Eq \log \Pr(W_{dn} \mid c_{dn}, z_\cdot^{(d)}, x_d, y_\cdot^{(\cdot)}, \theta_{\cdot W_{dn}})
 \end{align*}
 
+We now derive components of the ELBO.
+
+\begin{align*}
+    &\Eq \log \Pr(V_k \mid \alpha) \\
+    &= (\alpha - 1) \left[ \digamma{\tau_k^{(2)}} - \digamma{\tau_k^{(1)} + \tau_k^{(2)}} \right] - \log B(1, \alpha)
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q(V_k) \\
+    &= (\tau_k^{(1)} - 1) \left[ \digamma{\tau_k^{(1)}} - \digamma{\tau_k^{(1)} + \tau_k^{(2)}} \right] \\
+    &\qquad + (\tau_k^{(2)} - 1) \left[ \digamma{\tau_k^{(2)}} - \digamma{\tau_k^{(1)} + \tau_k^{(2)}} \right] \\
+    &\qquad - \log B(\tau_k^{(1)}, \tau_k^{(2)})
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr(\theta_k \mid \lambda_0) \\
+    &= (\lambda_0 - 1) \sum_w \digamma{\lambda_{kw}} - W (\lambda_0 - 1) \digamma{\sum_w \lambda_{kw}} - \log B(\lambda_0 \one_W)
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q(\theta_k) \\
+    &= \sum_w (\lambda_{kw} - 1) \digamma{\lambda_{kw}} - (\sum_w \lambda_{kw} - W) \digamma{\sum_w \lambda_{kw}} - \log B(\lambda_k)
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr(p \mid \omega_0) \\
+    &= (\omega_0 - 1) \sum_m \digamma{\omega_m} - M (\omega_0 - 1) \digamma{\sum_m \omega_m} - \log B(\omega_0 \one_M)
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q(p) \\
+    &= \sum_m (\omega_m - 1) \digamma{\omega_m} - (\sum_m \omega_m - M) \digamma{\sum_m \omega_m} - \log B(\omega)
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr(V_j^{(m)} \mid \beta) \\
+    &= (\beta - 1) \left[ \digamma{b_j^{(m)}} - \digamma{a_j^{(m)} + b_j^{(m)}} \right] - \log B(1, \beta)
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q(V_j^{(m)}) \\
+    &= (a_j^{(m)} - 1) \left[ \digamma{a_j^{(m)}} - \digamma{a_j^{(m)} + b_j^{(m)}} \right] \\
+    &\qquad + (b_j^{(m)} - 1) \left[ \digamma{b_j^{(m)}} - \digamma{a_j^{(m)} + b_j^{(m)}} \right] \\
+    &\qquad - \log B(a_j^{(m)}, b_j^{(m)})
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr(y_j^{(m)} \mid V_\cdot) \\
+    &= \sum_k \psi_j^{(m)}(k) \left[ \Eq \log V_k + \sum_{k'<k} \Eq \log (1-V_{k'}) \right]
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q(y_j^{(m)}) \\
+    &= \sum_k \psi_j^{(m)}(k) \log \psi_j^{(m)}(k)
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr(x_d \mid p) \\
+    &= \sum_m \mu_{dm} \left[ \digamma{\omega_m} - \digamma{\sum_{m'} \omega_{m'}} \right]
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q(x_d) \\
+    &= \sum_m \mu_{dm} \log \mu_{dm}
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr(V_i^{(d)} \mid \gamma) \\
+    &= (\gamma - 1) \left[ \digamma{v_i^{(d)}} - \digamma{u_i^{(d)} + v_i^{(d)}} \right] - \log B(1, \gamma)
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q(V_i^{(d)}) \\
+    &= (u_i^{(d)} - 1) \left[ \digamma{u_i^{(d)}} - \digamma{u_i^{(d)} + v_i^{(d)}} \right] \\
+    &\qquad + (v_i^{(d)} - 1) \left[ \digamma{v_i^{(d)}} - \digamma{u_i^{(d)} + v_i^{(d)}} \right] \\
+    &\qquad - \log B(u_i^{(d)}, v_i^{(d)})
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr(z_i^{(d)} \mid V^{(m=\cdot)}_\cdot, x_d) \\
+    &= \sum_j \varphi_i^{(d)}(j) \left[ \sum_m \mu_{dm} \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right]
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q(z_i^{(d)}) \\
+    &= \sum_j \varphi_i^{(d)}(j) \log \varphi_i^{(d)}(j)
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr(c_{dn} \mid V^{(d)}_\cdot) \\
+    &= \sum_i \nu_{dn}(i) \left[ \Eq \log V^{(d)}_i + \sum_{i'<i} \Eq \log (1-V^{(d)}_{i'}) \right]
+\end{align*}
+
+\begin{align*}
+    &\Eq \log q(c_{dn}) \\
+    &= \sum_i \nu_{dn}(i) \log \nu_{dn}(i)
+\end{align*}
+
+\begin{align*}
+    &\Eq \log \Pr\left(W_{dn} \mid c_{dn}, z_\cdot^{(d)}, x_d, y_\cdot^{(\cdot)}, \theta_{\cdot W_{dn}}\right) \\
+    &= \sum_i \nu_{dn}(i) \sum_j \varphi_i^{(d)}(j) \sum_m \mu_{dm} \sum_k \psi_j^{(m)}(k) \Eq \log \theta_{k W_{dn}}
+\end{align*}
+
 
 
 \section*{Joint hierarchical geolocation-language models}
