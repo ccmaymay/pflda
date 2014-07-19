@@ -595,15 +595,16 @@ The ELBO component for $W^{(u)}_{dn}$
     \item $\theta_j^{(m)} \sim G$
     \item $V_j^{(m)} \sim \Beta(1, \beta)$
     \end{itemize}
-\item $y_{jk}^{(m)} = V_k \prod_{k'<k} (1 - V_{k'})$ class to global topic pointers
+\item $\Pr(y_j^{(m)} = k) = V_k \prod_{k'<k} (1 - V_{k'})$ class to global topic pointers
 \item $x_d \sim \Discrete(p)$ observed document class
 \item $G^{(d)} \sim \DP\left(\gamma G^{(m=x_d)}\right)$ per-document topics
     \begin{itemize}
     \item $\theta_i^{(d)} \sim G^{(m=x_d)}$
     \item $V_i^{(d)} \sim \Beta(1, \gamma)$
     \end{itemize}
-\item $z_{ij}^{(d)} = V_j^{(m=x_d)} \prod_{j'<j} (1 - V_{j'}^{(m=x_d)})$ document to class topic pointers
-\item $c_{dn}(i) = V_i^{(d)} \prod_{i'<i} (1 - V_{i'}^{(d)})$ topic assignments
+\item $\Pr(z_i^{(d)} = j) = V_j^{(m=x_d)} \prod_{j'<j} (1 - V_{j'}^{(m=x_d)})$ document to class topic pointers
+\item $\Pr(c_{dn} = i) = V_i^{(d)} \prod_{i'<i} (1 - V_{i'}^{(d)})$ topic assignments
+\item $W_{dn} \sim \Discrete(W_{dn} \mid \theta_{y^{(x_d)}_{z^{(d)}_{c_{dn}}}})$ observed words
 \end{itemize}
 
 
@@ -630,6 +631,20 @@ Document-wise variables:
 
 
 \subsection*{ELBO}
+
+\begin{align*}
+\Lq
+    &= \sum_k \left[ \Eq \log \Pr(V_k \mid \alpha) - \Eq \log q(V_k) \right] \\
+    &\qquad + \sum_k \left[ \Eq \log \Pr(\theta_k \mid \lambda_0) - \Eq \log q(\theta_k) \right] \\
+    &\qquad + \Eq \log \Pr(p \mid \omega_0) - \Eq \log q(p) \\
+    &\qquad + \sum_{m,j} \left[ \Eq \log \Pr(V_j^{(m)} \mid \beta) - \Eq \log q(V_j^{(m)}) \right] \\
+    &\qquad + \sum_{m,j} \left[ \Eq \log \Pr(y_j^{(m)} \mid V_\cdot) - \Eq \log q(y_j^{(m)}) \right] \\
+    &\qquad + \sum_d \left[ \Eq \log \Pr(x_d \mid p) - \Eq \log q(x_d) \right] \\
+    &\qquad + \sum_{d,i} \left[ \Eq \log \Pr(V_i^{(d)} \mid \gamma) - \Eq \log q(V_i^{(d)}) \right] \\
+    &\qquad + \sum_{d,i} \left[ \Eq \log \Pr(z_i^{(d)} \mid V^{(m=\cdot)}_\cdot, x_d) - \Eq \log q(z_i^{(d)}) \right] \\
+    &\qquad + \sum_{d,n} \left[ \Eq \log \Pr(c_{dn} \mid V^{(d)}_\cdot) - \Eq \log q(c_{dn}) \right] \\
+    &\qquad + \sum_{d,n} \Eq \log \Pr(W_{dn} \mid c_{dn}, z_\cdot^{(d)}, x_d, y_\cdot^{(\cdot)}, \theta_{\cdot W_{dn}})
+\end{align*}
 
 
 
