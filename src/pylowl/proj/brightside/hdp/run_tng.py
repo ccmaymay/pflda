@@ -27,14 +27,14 @@ print
 K = 20
 L = 10
 DATA_DIR = 'data/txt/tng'
+POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
+MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/hdp/postproc'
 VOCAB_PATH = os.path.join(DATA_DIR, 'vocab')
 TRAIN_DATA_DIR = os.path.join(DATA_DIR, 'train')
 TEST_DATA_DIR = os.path.join(DATA_DIR, 'test')
 
-# TODO
-HDP_SRC_DIR = 'src/pylowl/proj/brightside/hdp'
-if not os.path.isdir(HDP_SRC_DIR):
-    sys.stderr.write('%s does not exist.\n' % HDP_SRC_DIR)
+if not os.path.isdir(POSTPROC_DIR):
+    sys.stderr.write('%s does not exist.\n' % POSTPROC_DIR)
     sys.stderr.write('Postprocessing will fail.\n')
     sys.stderr.write('Note that this script should be run from the littleowl repository root.\n')
 
@@ -64,6 +64,17 @@ if profile:
     cProfile.run(code, os.path.join(OUTPUT_DIR, 'profile'))
 else:
     exec code
+
+print 'Generating D3 inputs...'
+generate_d3_graph(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'graph.json'))
+
+print 'Linking visualization code to output directory...'
+for basename in ('subgraphs.html',):
+    os.symlink(os.path.abspath(os.path.join(MY_POSTPROC_DIR, basename)),
+        os.path.join(OUTPUT_DIR, basename))
+for basename in ('d3.v3.js', 'core.js', 'graph.html'):
+    os.symlink(os.path.abspath(os.path.join(POSTPROC_DIR, basename)),
+        os.path.join(OUTPUT_DIR, basename))
 
 print 'Done:'
 print OUTPUT_DIR

@@ -30,12 +30,12 @@ SRC_EXTENSIONS = ('.py', '.sh', '.c', '.h', '.pxd', '.pyx')
 OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/hdp'
 K = 20
 L = 10
+POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
+MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/hdp/postproc'
 
 
-# TODO
-HDP_SRC_DIR = 'src/pylowl/proj/brightside/hdp'
-if not os.path.isdir(HDP_SRC_DIR):
-    sys.stderr.write('%s does not exist.\n' % HDP_SRC_DIR)
+if not os.path.isdir(POSTPROC_DIR):
+    sys.stderr.write('%s does not exist.\n' % POSTPROC_DIR)
     sys.stderr.write('Postprocessing will fail.\n')
     sys.stderr.write('Note that this script should be run from the littleowl repository root.\n')
 
@@ -122,6 +122,17 @@ if __name__ == '__main__':
         cProfile.run(code, os.path.join(output_dir, 'profile'))
     else:
         exec code
+
+    print 'Generating D3 inputs...'
+    generate_d3_graph(output_dir, os.path.join(output_dir, 'graph.json'))
+
+    print 'Linking visualization code to output directory...'
+    for basename in ('subgraphs.html',):
+        os.symlink(os.path.abspath(os.path.join(MY_POSTPROC_DIR, basename)),
+            os.path.join(output_dir, basename))
+    for basename in ('d3.v3.js', 'core.js', 'graph.html'):
+        os.symlink(os.path.abspath(os.path.join(POSTPROC_DIR, basename)),
+            os.path.join(output_dir, basename))
 
     shutil.rmtree(data_dir)
 
