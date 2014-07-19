@@ -7,7 +7,7 @@ then
 fi
 
 OUTPUT_BASE_DIR="$1"
-BASENAMES="subgraphs.json graph.json"
+BASENAMES="graph.json"
 
 if [ "$2" == "-y" ]
 then
