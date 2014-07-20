@@ -140,7 +140,7 @@ def load_concrete_comm(path):
 
 
 def update_concrete_comms(paths, transform):
-    for (comm, path) in load_concrete_comm(paths):
+    for (comm, path) in load_concrete_comms(paths):
         transform(comm)
         write_concrete_comm(comm, path)
 

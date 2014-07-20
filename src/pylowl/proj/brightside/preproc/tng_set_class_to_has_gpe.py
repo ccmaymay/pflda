@@ -27,7 +27,7 @@ def set_class(comm):
             if tree.node == 'GPE':
                 has_gpe = True
     sys.stderr.write('+' if has_gpe else '-')
-    comm.attrs['class'] = 'has_gpe' if has_gpe else 'no_gpe'
+    comm.keyValueMap['class'] = 'has_gpe' if has_gpe else 'no_gpe'
 
 
 def tng_set_class_to_has_gpe(data_dir):
