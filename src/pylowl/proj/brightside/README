@@ -1,17 +1,21 @@
 "brightside" is a codebase implementing online variational inference
-for forest-structured (Bayesian nonparametric) topic models.  It also
-contains some utilities concerning geo-tagged Twitter data, ALNC, and
-Freebase.
+for a variety of Bayesian nonparametric topic models.  It also contains
+some utilities concerning geo-tagged Twitter data, ALNC, and Freebase.
 
-Currently two observational models, M0 and M1, are implemented.  M0 is
-the nested hierarchical Dirichlet process (nHDP) topic model from the
-literature.[1]  M1 is a personalized topic model, based on M0, in which
-each user draws a topic tree from the global tree, each document is a
-path from a user's tree, and each token is drawn from a topic along the
-corresponding document's path.  See notes/ for technical details.
+Currently four observational models, HDP, sHDP, M0, and M1, are
+implemented.  HDP is the hierarchical Dirichlet process topic model
+from the literature.[1]  sHDP is a depth-two (three-level) HDP in which
+M topic mixtures are drawn from the global topic mixture, each
+document's topic mixture is drawn from one of those M classes, and each
+document's class is observed.  M0 is the nested hierarchical Dirichlet
+process (nHDP) topic model from the literature.[2]  M1 is a personalized
+topic model, based on M0, in which each user draws a topic tree from the
+global tree, each document is a path from a user's tree, and each token
+is drawn from a topic along the corresponding document's path.  See
+notes/ for technical details.
 
-The inference code is based on onlinehdp[2], which was in turn based on
-onlinelda[3], according to comments in the onlinehdp source.
+The inference code is based on onlinehdp[3], which was in turn based on
+onlinelda[4], according to comments in the onlinehdp source.
 
 Dependencies (in addition to pylowl dependencies):
 * numpy and scipy
@@ -38,9 +42,11 @@ tree is a web server.
 You can see command-line arguments for learning parameters, etc. with:
 $ python -m pylowl.proj.brightside.m0.run -h
 
-[1] arXiv:1210.6738
-    (Paisley, Wang, Blei, and Jordan (2014))
-[2] http://www.cs.cmu.edu/~chongw/software/onlinehdp.tar.gz
+[1] http://www.cs.princeton.edu/~chongw/papers/WangPaisleyBlei2011.pdf
     (Wang, Paisley, and Blei (2011))
-[3] http://www.cs.princeton.edu/~blei/downloads/onlineldavb.tar
+[2] arXiv:1210.6738
+    (Paisley, Wang, Blei, and Jordan (2014))
+[3] http://www.cs.cmu.edu/~chongw/software/onlinehdp.tar.gz
+    (Wang, Paisley, and Blei (2011))
+[4] http://www.cs.princeton.edu/~blei/downloads/onlineldavb.tar
     (Hoffman, Blei, and Bach (2010))
