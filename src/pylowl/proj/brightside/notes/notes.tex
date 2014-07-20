@@ -779,6 +779,22 @@ We now derive components of the ELBO.
 \end{align*}
 
 \begin{align*}
+    &\pd{\omega_m} \Eq \left[ \log \Pr(p \mid \omega_0) - \log q(p) + \sum_d \log \Pr(x_d \mid p) \right] \\
+    &= (\omega_0 - \omega_m) \trigamma{\omega_m} - \trigamma{\sum_{m'} \omega_{m'}} \sum_{m'} (\omega_0 - \omega_{m'}) \\
+    &\qquad + \sum_d \left[ \mu_{dm} \trigamma{\omega_m} - \trigamma{\sum_{m'} \omega_{m'}} \sum_{m'} \mu_{dm'} \right] \\
+    &\Rightarrow
+    \boxed{ \omega_m = \sum_m \mu_{dm} }.
+\end{align*}
+
+TODO...
+
+
+
+
+
+
+
+\begin{align*}
     &\pd{u_{i}^{(d)}} \Eq \left[ \log \Pr(V_i^{(d)} \mid \beta) - \log q(V_i^{(d)}) + \log \Pr(c_d \mid V^{(d)}, U_d) \right] \\
     &= \pd{u_{i}^{(d)}} \Bigg[ \Eq \left[ \log \Pr(V_i^{(d)} \mid \beta) - \log q(V_i^{(d)}) \right] \\
     &\qquad\qquad + \sum_n \sum_{i'} \nu_{dn}(i') \Eq \log \pi_{i'}^{(d)} \Bigg] \\
