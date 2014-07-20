@@ -63,6 +63,7 @@ class model(object):
         self.m_tau[1] = alpha
         self.m_tau[1,self.m_K-1] = 0.
         self.m_tau_ss = np.zeros(self.m_K)
+        self.m_ElogV = utils.Elog_sbc_stop(self.m_tau)
 
         # Intuition: take 100 to be the expected document length (TODO)
         # so that there are 100D tokens in total.  Then divide that
@@ -199,14 +200,11 @@ class model(object):
 
         ss = suff_stats(self.m_K, self.m_J, Wt, doc_count, Mt, DperMt)
 
-        # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
-        ElogV = utils.Elog_sbc_stop(self.m_tau)
-
         # run variational inference on some new docs
         score = 0.0
         count = 0
         for (doc, predict_doc) in it.izip(docs, predict_docs):
-            doc_score = self.doc_e_step(doc, ss, ElogV, vocab_to_batch_word_map,
+            doc_score = self.doc_e_step(doc, ss, vocab_to_batch_word_map,
                 batch_to_vocab_word_map, classes_to_batch_map,
                 batch_to_classes_map, var_converge, predict_doc=predict_doc,
                 save_model=save_model)
@@ -240,6 +238,7 @@ class model(object):
         self.m_tau[1] = self.m_alpha
         self.m_tau[1,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_tau_ss[1:])))
         self.m_tau[:,self.m_K-1] = [1., 0.]
+        self.m_ElogV = utils.Elog_sbc_stop(self.m_tau)
 
     def update_omega(self):
         self.
@@ -259,16 +258,16 @@ class model(object):
         uv[1,:self.m_L-1] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
         uv[:,self.m_L-1] = [1., 0.]
 
-    def update_phi(self, Elogprobw_doc, doc, ElogV, nu, phi, log_phi, incorporate_prior=True):
+    def update_phi(self, Elogprobw_doc, doc, nu, phi, log_phi, incorporate_prior=True):
         log_phi[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), nu).T
         if incorporate_prior:
-            log_phi[:,:] += ElogV
+            log_phi[:,:] += self.m_ElogV
         for i in xrange(self.m_L):
             (log_phi[i,:], log_norm) = utils.log_normalize(log_phi[i,:])
         phi[:,:] = np.exp(log_phi)
 
-    def z_likelihood(self, ElogV, phi, log_phi):
-        return np.sum(phi * (ElogV - log_phi))
+    def z_likelihood(self, phi, log_phi):
+        return np.sum(phi * (self.m_ElogV - log_phi))
 
     def c_likelihood(self, Elogpi, nu, log_nu):
         return np.sum(nu * (Elogpi - log_nu))
@@ -276,7 +275,7 @@ class model(object):
     def w_likelihood(self, doc, nu, phi, Elogprobw_doc):
         return np.sum(nu.T * np.dot(phi, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
 
-    def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
+    def doc_e_step(self, doc, ss, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, classes_to_batch_map,
                    batch_to_classes_map, var_converge, max_iter=100,
                    predict_doc=None, save_model=False):
@@ -319,7 +318,7 @@ class model(object):
         while iteration < max_iter and (converge is None or converge < 0.0 or converge > var_converge):
             logging.debug('Updating document variational parameters (iteration: %d)' % iteration)
             # update variational parameters
-            self.update_phi(Elogprobw_doc, doc, ElogV, nu, phi, log_phi)
+            self.update_phi(Elogprobw_doc, doc, nu, phi, log_phi)
             self.update_nu(Elogprobw_doc, doc, Elogpi, phi, nu, log_nu)
             # TODO why after phi and nu update, not before?
             self.update_uv(nu, uv)
@@ -335,7 +334,7 @@ class model(object):
             logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
 
             # E[log p(z | V)] + H(q(z))
-            z_ll = self.z_likelihood(ElogV, phi, log_phi)
+            z_ll = self.z_likelihood(phi, log_phi)
             likelihood += z_ll
             logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
 
