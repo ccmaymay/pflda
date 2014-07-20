@@ -73,7 +73,9 @@ def make_data(input_dir, output_dir):
                                       if token and not is_num(token))
                 if tokens:
                     output_path = os.path.join(output_dir, '%d.concrete' % i)
-                    write_concrete_doc(Document(tokens, id=path, class=ext), output_path)
+                    attrs = {'class': ext}
+                    write_concrete_doc(Document(tokens, id=path, **attrs),
+                                       output_path)
                     i += 1
     return len(active_exts)
 
