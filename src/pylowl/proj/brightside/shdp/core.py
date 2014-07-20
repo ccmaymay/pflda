@@ -81,14 +81,19 @@ class model(object):
         # TODO... makes sense?
         self.m_omega_ss = np.random.gamma(1.0, 1.0, (M,)) * D / M - omega0
         self.m_omega_ss_sum = np.sum(self.m_omega_ss)
+        self.m_Elogp = utils.log_dirichlet_expectation(self.m_omega0 + self.m_omega_ss)
 
         self.m_ab = np.zeros((2, self.m_M, self.m_J))
         self.m_ab[0] = 1.0
         self.m_ab[1] = alpha
         self.m_ab[1,:,self.m_J-1] = 0.
         self.m_ab_ss = np.zeros((self.m_M, self.m_J))
+        self.m_ElogVm = np.zeros((self.m_M, self.m_J))
+        for m in xrange(self.m_M):
+            self.m_ElogVm[m,:] = utils.Elog_sbc_stop(self.m_ab[:,m,:])
 
         self.m_zeta = np.ones((self.m_M, self.m_J, self.m_K)) / self.m_K
+        self.m_log_zeta = np.log(self.m_zeta)
         self.m_zeta_ss = np.zeros((self.m_M, self.m_J, self.m_K))
 
         self.m_iota = iota
@@ -241,7 +246,25 @@ class model(object):
         self.m_ElogV = utils.Elog_sbc_stop(self.m_tau)
 
     def update_omega(self):
-        self.
+        self.m_Elogp = (
+            sp.psi(self.m_omega0 + self.m_omega_ss)
+            - sp.psi(self.m_M*self.m_omega0 + self.m_omega_ss_sum)
+        )
+
+    def update_ab(self):
+        for m in xrange(self.m_M):
+            self.m_ab[0,m,:] = 1.0 + self.m_ab_ss
+            self.m_ab[1,m,:] = self.m_alpha
+            self.m_ab[1,m,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_ab_ss[1:])))
+            self.m_ab[:,m,self.m_K-1] = [1., 0.]
+            self.m_ElogVm[m,:] = utils.Elog_sbc_stop(self.m_ab[:,m,:])
+
+    def update_zeta(self):
+        self.m_log_zeta = self.m_zeta_ss + self.m_ElogV
+        for m in xrange(self.m_M):
+            for j in xrange(self.m_J):
+                (self.m_log_zeta[m,j,:], log_norm) = utils.log_normalize(self.m_log_zeta[m,j,:])
+        self.m_zeta = np.exp(self.m_log_zeta)
 
     def update_nu(self, Elogprobw_doc, doc, Elogpi, phi, nu, log_nu, incorporate_prior=True):
         log_nu[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1).T, phi.T)
@@ -358,9 +381,12 @@ class model(object):
 
             iteration += 1
 
-        ss.m_tau_ss += np.sum(phi, 0)
+        ss.m_tau_ss += np.sum(self.m_zeta, 0)
         for n in xrange(num_tokens):
-            ss.m_lambda_ss[:, token_batch_ids[n]] += np.dot(phi.T, nu[n,:])
+            ss.m_lambda_ss[:, token_batch_ids[n]] += np.dot(np.dot(nu, phi), self.m_zeta[m,:,:])
+        ss.m_omega_ss[doc.class_idx] += 1
+        ss.m_ab_ss[doc.class_idx,:] += np.sum(phi, 0)
+        ss.m_zeta_ss[doc.class_idx,:,:] += np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), np.dot(nu, phi)).T
 
         if save_model:
             # save sublist stats
@@ -407,6 +433,22 @@ class model(object):
         self.m_tau_ss = (
             (1.0 - rho) * self.m_tau_ss
             + rho * ss.m_tau_ss * self.m_D / ss.m_batch_D
+        )
+
+        self.m_omega_ss *= (1 - rho)
+        self.m_omega_ss[batch_to_classes_map] += (
+            rho * ss.m_omega_ss * self.m_D / ss.m_batch_D
+        )
+        self.m_omega_ss_sum = np.sum(self.m_omega_ss)
+
+        self.m_ab_ss *= (1 - rho)
+        self.m_ab_ss[batch_to_classes_map,:] += (
+            rho * ss.m_ab_ss * self.m_D / ss.m_batch_D
+        )
+
+        self.m_zeta_ss *= (1 - rho)
+        self.m_zeta_ss[batch_to_classes_map,:,:] += (
+            rho * ss.m_zeta_ss * self.m_D / ss.m_batch_D
         )
 
     def save_global(self, output_files):
