@@ -25,8 +25,8 @@ for (k, v) in os.environ.items():
     print '    %s: %s' % (k, v)
 print
 
-K = 20
-L = 10
+K = 100
+L = 20
 DATA_DIR = 'data/txt/tng'
 POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
 MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/hdp/postproc'
@@ -52,9 +52,14 @@ print 'Running stochastic variational inference...'
 code = '''run(K=K, L=L,
     data_dir=TRAIN_DATA_DIR,
     test_data_dir=TEST_DATA_DIR,
-    test_samples=400,
-    init_samples=400,
-    max_time=360,
+    test_samples=300,
+    init_samples=300,
+    alpha=1,
+    beta=1,
+    iota=64,
+    kappa=0.6,
+    lambda0=0.005,
+    max_time=3600,
     save_model=True,
     output_dir=OUTPUT_DIR,
     vocab_path=VOCAB_PATH,
