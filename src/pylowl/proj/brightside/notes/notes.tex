@@ -834,6 +834,14 @@ We now derive components of the ELBO.
     \boxed{ v_i^{(d)} = 1 + \sum_n \sum_{i'>i} \nu_{dn}(i') }.
 \end{align*}
 
+\begin{align*}
+    &\pd{\varphi_i^{(d)}} \Eq \left[ \log \Pr(z_i^{(d)} \mid V^{(m=\cdot)}_\cdot, x_d) - \log q(z_i^{(d)}) + \sum_n \log \Pr\left(W_{dn} \mid c_{dn}, z_\cdot^{(d)}, x_d, y_\cdot^{(\cdot)}, \theta_{\cdot W_{dn}}\right) \right] \\
+    &= \sum_j \sum_m \mu_{dm} \left[ \Eq \log V_j^{(m)} + \sum_{j'<j} \Eq \log (1-V_{j'}^{(m)}) + \sum_n \nu_{dn}(i) \sum_k \psi_j^{(m)}(k) \Eq \log \theta_{k W_{dn}} \right] \\
+    &\qquad - \sum_j \left[ 1 + \log \varphi_i^{(d)}(j) \right] \\
+    &\Rightarrow
+    \boxed{ \varphi_i^{(d)}(j) \propto \exp\left[ \sum_m \mu_{dm} \left[ \Eq \log V_j^{(m)} + \sum_{j'<j} \Eq \log (1-V_{j'}^{(m)}) + \sum_n \nu_{dn}(i) \sum_k \psi_j^{(m)}(k) \Eq \log \theta_{k W_{dn}} \right] \right] } .
+\end{align*}
+
 TODO...
 
 
