@@ -294,7 +294,7 @@ class model(object):
         return Elogp_doc
 
     def w_likelihood(self, zeta_doc, doc, nu, phi, Elogprobw_doc):
-        return np.sum(np.dot(phi, np.dot(zeta_doc, np.repeat(Elogprobw_doc, doc.counts, axis=1))))
+        return np.sum(nu.T * np.dot(phi, np.dot(zeta_doc, np.repeat(Elogprobw_doc, doc.counts, axis=1))))
 
     def doc_e_step(self, doc, ss, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, classes_to_batch_map,
