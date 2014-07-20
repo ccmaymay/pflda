@@ -36,11 +36,15 @@ SUBLIST_OUTPUT_BASENAMES = [
 DEFAULT_OPTIONS = dict(
     log_level='INFO',
     K=1000,
-    L=100,
+    J=100,
+    I=10,
+    M=2,
     D=None,
     lambda0=0.01,
-    beta=1.0,
     alpha=1.0,
+    beta=1.0,
+    gamma=1.0,
+    omega0=0.5,
     kappa=0.5,
     iota=1.0,
     eff_init_samples=None,
@@ -79,16 +83,24 @@ def main(argv=None):
                       help="log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
     parser.add_argument("--K", type=int,
                       help="first-level truncation")
-    parser.add_argument("--L", type=int,
+    parser.add_argument("--J", type=int,
                       help="second-level truncation")
+    parser.add_argument("--I", type=int,
+                      help="second-level truncation")
+    parser.add_argument("--M", type=int,
+                      help="number of classes")
     parser.add_argument("--D", type=int,
                       help="number of documents (None: auto)")
     parser.add_argument("--lambda0", type=float,
                       help="the topic Dirichlet")
-    parser.add_argument("--beta", type=float,
-                      help="beta value")
+    parser.add_argument("--omega0", type=float,
+                      help="class proportion Dirichlet")
     parser.add_argument("--alpha", type=float,
                       help="alpha value")
+    parser.add_argument("--beta", type=float,
+                      help="beta value")
+    parser.add_argument("--gamma", type=float,
+                      help="gamma value")
     parser.add_argument("--kappa", type=float,
                       help="learning rate")
     parser.add_argument("--iota", type=float,
@@ -251,10 +263,13 @@ def run(**kwargs):
         sublist_output_files = dict()
 
     logging.info("Creating online shdp instance")
-    m = model(K=options['K'], L=options['L'], D=num_docs, W=num_types,
+    m = model(K=options['K'], J=options['J'], I=options['I'], M=options['M'],
+              D=num_docs, W=num_types,
               lambda0=options['lambda0'],
-              beta=options['beta'],
+              omega0=options['omega0'],
               alpha=options['alpha'],
+              beta=options['beta'],
+              gamma=options['gamma'],
               kappa=options['kappa'],
               iota=options['iota'],
               scale=options['scale'],

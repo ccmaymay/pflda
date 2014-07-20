@@ -28,23 +28,30 @@ class suff_stats(object):
 class model(object):
     def __init__(self,
                  K,
-                 L,
+                 J,
+                 I,
+                 M,
                  D,
                  W,
                  lambda0=0.01,
-                 beta=1.,
+                 omega0=0.1,
                  alpha=1.,
+                 beta=1.,
+                 gamma=1.,
                  kappa=0.5,
                  iota=1.,
                  scale=1.,
                  rho_bound=0.,
                  sublist_output_files=None):
         self.m_K = K
-        self.m_L = L
+        self.m_J = J
+        self.m_I = I
+        self.m_M = M
         self.m_W = W
         self.m_D = D
-        self.m_beta = beta
         self.m_alpha = alpha
+        self.m_beta = beta
+        self.m_gamma = gamma
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
@@ -63,6 +70,9 @@ class model(object):
             1.0, 1.0, (self.m_K, W)) * D * 100 / (self.m_K * W) - lambda0
         self.m_lambda0 = lambda0
         self.m_Elogprobw = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
+
+        self.m_omega_ss = np.random.gamma(1.0, 1.0, (M,)) * D / M - omega0
+        self.m_omega0 = omega0
 
         self.m_iota = iota
         self.m_kappa = kappa
