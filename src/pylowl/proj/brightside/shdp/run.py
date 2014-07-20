@@ -17,8 +17,8 @@ OUTPUT_EXTS = [
     for s in (
         'pickle',
         'lambda_ss',
-        'Elogpi',
-        'logEpi',
+        'ElogV',
+        'logEV',
         'Elogtheta',
         'logEtheta',
     )
@@ -27,8 +27,8 @@ SUBLIST_OUTPUT_BASENAMES = [
     (s, s, 'w')
     for s in (
         'sublist',
-        'sublist_Elogpi',
-        'sublist_logEpi',
+        'sublist_ElogVd',
+        'sublist_logEVd',
         'sublist_lambda_ss',
     )
 ]
