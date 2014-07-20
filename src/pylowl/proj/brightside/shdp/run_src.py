@@ -64,7 +64,6 @@ def make_data(input_dir, output_dir):
         for filename in filenames:
             path = os.path.join(dirpath, filename)
             ext = os.path.splitext(path)[1]
-            active_exts.add(ext)
             if src_path_filter(path):
                 tokens = []
                 with open(path) as f:
@@ -72,6 +71,7 @@ def make_data(input_dir, output_dir):
                         tokens.extend(token for token in SPLIT_RE.split(line)
                                       if token and not is_num(token))
                 if tokens:
+                    active_exts.add(ext)
                     output_path = os.path.join(output_dir, '%d.concrete' % i)
                     attrs = {'class': ext}
                     write_concrete_doc(Document(tokens, id=path, **attrs),
