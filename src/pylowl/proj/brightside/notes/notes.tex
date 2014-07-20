@@ -810,6 +810,14 @@ We now derive components of the ELBO.
     \boxed{ \psi_j^{(m)}(k) \propto \exp\left[ \Eq \log V_k + \sum_{k'<k} \Eq \log (1-V_{k'}) + \sum_d \mu_{dm} \sum_n \sum_i \nu_{dn}(i) \varphi_i^{(d)}(j) \Eq \log \theta_{k W_{dn}} \right] } .
 \end{align*}
 
+\begin{align*}
+    &\pd{\mu_{d\cdot}} \Eq \left[ \log \Pr(x_d \mid p) - \log q(x_d) + \sum_d \sum_i \log \Pr(z_i^{(d)} \mid V^{(m=\cdot)}_\cdot, x_d) \right] \\
+    &= \sum_m \left[ \digamma{\omega_m} - \digamma{\sum_{m'} \omega_{m'}} + \sum_d \sum_i \sum_j \varphi_i^{(d)}(j) \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right] \\
+    &\qquad - \sum_m \left[ 1 + \log \mu_{dm} \right] \\
+    &\Rightarrow
+    \boxed{ \mu_{dm} \propto \exp\left[ \digamma{\omega_m} - \digamma{\sum_{m'} \omega_{m'}} + \sum_d \sum_i \sum_j \varphi_i^{(d)}(j) \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right] }.
+\end{align*}
+
 TODO...
 
 
