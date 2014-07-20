@@ -324,6 +324,7 @@ class model(object):
         ElogVm_doc = self.m_ElogVm[batch_to_classes_map[doc.class_idx]]
         ElogVd = utils.Elog_sbc_stop(uv)
         zeta_doc = self.m_zeta[batch_to_classes_map[doc.class_idx]]
+        log_zeta_doc = self.m_log_zeta[batch_to_classes_map[doc.class_idx]]
 
         phi = np.zeros((self.m_I, self.m_J)) / self.m_J
         log_phi = np.log(phi)
@@ -409,13 +410,25 @@ class model(object):
                 doc, nu)
 
         if predict_doc is not None:
+            likelihood = 0.
             logEVd = utils.logE_sbc_stop(uv)
             # TODO abstract this?
             logEtheta = (
                 np.log(self.m_lambda0 + self.m_lambda_ss)
                 - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
             )
-            likelihood = np.sum(np.log(np.sum(np.exp(logEVd[:,np.newaxis] + np.dot(phi, np.dot(zeta_doc, logEtheta[:,predict_doc.words]))), 0)) * predict_doc.counts)
+            for (w, w_count) in zip(predict_doc.words, predict_doc.counts):
+                expected_word_prob = 0
+                for i in xrange(self.m_I):
+                    for j in xrange(self.m_J):
+                        for k in xrange(self.m_K):
+                            expected_word_prob += np.exp(
+                                logEVd[i]
+                                + log_phi[i,j]
+                                + log_zeta_doc[j,k]
+                                + logEtheta[k,w]
+                            )
+                likelihood += np.log(expected_word_prob) * w_count
 
         return likelihood
 
