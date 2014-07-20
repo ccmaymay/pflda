@@ -818,6 +818,22 @@ We now derive components of the ELBO.
     \boxed{ \mu_{dm} \propto \exp\left[ \Eq \log{p_m} + \sum_d \sum_i \sum_j \varphi_i^{(d)}(j) \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right] }.
 \end{align*}
 
+\begin{align*}
+    &\pd{u_i^{(d)}} \Eq \left[ \log \Pr(V_i^{(d)} \mid \gamma) - \log q(V_i^{(d)}) + \sum_n \log \Pr(c_{dn} \mid V^{(d)}_\cdot) \right] \\
+    &= (1 - u_i^{(d)}) \trigamma{u_i^{(d)}} - (1 + \gamma - u_i^{(d)} - v_i^{(d)}) \trigamma{u_i^{(d)} + v_i^{(d)}} \\
+    &\qquad + \sum_n \left[ \nu_{dn}(i) \left[ \trigamma{u_i^{(d)}} - \trigamma{u_i^{(d)} + v_i^{(d)}} \right] - \sum_{i'>i} \nu_{dn}(i') \trigamma{u_i^{(d)} + v_i^{(d)}} \right] \\
+    &\Rightarrow
+    \boxed{ u_i^{(d)} = 1 + \sum_n \nu_{dn}(i) }.
+\end{align*}
+
+\begin{align*}
+    &\pd{v_i^{(d)}} \Eq \left[ \log \Pr(V_i^{(d)} \mid \gamma) - \log q(V_i^{(d)}) + \sum_n \log \Pr(c_{dn} \mid V^{(d)}_\cdot) \right] \\
+    &= (\gamma - v_i^{(d)}) \trigamma{v_i^{(d)}} - (1 + \gamma - u_i^{(d)} - v_i^{(d)}) \trigamma{u_i^{(d)} + v_i^{(d)}} \\
+    &\qquad + \sum_n \left[ - \nu_{dn}(i) \trigamma{u_i^{(d)} + v_i^{(d)}} + \sum_{i'>i} \nu_{dn}(i') \left[ \trigamma{v_i^{(d)}} - \trigamma{u_i^{(d)} + v_i^{(d)}} \right] \right] \\
+    &\Rightarrow
+    \boxed{ v_i^{(d)} = 1 + \sum_n \sum_{i'>i} \nu_{dn}(i') }.
+\end{align*}
+
 TODO...
 
 
