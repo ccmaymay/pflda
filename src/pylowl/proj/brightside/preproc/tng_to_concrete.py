@@ -2,7 +2,7 @@
 
 
 import re
-from utils import nested_file_paths
+from pylowl.proj.brightside.utils import nested_file_paths
 from pylowl.proj.brightside.corpus import write_concrete_docs, Document
 
 

@@ -2,7 +2,7 @@
 
 
 import os
-from utils import nested_file_paths
+from pylowl.proj.brightside.utils import nested_file_paths
 from pylowl.proj.brightside.corpus import update_concrete_comms
 
 
