@@ -247,11 +247,11 @@ class model(object):
         )
 
     def update_ab(self):
+        self.m_ab[0,:,:] = 1.0 + self.m_ab_ss
+        self.m_ab[1,:,:] = self.m_beta
         for m in xrange(self.m_M):
-            self.m_ab[0,m,:] = 1.0 + self.m_ab_ss
-            self.m_ab[1,m,:] = self.m_beta
-            self.m_ab[1,m,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_ab_ss[1:])))
-            self.m_ab[:,m,self.m_K-1] = [1., 0.]
+            self.m_ab[1,m,:self.m_J-1] += np.flipud(np.cumsum(np.flipud(self.m_ab_ss[m,1:])))
+            self.m_ab[:,m,self.m_J-1] = [1., 0.]
             self.m_ElogVm[m,:] = utils.Elog_sbc_stop(self.m_ab[:,m,:])
 
     def update_zeta(self):
@@ -262,7 +262,7 @@ class model(object):
         self.m_zeta = np.exp(self.m_log_zeta)
 
     def update_nu(self, Elogprobw_doc, zeta_doc, doc, ElogVd, phi, nu, log_nu, incorporate_prior=True):
-        log_nu[:,:] = np.dot(phi, np.dot(zeta_doc, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
+        log_nu[:,:] = np.dot(phi, np.dot(zeta_doc, np.repeat(Elogprobw_doc, doc.counts, axis=1))).T
         if incorporate_prior:
             log_nu[:,:] += ElogVd
         for n in xrange(doc.total):
@@ -294,7 +294,7 @@ class model(object):
         return Elogp_doc
 
     def w_likelihood(self, zeta_doc, doc, nu, phi, Elogprobw_doc):
-        return np.sum(phi * np.dot(zeta_doc, np.repeat(Elogprobw_doc, doc.counts, axis=1)).T)
+        return np.sum(np.dot(phi, np.dot(zeta_doc, np.repeat(Elogprobw_doc, doc.counts, axis=1))))
 
     def doc_e_step(self, doc, ss, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, classes_to_batch_map,
@@ -321,10 +321,10 @@ class model(object):
         uv[1] = self.m_gamma
         uv[1,self.m_I-1] = 0.
 
-        ElogVm_doc = self.m_ElogVm[batch_to_classes_map[doc.class_idx]]
+        ElogVm_doc = self.m_ElogVm[doc.class_idx]
         ElogVd = utils.Elog_sbc_stop(uv)
-        zeta_doc = self.m_zeta[batch_to_classes_map[doc.class_idx]]
-        log_zeta_doc = self.m_log_zeta[batch_to_classes_map[doc.class_idx]]
+        zeta_doc = self.m_zeta[doc.class_idx]
+        log_zeta_doc = self.m_log_zeta[doc.class_idx]
 
         phi = np.zeros((self.m_I, self.m_J)) / self.m_J
         log_phi = np.log(phi)
@@ -353,7 +353,7 @@ class model(object):
             likelihood = 0.0
 
             # E[log p(x | p)
-            x_ll = self.x_likelihood(self.m_Elogp[batch_to_classes_map[doc.class_idx]])
+            x_ll = self.x_likelihood(self.m_Elogp[doc.class_idx])
             likelihood += x_ll
             logging.debug('Log-likelihood after x component: %f (+ %f)' % (likelihood, x_ll))
 
@@ -390,9 +390,9 @@ class model(object):
         ss.m_tau_ss += np.sum(zeta_doc, 0)
         for n in xrange(num_tokens):
             ss.m_lambda_ss[:, token_batch_ids[n]] += np.dot(np.dot(nu[n,:], phi), zeta_doc)
-        ss.m_omega_ss[doc.class_idx] += 1
-        ss.m_ab_ss[doc.class_idx,:] += np.sum(phi, 0)
-        ss.m_zeta_ss[doc.class_idx,:,:] += np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), np.dot(nu, phi)).T
+        ss.m_omega_ss[classes_to_batch_map[doc.class_idx]] += 1
+        ss.m_ab_ss[classes_to_batch_map[doc.class_idx],:] += np.sum(phi, 0)
+        ss.m_zeta_ss[classes_to_batch_map[doc.class_idx],:,:] += np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), np.dot(nu, phi)).T
 
         if save_model:
             # save sublist stats
