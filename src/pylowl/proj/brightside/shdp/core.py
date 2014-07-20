@@ -261,8 +261,8 @@ class model(object):
                 (self.m_log_zeta[m,j,:], log_norm) = utils.log_normalize(self.m_log_zeta[m,j,:])
         self.m_zeta = np.exp(self.m_log_zeta)
 
-    def update_nu(self, Elogprobw_doc, doc, ElogVd, phi, nu, log_nu, incorporate_prior=True):
-        log_nu[:,:] = np.dot(phi, np.dot(self.m_zeta, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
+    def update_nu(self, Elogprobw_doc, zeta_doc, doc, ElogVd, phi, nu, log_nu, incorporate_prior=True):
+        log_nu[:,:] = np.dot(phi, np.dot(zeta_doc, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
         if incorporate_prior:
             log_nu[:,:] += ElogVd
         for n in xrange(doc.total):
@@ -276,8 +276,8 @@ class model(object):
         uv[1,:self.m_I-1] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
         uv[:,self.m_I-1] = [1., 0.]
 
-    def update_phi(self, Elogprobw_doc, doc, ElogVm_doc, nu, phi, log_phi, incorporate_prior=True):
-        log_phi[:,:] = np.dot(np.dot(self.m_zeta, np.repeat(Elogprobw_doc, doc.counts, axis=1)), nu).T
+    def update_phi(self, Elogprobw_doc, zeta_doc, doc, ElogVm_doc, nu, phi, log_phi, incorporate_prior=True):
+        log_phi[:,:] = np.dot(np.dot(zeta_doc, np.repeat(Elogprobw_doc, doc.counts, axis=1)), nu).T
         if incorporate_prior:
             log_phi[:,:] += ElogVm_doc
         for i in xrange(self.m_I):
@@ -293,8 +293,8 @@ class model(object):
     def x_likelihood(self, Elogp_doc):
         return Elogp_doc
 
-    def w_likelihood(self, doc, nu, phi, Elogprobw_doc):
-        return np.sum(phi * np.dot(self.m_zeta, np.repeat(Elogprobw_doc, doc.counts, axis=1)).T)
+    def w_likelihood(self, zeta_doc, doc, nu, phi, Elogprobw_doc):
+        return np.sum(phi * np.dot(zeta_doc, np.repeat(Elogprobw_doc, doc.counts, axis=1)).T)
 
     def doc_e_step(self, doc, ss, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, classes_to_batch_map,
@@ -323,6 +323,7 @@ class model(object):
 
         ElogVm_doc = self.m_ElogVm[batch_to_classes_map[doc.class_idx]]
         ElogVd = utils.Elog_sbc_stop(uv)
+        zeta_doc = self.m_zeta[batch_to_classes_map[doc.class_idx]]
 
         phi = np.zeros((self.m_I, self.m_J)) / self.m_J
         log_phi = np.log(phi)
@@ -340,8 +341,8 @@ class model(object):
         while iteration < max_iter and (converge is None or converge < 0.0 or converge > var_converge):
             logging.debug('Updating document variational parameters (iteration: %d)' % iteration)
             # update variational parameters
-            self.update_phi(Elogprobw_doc, doc, ElogVm_doc, nu, phi, log_phi)
-            self.update_nu(Elogprobw_doc, doc, ElogVd, phi, nu, log_nu)
+            self.update_phi(Elogprobw_doc, zeta_doc, doc, ElogVm_doc, nu, phi, log_phi)
+            self.update_nu(Elogprobw_doc, zeta_doc, doc, ElogVd, phi, nu, log_nu)
             # TODO why after phi and nu update, not before?
             self.update_uv(nu, uv)
             ElogVd = utils.Elog_sbc_stop(uv)
@@ -371,7 +372,7 @@ class model(object):
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
 
             # E[log p(W | c, z, y, theta)]
-            w_ll = self.w_likelihood(doc, nu, phi, Elogprobw_doc)
+            w_ll = self.w_likelihood(zeta_doc, doc, nu, phi, Elogprobw_doc)
             likelihood += w_ll
             logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
 
@@ -385,9 +386,9 @@ class model(object):
 
             iteration += 1
 
-        ss.m_tau_ss += np.sum(self.m_zeta, 0)
+        ss.m_tau_ss += np.sum(zeta_doc, 0)
         for n in xrange(num_tokens):
-            ss.m_lambda_ss[:, token_batch_ids[n]] += np.dot(np.dot(nu, phi), self.m_zeta[m,:,:])
+            ss.m_lambda_ss[:, token_batch_ids[n]] += np.dot(np.dot(nu[n,:], phi), zeta_doc)
         ss.m_omega_ss[doc.class_idx] += 1
         ss.m_ab_ss[doc.class_idx,:] += np.sum(phi, 0)
         ss.m_zeta_ss[doc.class_idx,:,:] += np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), np.dot(nu, phi)).T
@@ -408,13 +409,13 @@ class model(object):
                 doc, nu)
 
         if predict_doc is not None:
-            logEVd = utils.Elog_sbc_stop(uv)
+            logEVd = utils.logE_sbc_stop(uv)
             # TODO abstract this?
             logEtheta = (
                 np.log(self.m_lambda0 + self.m_lambda_ss)
                 - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
             )
-            likelihood = np.sum(np.log(np.sum(np.exp(logEVd[:,np.newaxis] + np.dot(phi, logEtheta[:,predict_doc.words])), 0)) * predict_doc.counts)
+            likelihood = np.sum(np.log(np.sum(np.exp(logEVd[:,np.newaxis] + np.dot(phi, np.dot(zeta_doc, logEtheta[:,predict_doc.words]))), 0)) * predict_doc.counts)
 
         return likelihood
 
