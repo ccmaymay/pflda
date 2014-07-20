@@ -34,8 +34,6 @@ def concrete_to_text(input_dir, output_dir, tokenized=False):
                 text = doc.text
             else:
                 text = ' '.join(doc.tokens)
-            if not text.endswith('\n'):
-                text = text + '\n'
             f.write(text)
         i += 1
 
