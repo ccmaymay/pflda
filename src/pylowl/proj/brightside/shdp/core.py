@@ -222,6 +222,9 @@ class model(object):
                                       batch_to_classes_map)
             self.update_lambda()
             self.update_tau()
+            self.update_omega()
+            self.update_ab()
+            self.update_zeta()
             self.m_t += 1
 
         return (score, count, doc_count)
@@ -231,6 +234,15 @@ class model(object):
             sp.psi(self.m_lambda0 + self.m_lambda_ss)
             - sp.psi(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:, np.newaxis])
         )
+
+    def update_tau(self):
+        self.m_tau[0] = 1.0 + self.m_tau_ss
+        self.m_tau[1] = self.m_alpha
+        self.m_tau[1,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_tau_ss[1:])))
+        self.m_tau[:,self.m_K-1] = [1., 0.]
+
+    def update_omega(self):
+        self.
 
     def update_nu(self, Elogprobw_doc, doc, Elogpi, phi, nu, log_nu, incorporate_prior=True):
         log_nu[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1).T, phi.T)
@@ -246,12 +258,6 @@ class model(object):
         uv[1] = self.m_beta
         uv[1,:self.m_L-1] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
         uv[:,self.m_L-1] = [1., 0.]
-
-    def update_tau(self):
-        self.m_tau[0] = 1.0 + self.m_tau_ss
-        self.m_tau[1] = self.m_alpha
-        self.m_tau[1,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_tau_ss[1:])))
-        self.m_tau[:,self.m_K-1] = [1., 0.]
 
     def update_phi(self, Elogprobw_doc, doc, ElogV, nu, phi, log_phi, incorporate_prior=True):
         log_phi[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), nu).T
