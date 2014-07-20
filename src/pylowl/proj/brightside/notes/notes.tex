@@ -704,7 +704,7 @@ We now derive components of the ELBO.
 
 \begin{align*}
     &\Eq \log \Pr(x_d \mid p) \\
-    &= \sum_m \mu_{dm} \left[ \digamma{\omega_m} - \digamma{\sum_{m'} \omega_{m'}} \right]
+    &= \sum_m \mu_{dm} \Eq \log p_m
 \end{align*}
 
 \begin{align*}
@@ -812,10 +812,10 @@ We now derive components of the ELBO.
 
 \begin{align*}
     &\pd{\mu_{d\cdot}} \Eq \left[ \log \Pr(x_d \mid p) - \log q(x_d) + \sum_d \sum_i \log \Pr(z_i^{(d)} \mid V^{(m=\cdot)}_\cdot, x_d) \right] \\
-    &= \sum_m \left[ \digamma{\omega_m} - \digamma{\sum_{m'} \omega_{m'}} + \sum_d \sum_i \sum_j \varphi_i^{(d)}(j) \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right] \\
+    &= \sum_m \left[ \Eq \log{p_m} + \sum_d \sum_i \sum_j \varphi_i^{(d)}(j) \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right] \\
     &\qquad - \sum_m \left[ 1 + \log \mu_{dm} \right] \\
     &\Rightarrow
-    \boxed{ \mu_{dm} \propto \exp\left[ \digamma{\omega_m} - \digamma{\sum_{m'} \omega_{m'}} + \sum_d \sum_i \sum_j \varphi_i^{(d)}(j) \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right] }.
+    \boxed{ \mu_{dm} \propto \exp\left[ \Eq \log{p_m} + \sum_d \sum_i \sum_j \varphi_i^{(d)}(j) \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right] }.
 \end{align*}
 
 TODO...
