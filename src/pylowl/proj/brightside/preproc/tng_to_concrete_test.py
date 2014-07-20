@@ -1,4 +1,4 @@
-from raw_filter import *
+from pylowl.proj.brightside.preproc.tng_to_concrete import *
 
 
 def contains_email_1_test():
