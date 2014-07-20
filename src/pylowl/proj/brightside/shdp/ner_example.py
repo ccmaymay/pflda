@@ -9,3 +9,5 @@ ner_sent = nltk.ne_chunk(pos_sent)
 for tree in ner_sent.subtrees():
     if tree.node == 'GPE':
         print tree
+
+# [nltk.ne_chunk(nltk.pos_tag(nltk.word_tokenize(s))) for s in nltk.sent_tokenize(text)]
