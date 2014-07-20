@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+import sys
 import nltk
 from pylowl.proj.brightside.utils import nested_file_paths
 from pylowl.proj.brightside.corpus import update_concrete_comms
@@ -25,6 +26,7 @@ def set_class(comm):
         for tree in sentence.subtrees():
             if tree.node == 'GPE':
                 has_gpe = True
+    sys.stderr.write('+' if has_gpe else '-')
     comm.attrs['class'] = 'has_gpe' if has_gpe else 'no_gpe'
 
 

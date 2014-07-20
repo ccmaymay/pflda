@@ -19,17 +19,17 @@ def main():
                         help='name of attribute to set')
 
     args = parser.parse_args()
-    tng_set_user_to_category(args.data_dir, attr=args.attr)
+    tng_set_attr_to_category(args.data_dir, attr=args.attr)
 
 
-def set_user(comm, attr):
+def set_attr(comm, attr):
     category = os.path.basename(os.path.dirname(self.id))
     comm.attrs[attr] = category
 
 
-def tng_set_user_to_category(data_dir, attr=DEFAULT_ATTR):
+def tng_set_attr_to_category(data_dir, attr=DEFAULT_ATTR):
     update_concrete_comms(nested_file_paths(data_dir),
-                          lambda c: set_user(c, attr))
+                          lambda c: set_attr(c, attr))
 
 
 if __name__ == '__main__':
