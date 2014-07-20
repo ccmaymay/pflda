@@ -29,8 +29,9 @@ SRC_EXTENSIONS = ('.py', '.sh', '.c', '.h', '.pxd', '.pyx')
 
 # paths are relative to littleowl repo root
 OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/shdp'
-K = 20
-L = 10
+I = 20
+J = 10
+K = 5
 POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
 MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/shdp/postproc'
 
@@ -58,9 +59,12 @@ def is_num(s):
 
 def make_data(input_dir, output_dir):
     i = 0
+    active_exts = set()
     for (dirpath, dirnames, filenames) in os.walk(input_dir):
         for filename in filenames:
             path = os.path.join(dirpath, filename)
+            ext = os.path.splitext(path)[1]
+            active_exts.add(ext)
             if src_path_filter(path):
                 tokens = []
                 with open(path) as f:
@@ -69,8 +73,9 @@ def make_data(input_dir, output_dir):
                                       if token and not is_num(token))
                 if tokens:
                     output_path = os.path.join(output_dir, '%d.concrete' % i)
-                    write_concrete_doc(Document(tokens, id=path), output_path)
+                    write_concrete_doc(Document(tokens, id=path, class=ext), output_path)
                     i += 1
+    return len(active_exts)
 
 
 if __name__ == '__main__':
@@ -90,7 +95,7 @@ if __name__ == '__main__':
     umask = os.umask(0o022) # whatever, python
     os.umask(umask) # set umask back
     os.chmod(data_dir, 0o0755 & ~umask)
-    make_data('src', data_dir)
+    m = make_data('src', data_dir)
     train_data_dir = data_dir
     # TODO would be nice if we didn't test on training data...
     test_data_dir = data_dir
@@ -106,7 +111,7 @@ if __name__ == '__main__':
     os.chmod(output_dir, 0o0755 & ~umask)
 
     print 'Running stochastic variational inference...'
-    code = '''run(K=K, L=L,
+    code = '''run(I=I, J=J, K=K, M=m,
         data_dir=train_data_dir,
         test_data_dir=test_data_dir,
         test_samples=50,

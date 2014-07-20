@@ -25,8 +25,10 @@ for (k, v) in os.environ.items():
     print '    %s: %s' % (k, v)
 print
 
-K = 100
-L = 20
+I = 20
+J = 10
+K = 5
+M = 2
 DATA_DIR = 'data/txt/tng'
 POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
 MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/shdp/postproc'
@@ -49,13 +51,14 @@ os.umask(umask) # set umask back
 os.chmod(OUTPUT_DIR, 0o0755 & ~umask)
 
 print 'Running stochastic variational inference...'
-code = '''run(K=K, L=L,
+code = '''run(I=I, J=J, K=K, M=m,
     data_dir=TRAIN_DATA_DIR,
     test_data_dir=TEST_DATA_DIR,
     test_samples=300,
     init_samples=300,
     alpha=1,
     beta=1,
+    gamma=1,
     iota=64,
     kappa=0.6,
     lambda0=0.005,
