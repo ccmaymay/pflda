@@ -15,8 +15,10 @@ def set_random_seed(seed):
 
 
 class suff_stats(object):
-    def __init__(self, K, Wt, Dt):
-        self.m_batchsize = Dt
+    def __init__(self, K, Wt, Dt, Mt, DperMt):
+        self.m_batch_D = Dt
+        self.m_batch_M = Mt
+        self.m_batch_DperM = DperMt
         self.m_tau_ss = np.zeros(K)
         self.m_lambda_ss = np.zeros((K, Wt))
 
@@ -49,9 +51,13 @@ class model(object):
         self.m_M = M
         self.m_W = W
         self.m_D = D
+        self.m_DperM = D / float(M)
         self.m_alpha = alpha
         self.m_beta = beta
         self.m_gamma = gamma
+
+        self.m_classes = [None] * M
+        self.m_r_classes = dict()
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
@@ -146,16 +152,35 @@ class model(object):
         # Find the unique words in this mini-batch of documents...
         self.m_num_docs_processed += doc_count
 
+        classes_to_batch_map = dict()
+        batch_to_classes_map = []
+        DperMt = []
         # mapping from word types in this mini-batch to unique
         # consecutive integers
         vocab_to_batch_word_map = dict()
         # list of unique word types, in order of first appearance
         batch_to_vocab_word_map = []
         for doc in docs:
+            if doc.attrs['class'] in self.m_r_classes:
+                doc.class_idx = self.m_r_classes[doc.attrs['class']]
+            else:
+                class_idx = len(self.m_r_classes)
+                self.m_classes[class_idx] = doc.attrs['class']
+                self.m_r_classes[doc.attrs['class']] = class_idx
+                doc.class_idx = class_idx
+
+            if doc.class_idx not in classes_to_batch_map:
+                batch_to_classes_map.append(doc.class_idx)
+                classes_to_batch_map[doc.class_idx] = len(classes_to_batch_map)
+                DperMt.append(0)
+            DperUt[classes_to_batch_map[doc.class_idx]] += 1
+
             for w in doc.words:
                 if w not in vocab_to_batch_word_map:
                     vocab_to_batch_word_map[w] = len(vocab_to_batch_word_map)
                     batch_to_vocab_word_map.append(w)
+
+        Mt = len(batch_to_classes_map)
 
         # number of unique word types in this mini-batch
         num_tokens = sum([sum(doc.counts) for doc in docs])
@@ -164,7 +189,7 @@ class model(object):
         logging.info('Processing %d docs spanning %d tokens, %d types'
             % (doc_count, num_tokens, Wt))
 
-        ss = suff_stats(self.m_K, Wt, doc_count)
+        ss = suff_stats(self.m_K, Wt, doc_count, Mt, DperMt)
 
         # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
         ElogV = utils.Elog_sbc_stop(self.m_tau)
@@ -174,7 +199,8 @@ class model(object):
         count = 0
         for (doc, predict_doc) in it.izip(docs, predict_docs):
             doc_score = self.doc_e_step(doc, ss, ElogV, vocab_to_batch_word_map,
-                batch_to_vocab_word_map, var_converge, predict_doc=predict_doc,
+                batch_to_vocab_word_map, classes_to_batch_map,
+                batch_to_classes_map, var_converge, predict_doc=predict_doc,
                 save_model=save_model)
 
             score += doc_score
@@ -184,7 +210,8 @@ class model(object):
                 count += predict_doc.total
 
         if update:
-            self.update_ss_stochastic(ss, batch_to_vocab_word_map)
+            self.update_ss_stochastic(ss, batch_to_vocab_word_map,
+                                      batch_to_classes_map)
             self.update_lambda()
             self.update_tau()
             self.m_t += 1
@@ -236,7 +263,8 @@ class model(object):
         return np.sum(nu.T * np.dot(phi, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
 
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
-                   batch_to_vocab_word_map, var_converge, max_iter=100,
+                   batch_to_vocab_word_map, classes_to_batch_map,
+                   batch_to_classes_map, var_converge, max_iter=100,
                    predict_doc=None, save_model=False):
         num_tokens = sum(doc.counts)
 
@@ -347,7 +375,8 @@ class model(object):
 
         return likelihood
 
-    def update_ss_stochastic(self, ss, batch_to_vocab_word_map):
+    def update_ss_stochastic(self, ss, batch_to_vocab_word_map,
+                             batch_to_classes_map):
         # rho will be between 0 and 1, and says how much to weight
         # the information we got from this mini-batch.
         # Add one because self.m_t is zero-based.
@@ -358,13 +387,13 @@ class model(object):
         # Update lambda based on documents.
         self.m_lambda_ss *= (1 - rho)
         self.m_lambda_ss[:, batch_to_vocab_word_map] += (
-            rho * ss.m_lambda_ss * self.m_D / ss.m_batchsize
+            rho * ss.m_lambda_ss * self.m_D / ss.m_batch_D
         )
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
         self.m_tau_ss = (
             (1.0 - rho) * self.m_tau_ss
-            + rho * ss.m_tau_ss * self.m_D / ss.m_batchsize
+            + rho * ss.m_tau_ss * self.m_D / ss.m_batch_D
         )
 
     def save_global(self, output_files):
