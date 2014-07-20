@@ -284,14 +284,17 @@ class model(object):
             (log_phi[i,:], log_norm) = utils.log_normalize(log_phi[i,:])
         phi[:,:] = np.exp(log_phi)
 
-    def z_likelihood(self, phi, log_phi):
-        return np.sum(phi * (self.m_ElogV - log_phi))
+    def z_likelihood(self, ElogVm_doc, phi, log_phi):
+        return np.sum(phi * (ElogVm_doc - log_phi))
 
     def c_likelihood(self, ElogVd, nu, log_nu):
         return np.sum(nu * (ElogVd - log_nu))
 
+    def x_likelihood(self, Elogp_doc):
+        return Elogp_doc
+
     def w_likelihood(self, doc, nu, phi, Elogprobw_doc):
-        return np.sum(nu.T * np.dot(phi, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
+        return np.sum(phi * np.dot(self.m_zeta, np.repeat(Elogprobw_doc, doc.counts, axis=1)).T)
 
     def doc_e_step(self, doc, ss, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, classes_to_batch_map,
@@ -347,22 +350,27 @@ class model(object):
 
             likelihood = 0.0
 
-            # E[log p(V | gamma)] + H(q(V))
+            # E[log p(x | p)
+            x_ll = self.x_likelihood(self.m_Elogp[batch_to_classes_map[doc.class_idx]])
+            likelihood += x_ll
+            logging.debug('Log-likelihood after x component: %f (+ %f)' % (likelihood, x_ll))
+
+            # E[log p(Vd | gamma)] + H(q(Vd))
             v_ll = utils.log_sticks_likelihood(uv[:,:self.m_I-1], 1.0, self.m_gamma)
             likelihood += v_ll
-            logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
+            logging.debug('Log-likelihood after Vd components: %f (+ %f)' % (likelihood, v_ll))
 
-            # E[log p(z | V)] + H(q(z))
-            z_ll = self.z_likelihood(phi, log_phi)
+            # E[log p(z | Vm)] + H(q(z))
+            z_ll = self.z_likelihood(ElogVm_doc, phi, log_phi)
             likelihood += z_ll
             logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
 
-            # E[log p(c | U, V)] + H(q(c))
+            # E[log p(c | Vd)] + H(q(c))
             c_ll = self.c_likelihood(ElogVd, nu, log_nu)
             likelihood += c_ll
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
 
-            # E[log p(W | theta, c, z)]
+            # E[log p(W | c, z, y, theta)]
             w_ll = self.w_likelihood(doc, nu, phi, Elogprobw_doc)
             likelihood += w_ll
             logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
