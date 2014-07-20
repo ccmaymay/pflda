@@ -357,8 +357,8 @@ so, setting the partial derivative equal to zero and using the fact that the tri
         &\qquad\qquad + \sum_d \sum_i \sum_{j'} \delta_{z_i^{(d)}}({j'}) \Bigg[ \Elogbeta{\tau_{j'}^{(1)}}{\tau_{j'}^{(2)}}{1} \\
         &\qquad\qquad\qquad\qquad\qquad\qquad + \sum_{j'' < j'}\left( \Elogbeta{\tau_{j''}^{(1)}}{\tau_{j''}^{(2)}}{2} \right)\Bigg] \Bigg] \\
     &= (1 - \tau^{(1)}_j) \trigamma{\tau^{(1)}_j} - (1 + \alpha - \tau^{(1)}_j - \tau^{(2)}_j) \trigamma{\tau^{(1)}_j + \tau^{(2)}_j} \\
-        &\qquad + \sum_d \sum_i \delta_{z_i^{(d)}}({j}) \Bigg[ \trigamma{\tau_{j}^{(1)}} - \trigamma{\tau_{j}^{(1)} + \tau_{j}^{(2)}} \\
-        &\qquad\qquad\qquad\qquad - \sum_{j \leftsibling j'} \trigamma{\tau_{j'}^{(1)} + \tau_{j'}^{(2)}} \Bigg]
+        &\qquad + \sum_d \sum_i \Bigg[ \delta_{z_i^{(d)}}({j}) \Bigg[ \trigamma{\tau_{j}^{(1)}} - \trigamma{\tau_{j}^{(1)} + \tau_{j}^{(2)}} \Bigg] \\
+        &\qquad\qquad\qquad\qquad - \sum_{j \leftsibling j'} \delta_{z_i^{(d)}}(j') \trigamma{\tau_{j}^{(1)} + \tau_{j}^{(2)}} \Bigg]
 \end{align*}
 so, setting the partial derivative equal to zero and using the fact that the trigamma is positive in this context, we obtain
 \begin{align*}
@@ -368,8 +368,8 @@ Similarly,
 \begin{align*}
     &\pd{\tau_{j}^{(2)}} \Eq \left[ \log \Pr(V_j \mid \alpha) - \log q(V_j) + \log \Pr(z \mid V) \right] \\
     &= (\alpha - \tau^{(2)}_j) \trigamma{\tau^{(2)}_j} - (1 + \alpha - \tau^{(1)}_j - \tau^{(2)}_j) \trigamma{\tau^{(1)}_j + \tau^{(2)}_j} \\
-        &\qquad + \sum_d \sum_i \delta_{z_i^{(d)}}({j}) \Bigg[ - \trigamma{\tau_{j}^{(1)} + \tau_{j}^{(2)}} \\
-        &\qquad\qquad\qquad\qquad + \sum_{j \leftsibling j'} \left[ \trigamma{\tau_{j'}^{(2)}} - \trigamma{\tau_{j'}^{(1)} + \tau_{j'}^{(2)}} \right] \Bigg]
+        &\qquad + \sum_d \sum_i \Bigg[ \delta_{z_i^{(d)}}({j}) \Bigg[ - \trigamma{\tau_{j}^{(1)} + \tau_{j}^{(2)}} \Bigg] \\
+        &\qquad\qquad\qquad\qquad + \delta_{z_i^{(d)}}(j') \sum_{j \leftsibling j'} \left[ \trigamma{\tau_{j}^{(2)}} - \trigamma{\tau_{j}^{(1)} + \tau_{j}^{(2)}} \right] \Bigg]
 \end{align*}
 so
 \begin{align*}
