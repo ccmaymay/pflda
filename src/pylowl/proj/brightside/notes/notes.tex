@@ -619,11 +619,11 @@ Global variables:
 Class-wise variables:
 \begin{itemize}
 \item $\displaystyle q(V_j^{(m)}) = \Beta(V_j^{(m)} \mid a_j^{(m)}, b_j^{(m)})$
-\item $q(y_j^{(m)}) = \Discrete(y_j^{(m)} \mid \psi_j^{(m)})$
+\item $q(y_j^{(m)}) = \Discrete(y_j^{(m)} \mid \zeta_j^{(m)})$
 \end{itemize}
 Document-wise variables:
 \begin{itemize}
-\item $q(x_d) = \Discrete(x_d \mid \mu_d)$
+\item $q(x_d) = \Discrete(x_d \mid \xi_d)$
 \item $\displaystyle q(V_i^{(d)}) = \Beta(V_i^{(d)} \mid u_i^{(d)}, v_i^{(d)})$
 \item $q(z_i^{(d)}) = \Discrete(z_i^{(d)} \mid \varphi_i^{(d)})$
 \item $\displaystyle q(c_{dn}) = \Discrete(c_{dn} \mid \nu_{dn})$
@@ -694,22 +694,22 @@ We now derive components of the ELBO.
 
 \begin{align*}
     &\Eq \log \Pr(y_j^{(m)} \mid V_\cdot) \\
-    &= \sum_k \psi_j^{(m)}(k) \left[ \Eq \log V_k + \sum_{k'<k} \Eq \log (1-V_{k'}) \right]
+    &= \sum_k \zeta_j^{(m)}(k) \left[ \Eq \log V_k + \sum_{k'<k} \Eq \log (1-V_{k'}) \right]
 \end{align*}
 
 \begin{align*}
     &\Eq \log q(y_j^{(m)}) \\
-    &= \sum_k \psi_j^{(m)}(k) \log \psi_j^{(m)}(k)
+    &= \sum_k \zeta_j^{(m)}(k) \log \zeta_j^{(m)}(k)
 \end{align*}
 
 \begin{align*}
     &\Eq \log \Pr(x_d \mid p) \\
-    &= \sum_m \mu_{dm} \Eq \log p_m
+    &= \sum_m \xi_{dm} \Eq \log p_m
 \end{align*}
 
 \begin{align*}
     &\Eq \log q(x_d) \\
-    &= \sum_m \mu_{dm} \log \mu_{dm}
+    &= \sum_m \xi_{dm} \log \xi_{dm}
 \end{align*}
 
 \begin{align*}
@@ -726,7 +726,7 @@ We now derive components of the ELBO.
 
 \begin{align*}
     &\Eq \log \Pr(z_i^{(d)} \mid V^{(m=\cdot)}_\cdot, x_d) \\
-    &= \sum_j \varphi_i^{(d)}(j) \left[ \sum_m \mu_{dm} \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right]
+    &= \sum_j \varphi_i^{(d)}(j) \left[ \sum_m \xi_{dm} \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right]
 \end{align*}
 
 \begin{align*}
@@ -746,7 +746,7 @@ We now derive components of the ELBO.
 
 \begin{align*}
     &\Eq \log \Pr\left(W_{dn} \mid c_{dn}, z_\cdot^{(d)}, x_d, y_\cdot^{(\cdot)}, \theta_{\cdot W_{dn}}\right) \\
-    &= \sum_i \nu_{dn}(i) \sum_j \varphi_i^{(d)}(j) \sum_m \mu_{dm} \sum_k \psi_j^{(m)}(k) \Eq \log \theta_{k W_{dn}}
+    &= \sum_i \nu_{dn}(i) \sum_j \varphi_i^{(d)}(j) \sum_m \xi_{dm} \sum_k \zeta_j^{(m)}(k) \Eq \log \theta_{k W_{dn}}
 \end{align*}
 
 \subsection*{Coordinate ascent updates}
@@ -754,68 +754,68 @@ We now derive components of the ELBO.
 \begin{align*}
     &\pd{\tau_{k}^{(1)}} \Eq \left[ \log \Pr(V_k \mid \alpha) - \log q(V_k) + \sum_m \sum_j \log \Pr(y_j^{(m)} \mid V_\cdot) \right] \\
     &= (1 - \tau^{(1)}_k) \trigamma{\tau^{(1)}_k} - (1 + \alpha - \tau^{(1)}_k - \tau^{(2)}_k) \trigamma{\tau^{(1)}_k + \tau^{(2)}_k} \\
-    &\qquad + \sum_m \sum_j \left[ \psi_j^{(m)}(k) \left[ \trigamma{\tau_{k}^{(1)}} - \trigamma{\tau_{k}^{(1)} + \tau_{k}^{(2)}} \right]
-        - \sum_{k' > k} \psi_j^{(m)}(k') \trigamma{\tau_{k}^{(1)} + \tau_{k}^{(2)}} \right] \\
+    &\qquad + \sum_m \sum_j \left[ \zeta_j^{(m)}(k) \left[ \trigamma{\tau_{k}^{(1)}} - \trigamma{\tau_{k}^{(1)} + \tau_{k}^{(2)}} \right]
+        - \sum_{k' > k} \zeta_j^{(m)}(k') \trigamma{\tau_{k}^{(1)} + \tau_{k}^{(2)}} \right] \\
     &\Rightarrow
-    \boxed{ \tau^{(1)}_k = 1 + \sum_m \sum_j \psi^{(m)}_j(k) }.
+    \boxed{ \tau^{(1)}_k = 1 + \sum_m \sum_j \zeta^{(m)}_j(k) }.
 \end{align*}
 
 \begin{align*}
     &\pd{\tau_{k}^{(2)}} \Eq \left[ \log \Pr(V_k \mid \alpha) - \log q(V_k) + \sum_m \sum_j \log \Pr(y_j^{(m)} \mid V_\cdot) \right] \\
     &= (\alpha - \tau^{(2)}_k) \trigamma{\tau^{(2)}_k} - (1 + \alpha - \tau^{(1)}_k - \tau^{(2)}_k) \trigamma{\tau^{(1)}_k + \tau^{(2)}_k} \\
-    &\qquad + \sum_m \sum_j \left[ - \psi_j^{(m)}(k) \trigamma{\tau_{k}^{(1)} + \tau_{k}^{(2)}}
-        + \sum_{k' > k} \psi_j^{(m)}(k') \left[ \trigamma{\tau_{k}^{(2)}} - \trigamma{\tau_{k}^{(1)} + \tau_{k}^{(2)}} \right] \right] \\
+    &\qquad + \sum_m \sum_j \left[ - \zeta_j^{(m)}(k) \trigamma{\tau_{k}^{(1)} + \tau_{k}^{(2)}}
+        + \sum_{k' > k} \zeta_j^{(m)}(k') \left[ \trigamma{\tau_{k}^{(2)}} - \trigamma{\tau_{k}^{(1)} + \tau_{k}^{(2)}} \right] \right] \\
     &\Rightarrow
-    \boxed{ \tau^{(2)}_k = \alpha + \sum_m \sum_j \sum_{k' > k} \psi^{(m)}_j(k') }.
+    \boxed{ \tau^{(2)}_k = \alpha + \sum_m \sum_j \sum_{k' > k} \zeta^{(m)}_j(k') }.
 \end{align*}
 
 \begin{align*}
     &\pd{\lambda_{kw}} \Eq \left[ \log \Pr(\theta_k \mid \lambda_0) - \log q(\theta_k)
     + \sum_d \sum_n \Eq \log \Pr(W_{dn} \mid c_{dn}, z_\cdot^{(d)}, x_d, y_\cdot^{(\cdot)}, \theta_{k W_{dn}}) \right] \\
     &= (\lambda_0 - \lambda_{kw}) \trigamma{\lambda_{kw}} - \sum_{w'} (\lambda_0 - \lambda_{kw'}) \trigamma{\sum_{w''}{\lambda_{kw''}}} \\
-    &\qquad + \sum_d \sum_n \delta_{W_{dn}}(w) \sum_i \nu_{dn}(i) \sum_j \varphi_i^{(d)}(j) \sum_m \mu_{dm} \psi_j^{(m)}(k) \left[ \trigamma{\lambda_{k w}} - \trigamma{\sum_{w'}{\lambda_{kw'}}} \right] \\
+    &\qquad + \sum_d \sum_n \delta_{W_{dn}}(w) \sum_i \nu_{dn}(i) \sum_j \varphi_i^{(d)}(j) \sum_m \xi_{dm} \zeta_j^{(m)}(k) \left[ \trigamma{\lambda_{k w}} - \trigamma{\sum_{w'}{\lambda_{kw'}}} \right] \\
     &\Rightarrow
-    \boxed{ \lambda_{kw} = \lambda_0 + \sum_d \sum_n \delta_{W_{dn}}(w) \sum_i \nu_{dn}(i) \sum_j \varphi_i^{(d)}(j) \sum_m \mu_{dm} \psi_j^{(m)} }.
+    \boxed{ \lambda_{kw} = \lambda_0 + \sum_d \sum_n \delta_{W_{dn}}(w) \sum_i \nu_{dn}(i) \sum_j \varphi_i^{(d)}(j) \sum_m \xi_{dm} \zeta_j^{(m)} }.
 \end{align*}
 
 \begin{align*}
     &\pd{\omega_m} \Eq \left[ \log \Pr(p \mid \omega_0) - \log q(p) + \sum_d \log \Pr(x_d \mid p) \right] \\
     &= (\omega_0 - \omega_m) \trigamma{\omega_m} - \trigamma{\sum_{m'} \omega_{m'}} \sum_{m'} (\omega_0 - \omega_{m'}) \\
-    &\qquad + \sum_d \left[ \mu_{dm} \trigamma{\omega_m} - \trigamma{\sum_{m'} \omega_{m'}} \sum_{m'} \mu_{dm'} \right] \\
+    &\qquad + \sum_d \left[ \xi_{dm} \trigamma{\omega_m} - \trigamma{\sum_{m'} \omega_{m'}} \sum_{m'} \xi_{dm'} \right] \\
     &\Rightarrow
-    \boxed{ \omega_m = \sum_m \mu_{dm} }.
+    \boxed{ \omega_m = \sum_m \xi_{dm} }.
 \end{align*}
 
 \begin{align*}
     &\pd{a_j^{(m)}} \Eq \left[ \log \Pr(V_j^{(m)} \mid \beta) - \log q(V_j^{(m)}) + \sum_d \sum_i \log \Pr(z_i^{(d)} \mid V^{(m=\cdot)}_\cdot, x_d) \right] \\
     &= (1 - a_j^{(m)}) \trigamma{a_j^{(m)}} - (1 + \beta - a_j^{(m)} - b_j^{(m)}) \trigamma{a_j^{(m)} + b_j^{(m)}} \\
-    &\qquad + \sum_d \mu_{dm} \sum_i \left[ \varphi_i^{(d)}(j) \left[ \trigamma{a_j^{(m)}} - \trigamma{a_j^{(m)} + b_j^{(m)}} \right] - \sum_{j'>j} \varphi_i^{(d)}(j') \trigamma{a_j^{(m)} + b_j^{(m)}} \right] \\
+    &\qquad + \sum_d \xi_{dm} \sum_i \left[ \varphi_i^{(d)}(j) \left[ \trigamma{a_j^{(m)}} - \trigamma{a_j^{(m)} + b_j^{(m)}} \right] - \sum_{j'>j} \varphi_i^{(d)}(j') \trigamma{a_j^{(m)} + b_j^{(m)}} \right] \\
     &\Rightarrow
-    \boxed{ a_j^{(m)} = 1 + \sum_d \mu_{dm} \sum_i \varphi_i^{(d)}(j) }.
+    \boxed{ a_j^{(m)} = 1 + \sum_d \xi_{dm} \sum_i \varphi_i^{(d)}(j) }.
 \end{align*}
 
 \begin{align*}
     &\pd{b_j^{(m)}} \Eq \left[ \log \Pr(V_j^{(m)} \mid \beta) - \log q(V_j^{(m)}) + \sum_d \sum_i \log \Pr(z_i^{(d)} \mid V^{(m=\cdot)}_\cdot, x_d) \right] \\
     &= (\beta - b_j^{(m)}) \trigamma{b_j^{(m)}} - (1 + \beta - a_j^{(m)} - b_j^{(m)}) \trigamma{a_j^{(m)} + b_j^{(m)}} \\
-    &\qquad + \sum_d \mu_{dm} \sum_i \left[ - \varphi_i^{(d)}(j) \trigamma{a_j^{(m)} + b_j^{(m)}} + \sum_{j'>j} \varphi_i^{(d)}(j') \left[ \trigamma{b_j^{(m)}} + \trigamma{a_j^{(m)} + b_j^{(m)}} \right] \right] \\
+    &\qquad + \sum_d \xi_{dm} \sum_i \left[ - \varphi_i^{(d)}(j) \trigamma{a_j^{(m)} + b_j^{(m)}} + \sum_{j'>j} \varphi_i^{(d)}(j') \left[ \trigamma{b_j^{(m)}} + \trigamma{a_j^{(m)} + b_j^{(m)}} \right] \right] \\
     &\Rightarrow
-    \boxed{ b_j^{(m)} = \beta + \sum_d \mu_{dm} \sum_i \sum_{j' > j} \varphi_i^{(d)}(j') }.
+    \boxed{ b_j^{(m)} = \beta + \sum_d \xi_{dm} \sum_i \sum_{j' > j} \varphi_i^{(d)}(j') }.
 \end{align*}
 
 \begin{align*}
-    &\pd{\psi_j^{(m)}} \Eq \left[ \log \Pr(y_j^{(m)} \mid V_\cdot) - \log q(y_j^{(m)}) + \sum_d \sum_n \log \Pr\left(W_{dn} \mid c_{dn}, z_\cdot^{(d)}, x_d, y_\cdot^{(\cdot)}, \theta_{\cdot W_{dn}}\right) \right] \\
-    &= \sum_k \left[ \Eq \log V_k + \sum_{k'<k} \Eq \log (1-V_{k'}) + \sum_d \mu_{dm} \sum_n \sum_i \nu_{dn}(i) \varphi_i^{(d)}(j) \Eq \log \theta_{k W_{dn}} \right] \\
-    &\qquad - \sum_k \left[ 1 + \log \psi_j^{(m)}(k) \right] \\
+    &\pd{\zeta_j^{(m)}} \Eq \left[ \log \Pr(y_j^{(m)} \mid V_\cdot) - \log q(y_j^{(m)}) + \sum_d \sum_n \log \Pr\left(W_{dn} \mid c_{dn}, z_\cdot^{(d)}, x_d, y_\cdot^{(\cdot)}, \theta_{\cdot W_{dn}}\right) \right] \\
+    &= \sum_k \left[ \Eq \log V_k + \sum_{k'<k} \Eq \log (1-V_{k'}) + \sum_d \xi_{dm} \sum_n \sum_i \nu_{dn}(i) \varphi_i^{(d)}(j) \Eq \log \theta_{k W_{dn}} \right] \\
+    &\qquad - \sum_k \left[ 1 + \log \zeta_j^{(m)}(k) \right] \\
     &\Rightarrow
-    \boxed{ \psi_j^{(m)}(k) \propto \exp\left[ \Eq \log V_k + \sum_{k'<k} \Eq \log (1-V_{k'}) + \sum_d \mu_{dm} \sum_n \sum_i \nu_{dn}(i) \varphi_i^{(d)}(j) \Eq \log \theta_{k W_{dn}} \right] } .
+    \boxed{ \zeta_j^{(m)}(k) \propto \exp\left[ \Eq \log V_k + \sum_{k'<k} \Eq \log (1-V_{k'}) + \sum_d \xi_{dm} \sum_n \sum_i \nu_{dn}(i) \varphi_i^{(d)}(j) \Eq \log \theta_{k W_{dn}} \right] } .
 \end{align*}
 
 \begin{align*}
-    &\pd{\mu_{d\cdot}} \Eq \left[ \log \Pr(x_d \mid p) - \log q(x_d) + \sum_d \sum_i \log \Pr(z_i^{(d)} \mid V^{(m=\cdot)}_\cdot, x_d) \right] \\
+    &\pd{\xi_{d\cdot}} \Eq \left[ \log \Pr(x_d \mid p) - \log q(x_d) + \sum_d \sum_i \log \Pr(z_i^{(d)} \mid V^{(m=\cdot)}_\cdot, x_d) \right] \\
     &= \sum_m \left[ \Eq \log{p_m} + \sum_d \sum_i \sum_j \varphi_i^{(d)}(j) \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right] \\
-    &\qquad - \sum_m \left[ 1 + \log \mu_{dm} \right] \\
+    &\qquad - \sum_m \left[ 1 + \log \xi_{dm} \right] \\
     &\Rightarrow
-    \boxed{ \mu_{dm} \propto \exp\left[ \Eq \log{p_m} + \sum_d \sum_i \sum_j \varphi_i^{(d)}(j) \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right] }.
+    \boxed{ \xi_{dm} \propto \exp\left[ \Eq \log{p_m} + \sum_d \sum_i \sum_j \varphi_i^{(d)}(j) \left[ \Eq \log V^{(m)}_j + \sum_{j'<j} \Eq \log (1-V^{(m)}_{j'}) \right] \right] }.
 \end{align*}
 
 \begin{align*}
@@ -836,18 +836,18 @@ We now derive components of the ELBO.
 
 \begin{align*}
     &\pd{\varphi_i^{(d)}} \Eq \left[ \log \Pr(z_i^{(d)} \mid V^{(m=\cdot)}_\cdot, x_d) - \log q(z_i^{(d)}) + \sum_n \log \Pr\left(W_{dn} \mid c_{dn}, z_\cdot^{(d)}, x_d, y_\cdot^{(\cdot)}, \theta_{\cdot W_{dn}}\right) \right] \\
-    &= \sum_j \sum_m \mu_{dm} \left[ \Eq \log V_j^{(m)} + \sum_{j'<j} \Eq \log (1-V_{j'}^{(m)}) + \sum_n \nu_{dn}(i) \sum_k \psi_j^{(m)}(k) \Eq \log \theta_{k W_{dn}} \right] \\
+    &= \sum_j \sum_m \xi_{dm} \left[ \Eq \log V_j^{(m)} + \sum_{j'<j} \Eq \log (1-V_{j'}^{(m)}) + \sum_n \nu_{dn}(i) \sum_k \zeta_j^{(m)}(k) \Eq \log \theta_{k W_{dn}} \right] \\
     &\qquad - \sum_j \left[ 1 + \log \varphi_i^{(d)}(j) \right] \\
     &\Rightarrow
-    \boxed{ \varphi_i^{(d)}(j) \propto \exp\left[ \sum_m \mu_{dm} \left[ \Eq \log V_j^{(m)} + \sum_{j'<j} \Eq \log (1-V_{j'}^{(m)}) + \sum_n \nu_{dn}(i) \sum_k \psi_j^{(m)}(k) \Eq \log \theta_{k W_{dn}} \right] \right] } .
+    \boxed{ \varphi_i^{(d)}(j) \propto \exp\left[ \sum_m \xi_{dm} \left[ \Eq \log V_j^{(m)} + \sum_{j'<j} \Eq \log (1-V_{j'}^{(m)}) + \sum_n \nu_{dn}(i) \sum_k \zeta_j^{(m)}(k) \Eq \log \theta_{k W_{dn}} \right] \right] } .
 \end{align*}
 
 \begin{align*}
     &\pd{\nu_{dn}} \Eq \left[ \log \Pr(c_{dn} \mid V^{(d)}_\cdot) - \log q(c_{dn}) + \log \Pr\left(W_{dn} \mid c_{dn}, z_\cdot^{(d)}, x_d, y_\cdot^{(\cdot)}, \theta_{\cdot W_{dn}}\right) \right] \\
-    &= \sum_i \left[ \Eq \log V_i^{(d)} + \sum_{i'<i} \Eq \log (1-V_{i'}^{(d)}) + \sum_j \varphi_i^{(d)}(j) \sum_m \mu_{dm} \sum_k \psi_j^{(m)}(k) \Eq \log \theta_{k W_{dn}} \right] \\
+    &= \sum_i \left[ \Eq \log V_i^{(d)} + \sum_{i'<i} \Eq \log (1-V_{i'}^{(d)}) + \sum_j \varphi_i^{(d)}(j) \sum_m \xi_{dm} \sum_k \zeta_j^{(m)}(k) \Eq \log \theta_{k W_{dn}} \right] \\
     &\qquad - \sum_i \left[ 1 + \log \nu_{dn}(i) \right] \\
     &\Rightarrow
-    \boxed{ \nu_{dn}(i) \propto \exp\left[ \Eq \log V_i^{(d)} + \sum_{i'<i} \Eq \log (1-V_{i'}^{(d)}) + \sum_j \varphi_i^{(d)}(j) \sum_m \mu_{dm} \sum_k \psi_j^{(m)}(k) \Eq \log \theta_{k W_{dn}} \right] } .
+    \boxed{ \nu_{dn}(i) \propto \exp\left[ \Eq \log V_i^{(d)} + \sum_{i'<i} \Eq \log (1-V_{i'}^{(d)}) + \sum_j \varphi_i^{(d)}(j) \sum_m \xi_{dm} \sum_k \zeta_j^{(m)}(k) \Eq \log \theta_{k W_{dn}} \right] } .
 \end{align*}
 
 
