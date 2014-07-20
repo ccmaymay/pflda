@@ -12,6 +12,8 @@ def select(packages, ext_modules, scripts):
     packages.append('pylowl.proj.brightside.postproc')
     packages.append('pylowl.proj.brightside.hdp')
     packages.append('pylowl.proj.brightside.hdp.postproc')
+    packages.append('pylowl.proj.brightside.shdp')
+    packages.append('pylowl.proj.brightside.shdp.postproc')
     packages.append('pylowl.proj.brightside.m0')
     packages.append('pylowl.proj.brightside.m0.postproc')
     packages.append('pylowl.proj.brightside.m1')
