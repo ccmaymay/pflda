@@ -802,91 +802,16 @@ We now derive components of the ELBO.
     \boxed{ b_j^{(m)} = \beta + \sum_d \mu_{dm} \sum_i \sum_{j' > j} \varphi_i^{(d)}(j') }.
 \end{align*}
 
+\begin{align*}
+    &\pd{\psi_j^{(m)}} \Eq \left[ \log \Pr(y_j^{(m)} \mid V_\cdot) - \log q(y_j^{(m)}) + \sum_d \sum_n \log \Pr\left(W_{dn} \mid c_{dn}, z_\cdot^{(d)}, x_d, y_\cdot^{(\cdot)}, \theta_{\cdot W_{dn}}\right) \right] \\
+    &= \sum_k \left[ \Eq \log V_k + \sum_{k'<k} \Eq \log (1-V_{k'}) + \sum_d \mu_{dm} \sum_n \sum_i \nu_{dn}(i) \varphi_i^{(d)}(j) \Eq \log \theta_{k W_{dn}} \right] \\
+    &\qquad - \sum_k \left[ 1 + \log \psi_j^{(m)}(k) \right] \\
+    &\Rightarrow
+    \boxed{ \psi_j^{(m)}(k) \propto \exp\left[ \Eq \log V_k + \sum_{k'<k} \Eq \log (1-V_{k'}) + \sum_d \mu_{dm} \sum_n \sum_i \nu_{dn}(i) \varphi_i^{(d)}(j) \Eq \log \theta_{k W_{dn}} \right] } .
+\end{align*}
+
 TODO...
 
-
-
-
-
-
-
-
-\begin{align*}
-    &\pd{u_{i}^{(d)}} \Eq \left[ \log \Pr(V_i^{(d)} \mid \beta) - \log q(V_i^{(d)}) + \log \Pr(c_d \mid V^{(d)}, U_d) \right] \\
-    &= \pd{u_{i}^{(d)}} \Bigg[ \Eq \left[ \log \Pr(V_i^{(d)} \mid \beta) - \log q(V_i^{(d)}) \right] \\
-    &\qquad\qquad + \sum_n \sum_{i'} \nu_{dn}(i') \Eq \log \pi_{i'}^{(d)} \Bigg] \\
-    &= (1 - u^{(d)}_i) \trigamma{u^{(d)}_i} - (1 + \beta - u^{(d)}_i - v^{(d)}_i) \trigamma{u^{(d)}_i + v^{(d)}_i} \\
-    &\qquad + \sum_n \Bigg[ \sum_{i \ancestoreq i'} \nu_{dn}(i') \left[ \trigamma{u^{(d)}_i} - \trigamma{u^{(d)}_i + v^{(d)}_i} \right] \\
-    &\qquad\qquad - \sum_{i \leftsibling i'} \sum_{i' \ancestoreq i''} \nu_{dn}(i'') \trigamma{u^{(d)}_i + v^{(d)}_i} \Bigg]
-\end{align*}
-so, setting the partial derivative equal to zero and using the fact that the trigamma is positive in this context, we obtain
-\begin{align*}
-    \boxed{ u^{(d)}_i = 1 + \sum_n \sum_{i \ancestoreq i'} \nu_{dn}(i') }.
-\end{align*}
-Similarly,
-\begin{align*}
-    &\pd{v_{i}^{(d)}} \Eq \left[ \log \Pr(V_i^{(d)} \mid \beta) - \log q(V_i^{(d)}) + \log \Pr(c_d \mid V^{(d)}, U_d) \right] \\
-    &= (\beta - v^{(d)}_i) \trigamma{v^{(d)}_i} - (1 + \beta - u^{(d)}_i - v^{(d)}_i) \trigamma{u^{(d)}_i + v^{(d)}_i} \\
-    &\qquad + \sum_n \Bigg[ - \sum_{i \ancestoreq i'} \nu_{dn}(i') \trigamma{u^{(d)}_i + v^{(d)}_i} \\
-    &\qquad\qquad + \sum_{i \leftsibling i'} \sum_{i' \ancestoreq i''} \nu_{dn}(i'') \left[ \trigamma{v^{(d)}_i} - \trigamma{u^{(d)}_i + v^{(d)}_i} \right] \Bigg]
-\end{align*}
-so
-\begin{align*}
-    \boxed{ v^{(d)}_i = \beta + \sum_n \sum_{i \leftsibling i'} \sum_{i' \ancestoreq i''} \nu_{dn}(i'') }.
-\end{align*}
-
-\begin{align*}
-    &\pd{a_{di}} \Eq \left[ \log \Pr(U_{di} \mid \gamma_1, \gamma_2) - \log q(U_{di}) + \log \Pr(c_d \mid V^{(d)}, U_d) \right] \\
-    &= \pd{a_{di}} \Bigg[ \Eq \left[ \log \Pr(U_{di} \mid \gamma_1, \gamma_2) - \log q(U_{di}) \right] \\
-    &\qquad\qquad + \sum_n \sum_{i'} \nu_{dn}(i') \Eq \log \pi_{i'}^{(d)} \Bigg] \\
-    &= (\gamma_1 - a_{di}) \trigamma{a_{di}} - (\gamma_1 + \gamma_2 - a_{di} - b_{di}) \trigamma{a_{di} + b_{di}} \\
-    &\qquad + \sum_n \Bigg[ \nu_{dn}(i) \left[ \trigamma{a_{di}} - \trigamma{a_{di} + b_{di}} \right] \\
-    &\qquad\qquad - \sum_{i \ancestor i'} \nu_{dn}(i') \trigamma{a_{di} + b_{di}} \Bigg]
-\end{align*}
-so, setting the partial derivative equal to zero and using the fact that the trigamma is positive in this context, we obtain
-\begin{align*}
-    \boxed{ a_{di} = \gamma_1 + \sum_n \nu_{dn}(i) }.
-\end{align*}
-Similarly,
-\begin{align*}
-    &\pd{b_{di}} \Eq \left[ \log \Pr(U_{di} \mid \gamma_1, \gamma_2) - \log q(U_{di}) + \log \Pr(c_d \mid V^{(d)}, U_d) \right] \\
-    &= (\gamma_2 - b_{di}) \trigamma{b_{di}} - (\gamma_1 + \gamma_2 - a_{di} - b_{di}) \trigamma{a_{di} + b_{di}} \\
-    &\qquad + \sum_n \Bigg[ - \nu_{dn}(i) \trigamma{a_{di} + b_{di}} \\
-    &\qquad\qquad + \sum_{i \ancestor i'} \nu_{dn}(i') \left[ \trigamma{b_{di}} - \trigamma{a_{di} + b_{di}} \right] \Bigg]
-\end{align*}
-so
-\begin{align*}
-    \boxed{ b_{di} = \gamma_2 + \sum_n \sum_{i \ancestor i'} \nu_{dn}(i') }.
-\end{align*}
-
-\begin{align*}
-    &\pd{\nu_{dn}} \Eq \left[ \log \Pr(c_{dn} \mid V^{(d)}, U_d) - \log q(c_{dn}) + \log \Pr(W_{dn} \mid c_{dn}, z^{(d)}, \theta) \right] \\
-    &= \pd{\nu_{dn}} \Bigg[
-        \sum_i \nu_{dn}(i) \Bigg[ \Eq \log \pi_i^{(d)} - \log \nu_{dn}(i) \\
-        &\qquad\qquad\qquad\qquad + \sum_j \delta_{z_i^{(d)}}(j) \left[ \Elogdirichlet{\lambda_{j W_{dn}}}{\sum_w \lambda_{j w}} \right] \Bigg] \Bigg] \\
-    &= \pd{\nu_{dn}} \Bigg[ \sum_i \nu_{dn}(i) \Bigg[ \Eq \log \pi_i^{(d)} + \sum_j \delta_{z_i^{(d)}}(j) \Eq \log \theta_{j W_{dn}} - \log \nu_{dn}(i) \Bigg] \Bigg] .
-\end{align*}
-To find the critical point with respect to $\nu_{dn}$ while constraining $\nu_{dn}$ to be a probability vector we use the method of Lagrange.  We define
-\begin{align*}
-    J(\nu_{dn}) &= \sum_i \nu_{dn}(i) \Bigg[ \Eq \log \pi_i^{(d)} + \sum_j \delta_{z_i^{(d)}}(j) \Eq \log \theta_{j W_{dn}} - \log \nu_{dn}(i) \Bigg] \\
-    &\quad + \mu \sum_i \nu_{dn}(i)
-\end{align*}
-and then differentiate with respect to $\nu_{dn}(i)$ and equate to zero, obtaining
-\begin{align*}
-    0 &= \pd{\nu_{dn}(i)} J(\nu_{dn}) \\
-      &= \Eq \log \pi_i^{(d)} + \sum_j \delta_{z_i^{(d)}}(j) \Eq \log \theta_{j W_{dn}} - \log \nu_{dn}(i) - 1 + \mu .
-\end{align*}
-Thus
-\begin{align*}
-    \nu_{dn}(i) &= \exp \left[ \Eq \log \pi_i^{(d)} + \sum_j \delta_{z_i^{(d)}}(j) \Eq \log \theta_{j W_{dn}} - 1 + \mu \right] ,
-\end{align*}
-i.e.
-\begin{align*}
-    \boxed{ \nu_{dn}(i) \propto \exp \left[ \Eq \log \pi_i^{(d)} + \sum_j \delta_{z_i^{(d)}}(j) \Eq \log \theta_{j W_{dn}} \right] }.
-\end{align*}
-
-
-\subsubsection*{Coordinate ascent updates for general Dirichlet}
 
 
 \section*{Joint hierarchical geolocation-language models}
