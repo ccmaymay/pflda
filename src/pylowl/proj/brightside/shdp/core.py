@@ -15,16 +15,15 @@ def set_random_seed(seed):
 
 
 class suff_stats(object):
-    def __init__(self, K, Wt, Dt, Mt, DperMt):
+    def __init__(self, K, J, Wt, Dt, Mt, DperMt):
         self.m_batch_D = Dt
         self.m_batch_M = Mt
         self.m_batch_DperM = DperMt
         self.m_tau_ss = np.zeros(K)
         self.m_lambda_ss = np.zeros((K, Wt))
-
-    def set_zero(self):
-        self.m_tau_ss.fill(0.0)
-        self.m_lambda_ss.fill(0.0)
+        self.m_omega_ss = np.zeros(Mt)
+        self.m_ab_ss = np.zeros((Mt, J))
+        self.m_zeta_ss = np.zeros((Mt, J, K))
 
 
 class model(object):
@@ -63,7 +62,6 @@ class model(object):
         self.m_tau[0] = 1.0
         self.m_tau[1] = alpha
         self.m_tau[1,self.m_K-1] = 0.
-
         self.m_tau_ss = np.zeros(self.m_K)
 
         # Intuition: take 100 to be the expected document length (TODO)
@@ -72,13 +70,25 @@ class model(object):
         # each word type and topic.  *Then* subtract lambda0 so that the
         # posterior is composed of these pseudo-counts only (maximum
         # likelihood / no prior).  (why?!  TODO)
+        self.m_lambda0 = lambda0
         self.m_lambda_ss = np.random.gamma(
             1.0, 1.0, (self.m_K, W)) * D * 100 / (self.m_K * W) - lambda0
-        self.m_lambda0 = lambda0
+        self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
         self.m_Elogprobw = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
 
-        self.m_omega_ss = np.random.gamma(1.0, 1.0, (M,)) * D / M - omega0
         self.m_omega0 = omega0
+        # TODO... makes sense?
+        self.m_omega_ss = np.random.gamma(1.0, 1.0, (M,)) * D / M - omega0
+        self.m_omega_ss_sum = np.sum(self.m_omega_ss)
+
+        self.m_ab = np.zeros((2, self.m_M, self.m_J))
+        self.m_ab[0] = 1.0
+        self.m_ab[1] = alpha
+        self.m_ab[1,:,self.m_J-1] = 0.
+        self.m_ab_ss = np.zeros((self.m_M, self.m_J))
+
+        self.m_zeta = np.ones((self.m_M, self.m_J, self.m_K)) / self.m_K
+        self.m_zeta_ss = np.zeros((self.m_M, self.m_J, self.m_K))
 
         self.m_iota = iota
         self.m_kappa = kappa
@@ -86,8 +96,6 @@ class model(object):
         self.m_rho_bound = rho_bound
         self.m_t = 0
         self.m_num_docs_processed = 0
-
-        self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
         if sublist_output_files is None:
             self.sublist_output_files = dict()
@@ -189,7 +197,7 @@ class model(object):
         logging.info('Processing %d docs spanning %d tokens, %d types'
             % (doc_count, num_tokens, Wt))
 
-        ss = suff_stats(self.m_K, Wt, doc_count, Mt, DperMt)
+        ss = suff_stats(self.m_K, self.m_J, Wt, doc_count, Mt, DperMt)
 
         # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
         ElogV = utils.Elog_sbc_stop(self.m_tau)
