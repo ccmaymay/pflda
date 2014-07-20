@@ -15,10 +15,9 @@ def set_random_seed(seed):
 
 
 class suff_stats(object):
-    def __init__(self, K, J, Wt, Dt, Mt, DperMt):
+    def __init__(self, K, J, Wt, Dt, Mt):
         self.m_batch_D = Dt
         self.m_batch_M = Mt
-        self.m_batch_DperM = DperMt
         self.m_tau_ss = np.zeros(K)
         self.m_lambda_ss = np.zeros((K, Wt))
         self.m_omega_ss = np.zeros(Mt)
@@ -50,7 +49,6 @@ class model(object):
         self.m_M = M
         self.m_W = W
         self.m_D = D
-        self.m_DperM = D / float(M)
         self.m_alpha = alpha
         self.m_beta = beta
         self.m_gamma = gamma
@@ -168,7 +166,6 @@ class model(object):
 
         classes_to_batch_map = dict()
         batch_to_classes_map = []
-        DperMt = []
         # mapping from word types in this mini-batch to unique
         # consecutive integers
         vocab_to_batch_word_map = dict()
@@ -186,8 +183,6 @@ class model(object):
             if doc.class_idx not in classes_to_batch_map:
                 batch_to_classes_map.append(doc.class_idx)
                 classes_to_batch_map[doc.class_idx] = len(classes_to_batch_map)
-                DperMt.append(0)
-            DperUt[classes_to_batch_map[doc.class_idx]] += 1
 
             for w in doc.words:
                 if w not in vocab_to_batch_word_map:
@@ -203,7 +198,7 @@ class model(object):
         logging.info('Processing %d docs spanning %d tokens, %d types'
             % (doc_count, num_tokens, Wt))
 
-        ss = suff_stats(self.m_K, self.m_J, Wt, doc_count, Mt, DperMt)
+        ss = suff_stats(self.m_K, self.m_J, Wt, doc_count, Mt)
 
         # run variational inference on some new docs
         score = 0.0
