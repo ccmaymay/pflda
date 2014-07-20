@@ -18,9 +18,11 @@ def contains_email(token):
     return GREEDY_EMAIL_RE.match(token) is not None
 
 
-def filter_tokens(tokens, remove_emails):
-    return (token for token in tokens
-            if token and not (remove_emails and contains_email(token)))
+def filter_tokens(tokens, remove_emails, remove_non_ascii):
+    return [token for token in tokens
+            if token
+                and not (remove_emails and contains_email(token))
+                and not (remove_non_ascii and sum(ord(c) > 127 for c in token) > 0)]
 
 
 def main():
@@ -42,6 +44,8 @@ def main():
                         help='remove lines starting with >, ), etc.')
     parser.add_argument('--remove_writes_lines', action='store_true',
                         help='remove "John Doe writes:" lines (from inline email responses)')
+    parser.add_argument('--remove_non_ascii', action='store_true',
+                        help='remove non-ascii tokens')
 
     args = parser.parse_args()
     tng_to_concrete(
@@ -53,12 +57,14 @@ def main():
         remove_emails=args.remove_emails,
         remove_email_history=args.remove_email_history,
         remove_writes_lines=args.remove_writes_lines,
+        remove_non_ascii=args.remove_non_ascii,
     )
 
 
 def tng_to_concrete(input_dir, output_dir, remove_first_paragraph=False,
          remove_email_headers=False, remove_walls=False, remove_emails=False,
-         remove_email_history=False, remove_writes_lines=False):
+         remove_email_history=False, remove_writes_lines=False,
+         remove_non_ascii=False):
 
     def iter_docs():
         for input_path in nested_file_paths(input_dir):
@@ -77,7 +83,8 @@ def tng_to_concrete(input_dir, output_dir, remove_first_paragraph=False,
                             and not (remove_email_history and email_history)
                             and not (remove_writes_lines and writes_line)):
 
-                            tokens = filter_tokens(line.split(), remove_emails)
+                            tokens = filter_tokens(line.split(), remove_emails,
+                                                   remove_non_ascii)
                             text = ' '.join(tokens)
 
                             yield Document(tokens, text=text, id=input_path)
