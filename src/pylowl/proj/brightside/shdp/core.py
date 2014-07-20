@@ -249,7 +249,7 @@ class model(object):
     def update_ab(self):
         for m in xrange(self.m_M):
             self.m_ab[0,m,:] = 1.0 + self.m_ab_ss
-            self.m_ab[1,m,:] = self.m_alpha
+            self.m_ab[1,m,:] = self.m_beta
             self.m_ab[1,m,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_ab_ss[1:])))
             self.m_ab[:,m,self.m_K-1] = [1., 0.]
             self.m_ElogVm[m,:] = utils.Elog_sbc_stop(self.m_ab[:,m,:])
@@ -272,15 +272,15 @@ class model(object):
     def update_uv(self, nu, uv):
         nu_sums = np.sum(nu, 0)
         uv[0] = 1.0 + nu_sums
-        uv[1] = self.m_beta
-        uv[1,:self.m_L-1] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
-        uv[:,self.m_L-1] = [1., 0.]
+        uv[1] = self.m_gamma
+        uv[1,:self.m_I-1] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
+        uv[:,self.m_I-1] = [1., 0.]
 
     def update_phi(self, Elogprobw_doc, doc, nu, phi, log_phi, incorporate_prior=True):
         log_phi[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), nu).T
         if incorporate_prior:
             log_phi[:,:] += self.m_ElogV
-        for i in xrange(self.m_L):
+        for i in xrange(self.m_I):
             (log_phi[i,:], log_norm) = utils.log_normalize(log_phi[i,:])
         phi[:,:] = np.exp(log_phi)
 
@@ -313,17 +313,17 @@ class model(object):
 
         logging.debug('Initializing document variational parameters')
 
-        uv = np.zeros((2, self.m_L))
+        uv = np.zeros((2, self.m_I))
         uv[0] = 1.
-        uv[1] = self.m_beta
-        uv[1,self.m_L-1] = 0.
+        uv[1] = self.m_gamma
+        uv[1,self.m_I-1] = 0.
 
         Elogpi = utils.Elog_sbc_stop(uv)
 
-        phi = np.zeros((self.m_L, self.m_K)) / self.m_K
+        phi = np.zeros((self.m_I, self.m_J)) / self.m_J
         log_phi = np.log(phi)
 
-        nu = np.ones((num_tokens, self.m_L)) / self.m_L
+        nu = np.ones((num_tokens, self.m_I)) / self.m_I
         log_nu = np.log(nu)
 
         converge = None
@@ -346,8 +346,8 @@ class model(object):
 
             likelihood = 0.0
 
-            # E[log p(V | beta)] + H(q(V))
-            v_ll = utils.log_sticks_likelihood(uv[:,:self.m_L-1], 1.0, self.m_beta)
+            # E[log p(V | gamma)] + H(q(V))
+            v_ll = utils.log_sticks_likelihood(uv[:,:self.m_I-1], 1.0, self.m_gamma)
             likelihood += v_ll
             logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
 
@@ -490,7 +490,7 @@ class model(object):
         self.save_sublist_row(f, doc, Elogpi)
 
     def save_sublist(self, f, doc, phi):
-        flat_phi = phi.reshape(self.m_L * self.m_K)
+        flat_phi = phi.reshape(self.m_I * self.m_J)
         self.save_sublist_row(f, doc, flat_phi)
 
     def save_rows(self, f, m):
