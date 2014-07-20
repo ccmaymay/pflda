@@ -262,7 +262,7 @@ class model(object):
         self.m_zeta = np.exp(self.m_log_zeta)
 
     def update_nu(self, Elogprobw_doc, doc, ElogVd, phi, nu, log_nu, incorporate_prior=True):
-        log_nu[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1).T, phi.T)
+        log_nu[:,:] = np.dot(phi, np.dot(self.m_zeta, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
         if incorporate_prior:
             log_nu[:,:] += ElogVd
         for n in xrange(doc.total):
@@ -276,10 +276,10 @@ class model(object):
         uv[1,:self.m_I-1] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
         uv[:,self.m_I-1] = [1., 0.]
 
-    def update_phi(self, Elogprobw_doc, doc, nu, phi, log_phi, incorporate_prior=True):
-        log_phi[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), nu).T
+    def update_phi(self, Elogprobw_doc, doc, ElogVm_doc, nu, phi, log_phi, incorporate_prior=True):
+        log_phi[:,:] = np.dot(np.dot(self.m_zeta, np.repeat(Elogprobw_doc, doc.counts, axis=1)), nu).T
         if incorporate_prior:
-            log_phi[:,:] += self.m_ElogV
+            log_phi[:,:] += ElogVm_doc
         for i in xrange(self.m_I):
             (log_phi[i,:], log_norm) = utils.log_normalize(log_phi[i,:])
         phi[:,:] = np.exp(log_phi)
@@ -318,6 +318,7 @@ class model(object):
         uv[1] = self.m_gamma
         uv[1,self.m_I-1] = 0.
 
+        ElogVm_doc = self.m_ElogVm[batch_to_classes_map[doc.class_idx]]
         ElogVd = utils.Elog_sbc_stop(uv)
 
         phi = np.zeros((self.m_I, self.m_J)) / self.m_J
@@ -336,7 +337,7 @@ class model(object):
         while iteration < max_iter and (converge is None or converge < 0.0 or converge > var_converge):
             logging.debug('Updating document variational parameters (iteration: %d)' % iteration)
             # update variational parameters
-            self.update_phi(Elogprobw_doc, doc, nu, phi, log_phi)
+            self.update_phi(Elogprobw_doc, doc, ElogVm_doc, nu, phi, log_phi)
             self.update_nu(Elogprobw_doc, doc, ElogVd, phi, nu, log_nu)
             # TODO why after phi and nu update, not before?
             self.update_uv(nu, uv)
