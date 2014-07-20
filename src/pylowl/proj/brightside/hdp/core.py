@@ -323,7 +323,7 @@ class model(object):
                 doc, nu)
 
         if predict_doc is not None:
-            logEpi = utils.Elog_sbc_stop(uv)
+            logEpi = utils.logE_sbc_stop(uv)
             # TODO abstract this?
             logEtheta = (
                 np.log(self.m_lambda0 + self.m_lambda_ss)
