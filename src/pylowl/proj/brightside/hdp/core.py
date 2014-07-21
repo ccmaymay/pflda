@@ -20,10 +20,6 @@ class suff_stats(object):
         self.m_tau_ss = np.zeros(K)
         self.m_lambda_ss = np.zeros((K, Wt))
 
-    def set_zero(self):
-        self.m_tau_ss.fill(0.0)
-        self.m_lambda_ss.fill(0.0)
-
 
 class model(object):
     def __init__(self,

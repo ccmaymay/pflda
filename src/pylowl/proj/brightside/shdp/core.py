@@ -15,43 +15,55 @@ def set_random_seed(seed):
 
 
 class suff_stats(object):
-    def __init__(self, K, Wt, Dt):
-        self.m_batchsize = Dt
+    def __init__(self, K, J, Wt, Dt, Mt, DperMt):
+        self.m_batch_D = Dt
+        self.m_batch_M = Mt
+        self.m_batch_DperM = DperMt
         self.m_tau_ss = np.zeros(K)
         self.m_lambda_ss = np.zeros((K, Wt))
-
-    def set_zero(self):
-        self.m_tau_ss.fill(0.0)
-        self.m_lambda_ss.fill(0.0)
+        self.m_omega_ss = np.zeros(Mt)
+        self.m_ab_ss = np.zeros((Mt, J))
+        self.m_zeta_ss = np.zeros((Mt, J, K))
 
 
 class model(object):
     def __init__(self,
                  K,
-                 L,
+                 J,
+                 I,
+                 M,
                  D,
                  W,
                  lambda0=0.01,
-                 beta=1.,
+                 omega0=0.1,
                  alpha=1.,
+                 beta=1.,
+                 gamma=1.,
                  kappa=0.5,
                  iota=1.,
                  scale=1.,
                  rho_bound=0.,
                  sublist_output_files=None):
         self.m_K = K
-        self.m_L = L
+        self.m_J = J
+        self.m_I = I
+        self.m_M = M
         self.m_W = W
         self.m_D = D
-        self.m_beta = beta
+        self.m_DperM = D / float(M)
         self.m_alpha = alpha
+        self.m_beta = beta
+        self.m_gamma = gamma
+
+        self.m_classes = [None] * M
+        self.m_r_classes = dict()
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
         self.m_tau[1] = alpha
         self.m_tau[1,self.m_K-1] = 0.
-
         self.m_tau_ss = np.zeros(self.m_K)
+        self.m_ElogV = utils.Elog_sbc_stop(self.m_tau)
 
         # Intuition: take 100 to be the expected document length (TODO)
         # so that there are 100D tokens in total.  Then divide that
@@ -59,10 +71,30 @@ class model(object):
         # each word type and topic.  *Then* subtract lambda0 so that the
         # posterior is composed of these pseudo-counts only (maximum
         # likelihood / no prior).  (why?!  TODO)
+        self.m_lambda0 = lambda0
         self.m_lambda_ss = np.random.gamma(
             1.0, 1.0, (self.m_K, W)) * D * 100 / (self.m_K * W) - lambda0
-        self.m_lambda0 = lambda0
+        self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
         self.m_Elogprobw = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
+
+        self.m_omega0 = omega0
+        # TODO... makes sense?
+        self.m_omega_ss = np.random.gamma(1.0, 1.0, (M,)) * D / M - omega0
+        self.m_omega_ss_sum = np.sum(self.m_omega_ss)
+        self.m_Elogp = utils.log_dirichlet_expectation(self.m_omega0 + self.m_omega_ss)
+
+        self.m_ab = np.zeros((2, self.m_M, self.m_J))
+        self.m_ab[0] = 1.0
+        self.m_ab[1] = alpha
+        self.m_ab[1,:,self.m_J-1] = 0.
+        self.m_ab_ss = np.zeros((self.m_M, self.m_J))
+        self.m_ElogVm = np.zeros((self.m_M, self.m_J))
+        for m in xrange(self.m_M):
+            self.m_ElogVm[m,:] = utils.Elog_sbc_stop(self.m_ab[:,m,:])
+
+        self.m_zeta = np.ones((self.m_M, self.m_J, self.m_K)) / self.m_K
+        self.m_log_zeta = np.log(self.m_zeta)
+        self.m_zeta_ss = np.zeros((self.m_M, self.m_J, self.m_K))
 
         self.m_iota = iota
         self.m_kappa = kappa
@@ -70,8 +102,6 @@ class model(object):
         self.m_rho_bound = rho_bound
         self.m_t = 0
         self.m_num_docs_processed = 0
-
-        self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
         if sublist_output_files is None:
             self.sublist_output_files = dict()
@@ -136,16 +166,35 @@ class model(object):
         # Find the unique words in this mini-batch of documents...
         self.m_num_docs_processed += doc_count
 
+        classes_to_batch_map = dict()
+        batch_to_classes_map = []
+        DperMt = []
         # mapping from word types in this mini-batch to unique
         # consecutive integers
         vocab_to_batch_word_map = dict()
         # list of unique word types, in order of first appearance
         batch_to_vocab_word_map = []
         for doc in docs:
+            if doc.attrs['class'] in self.m_r_classes:
+                doc.class_idx = self.m_r_classes[doc.attrs['class']]
+            else:
+                class_idx = len(self.m_r_classes)
+                self.m_classes[class_idx] = doc.attrs['class']
+                self.m_r_classes[doc.attrs['class']] = class_idx
+                doc.class_idx = class_idx
+
+            if doc.class_idx not in classes_to_batch_map:
+                batch_to_classes_map.append(doc.class_idx)
+                classes_to_batch_map[doc.class_idx] = len(classes_to_batch_map)
+                DperMt.append(0)
+            DperUt[classes_to_batch_map[doc.class_idx]] += 1
+
             for w in doc.words:
                 if w not in vocab_to_batch_word_map:
                     vocab_to_batch_word_map[w] = len(vocab_to_batch_word_map)
                     batch_to_vocab_word_map.append(w)
+
+        Mt = len(batch_to_classes_map)
 
         # number of unique word types in this mini-batch
         num_tokens = sum([sum(doc.counts) for doc in docs])
@@ -154,17 +203,15 @@ class model(object):
         logging.info('Processing %d docs spanning %d tokens, %d types'
             % (doc_count, num_tokens, Wt))
 
-        ss = suff_stats(self.m_K, Wt, doc_count)
-
-        # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
-        ElogV = utils.Elog_sbc_stop(self.m_tau)
+        ss = suff_stats(self.m_K, self.m_J, Wt, doc_count, Mt, DperMt)
 
         # run variational inference on some new docs
         score = 0.0
         count = 0
         for (doc, predict_doc) in it.izip(docs, predict_docs):
-            doc_score = self.doc_e_step(doc, ss, ElogV, vocab_to_batch_word_map,
-                batch_to_vocab_word_map, var_converge, predict_doc=predict_doc,
+            doc_score = self.doc_e_step(doc, ss, vocab_to_batch_word_map,
+                batch_to_vocab_word_map, classes_to_batch_map,
+                batch_to_classes_map, var_converge, predict_doc=predict_doc,
                 save_model=save_model)
 
             score += doc_score
@@ -174,9 +221,13 @@ class model(object):
                 count += predict_doc.total
 
         if update:
-            self.update_ss_stochastic(ss, batch_to_vocab_word_map)
+            self.update_ss_stochastic(ss, batch_to_vocab_word_map,
+                                      batch_to_classes_map)
             self.update_lambda()
             self.update_tau()
+            self.update_omega()
+            self.update_ab()
+            self.update_zeta()
             self.m_t += 1
 
         return (score, count, doc_count)
@@ -186,6 +237,34 @@ class model(object):
             sp.psi(self.m_lambda0 + self.m_lambda_ss)
             - sp.psi(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:, np.newaxis])
         )
+
+    def update_tau(self):
+        self.m_tau[0] = 1.0 + self.m_tau_ss
+        self.m_tau[1] = self.m_alpha
+        self.m_tau[1,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_tau_ss[1:])))
+        self.m_tau[:,self.m_K-1] = [1., 0.]
+        self.m_ElogV = utils.Elog_sbc_stop(self.m_tau)
+
+    def update_omega(self):
+        self.m_Elogp = (
+            sp.psi(self.m_omega0 + self.m_omega_ss)
+            - sp.psi(self.m_M*self.m_omega0 + self.m_omega_ss_sum)
+        )
+
+    def update_ab(self):
+        for m in xrange(self.m_M):
+            self.m_ab[0,m,:] = 1.0 + self.m_ab_ss
+            self.m_ab[1,m,:] = self.m_alpha
+            self.m_ab[1,m,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_ab_ss[1:])))
+            self.m_ab[:,m,self.m_K-1] = [1., 0.]
+            self.m_ElogVm[m,:] = utils.Elog_sbc_stop(self.m_ab[:,m,:])
+
+    def update_zeta(self):
+        self.m_log_zeta = self.m_zeta_ss + self.m_ElogV
+        for m in xrange(self.m_M):
+            for j in xrange(self.m_J):
+                (self.m_log_zeta[m,j,:], log_norm) = utils.log_normalize(self.m_log_zeta[m,j,:])
+        self.m_zeta = np.exp(self.m_log_zeta)
 
     def update_nu(self, Elogprobw_doc, doc, Elogpi, phi, nu, log_nu, incorporate_prior=True):
         log_nu[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1).T, phi.T)
@@ -202,22 +281,16 @@ class model(object):
         uv[1,:self.m_L-1] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
         uv[:,self.m_L-1] = [1., 0.]
 
-    def update_tau(self):
-        self.m_tau[0] = 1.0 + self.m_tau_ss
-        self.m_tau[1] = self.m_alpha
-        self.m_tau[1,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_tau_ss[1:])))
-        self.m_tau[:,self.m_K-1] = [1., 0.]
-
-    def update_phi(self, Elogprobw_doc, doc, ElogV, nu, phi, log_phi, incorporate_prior=True):
+    def update_phi(self, Elogprobw_doc, doc, nu, phi, log_phi, incorporate_prior=True):
         log_phi[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), nu).T
         if incorporate_prior:
-            log_phi[:,:] += ElogV
+            log_phi[:,:] += self.m_ElogV
         for i in xrange(self.m_L):
             (log_phi[i,:], log_norm) = utils.log_normalize(log_phi[i,:])
         phi[:,:] = np.exp(log_phi)
 
-    def z_likelihood(self, ElogV, phi, log_phi):
-        return np.sum(phi * (ElogV - log_phi))
+    def z_likelihood(self, phi, log_phi):
+        return np.sum(phi * (self.m_ElogV - log_phi))
 
     def c_likelihood(self, Elogpi, nu, log_nu):
         return np.sum(nu * (Elogpi - log_nu))
@@ -225,8 +298,9 @@ class model(object):
     def w_likelihood(self, doc, nu, phi, Elogprobw_doc):
         return np.sum(nu.T * np.dot(phi, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
 
-    def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
-                   batch_to_vocab_word_map, var_converge, max_iter=100,
+    def doc_e_step(self, doc, ss, vocab_to_batch_word_map,
+                   batch_to_vocab_word_map, classes_to_batch_map,
+                   batch_to_classes_map, var_converge, max_iter=100,
                    predict_doc=None, save_model=False):
         num_tokens = sum(doc.counts)
 
@@ -267,7 +341,7 @@ class model(object):
         while iteration < max_iter and (converge is None or converge < 0.0 or converge > var_converge):
             logging.debug('Updating document variational parameters (iteration: %d)' % iteration)
             # update variational parameters
-            self.update_phi(Elogprobw_doc, doc, ElogV, nu, phi, log_phi)
+            self.update_phi(Elogprobw_doc, doc, nu, phi, log_phi)
             self.update_nu(Elogprobw_doc, doc, Elogpi, phi, nu, log_nu)
             # TODO why after phi and nu update, not before?
             self.update_uv(nu, uv)
@@ -283,7 +357,7 @@ class model(object):
             logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
 
             # E[log p(z | V)] + H(q(z))
-            z_ll = self.z_likelihood(ElogV, phi, log_phi)
+            z_ll = self.z_likelihood(phi, log_phi)
             likelihood += z_ll
             logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
 
@@ -307,9 +381,12 @@ class model(object):
 
             iteration += 1
 
-        ss.m_tau_ss += np.sum(phi, 0)
+        ss.m_tau_ss += np.sum(self.m_zeta, 0)
         for n in xrange(num_tokens):
-            ss.m_lambda_ss[:, token_batch_ids[n]] += np.dot(phi.T, nu[n,:])
+            ss.m_lambda_ss[:, token_batch_ids[n]] += np.dot(np.dot(nu, phi), self.m_zeta[m,:,:])
+        ss.m_omega_ss[doc.class_idx] += 1
+        ss.m_ab_ss[doc.class_idx,:] += np.sum(phi, 0)
+        ss.m_zeta_ss[doc.class_idx,:,:] += np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), np.dot(nu, phi)).T
 
         if save_model:
             # save sublist stats
@@ -337,7 +414,8 @@ class model(object):
 
         return likelihood
 
-    def update_ss_stochastic(self, ss, batch_to_vocab_word_map):
+    def update_ss_stochastic(self, ss, batch_to_vocab_word_map,
+                             batch_to_classes_map):
         # rho will be between 0 and 1, and says how much to weight
         # the information we got from this mini-batch.
         # Add one because self.m_t is zero-based.
@@ -348,13 +426,29 @@ class model(object):
         # Update lambda based on documents.
         self.m_lambda_ss *= (1 - rho)
         self.m_lambda_ss[:, batch_to_vocab_word_map] += (
-            rho * ss.m_lambda_ss * self.m_D / ss.m_batchsize
+            rho * ss.m_lambda_ss * self.m_D / ss.m_batch_D
         )
         self.m_lambda_ss_sum = np.sum(self.m_lambda_ss, axis=1)
 
         self.m_tau_ss = (
             (1.0 - rho) * self.m_tau_ss
-            + rho * ss.m_tau_ss * self.m_D / ss.m_batchsize
+            + rho * ss.m_tau_ss * self.m_D / ss.m_batch_D
+        )
+
+        self.m_omega_ss *= (1 - rho)
+        self.m_omega_ss[batch_to_classes_map] += (
+            rho * ss.m_omega_ss * self.m_D / ss.m_batch_D
+        )
+        self.m_omega_ss_sum = np.sum(self.m_omega_ss)
+
+        self.m_ab_ss *= (1 - rho)
+        self.m_ab_ss[batch_to_classes_map,:] += (
+            rho * ss.m_ab_ss * self.m_D / ss.m_batch_D
+        )
+
+        self.m_zeta_ss *= (1 - rho)
+        self.m_zeta_ss[batch_to_classes_map,:,:] += (
+            rho * ss.m_zeta_ss * self.m_D / ss.m_batch_D
         )
 
     def save_global(self, output_files):
