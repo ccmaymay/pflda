@@ -19,7 +19,7 @@ def main():
 
 
 def set_attr(comm, attr):
-    category = os.path.basename(os.path.dirname(self.id))
+    category = os.path.basename(os.path.dirname(comm.id))
     comm.keyValueMap[attr] = category
 
 
