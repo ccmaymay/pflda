@@ -21,11 +21,6 @@ OUTPUT_EXTS = [
         'logEpi',
         'Elogtheta',
         'logEtheta',
-    )
-]
-SUBLIST_OUTPUT_BASENAMES = [
-    (s, s, 'w')
-    for s in (
         'sublist',
         'sublist_Elogpi',
         'sublist_logEpi',
@@ -254,14 +249,6 @@ def run(**kwargs):
     logging.info('No. docs: %d' % num_docs)
     logging.info('No. types: %d' % num_types)
 
-    if options['save_model']:
-        sublist_output_files = dict(
-            (s, open(os.path.join(result_directory, bn), mode))
-            for (s, bn, mode) in SUBLIST_OUTPUT_BASENAMES
-        )
-    else:
-        sublist_output_files = dict()
-
     logging.info("Creating online shdp instance")
     m = model(K=options['K'], J=options['J'], I=options['I'], M=options['M'],
               D=num_docs, W=num_types,
@@ -272,15 +259,14 @@ def run(**kwargs):
               gamma=options['gamma'],
               kappa=options['kappa'],
               iota=options['iota'],
-              scale=options['scale'],
-              sublist_output_files=sublist_output_files)
+              scale=options['scale'])
 
     if options['init_samples'] is not None:
         logging.info("Initializing")
         init_docs = take(c_train.docs, options['init_samples'])
         m.initialize(init_docs, options['init_noise_weight'], options['eff_init_samples'])
 
-    save_global(m, 'init', result_directory, options['save_model'])
+    save(m, 'init', result_directory, options['save_model'])
 
     iteration = 0
     total_doc_count = 0
@@ -313,8 +299,8 @@ def run(**kwargs):
                 options['save_lag'] = options['save_lag'] * 2
 
             # Save the model.
-            save_global(m, 'doc_count-%d' % total_doc_count, result_directory,
-                        options['save_model'])
+            save(m, 'doc_count-%d' % total_doc_count, result_directory,
+                 options['save_model'])
 
             if options['test_data_dir'] is not None:
                 test_shdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
@@ -328,23 +314,19 @@ def run(**kwargs):
             break
 
     # Save the model.
-    save_global(m, 'final', result_directory, options['save_model'])
+    save(m, 'final', result_directory, options['save_model'])
 
     # Making final predictions.
     if options['test_data_dir'] is not None:
         test_shdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
-    for (s, f) in sublist_output_files.items():
-        if f is not None:
-            f.close()
 
-
-def save_global(m, basename_stem, result_directory, save_model):
+def save(m, basename_stem, result_directory, save_model):
     if save_model:
         logging.info('Saving global model with stem %s' % basename_stem)
     output_files = make_output_files(basename_stem, result_directory,
                                      save_model)
-    m.save_global(output_files)
+    m.save(output_files)
     close_output_files(output_files)
 
 
@@ -378,8 +360,7 @@ def test_shdp(m, c, batchsize, var_converge, test_samples=None):
         batch = take(docs_generator, batchsize)
 
         (score, count, doc_count) = m.process_documents(
-            batch, var_converge, update=False,
-            save_model=True)
+            batch, var_converge, update=False)
         total_score += score
         total_count += count
 
@@ -408,8 +389,7 @@ def test_shdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         test_batch = take(test_docs_generator, batchsize)
 
         (score, count, doc_count) = m.process_documents(
-            train_batch, var_converge, update=False, predict_docs=test_batch,
-            save_model=True)
+            train_batch, var_converge, update=False, predict_docs=test_batch)
         total_score += score
         total_count += count
 

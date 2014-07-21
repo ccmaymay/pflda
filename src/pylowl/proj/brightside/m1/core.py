@@ -669,6 +669,7 @@ class model(object):
                 ss.m_uv_ss[users_to_batch_map[user_idx], p_idx] += xi[idx]
                 for n in xrange(num_tokens):
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
+                # TODO not consistent: rho...
                 self.m_user_lambda_ss_sums[user_idx,l2g_idx[p_idx]] += np.sum(nu[idx, :, p_level]) * xi[idx]
 
         if predict_doc is not None:

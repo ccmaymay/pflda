@@ -41,8 +41,7 @@ class model(object):
                  kappa=0.5,
                  iota=1.,
                  scale=1.,
-                 rho_bound=0.,
-                 sublist_output_files=None):
+                 rho_bound=0.):
         self.m_K = K
         self.m_J = J
         self.m_I = I
@@ -55,6 +54,7 @@ class model(object):
 
         self.m_classes = [None] * M
         self.m_r_classes = dict()
+        self.m_class_lambda_ss_sums = np.zeros((M, self.m_K))
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
@@ -100,11 +100,6 @@ class model(object):
         self.m_rho_bound = rho_bound
         self.m_t = 0
         self.m_num_docs_processed = 0
-
-        if sublist_output_files is None:
-            self.sublist_output_files = dict()
-        else:
-            self.sublist_output_files = sublist_output_files
 
     def initialize(self, docs, init_noise_weight, eff_init_samples=None):
         docs = list(docs)
@@ -154,7 +149,7 @@ class model(object):
         self.m_Elogprobw = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
 
     def process_documents(self, docs, var_converge, update=True,
-                          predict_docs=None, save_model=False):
+                          predict_docs=None):
         docs = list(docs)
         doc_count = len(docs)
 
@@ -206,8 +201,7 @@ class model(object):
         for (doc, predict_doc) in it.izip(docs, predict_docs):
             doc_score = self.doc_e_step(doc, ss, vocab_to_batch_word_map,
                 batch_to_vocab_word_map, classes_to_batch_map,
-                batch_to_classes_map, var_converge, predict_doc=predict_doc,
-                save_model=save_model)
+                batch_to_classes_map, var_converge, predict_doc=predict_doc)
 
             score += doc_score
             if predict_doc is None:
@@ -299,7 +293,7 @@ class model(object):
     def doc_e_step(self, doc, ss, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, classes_to_batch_map,
                    batch_to_classes_map, var_converge, max_iter=100,
-                   predict_doc=None, save_model=False):
+                   predict_doc=None):
         num_tokens = sum(doc.counts)
 
         logging.debug('Performing E-step on doc spanning %d tokens, %d types'
@@ -393,21 +387,8 @@ class model(object):
         ss.m_omega_ss[classes_to_batch_map[doc.class_idx]] += 1
         ss.m_ab_ss[classes_to_batch_map[doc.class_idx],:] += np.sum(phi, 0)
         ss.m_zeta_ss[classes_to_batch_map[doc.class_idx],:,:] += np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), np.dot(nu, phi)).T
-
-        if save_model:
-            # save sublist stats
-            self.save_sublist(
-                self.sublist_output_files.get('sublist', None),
-                doc, phi)
-            self.save_sublist_Elogpi(
-                self.sublist_output_files.get('sublist_Elogpi', None),
-                doc, uv)
-            self.save_sublist_logEpi(
-                self.sublist_output_files.get('sublist_logEpi', None),
-                doc, uv)
-            self.save_sublist_lambda_ss(
-                self.sublist_output_files.get('sublist_lambda_ss', None),
-                doc, nu)
+        # TODO not consistent: rho...
+        self.m_class_lambda_ss_sums[doc.class_idx] += np.dot(np.dot(np.sum(nu, 0), phi), zeta_doc)
 
         if predict_doc is not None:
             likelihood = 0.
@@ -469,13 +450,23 @@ class model(object):
             rho * ss.m_zeta_ss * self.m_D / ss.m_batch_D
         )
 
-    def save_global(self, output_files):
+    def save(self, output_files):
         self.save_lambda_ss(output_files.get('lambda_ss', None))
         self.save_logEtheta(output_files.get('logEtheta', None))
         self.save_Elogtheta(output_files.get('Elogtheta', None))
         self.save_logEpi(output_files.get('logEpi', None))
         self.save_Elogpi(output_files.get('Elogpi', None))
         self.save_pickle(output_files.get('pickle', None))
+
+        for class_idx in xrange(self.m_M):
+            self.save_sublist(
+                output_files.get('sublist', None), class_idx)
+            self.save_sublist_Elogpi(
+                output_files.get('sublist_Elogpi', None), class_idx)
+            self.save_sublist_logEpi(
+                output_files.get('sublist_logEpi', None), class_idx)
+            self.save_sublist_lambda_ss(
+                output_files.get('sublist_lambda_ss', None), class_idx)
 
     def save_lambda_ss(self, f):
         lambdas = self.m_lambda_ss + self.m_lambda0
@@ -500,21 +491,20 @@ class model(object):
     def save_pickle(self, f):
         cPickle.dump(self, f, -1)
 
-    def save_sublist_lambda_ss(self, f, doc, nu):
-        nu_sums = np.sum(nu, 0)
-        self.save_sublist_row(f, doc, nu_sums + self.m_lambda0)
+    def save_sublist_lambda_ss(self, f, class_idx):
+        self.save_sublist_row(f, class_idx, self.m_class_lambda_ss_sums[class_idx] + self.m_lambda0)
 
-    def save_sublist_logEpi(self, f, doc, uv):
-        logEpi_d = utils.logE_sbc_stop(uv)
-        self.save_sublist_row(f, doc, logEpi_d)
+    def save_sublist_logEpi(self, f, class_idx):
+        logEpi_m = utils.logE_sbc_stop(self.m_ab[:,class_idx,:])
+        self.save_sublist_row(f, class_idx, logEpi_m)
 
-    def save_sublist_Elogpi(self, f, doc, uv):
-        Elogpi_d = utils.Elog_sbc_stop(uv)
-        self.save_sublist_row(f, doc, Elogpi_d)
+    def save_sublist_Elogpi(self, f, class_idx):
+        Elogpi_m = utils.Elog_sbc_stop(self.m_ab[:,class_idx,:])
+        self.save_sublist_row(f, class_idx, Elogpi_m)
 
-    def save_sublist(self, f, doc, phi):
-        flat_phi = phi.reshape(self.m_I * self.m_J)
-        self.save_sublist_row(f, doc, flat_phi)
+    def save_sublist(self, f, class_idx):
+        flat_zeta = self.m_zeta[class_idx].reshape((self.m_J * self.m_K,))
+        self.save_sublist_row(f, class_idx, flat_zeta)
 
     def save_rows(self, f, m):
         if f is not None:
@@ -522,7 +512,7 @@ class model(object):
                 line = ' '.join([str(x) for x in v])
                 f.write('%s\n' % line)
 
-    def save_sublist_row(self, f, doc, v):
+    def save_sublist_row(self, f, class_idx, v):
         if f is not None:
             line = ' '.join([str(x) for x in v])
-            f.write('%s %s\n' % (str(doc.id), line))
+            f.write('%s %s\n' % (str(self.m_classes[class_idx]), line))
