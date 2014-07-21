@@ -16,6 +16,7 @@ from pylowl.proj.brightside.corpus import write_concrete_doc, Document
 from pylowl.proj.brightside.utils import nested_file_paths
 from pylowl.proj.brightside.shdp.run import run
 from pylowl.proj.brightside.shdp.postproc.generate_d3_graph import generate_d3_graph
+from pylowl.proj.brightside.shdp.postproc.generate_d3_subgraphs import generate_d3_subgraphs
 from pylowl.proj.brightside.preproc.extract_concrete_vocab import extract_concrete_vocab
 
 
@@ -133,6 +134,7 @@ if __name__ == '__main__':
 
     print 'Generating D3 inputs...'
     generate_d3_graph(output_dir, os.path.join(output_dir, 'graph.json'))
+    generate_d3_subgraphs(output_dir, os.path.join(output_dir, 'subgraphs.json'))
 
     print 'Linking visualization code to output directory...'
     for basename in ('subgraphs.html',):
