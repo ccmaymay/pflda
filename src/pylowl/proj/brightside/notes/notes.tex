@@ -817,7 +817,7 @@ We now derive components of the ELBO.
     &= (\gamma - v_i^{(d)}) \trigamma{v_i^{(d)}} - (1 + \gamma - u_i^{(d)} - v_i^{(d)}) \trigamma{u_i^{(d)} + v_i^{(d)}} \\
     &\qquad + \sum_n \left[ - \nu_{dn}(i) \trigamma{u_i^{(d)} + v_i^{(d)}} + \sum_{i'>i} \nu_{dn}(i') \left[ \trigamma{v_i^{(d)}} - \trigamma{u_i^{(d)} + v_i^{(d)}} \right] \right] \\
     &\Rightarrow
-    \boxed{ v_i^{(d)} = 1 + \sum_n \sum_{i'>i} \nu_{dn}(i') }.
+    \boxed{ v_i^{(d)} = \gamma + \sum_n \sum_{i'>i} \nu_{dn}(i') }.
 \end{align*}
 
 \begin{align*}
