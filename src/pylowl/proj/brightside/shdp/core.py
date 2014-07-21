@@ -249,7 +249,7 @@ class model(object):
     def update_ab(self):
         for m in xrange(self.m_M):
             self.m_ab[0,m,:] = 1.0 + self.m_ab_ss
-            self.m_ab[1,m,:] = self.m_alpha
+            self.m_ab[1,m,:] = self.m_beta
             self.m_ab[1,m,:self.m_K-1] += np.flipud(np.cumsum(np.flipud(self.m_ab_ss[1:])))
             self.m_ab[:,m,self.m_K-1] = [1., 0.]
             self.m_ElogVm[m,:] = utils.Elog_sbc_stop(self.m_ab[:,m,:])
@@ -261,10 +261,10 @@ class model(object):
                 (self.m_log_zeta[m,j,:], log_norm) = utils.log_normalize(self.m_log_zeta[m,j,:])
         self.m_zeta = np.exp(self.m_log_zeta)
 
-    def update_nu(self, Elogprobw_doc, doc, Elogpi, phi, nu, log_nu, incorporate_prior=True):
-        log_nu[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1).T, phi.T)
+    def update_nu(self, Elogprobw_doc, doc, ElogVd, phi, nu, log_nu, incorporate_prior=True):
+        log_nu[:,:] = np.dot(phi, np.dot(self.m_zeta, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
         if incorporate_prior:
-            log_nu[:,:] += Elogpi
+            log_nu[:,:] += ElogVd
         for n in xrange(doc.total):
             (log_nu[n,:], log_norm) = utils.log_normalize(log_nu[n,:])
         nu[:,:] = np.exp(log_nu)
@@ -272,26 +272,29 @@ class model(object):
     def update_uv(self, nu, uv):
         nu_sums = np.sum(nu, 0)
         uv[0] = 1.0 + nu_sums
-        uv[1] = self.m_beta
-        uv[1,:self.m_L-1] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
-        uv[:,self.m_L-1] = [1., 0.]
+        uv[1] = self.m_gamma
+        uv[1,:self.m_I-1] += np.flipud(np.cumsum(np.flipud(nu_sums[1:])))
+        uv[:,self.m_I-1] = [1., 0.]
 
-    def update_phi(self, Elogprobw_doc, doc, nu, phi, log_phi, incorporate_prior=True):
-        log_phi[:,:] = np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), nu).T
+    def update_phi(self, Elogprobw_doc, doc, ElogVm_doc, nu, phi, log_phi, incorporate_prior=True):
+        log_phi[:,:] = np.dot(np.dot(self.m_zeta, np.repeat(Elogprobw_doc, doc.counts, axis=1)), nu).T
         if incorporate_prior:
-            log_phi[:,:] += self.m_ElogV
-        for i in xrange(self.m_L):
+            log_phi[:,:] += ElogVm_doc
+        for i in xrange(self.m_I):
             (log_phi[i,:], log_norm) = utils.log_normalize(log_phi[i,:])
         phi[:,:] = np.exp(log_phi)
 
-    def z_likelihood(self, phi, log_phi):
-        return np.sum(phi * (self.m_ElogV - log_phi))
+    def z_likelihood(self, ElogVm_doc, phi, log_phi):
+        return np.sum(phi * (ElogVm_doc - log_phi))
 
-    def c_likelihood(self, Elogpi, nu, log_nu):
-        return np.sum(nu * (Elogpi - log_nu))
+    def c_likelihood(self, ElogVd, nu, log_nu):
+        return np.sum(nu * (ElogVd - log_nu))
+
+    def x_likelihood(self, Elogp_doc):
+        return Elogp_doc
 
     def w_likelihood(self, doc, nu, phi, Elogprobw_doc):
-        return np.sum(nu.T * np.dot(phi, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
+        return np.sum(phi * np.dot(self.m_zeta, np.repeat(Elogprobw_doc, doc.counts, axis=1)).T)
 
     def doc_e_step(self, doc, ss, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, classes_to_batch_map,
@@ -313,17 +316,18 @@ class model(object):
 
         logging.debug('Initializing document variational parameters')
 
-        uv = np.zeros((2, self.m_L))
+        uv = np.zeros((2, self.m_I))
         uv[0] = 1.
-        uv[1] = self.m_beta
-        uv[1,self.m_L-1] = 0.
+        uv[1] = self.m_gamma
+        uv[1,self.m_I-1] = 0.
 
-        Elogpi = utils.Elog_sbc_stop(uv)
+        ElogVm_doc = self.m_ElogVm[batch_to_classes_map[doc.class_idx]]
+        ElogVd = utils.Elog_sbc_stop(uv)
 
-        phi = np.zeros((self.m_L, self.m_K)) / self.m_K
+        phi = np.zeros((self.m_I, self.m_J)) / self.m_J
         log_phi = np.log(phi)
 
-        nu = np.ones((num_tokens, self.m_L)) / self.m_L
+        nu = np.ones((num_tokens, self.m_I)) / self.m_I
         log_nu = np.log(nu)
 
         converge = None
@@ -336,32 +340,37 @@ class model(object):
         while iteration < max_iter and (converge is None or converge < 0.0 or converge > var_converge):
             logging.debug('Updating document variational parameters (iteration: %d)' % iteration)
             # update variational parameters
-            self.update_phi(Elogprobw_doc, doc, nu, phi, log_phi)
-            self.update_nu(Elogprobw_doc, doc, Elogpi, phi, nu, log_nu)
+            self.update_phi(Elogprobw_doc, doc, ElogVm_doc, nu, phi, log_phi)
+            self.update_nu(Elogprobw_doc, doc, ElogVd, phi, nu, log_nu)
             # TODO why after phi and nu update, not before?
             self.update_uv(nu, uv)
-            Elogpi = utils.Elog_sbc_stop(uv)
+            ElogVd = utils.Elog_sbc_stop(uv)
 
             # compute likelihood
 
             likelihood = 0.0
 
-            # E[log p(V | beta)] + H(q(V))
-            v_ll = utils.log_sticks_likelihood(uv[:,:self.m_L-1], 1.0, self.m_beta)
-            likelihood += v_ll
-            logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
+            # E[log p(x | p)
+            x_ll = self.x_likelihood(self.m_Elogp[batch_to_classes_map[doc.class_idx]])
+            likelihood += x_ll
+            logging.debug('Log-likelihood after x component: %f (+ %f)' % (likelihood, x_ll))
 
-            # E[log p(z | V)] + H(q(z))
-            z_ll = self.z_likelihood(phi, log_phi)
+            # E[log p(Vd | gamma)] + H(q(Vd))
+            v_ll = utils.log_sticks_likelihood(uv[:,:self.m_I-1], 1.0, self.m_gamma)
+            likelihood += v_ll
+            logging.debug('Log-likelihood after Vd components: %f (+ %f)' % (likelihood, v_ll))
+
+            # E[log p(z | Vm)] + H(q(z))
+            z_ll = self.z_likelihood(ElogVm_doc, phi, log_phi)
             likelihood += z_ll
             logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
 
-            # E[log p(c | U, V)] + H(q(c))
-            c_ll = self.c_likelihood(Elogpi, nu, log_nu)
+            # E[log p(c | Vd)] + H(q(c))
+            c_ll = self.c_likelihood(ElogVd, nu, log_nu)
             likelihood += c_ll
             logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
 
-            # E[log p(W | theta, c, z)]
+            # E[log p(W | c, z, y, theta)]
             w_ll = self.w_likelihood(doc, nu, phi, Elogprobw_doc)
             likelihood += w_ll
             logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
@@ -388,24 +397,24 @@ class model(object):
             self.save_sublist(
                 self.sublist_output_files.get('sublist', None),
                 doc, phi)
-            self.save_sublist_Elogpi(
-                self.sublist_output_files.get('sublist_Elogpi', None),
+            self.save_sublist_ElogVd(
+                self.sublist_output_files.get('sublist_ElogVd', None),
                 doc, uv)
-            self.save_sublist_logEpi(
-                self.sublist_output_files.get('sublist_logEpi', None),
+            self.save_sublist_logEVd(
+                self.sublist_output_files.get('sublist_logEVd', None),
                 doc, uv)
             self.save_sublist_lambda_ss(
                 self.sublist_output_files.get('sublist_lambda_ss', None),
                 doc, nu)
 
         if predict_doc is not None:
-            logEpi = utils.Elog_sbc_stop(uv)
+            logEVd = utils.Elog_sbc_stop(uv)
             # TODO abstract this?
             logEtheta = (
                 np.log(self.m_lambda0 + self.m_lambda_ss)
                 - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
             )
-            likelihood = np.sum(np.log(np.sum(np.exp(logEpi[:,np.newaxis] + np.dot(phi, logEtheta[:,predict_doc.words])), 0)) * predict_doc.counts)
+            likelihood = np.sum(np.log(np.sum(np.exp(logEVd[:,np.newaxis] + np.dot(phi, logEtheta[:,predict_doc.words])), 0)) * predict_doc.counts)
 
         return likelihood
 
@@ -450,8 +459,8 @@ class model(object):
         self.save_lambda_ss(output_files.get('lambda_ss', None))
         self.save_logEtheta(output_files.get('logEtheta', None))
         self.save_Elogtheta(output_files.get('Elogtheta', None))
-        self.save_logEpi(output_files.get('logEpi', None))
-        self.save_Elogpi(output_files.get('Elogpi', None))
+        self.save_logEV(output_files.get('logEV', None))
+        self.save_ElogV(output_files.get('ElogV', None))
         self.save_pickle(output_files.get('pickle', None))
 
     def save_lambda_ss(self, f):
@@ -466,13 +475,13 @@ class model(object):
         Elogtheta = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
         self.save_rows(f, Elogtheta)
 
-    def save_logEpi(self, f):
-        logEpi = utils.logE_sbc_stop(self.m_tau)
-        self.save_rows(f, logEpi[:,np.newaxis])
+    def save_logEV(self, f):
+        logEV = utils.logE_sbc_stop(self.m_tau)
+        self.save_rows(f, logEV[:,np.newaxis])
 
-    def save_Elogpi(self, f):
-        Elogpi = utils.Elog_sbc_stop(self.m_tau)
-        self.save_rows(f, Elogpi[:,np.newaxis])
+    def save_ElogV(self, f):
+        ElogV = utils.Elog_sbc_stop(self.m_tau)
+        self.save_rows(f, ElogV[:,np.newaxis])
 
     def save_pickle(self, f):
         cPickle.dump(self, f, -1)
@@ -481,16 +490,16 @@ class model(object):
         nu_sums = np.sum(nu, 0)
         self.save_sublist_row(f, doc, nu_sums + self.m_lambda0)
 
-    def save_sublist_logEpi(self, f, doc, uv):
-        logEpi = utils.logE_sbc_stop(uv)
-        self.save_sublist_row(f, doc, logEpi)
+    def save_sublist_logEVd(self, f, doc, uv):
+        logEVd = utils.logE_sbc_stop(uv)
+        self.save_sublist_row(f, doc, logEVd)
 
-    def save_sublist_Elogpi(self, f, doc, uv):
-        Elogpi = utils.Elog_sbc_stop(uv)
-        self.save_sublist_row(f, doc, Elogpi)
+    def save_sublist_ElogVd(self, f, doc, uv):
+        ElogVd = utils.Elog_sbc_stop(uv)
+        self.save_sublist_row(f, doc, ElogVd)
 
     def save_sublist(self, f, doc, phi):
-        flat_phi = phi.reshape(self.m_L * self.m_K)
+        flat_phi = phi.reshape(self.m_I * self.m_J)
         self.save_sublist_row(f, doc, flat_phi)
 
     def save_rows(self, f, m):
