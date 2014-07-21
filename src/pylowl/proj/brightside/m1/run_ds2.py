@@ -13,8 +13,6 @@ from pylowl.proj.brightside.m1.run import run
 from pylowl.proj.brightside.m1.postproc.generate_d3_graph import generate_d3_graph
 from pylowl.proj.brightside.m1.postproc.generate_d3_subgraphs import generate_d3_subgraphs
 
-profile = ('--profile' in sys.argv[1:])
-
 print 'sys.path:'
 for path in sys.path:
     print '    %s' % path
@@ -48,7 +46,7 @@ os.umask(umask) # set umask back
 os.chmod(OUTPUT_DIR, 0o0755 & ~umask)
 
 print 'Running stochastic variational inference...'
-code = '''run(trunc=TRUNC,
+run(trunc=TRUNC,
     data_dir=TRAIN_DATA_DIR,
     test_data_dir=TEST_DATA_DIR,
     test_samples=1000,
@@ -62,13 +60,7 @@ code = '''run(trunc=TRUNC,
     streaming=True,
     user_doc_reservoir_capacity=1000,
     user_subtree_selection_interval=100,
-    log_level='DEBUG')'''.replace('\n', ' ')
-if profile:
-    print 'Profiling...'
-    import cProfile
-    cProfile.run(code, os.path.join(OUTPUT_DIR, 'profile'))
-else:
-    exec code
+    log_level='DEBUG')
 
 print 'Generating D3 inputs...'
 generate_d3_graph(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'graph.json'))
