@@ -29,9 +29,9 @@ SRC_EXTENSIONS = ('.py', '.sh', '.c', '.h', '.pxd', '.pyx')
 
 # paths are relative to littleowl repo root
 OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/shdp'
-I = 20
+I = 5
 J = 10
-K = 5
+K = 20
 POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
 MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/shdp/postproc'
 
