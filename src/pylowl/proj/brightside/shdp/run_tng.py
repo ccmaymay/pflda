@@ -63,10 +63,11 @@ code = '''run(I=I, J=J, K=K, M=2,
     iota=64,
     kappa=0.6,
     lambda0=0.005,
-    max_time=3600,
+    max_time=360,
     save_model=True,
     output_dir=OUTPUT_DIR,
     vocab_path=VOCAB_PATH,
+    optimal_order=True,
     log_level='DEBUG')'''.replace('\n', ' ')
 if profile:
     print 'Profiling...'
