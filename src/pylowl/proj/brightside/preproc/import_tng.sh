@@ -24,4 +24,4 @@ python -m pylowl.proj.brightside.preproc.tng_set_attr_to_category data/txt/tng.o
 python -m pylowl.proj.brightside.preproc.tokenize_and_filter \
     data/txt/tng.orig.split/{train,test} \
     data/txt/tng/{train,test,vocab} \
-    --idf_lb=0.001 --idf_ub=0.05 --lowercase --split_pattern '[^a-zA-Z]+'
+    --idf_lb=0.001 --idf_ub=0.05 --lowercase --split_pattern '[^a-zA-Z]+' --token_filter_pattern '^.{0,2}$'
