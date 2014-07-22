@@ -362,8 +362,6 @@ class model(object):
                     self.m_uv[1, user_idx, s_idx] += self.m_uv_ss[user_idx, idx]
 
     def z_likelihood(self, subtree, ElogV):
-        self.check_ElogV_edge_cases(ElogV)
-
         likelihood = 0.0
         for node in self.tree_iter(subtree):
             global_node = subtree[node]
@@ -375,19 +373,10 @@ class model(object):
         return likelihood
 
     def zeta_likelihood(self, subtree_leaves, ids_leaves, ids, doc, xi, log_xi, l2g_idx):
-        self.check_xi_edge_cases(xi, ids_leaves)
-        self.check_xi_edge_cases(np.exp(log_xi), ids_leaves)
-        self.check_subtree_ids(subtree_leaves, ids_leaves)
-
         Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids, doc.user_idx, l2g_idx)
         return np.sum(xi[ids_leaves] * (Elogpi[ids_leaves] - log_xi[ids_leaves]))
 
     def c_likelihood(self, subtree, subtree_leaves, ab, nu, log_nu, ids):
-        self.check_ab_edge_cases(ab, subtree_leaves)
-        self.check_nu_edge_cases(nu, subtree_leaves)
-        self.check_nu_edge_cases(np.exp(log_nu), subtree_leaves)
-        self.check_subtree_ids(subtree, ids)
-
         likelihood = 0.0
         Elogchi = self.compute_subtree_Elogchi(subtree_leaves, ab)
         for node in self.tree_iter(subtree_leaves):
@@ -399,9 +388,6 @@ class model(object):
         return likelihood
 
     def w_likelihood(self, doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves):
-        self.check_nu_edge_cases(nu, subtree_leaves)
-        self.check_xi_edge_cases(xi, ids_leaves)
-
         likelihood = 0.0
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
@@ -500,37 +486,6 @@ class model(object):
                 logEchi[idx,p_level] = logEU[0,p_level] + np.sum(logEU[1,:p_level])
 
         return logEchi
-
-    def check_subtree_ids(self, subtree, ids):
-        ids_in_subtree = set(ids)
-        for node in self.tree_iter(subtree):
-            idx = self.tree_index(node)
-            assert idx in ids_in_subtree, 'id %d in subtree but not in id list' % idx
-            ids_in_subtree.remove(idx)
-        assert not ids_in_subtree, 'ids in id list but not in subtree: %s' % str(ids_in_subtree)
-
-    def check_ab_edge_cases(self, ab, subtree_leaves):
-        for node in self.tree_iter(subtree_leaves):
-            idx = self.tree_index(node)
-            node_level = self.node_level(node)
-            assert ab[0, idx, node_level] == 1. and ab[1, idx, node_level] == 0., 'leaf %s has ab = %s (require [1, 0])' % (str(node), str(ab[:, idx, node_level]))
-
-    def check_ElogV_edge_cases(self, ElogV):
-        for node in self.tree_iter():
-            idx = self.tree_index(node)
-            if node[-1] + 1 == self.m_trunc[len(node)-1]: # node is last child of its parent in global tree
-                assert ElogV[0, idx] == 0. and ElogV[1, idx] == np.inf, 'right-most child %s has ElogV = %s (require [0, inf])' % (str(node), str(ElogV[:, idx]))
-
-    def check_xi_edge_cases(self, xi, ids_leaves):
-        assert np.sum(xi[ids_leaves]) - 1 < 1e-9, 'xi does not sum to one: %s' % str(xi)
-
-    def check_nu_edge_cases(self, nu, subtree_leaves):
-        for node in self.tree_iter(subtree_leaves):
-            idx = self.tree_index(node)
-            node_level = self.node_level(node)
-            nu_row = nu[idx,:,:node_level+1]
-            assert not np.isnan(nu_row).any(), 'not all rows of nu are nan-free: %s' % str(nu_row)
-            assert la.norm(np.sum(nu_row,1) - 1, np.inf) < 1e-9, 'not all rows of nu sum to one: %s' % str(nu_row)
 
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
                    batch_to_vocab_word_map, users_to_batch_map,
