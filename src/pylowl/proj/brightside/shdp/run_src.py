@@ -124,6 +124,7 @@ if __name__ == '__main__':
         save_model=True,
         output_dir=output_dir,
         vocab_path=vocab_path,
+        optimal_ordering=True,
         log_level='DEBUG')'''.replace('\n', ' ')
     if profile:
         print 'Profiling...'
