@@ -52,7 +52,7 @@ os.umask(umask) # set umask back
 os.chmod(OUTPUT_DIR, 0o0755 & ~umask)
 
 print 'Running stochastic variational inference...'
-code = '''run(I=I, J=J, K=K, M=m,
+code = '''run(I=I, J=J, K=K, M=2,
     data_dir=TRAIN_DATA_DIR,
     test_data_dir=TEST_DATA_DIR,
     test_samples=300,
