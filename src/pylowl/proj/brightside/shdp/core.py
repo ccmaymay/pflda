@@ -41,7 +41,8 @@ class model(object):
                  kappa=0.5,
                  iota=1.,
                  scale=1.,
-                 rho_bound=0.):
+                 rho_bound=0.,
+                 optimal_order=False):
         self.m_K = K
         self.m_J = J
         self.m_I = I
@@ -100,6 +101,8 @@ class model(object):
         self.m_rho_bound = rho_bound
         self.m_t = 0
         self.m_num_docs_processed = 0
+
+        self.m_optimal_order = optimal_order
 
     def initialize(self, docs, init_noise_weight, eff_init_samples=None):
         docs = list(docs)
@@ -212,6 +215,16 @@ class model(object):
         if update:
             self.update_ss_stochastic(ss, batch_to_vocab_word_map,
                                       batch_to_classes_map)
+            if self.m_optimal_order:
+                order = np.argsort(self.m_lambda_ss_sum)[::-1]
+                self.m_lambda_ss = self.m_lambda_ss[order]
+                self.m_lambda_ss_sum = self.m_lambda_ss_sum[order]
+                self.m_tau_ss = self.m_tau_ss[order]
+                self.m_zeta_ss = self.m_zeta_ss[:,:,order]
+                for m in xrange(self.m_M):
+                    class_order = np.argsort(self.m_class_lambda_ss_sums[m])[::-1]
+                    self.m_zeta_ss = self.m_zeta_ss[:,class_order,:]
+                    self.m_ab_ss = self.m_ab_ss[:,class_order]
             self.update_lambda()
             self.update_tau()
             self.update_omega()
