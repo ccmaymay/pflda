@@ -219,12 +219,13 @@ def run(**kwargs):
         if options['test_data_dir'] is not None:
             test_filenames = nested_file_paths(options['test_data_dir'])
             test_filenames.sort()
-            (c_test_train, c_test_test) = Corpus.from_concrete(
+            c_test = Corpus.from_concrete(
                 test_filenames, r_vocab,
                 options['concrete_section_segmentation'],
                 options['concrete_sentence_segmentation'],
                 options['concrete_tokenization_list'],
-            ).split_within_docs(options['test_train_frac'])
+            )
+            (c_test_train, c_test_test) = c_test.split_within_docs(options['test_train_frac'])
 
     else:
         train_filenames = nested_file_paths(options['data_dir'])
@@ -257,12 +258,13 @@ def run(**kwargs):
         if options['test_data_dir'] is not None:
             test_filenames = nested_file_paths(options['test_data_dir'])
             test_filenames.sort()
-            (c_test_train, c_test_test) = Corpus.from_concrete(
+            c_test = Corpus.from_concrete(
                 test_filenames, r_vocab,
                 options['concrete_section_segmentation'],
                 options['concrete_sentence_segmentation'],
                 options['concrete_tokenization_list'],
-            ).split_within_docs(options['test_train_frac'])
+            )
+            (c_test_train, c_test_test) = c_test.split_within_docs(options['test_train_frac'])
 
     logging.info('No. docs: %d' % num_docs)
     logging.info('No. types: %d' % num_types)
@@ -307,7 +309,7 @@ def run(**kwargs):
         total_doc_count += batchsize
 
         # Do online inference and evaluate on the fly dataset
-        (score, count, doc_count) = m.process_documents(docs,
+        (score, count, doc_count, confusion) = m.process_documents(docs,
             options['var_converge'])
         logging.info('Cumulative doc count: %d' % total_doc_count)
         logging.info('Log-likelihood: %f (%f per token) (%d tokens)' % (score, score/count, count))
@@ -322,6 +324,7 @@ def run(**kwargs):
                  options['save_model'])
 
             if options['test_data_dir'] is not None:
+                test_shdp_predict_classes(m, c_test, batchsize, options['var_converge'], options['test_samples'])
                 test_shdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
         if options['max_iter'] is not None and iteration > options['max_iter']:
@@ -337,6 +340,7 @@ def run(**kwargs):
 
     # Making final predictions.
     if options['test_data_dir'] is not None:
+        test_shdp_predict_classes(m, c_test, batchsize, options['var_converge'], options['test_samples'])
         test_shdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
 
@@ -378,7 +382,7 @@ def test_shdp(m, c, batchsize, var_converge, test_samples=None):
     while doc_count == batchsize:
         batch = take(docs_generator, batchsize)
 
-        (score, count, doc_count) = m.process_documents(
+        (score, count, doc_count, confusion) = m.process_documents(
             batch, var_converge, update=False)
         total_score += score
         total_count += count
@@ -407,7 +411,7 @@ def test_shdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         train_batch = take(train_docs_generator, batchsize)
         test_batch = take(test_docs_generator, batchsize)
 
-        (score, count, doc_count) = m.process_documents(
+        (score, count, doc_count, confusion) = m.process_documents(
             train_batch, var_converge, update=False, predict_docs=test_batch)
         total_score += score
         total_count += count
@@ -415,6 +419,35 @@ def test_shdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
     if total_count > 0:
         logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
             % (total_score, total_score/total_count, total_count))
+    else:
+        logging.warn('Cannot test: no data')
+
+
+def test_shdp_predict_classes(m, c, batchsize, var_converge, test_samples=None):
+    total_score = 0.0
+    total_count = 0
+
+    # need a generator or we will start over at beginning each batch
+    # TODO: do not want split...
+    docs_generator = (d for d in c.docs)
+
+    if test_samples is not None:
+        docs_generator = take(docs_generator, test_samples)
+
+    doc_count = batchsize
+    while doc_count == batchsize:
+        batch = take(docs_generator, batchsize)
+
+        (score, count, doc_count, confusion) = m.process_documents(
+            batch, var_converge, update=False, predict_classes=True)
+        total_score += score
+        total_count += count
+
+    if total_count > 0:
+        logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
+            % (total_score, total_score/total_count, total_count))
+        logging.info('Test confusion matrix for classes %s:\n%s'
+            % (str(m.m_classes), str(confusion)))
     else:
         logging.warn('Cannot test: no data')
 

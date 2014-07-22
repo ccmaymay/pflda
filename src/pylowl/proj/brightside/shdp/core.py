@@ -155,7 +155,7 @@ class model(object):
         self.m_Elogprobw = utils.log_dirichlet_expectation(self.m_lambda0 + self.m_lambda_ss)
 
     def process_documents(self, docs, var_converge, update=True,
-                          predict_docs=None):
+                          predict_docs=None, predict_classes=False):
         docs = list(docs)
         doc_count = len(docs)
 
@@ -172,6 +172,7 @@ class model(object):
         vocab_to_batch_word_map = dict()
         # list of unique word types, in order of first appearance
         batch_to_vocab_word_map = []
+
         for doc in docs:
             if doc.attrs['class'] in self.m_r_classes:
                 doc.class_idx = self.m_r_classes[doc.attrs['class']]
@@ -190,6 +191,10 @@ class model(object):
                     vocab_to_batch_word_map[w] = len(vocab_to_batch_word_map)
                     batch_to_vocab_word_map.append(w)
 
+        if predict_classes:
+            batch_to_classes_map = range(self.m_M)
+            classes_to_batch_map = dict(zip(range(self.m_M), range(self.m_M)))
+
         Mt = len(batch_to_classes_map)
 
         # number of unique word types in this mini-batch
@@ -204,16 +209,41 @@ class model(object):
         # run variational inference on some new docs
         score = 0.0
         count = 0
-        for (doc, predict_doc) in it.izip(docs, predict_docs):
-            doc_score = self.doc_e_step(doc, ss, vocab_to_batch_word_map,
-                batch_to_vocab_word_map, classes_to_batch_map,
-                batch_to_classes_map, var_converge, predict_doc=predict_doc)
+        confusion = np.zeros((Mt, Mt), dtype=np.uint)
 
-            score += doc_score
-            if predict_doc is None:
-                count += doc.total
-            else:
-                count += predict_doc.total
+        if predict_classes:
+            for (doc, predict_doc) in it.izip(docs, predict_docs):
+                true_class_idx = doc.class_idx
+                best_doc_score = None
+                best_class_idx = None
+                for m in xrange(self.m_M):
+                    doc.class_idx = m
+                    if predict_doc is not None:
+                        predict_doc.class_idx = m
+                    doc_score = self.doc_e_step(doc, ss, vocab_to_batch_word_map,
+                        batch_to_vocab_word_map, classes_to_batch_map,
+                        batch_to_classes_map, var_converge, predict_doc=predict_doc)
+                    if best_doc_score is None or doc_score > best_doc_score:
+                        best_doc_score = doc_score
+                        best_class_idx = m
+                confusion[true_class_idx,best_class_idx] += 1
+                doc.class_idx = true_class_idx
+                score += best_doc_score
+                if predict_doc is None:
+                    count += doc.total
+                else:
+                    count += predict_doc.total
+        else:
+            for (doc, predict_doc) in it.izip(docs, predict_docs):
+                doc_score = self.doc_e_step(doc, ss, vocab_to_batch_word_map,
+                    batch_to_vocab_word_map, classes_to_batch_map,
+                    batch_to_classes_map, var_converge, predict_doc=predict_doc)
+
+                score += doc_score
+                if predict_doc is None:
+                    count += doc.total
+                else:
+                    count += predict_doc.total
 
         if update:
             self.update_ss_stochastic(ss, batch_to_vocab_word_map,
@@ -235,7 +265,10 @@ class model(object):
             self.update_zeta()
             self.m_t += 1
 
-        return (score, count, doc_count)
+        if predict_classes:
+            return (score, count, doc_count, confusion)
+        else:
+            return (score, count, doc_count, None)
 
     def update_lambda(self):
         self.m_Elogprobw = (
