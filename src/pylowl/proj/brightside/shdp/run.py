@@ -6,6 +6,7 @@ import sys
 from pylowl.proj.brightside.corpus import Corpus, load_vocab
 from pylowl.proj.brightside.utils import take, nested_file_paths
 from pylowl.proj.brightside.shdp.core import *
+import numpy as np
 import random
 
 
@@ -324,7 +325,7 @@ def run(**kwargs):
                  options['save_model'])
 
             if options['test_data_dir'] is not None:
-                test_shdp_predict_classes(m, c_test, batchsize, options['var_converge'], options['test_samples'])
+                test_shdp_predict_classes(m, num_classes, c_test, batchsize, options['var_converge'], options['test_samples'])
                 test_shdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
         if options['max_iter'] is not None and iteration > options['max_iter']:
@@ -340,7 +341,7 @@ def run(**kwargs):
 
     # Making final predictions.
     if options['test_data_dir'] is not None:
-        test_shdp_predict_classes(m, c_test, batchsize, options['var_converge'], options['test_samples'])
+        test_shdp_predict_classes(m, num_classes, c_test, batchsize, options['var_converge'], options['test_samples'])
         test_shdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
 
@@ -423,9 +424,10 @@ def test_shdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         logging.warn('Cannot test: no data')
 
 
-def test_shdp_predict_classes(m, c, batchsize, var_converge, test_samples=None):
+def test_shdp_predict_classes(m, num_classes, c, batchsize, var_converge, test_samples=None):
     total_score = 0.0
     total_count = 0
+    total_confusion = np.zeros((num_classes, num_classes), dtype=np.uint)
 
     # need a generator or we will start over at beginning each batch
     # TODO: do not want split...
@@ -442,12 +444,13 @@ def test_shdp_predict_classes(m, c, batchsize, var_converge, test_samples=None):
             batch, var_converge, update=False, predict_classes=True)
         total_score += score
         total_count += count
+        total_confusion += confusion
 
     if total_count > 0:
         logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
             % (total_score, total_score/total_count, total_count))
         logging.info('Test confusion matrix for classes %s:\n%s'
-            % (str(m.m_classes), str(confusion)))
+            % (str(m.m_classes), str(total_confusion)))
     else:
         logging.warn('Cannot test: no data')
 

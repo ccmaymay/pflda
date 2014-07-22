@@ -212,27 +212,22 @@ class model(object):
         confusion = np.zeros((Mt, Mt), dtype=np.uint)
 
         if predict_classes:
-            for (doc, predict_doc) in it.izip(docs, predict_docs):
+            for doc in docs:
                 true_class_idx = doc.class_idx
                 best_doc_score = None
                 best_class_idx = None
                 for m in xrange(self.m_M):
                     doc.class_idx = m
-                    if predict_doc is not None:
-                        predict_doc.class_idx = m
                     doc_score = self.doc_e_step(doc, ss, vocab_to_batch_word_map,
                         batch_to_vocab_word_map, classes_to_batch_map,
-                        batch_to_classes_map, var_converge, predict_doc=predict_doc)
+                        batch_to_classes_map, var_converge)
                     if best_doc_score is None or doc_score > best_doc_score:
                         best_doc_score = doc_score
                         best_class_idx = m
                 confusion[true_class_idx,best_class_idx] += 1
                 doc.class_idx = true_class_idx
                 score += best_doc_score
-                if predict_doc is None:
-                    count += doc.total
-                else:
-                    count += predict_doc.total
+                count += doc.total
         else:
             for (doc, predict_doc) in it.izip(docs, predict_docs):
                 doc_score = self.doc_e_step(doc, ss, vocab_to_batch_word_map,
