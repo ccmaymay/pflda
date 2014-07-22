@@ -26,9 +26,9 @@ for (k, v) in os.environ.items():
     print '    %s: %s' % (k, v)
 print
 
-I = 20
+K = 20
 J = 10
-K = 5
+I = 5
 M = 2
 DATA_DIR = 'data/txt/tng'
 POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
