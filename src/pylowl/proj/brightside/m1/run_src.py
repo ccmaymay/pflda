@@ -58,7 +58,6 @@ def is_num(s):
 
 def make_data(input_dir, output_dir):
     i = 0
-    active_exts = set()
     for (dirpath, dirnames, filenames) in os.walk(input_dir):
         for filename in filenames:
             path = os.path.join(dirpath, filename)
@@ -70,13 +69,11 @@ def make_data(input_dir, output_dir):
                         tokens.extend(token for token in SPLIT_RE.split(line)
                                       if token and not is_num(token))
                 if tokens:
-                    active_exts.add(ext)
                     output_path = os.path.join(output_dir, '%d.concrete' % i)
                     attrs = {'user': ext}
                     write_concrete_doc(Document(tokens, id=path, **attrs),
                                        output_path)
                     i += 1
-    return len(active_exts)
 
 
 if __name__ == '__main__':
@@ -96,7 +93,7 @@ if __name__ == '__main__':
     umask = os.umask(0o022) # whatever, python
     os.umask(umask) # set umask back
     os.chmod(data_dir, 0o0755 & ~umask)
-    u = make_data('src', data_dir)
+    make_data('src', data_dir)
     train_data_dir = data_dir
     # TODO would be nice if we didn't test on training data...
     test_data_dir = data_dir
@@ -117,7 +114,6 @@ if __name__ == '__main__':
         test_data_dir=test_data_dir,
         test_samples=50,
         init_samples=50,
-        U=u,
         batchsize=20,
         max_time=90,
         save_model=True,

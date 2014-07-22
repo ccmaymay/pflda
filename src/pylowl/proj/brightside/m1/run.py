@@ -160,10 +160,6 @@ def run(**kwargs):
     options = dict((k, v) for (k, v) in DEFAULT_OPTIONS.items())
     options.update(kwargs)
 
-    if options['U'] is None:
-        raise ValueError('number of users must be specified')
-    num_users = options['U']
-
     # Make output dir
     result_directory = options['output_dir']
     if not os.path.isdir(result_directory):
@@ -200,6 +196,11 @@ def run(**kwargs):
         if options['D'] is None:
             raise ValueError('D must be specified in streaming mode')
         num_docs = options['D']
+
+        if options['U'] is None:
+            raise ValueError('U must be specified in streaming mode')
+        num_users = options['U']
+
         # TODO multiple files?
 
         train_filenames = nested_file_paths(options['data_dir'])
@@ -244,6 +245,15 @@ def run(**kwargs):
             options['concrete_sentence_segmentation'],
             options['concrete_tokenization_list'],
         )
+
+        if options['U'] is None:
+            users = set()
+            for doc in c_train.docs:
+                users.add(doc.attrs['user'])
+            num_users = len(users)
+        else:
+            num_users = options['U']
+
         if options['test_data_dir'] is not None:
             test_filenames = nested_file_paths(options['test_data_dir'])
             test_filenames.sort()

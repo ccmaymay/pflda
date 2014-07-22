@@ -60,7 +60,6 @@ def is_num(s):
 
 def make_data(input_dir, output_dir):
     i = 0
-    active_exts = set()
     for (dirpath, dirnames, filenames) in os.walk(input_dir):
         for filename in filenames:
             path = os.path.join(dirpath, filename)
@@ -72,13 +71,11 @@ def make_data(input_dir, output_dir):
                         tokens.extend(token for token in SPLIT_RE.split(line)
                                       if token and not is_num(token))
                 if tokens:
-                    active_exts.add(ext)
                     output_path = os.path.join(output_dir, '%d.concrete' % i)
                     attrs = {'class': ext}
                     write_concrete_doc(Document(tokens, id=path, **attrs),
                                        output_path)
                     i += 1
-    return len(active_exts)
 
 
 if __name__ == '__main__':
@@ -98,7 +95,7 @@ if __name__ == '__main__':
     umask = os.umask(0o022) # whatever, python
     os.umask(umask) # set umask back
     os.chmod(data_dir, 0o0755 & ~umask)
-    m = make_data('src', data_dir)
+    make_data('src', data_dir)
     train_data_dir = data_dir
     # TODO would be nice if we didn't test on training data...
     test_data_dir = data_dir
@@ -114,7 +111,7 @@ if __name__ == '__main__':
     os.chmod(output_dir, 0o0755 & ~umask)
 
     print 'Running stochastic variational inference...'
-    code = '''run(I=I, J=J, K=K, M=m,
+    code = '''run(I=I, J=J, K=K,
         data_dir=train_data_dir,
         test_data_dir=test_data_dir,
         test_samples=50,

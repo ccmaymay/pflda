@@ -57,7 +57,6 @@ code = '''run(trunc=TRUNC,
     save_model=True,
     output_dir=OUTPUT_DIR,
     vocab_path=VOCAB_PATH,
-    U=20,
     user_doc_reservoir_capacity=200,
     user_subtree_selection_interval=50,
     log_level='DEBUG')'''.replace('\n', ' ')

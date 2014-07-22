@@ -34,7 +34,7 @@ DEFAULT_OPTIONS = dict(
     K=1000,
     J=100,
     I=10,
-    M=2,
+    M=None,
     D=None,
     lambda0=0.01,
     alpha=1.0,
@@ -196,6 +196,11 @@ def run(**kwargs):
         if options['D'] is None:
             raise ValueError('D must be specified in streaming mode')
         num_docs = options['D']
+
+        if options['M'] is None:
+            raise ValueError('M must be specified in streaming mode')
+        num_classes = options['M']
+
         # TODO multiple files?
 
         train_filenames = nested_file_paths(options['data_dir'])
@@ -240,6 +245,15 @@ def run(**kwargs):
             options['concrete_sentence_segmentation'],
             options['concrete_tokenization_list'],
         )
+
+        if options['M'] is None:
+            classes = set()
+            for doc in c_train.docs:
+                classes.add(doc.attrs['class'])
+            num_classes = len(classes)
+        else:
+            num_classes = options['M']
+
         if options['test_data_dir'] is not None:
             test_filenames = nested_file_paths(options['test_data_dir'])
             test_filenames.sort()
@@ -254,7 +268,7 @@ def run(**kwargs):
     logging.info('No. types: %d' % num_types)
 
     logging.info("Creating online shdp instance")
-    m = model(K=options['K'], J=options['J'], I=options['I'], M=options['M'],
+    m = model(K=options['K'], J=options['J'], I=options['I'], M=num_classes,
               D=num_docs, W=num_types,
               lambda0=options['lambda0'],
               omega0=options['omega0'],
