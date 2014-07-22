@@ -68,6 +68,7 @@ def tng_to_concrete(input_dir, output_dir, remove_first_paragraph=False,
 
     def iter_docs():
         for input_path in nested_file_paths(input_dir):
+            tokens = []
             with open(input_path) as f:
                 seen_empty_line = False
                 for line in f:
@@ -82,14 +83,14 @@ def tng_to_concrete(input_dir, output_dir, remove_first_paragraph=False,
                             and not (remove_email_headers and email_header)
                             and not (remove_email_history and email_history)
                             and not (remove_writes_lines and writes_line)):
-
-                            tokens = filter_tokens(line.split(), remove_emails,
-                                                   remove_non_ascii)
-                            text = ' '.join(tokens)
-
-                            yield Document(tokens, text=text, id=input_path)
+                            tokens.extend(filter_tokens(line.split(),
+                                                        remove_emails,
+                                                        remove_non_ascii))
                     else:
                         seen_empty_line = True
+
+            text = ' '.join(tokens)
+            yield Document(tokens, text=text, id=input_path)
 
     write_concrete_docs(iter_docs(), output_dir)
 
