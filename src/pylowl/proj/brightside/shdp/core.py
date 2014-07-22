@@ -23,6 +23,8 @@ class suff_stats(object):
         self.m_omega_ss = np.zeros(Mt)
         self.m_ab_ss = np.zeros((Mt, J))
         self.m_zeta_ss = np.zeros((Mt, J, K))
+        self.m_class_lambda_ss_sums = np.zeros((Mt, K))
+        self.m_class_lambda_ss_sums_m = np.zeros((Mt, J))
 
 
 class model(object):
@@ -401,9 +403,8 @@ class model(object):
         ss.m_omega_ss[classes_to_batch_map[doc.class_idx]] += 1
         ss.m_ab_ss[classes_to_batch_map[doc.class_idx],:] += np.sum(phi, 0)
         ss.m_zeta_ss[classes_to_batch_map[doc.class_idx],:,:] += np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), np.dot(nu, phi)).T
-        # TODO not consistent: rho...
-        self.m_class_lambda_ss_sums[doc.class_idx] += np.dot(np.dot(np.sum(nu, 0), phi), zeta_doc)
-        self.m_class_lambda_ss_sums_m[doc.class_idx] += np.dot(np.sum(nu, 0), phi)
+        ss.m_class_lambda_ss_sums[classes_to_batch_map[doc.class_idx]] += np.dot(np.dot(np.sum(nu, 0), phi), zeta_doc)
+        ss.m_class_lambda_ss_sums_m[classes_to_batch_map[doc.class_idx]] += np.dot(np.sum(nu, 0), phi)
 
         if predict_doc is not None:
             likelihood = 0.
@@ -463,6 +464,16 @@ class model(object):
         self.m_zeta_ss *= (1 - rho)
         self.m_zeta_ss[batch_to_classes_map,:,:] += (
             rho * ss.m_zeta_ss * self.m_D / ss.m_batch_D
+        )
+
+        self.m_class_lambda_ss_sums *= (1 - rho)
+        self.m_class_lambda_ss_sums[batch_to_classes_map,:] += (
+            rho * ss.m_class_lambda_ss_sums * self.m_D / ss.m_batch_D
+        )
+
+        self.m_class_lambda_ss_sums_m *= (1 - rho)
+        self.m_class_lambda_ss_sums_m[batch_to_classes_map,:] += (
+            rho * ss.m_class_lambda_ss_sums_m * self.m_D / ss.m_batch_D
         )
 
     def save(self, output_files):
