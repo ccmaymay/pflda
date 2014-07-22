@@ -34,6 +34,7 @@ class model(object):
                  iota=1.,
                  scale=1.,
                  rho_bound=0.,
+                 optimal_order=False,
                  sublist_output_files=None):
         self.m_K = K
         self.m_L = L
@@ -73,6 +74,8 @@ class model(object):
             self.sublist_output_files = dict()
         else:
             self.sublist_output_files = sublist_output_files
+
+        self.m_optimal_order = optimal_order
 
     def initialize(self, docs, init_noise_weight, eff_init_samples=None):
         docs = list(docs)
@@ -171,6 +174,11 @@ class model(object):
 
         if update:
             self.update_ss_stochastic(ss, batch_to_vocab_word_map)
+            if self.m_optimal_order:
+                order = np.argsort(self.m_lambda_ss_sum)[::-1]
+                self.m_lambda_ss = self.m_lambda_ss[order]
+                self.m_lambda_ss_sum = self.m_lambda_ss_sum[order]
+                self.m_tau_ss = self.m_tau_ss[order]
             self.update_lambda()
             self.update_tau()
             self.m_t += 1

@@ -66,6 +66,7 @@ DEFAULT_OPTIONS = dict(
     concrete_section_segmentation=0,
     concrete_sentence_segmentation=0,
     concrete_tokenization_list=0,
+    optimal_order=False,
 )
 
 
@@ -131,6 +132,8 @@ def main(argv=None):
                       help="concrete sentence segmentation index")
     parser.add_argument("--concrete_tokenization_list", type=int,
                       help="concrete tokenization list index")
+    parser.add_argument("--optimal_order", action="store_true",
+                      help="re-order topics optimally after each e-step")
     parser.add_argument("--streaming", action="store_true",
                       help="process data in streaming fashion (D must be specified)")
     parser.add_argument("--fixed_lag", action="store_true",
@@ -258,6 +261,7 @@ def run(**kwargs):
               kappa=options['kappa'],
               iota=options['iota'],
               scale=options['scale'],
+              optimal_order=options['optimal_order'],
               sublist_output_files=sublist_output_files)
 
     if options['init_samples'] is not None:
