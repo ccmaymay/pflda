@@ -518,7 +518,7 @@ class model(object):
         cPickle.dump(self, f, -1)
 
     def save_sublist_lambda_ss(self, f, class_idx):
-        self.save_sublist_row(f, class_idx, self.m_class_lambda_ss_sums[class_idx] + self.m_lambda0)
+        self.save_sublist_row(f, class_idx, self.m_class_lambda_ss_sums_m[class_idx] + self.m_lambda0)
 
     def save_sublist_logEpi(self, f, class_idx):
         logEpi_m = utils.logE_sbc_stop(self.m_ab[:,class_idx,:])
