@@ -63,7 +63,6 @@ code = '''run(K=K, L=L,
     save_model=True,
     output_dir=OUTPUT_DIR,
     vocab_path=VOCAB_PATH,
-    optimal_order=True,
     log_level='DEBUG')'''.replace('\n', ' ')
 if profile:
     print 'Profiling...'
