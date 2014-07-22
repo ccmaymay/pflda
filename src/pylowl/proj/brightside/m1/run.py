@@ -1,3 +1,4 @@
+import codecs
 import logging
 import time
 import os
@@ -185,7 +186,7 @@ def run(**kwargs):
 
     # Write options to log, file
     options_filename = os.path.join(result_directory, OPTIONS_BASENAME)
-    with open(options_filename, 'w') as options_f:
+    with wrap_open(options_filename, 'w') as options_f:
         for (k, v) in options.items():
             line = '%s: %s' % (k, v)
             logging.info(line)
@@ -344,7 +345,7 @@ def save(m, basename_stem, result_directory, save_model):
 def make_output_files(basename_stem, result_directory, save_model):
     if save_model:
         return dict(
-            (s, open(os.path.join(result_directory, basename_stem + ext), mode))
+            (s, wrap_open(os.path.join(result_directory, basename_stem + ext), mode))
             for (s, ext, mode) in OUTPUT_EXTS
         )
     else:
@@ -409,6 +410,13 @@ def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
             % (total_score, total_score/total_count, total_count))
     else:
         logging.warn('Cannot test: no data')
+
+
+def wrap_open(path, mode):
+    if 'b' in mode:
+        return open(path, mode)
+    else:
+        return codecs.open(path, mode=mode, encoding='utf-8')
 
 
 if __name__ == '__main__':
