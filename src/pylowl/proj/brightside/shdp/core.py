@@ -56,6 +56,7 @@ class model(object):
         self.m_classes = [None] * M
         self.m_r_classes = dict()
         self.m_class_lambda_ss_sums = np.zeros((M, self.m_K))
+        self.m_class_lambda_ss_sums_m = np.zeros((M, self.m_J))
 
         self.m_tau = np.zeros((2, self.m_K))
         self.m_tau[0] = 1.0
@@ -222,9 +223,9 @@ class model(object):
                 self.m_tau_ss = self.m_tau_ss[order]
                 self.m_zeta_ss = self.m_zeta_ss[:,:,order]
                 for m in xrange(self.m_M):
-                    class_order = np.argsort(self.m_class_lambda_ss_sums[m])[::-1]
-                    self.m_zeta_ss = self.m_zeta_ss[:,class_order,:]
-                    self.m_ab_ss = self.m_ab_ss[:,class_order]
+                    class_order = np.argsort(self.m_class_lambda_ss_sums_m[m])[::-1]
+                    self.m_zeta_ss[m] = self.m_zeta_ss[m,class_order,:]
+                    self.m_ab_ss[m] = self.m_ab_ss[m,class_order]
             self.update_lambda()
             self.update_tau()
             self.update_omega()
@@ -402,6 +403,7 @@ class model(object):
         ss.m_zeta_ss[classes_to_batch_map[doc.class_idx],:,:] += np.dot(np.repeat(Elogprobw_doc, doc.counts, axis=1), np.dot(nu, phi)).T
         # TODO not consistent: rho...
         self.m_class_lambda_ss_sums[doc.class_idx] += np.dot(np.dot(np.sum(nu, 0), phi), zeta_doc)
+        self.m_class_lambda_ss_sums_m[doc.class_idx] += np.dot(np.sum(nu, 0), phi)
 
         if predict_doc is not None:
             likelihood = 0.
