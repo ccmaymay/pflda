@@ -22,6 +22,7 @@ class suff_stats(object):
         self.m_uv_ss = np.zeros((Ut, K))
         self.m_tau_ss = np.zeros(K)
         self.m_lambda_ss = np.zeros((K, Wt))
+        self.m_user_lambda_ss_sums = np.zeros((Ut, K))
 
 
 class model(object):
@@ -670,7 +671,7 @@ class model(object):
                 for n in xrange(num_tokens):
                     ss.m_lambda_ss[l2g_idx[p_idx], token_batch_ids[n]] += nu[idx, n, p_level] * xi[idx]
                 # TODO not consistent: rho...
-                self.m_user_lambda_ss_sums[user_idx,l2g_idx[p_idx]] += np.sum(nu[idx, :, p_level]) * xi[idx]
+                ss.m_user_lambda_ss_sums[users_to_batch_map[user_idx],l2g_idx[p_idx]] += np.sum(nu[idx, :, p_level]) * xi[idx]
 
         if predict_doc is not None:
             logEpi = self.compute_subtree_logEpi(subtree_leaves, ids, user_idx, l2g_idx)
@@ -959,6 +960,11 @@ class model(object):
             self.m_uv_ss[batch_to_users_map[user_batch_idx], :] += (
                 rho * ss.m_uv_ss[user_batch_idx] * self.m_DperU / float(ss.m_batch_DperU[user_batch_idx])
             )
+
+        self.m_user_lambda_ss_sums *= (1 - rho)
+        self.m_user_lambda_ss_sums[:, batch_to_users_map] += (
+            rho * ss.m_user_lambda_ss_sums * self.m_D / float(ss.m_batch_D)
+        )
 
     def save(self, output_files):
         self.save_lambda_ss(output_files.get('lambda_ss', None))
