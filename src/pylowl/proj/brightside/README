@@ -42,6 +42,13 @@ tree is a web server.
 You can see command-line arguments for learning parameters, etc. with:
 $ python -m pylowl.proj.brightside.m0.run -h
 
+Other models are invoked similarly.  In particular, there are run_src.py
+scripts under m0/ as well as m1/, hdp/, and shdp/.  For example, to
+learn an sHDP model on the source tree, using filename extensions as
+classes, do:
+
+$ python src/pylowl/proj/brightside/shdp/run_src.py
+
 [1] http://www.cs.princeton.edu/~chongw/papers/WangPaisleyBlei2011.pdf
     (Wang, Paisley, and Blei (2011))
 [2] arXiv:1210.6738
