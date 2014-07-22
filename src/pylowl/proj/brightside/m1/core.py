@@ -724,7 +724,7 @@ class model(object):
     def select_subtree(self, user_idx, ElogV):
         # TODO abstract stuff below, like subtree candidate
         # modifications... prone to bugs
-        logging.debug('Greedily selecting subtree for %s' % str(self.m_users[user_idx]))
+        logging.debug(u'Greedily selecting subtree for %s' % self.m_users[user_idx])
 
         docs = self.m_user_docs[user_idx][:self.m_user_docs_counts[user_idx]]
         num_docs = len(docs)
@@ -1051,4 +1051,4 @@ class model(object):
     def save_subtree_row(self, f, user_idx, v):
         if f is not None:
             line = ' '.join([str(x) for x in v])
-            f.write('%s %s\n' % (str(self.m_users[user_idx]), line))
+            f.write(u'%s %s\n' % (self.m_users[user_idx], line))

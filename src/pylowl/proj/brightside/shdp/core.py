@@ -541,4 +541,4 @@ class model(object):
     def save_sublist_row(self, f, class_idx, v):
         if f is not None:
             line = ' '.join([str(x) for x in v])
-            f.write('%s %s\n' % (str(self.m_classes[class_idx]), line))
+            f.write(u'%s %s\n' % (self.m_classes[class_idx], line))
