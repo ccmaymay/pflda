@@ -11,7 +11,7 @@ def load_word_set(filename):
 
 
 def write_vocab(output_filename, vocab):
-    make_parent_dir(output_filename)
+    mkdirp_parent(output_filename)
     with codecs.open(output_filename, mode='w', encoding='utf-8') as out_f:
         for (word, word_id) in vocab.items():
             out_f.write(u'%d %s\n' % (word_id, word))
@@ -36,10 +36,13 @@ def get_path_suffix(path, stem):
         return path_suffix
 
 
-def make_parent_dir(path):
-    parent_path = os.path.dirname(path)
-    if not os.path.isdir(parent_path):
-        os.makedirs(parent_path)
+def mkdirp_parent(path):
+    mkdirp(os.path.dirname(path))
+
+
+def mkdirp(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
 
 
 def input_output_paths(input_path, output_path):
@@ -50,10 +53,10 @@ def input_output_paths(input_path, output_path):
                 input_file_path = os.path.join(dir_path, filename)
                 output_dir_path = os.path.join(output_path, rel_dir_path)
                 output_file_path = os.path.join(output_dir_path, filename)
-                make_parent_dir(output_file_path)
+                mkdirp_parent(output_file_path)
                 yield (input_file_path, output_file_path)
     elif os.path.isfile(input_path):
-        make_parent_dir(output_path)
+        mkdirp_parent(output_path)
         yield (input_path, output_path)
     else:
         raise Exception('"%s" does not seem to be a valid file or directory'
