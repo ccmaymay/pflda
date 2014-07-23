@@ -36,37 +36,6 @@ def get_path_suffix(path, stem):
         return path_suffix
 
 
-def write_doc(f, doc, vocab):
-    doc_token_counts = dict()
-
-    for token in doc:
-        if token in vocab:
-            token_id = vocab[token]
-            if token_id in doc_token_counts:
-                doc_token_counts[token_id] += 1
-            else:
-                doc_token_counts[token_id] = 1
-
-    if doc_token_counts:
-        f.write('%d' % len(doc_token_counts))
-        for id_count_pair in doc_token_counts.items():
-            f.write(' %d:%d' % id_count_pair)
-        f.write('\n')
-
-
-def write_docs(input_filename, output_filename, vocab, token_transform=None):
-    if token_transform is None:
-        token_transform = lambda x: x
-
-    make_parent_dir(output_filename)
-
-    with open(input_filename) as in_f:
-        with open(output_filename, 'w') as out_f:
-            for line in in_f:
-                doc = (token_transform(token) for token in line.strip().split())
-                write_doc(out_f, doc, vocab)
-
-
 def make_parent_dir(path):
     parent_path = os.path.dirname(path)
     if not os.path.isdir(parent_path):
