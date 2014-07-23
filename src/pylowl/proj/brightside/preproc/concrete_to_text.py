@@ -28,6 +28,7 @@ def concrete_to_text(input_dir, output_dir, tokenized=False):
                                                         path_is_concrete)
     for (input_path, output_path) in input_output_paths:
         doc = load_concrete_doc(input_path)
+        output_path = os.path.splitext(output_path)[0] + '.txt'
         with open(output_path, 'w') as f:
             if tokenized:
                 text = doc.text

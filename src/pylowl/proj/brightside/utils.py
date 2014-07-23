@@ -82,13 +82,13 @@ def nested_file_paths(root_dir, path_filter=None):
     return paths
 
 
-def nested_input_outout_file_paths(input_root_dir, output_root_dir,
+def nested_input_output_file_paths(input_root_dir, output_root_dir,
                                    path_filter=None):
     input_paths = nested_file_paths(input_root_dir, path_filter)
     output_paths = []
     for input_path in input_paths:
-        path_suffix = get_path_suffix(input_root_dir, input_path)
-        output_path = os.path.join(output_path, path_suffix)
+        path_suffix = get_path_suffix(input_path, input_root_dir)
+        output_path = os.path.join(output_root_dir, path_suffix)
         mkdirp_parent(output_path)
         output_paths.append(output_path)
     return zip(input_paths, output_paths)
