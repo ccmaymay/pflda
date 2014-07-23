@@ -32,9 +32,9 @@ def concrete_to_text(input_dir, output_dir, tokenized=False):
         output_path = os.path.splitext(output_path)[0] + '.txt'
         with codecs.open(output_path, mode='w', encoding='utf-8') as f:
             if tokenized:
-                text = doc.text
-            else:
                 text = ' '.join(doc.tokens)
+            else:
+                text = doc.text
             f.write(text)
 
 
