@@ -2,8 +2,8 @@
 
 
 import os
-from pylowl.proj.brightside.utils import nested_file_paths
-from pylowl.proj.brightside.corpus import load_concrete_docs
+from pylowl.proj.brightside.utils import nested_input_output_file_paths, path_is_concrete
+from pylowl.proj.brightside.corpus import load_concrete_doc
 
 
 def main():
@@ -24,18 +24,16 @@ def main():
 
 
 def concrete_to_text(input_dir, output_dir, tokenized=False):
-    input_paths = nested_file_paths(input_dir)
-    os.makedirs(output_dir)
-    i = 0
-    for doc in load_concrete_docs(input_paths):
-        path = os.path.join(output_dir, '%d.txt' % i)
-        with open(path, 'w') as f:
+    input_output_paths = nested_input_output_file_paths(input_dir, output_dir,
+                                                        path_is_concrete)
+    for (input_path, output_path) in input_output_paths:
+        doc = load_concrete_doc(input_path)
+        with open(output_path, 'w') as f:
             if tokenized:
                 text = doc.text
             else:
                 text = ' '.join(doc.tokens)
             f.write(text)
-        i += 1
 
 
 if __name__ == '__main__':

@@ -62,9 +62,17 @@ def mkdirp(path):
         os.makedirs(path)
 
 
+def path_is_not_special(path):
+    return not os.path.basename(path).startswith('.')
+
+
+def path_is_concrete(path):
+    return path_is_not_special(path) and path.endswith('.concrete')
+
+
 def nested_file_paths(root_dir, path_filter=None):
     if path_filter is None:
-        path_filter = lambda p: not os.path.basename(p).startswith('.')
+        path_filter = path_is_not_special
     paths = []
     for dirpath, dirnames, filenames in os.walk(root_dir):
         for filename in filenames:
