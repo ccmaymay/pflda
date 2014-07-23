@@ -34,6 +34,34 @@ def load_options(path):
     return options
 
 
+def get_path_suffix(path, stem):
+    path_stem = os.path.normpath(path)
+    path_suffix = None
+    while os.path.normpath(os.path.abspath(path_stem)) != os.path.normpath(os.path.abspath(stem)):
+        if not path_stem:
+            raise Exception('"%s" is not an ancestor of "%s"'
+                            % (stem, path))
+
+        (path_stem, basename) = os.path.split(path_stem)
+        if path_suffix is None:
+            path_suffix = basename
+        else:
+            path_suffix = os.path.join(basename, path_suffix)
+    if path_suffix is None:
+        return os.path.curdir
+    else:
+        return path_suffix
+
+
+def mkdirp_parent(path):
+    mkdirp(os.path.dirname(path))
+
+
+def mkdirp(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+
 def nested_file_paths(root_dir, path_filter=None):
     if path_filter is None:
         path_filter = lambda p: not os.path.basename(p).startswith('.')
@@ -44,6 +72,18 @@ def nested_file_paths(root_dir, path_filter=None):
             if path_filter(p):
                 paths.append(p)
     return paths
+
+
+def nested_input_outout_file_paths(input_root_dir, output_root_dir,
+                                   path_filter=None):
+    input_paths = nested_file_paths(input_root_dir, path_filter)
+    output_paths = []
+    for input_path in input_paths:
+        path_suffix = get_path_suffix(input_root_dir, input_path)
+        output_path = os.path.join(output_path, path_suffix)
+        mkdirp_parent(output_path)
+        output_paths.append(output_path)
+    return zip(input_paths, output_paths)
 
 
 def take(g, n):

@@ -6,7 +6,7 @@ import os
 import re
 import subprocess
 import tempfile
-from utils import input_output_paths
+from pylowl.proj.brightside.utils import nested_input_output_file_paths
 
 
 TOKEN_RE = re.compile(r'(\S+?)(?:\+\S*)?_[^_]+')
@@ -19,7 +19,7 @@ def main(rasp_path, input_path, output_path):
     os.close(temp_file_fd)
 
     try:
-        for (input_file_path, output_file_path) in input_output_paths(input_path, output_path):
+        for (input_file_path, output_file_path) in nested_input_output_file_paths(input_path, output_path):
             subprocess.call(WRAP_RASP_ARGS
                             + (rasp_path, input_file_path, temp_file_path))
             with open(temp_file_path) as f:

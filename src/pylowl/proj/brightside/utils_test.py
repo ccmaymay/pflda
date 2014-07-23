@@ -5,6 +5,43 @@ from numpy.testing import assert_almost_equal, assert_array_equal, assert_array_
 from pylowl.proj.brightside.utils import *
 
 
+def raises(f, ex_type):
+    '''
+    Return true iff f, when called, raises an exception of type ex_type
+    '''
+
+    try:
+        f()
+    except ex_type:
+        return True
+    except:
+        return False
+    else:
+        return False
+
+
+def get_path_suffix_1_test():
+    assert get_path_suffix('a', 'a') == '.'
+
+def get_path_suffix_2_test():
+    assert get_path_suffix('', '') == '.'
+
+def get_path_suffix_3_test():
+    assert get_path_suffix('a', '') == 'a'
+
+def get_path_suffix_4_test():
+    raises(lambda: get_path_suffix('a', 'b'), Exception)
+
+def get_path_suffix_5_test():
+    assert get_path_suffix('a/b/c/d', 'a/b') == 'c/d'
+
+def get_path_suffix_6_test():
+    assert get_path_suffix('a/../a/./b/c/d/.', 'a/b') == 'c/d'
+
+def get_path_suffix_7_test():
+    assert get_path_suffix('a/b/c/d', 'a/../a/./b/.') == 'c/d'
+
+
 def beta_log_expectation_trivial_unif_test():
     m = beta_log_expectation(np.array([[1.], [1.]]))
     assert_array_almost_equal(m,
