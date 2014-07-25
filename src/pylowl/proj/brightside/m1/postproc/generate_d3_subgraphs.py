@@ -6,7 +6,7 @@ import re
 import json
 import itertools as it
 from datetime import datetime
-from pylowl.proj.brightside.corpus import load_concrete_docs
+from pylowl.proj.brightside.corpus import load_concrete_docs, load_concrete_doc
 from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index, load_options, nested_file_paths
 
 
@@ -119,7 +119,7 @@ def generate_d3_subgraphs(result_dir, output_filename):
             pieces = line.strip().split()
             user = pieces[0]
             doc_identifier = pieces[1]
-            doc = list(load_concrete_docs(doc_id_path_map[doc_identifier]))[0]
+            doc = load_concrete_doc(doc_id_path_map[doc_identifier])
             if 'datetime' in doc.attrs and doc.attrs['datetime'] is not None:
                 datetime_float = datetime_to_float(parse_datetime(doc.attrs['datetime']))
                 weights = [float(w) for w in pieces[2:]]
