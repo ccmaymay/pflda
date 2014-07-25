@@ -69,7 +69,7 @@ d3.json("graph.json", function(error, graph_root) {
         var red_ramp = d3.scale.linear().domain([0,1]).range(["#fff","#c03"]);
         var blue_ramp = d3.scale.linear().domain([0,1]).range(["#fff","#30c"]);
 
-        var node_size = 20;
+        var node_size = 10;
         var M = root.length;
         var K = graph_length(graph_root) + 1;
         var J = graph_length(root[0]["sublist"]) + 1;
