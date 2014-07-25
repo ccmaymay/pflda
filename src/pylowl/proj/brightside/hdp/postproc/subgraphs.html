@@ -123,7 +123,7 @@ var update_graphs = function() {
     var K = graph_length($graph_root) + 1;
     var L = graph_length($root[0]["sublist"]) + 1;
 
-    var svg_width = (L + 2) * node_size;
+    var svg_width = (L + 4) * node_size;
     var svg_height = (K + 2) * node_size;
 
     var user_select = document.getElementById("user_select");
@@ -159,18 +159,32 @@ var update_graphs = function() {
                 .append("g")
                     .attr("transform", "translate(0,0)");
 
+            var global_left_header_rect = svg.selectAll(".global_left_header_node")
+                    .data(d3.range(0, K))
+                .enter().append("rect")
+                    .attr("class", "global_left_header_node")
+                    .attr("width", node_size)
+                    .attr("height", node_size)
+                    .attr("y", function(k) { return (k + 2) * node_size; });
+
+            global_left_header_rect.style("stroke", "#cac")
+                .style("fill", function(k) {
+                    node = lookup_node($graph_root, k);
+                    return red_ramp(Math.exp(node.Elogpi));
+                });
+
             var left_header_rect = svg.selectAll(".left_header_node")
                     .data(d3.range(0, K))
                 .enter().append("rect")
                     .attr("class", "left_header_node")
                     .attr("width", node_size)
                     .attr("height", node_size)
+                    .attr("x", function(k) { return 2 * node_size; })
                     .attr("y", function(k) { return (k + 2) * node_size; });
 
             left_header_rect.style("stroke", "#cac")
                 .style("fill", function(k) {
-                    node = lookup_node($graph_root, k);
-                    return red_ramp(Math.exp(node.Elogpi));
+                    return blue_ramp($root[m]["Ephi"][k]);
                 });
 
             var top_header_rect = svg.selectAll(".top_header_node")
@@ -179,7 +193,7 @@ var update_graphs = function() {
                     .attr("class", "top_header_node")
                     .attr("width", node_size)
                     .attr("height", node_size)
-                    .attr("x", function(j) { return (j + 2) * node_size; });
+                    .attr("x", function(j) { return (j + 4) * node_size; });
 
             top_header_rect.style("stroke", "#cac")
                 .style("fill", function(j) {
@@ -193,7 +207,7 @@ var update_graphs = function() {
                     .attr("class", "node")
                     .attr("width", node_size)
                     .attr("height", node_size)
-                    .attr("x", function(d) { return (2 + (d % L)) * node_size; })
+                    .attr("x", function(d) { return (4 + (d % L)) * node_size; })
                     .attr("y", function(d) { return (2 + Math.floor(d / L)) * node_size; });
 
             rect.style("stroke", "#cac")

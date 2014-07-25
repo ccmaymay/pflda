@@ -2,6 +2,7 @@
 
 
 import os
+import math
 import re
 import json
 import itertools as it
@@ -111,13 +112,20 @@ def generate_d3_subgraphs(result_dir, output_filename):
                     if j > 0:
                         sublist_dicts[j-1]['children'].append(sublist_dicts[j])
                     lambda_ss_sum += sublist_dicts[j]['lambda_ss']
+                Ephi = [0.] * K
+                for j in xrange(L):
+                    sublist_dict = sublist_dicts[j]
+                    phi = sublist_dict['phi']
+                    for k in xrange(K):
+                        Ephi[k] += math.exp(sublist_dict['logEpi']) * phi[k]
                 user_json_data.append({
                     'doc_id': doc_id,
                     'user': user,
                     'datetime': datetime_float,
                     'date_str': date_str,
                     'sublist': sublist_dicts[0],
-                    'lambda_ss_sum': lambda_ss_sum
+                    'lambda_ss_sum': lambda_ss_sum,
+                    'Ephi': Ephi,
                 })
         user_json_data.sort(key=lambda s: s['datetime'])
         json_data.extend(user_json_data)
