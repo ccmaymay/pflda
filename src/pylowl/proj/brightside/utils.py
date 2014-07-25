@@ -320,7 +320,7 @@ def subtree_node_candidates(trunc, subtree):
                         yield (node, global_node)
 
 
-def kmeans(data, k, norm=None):
+def kmeans(data, k, norm=None, max_iters=20):
     '''
     Infer hard k-means clustering of data using Lloyd's algorithm.
     data is a N x D matrix containing N objects, each of which is
@@ -353,7 +353,8 @@ def kmeans(data, k, norm=None):
 
     old_cluster_assignments = None
 
-    while old_cluster_assignments is None or (old_cluster_assignments != cluster_assignments).any():
+    iteration = 0
+    while iteration < max_iters and (old_cluster_assignments is None or (old_cluster_assignments != cluster_assignments).any()):
         cluster_diffs = (
             cluster_means[:, :, np.newaxis]
             - data.T[np.newaxis, :, :].repeat(k, 0)
@@ -371,10 +372,12 @@ def kmeans(data, k, norm=None):
         cluster_means[cluster_sizes > 0,:] /= cluster_sizes[cluster_sizes > 0][:,np.newaxis]
         cluster_means[cluster_sizes == 0,:] = np.zeros(data.shape[1])
 
+        iteration += 1
+
     return (cluster_assignments, cluster_means)
 
 
-def kmeans_sparse(data, num_features, k, norm=None):
+def kmeans_sparse(data, num_features, k, norm=None, max_iters=20):
     '''
     Infer hard k-means clustering of data using Lloyd's algorithm.
     data is a list of N tuples, each of which represents an object
@@ -415,7 +418,8 @@ def kmeans_sparse(data, num_features, k, norm=None):
     updated_cluster_assignment = True
     full_x = np.zeros(num_features)
 
-    while updated_cluster_assignment:
+    iteration = 0
+    while iteration < max_iters and updated_cluster_assignment:
         updated_cluster_assignment = False
 
         cluster_sizes[:] = 0
@@ -433,5 +437,7 @@ def kmeans_sparse(data, num_features, k, norm=None):
             t = cluster_assignments[i]
             cluster_means[t,x[0]] += x[1]
         cluster_means[cluster_sizes > 0,:] /= cluster_sizes[cluster_sizes > 0][:,np.newaxis]
+
+        iteration += 1
 
     return (cluster_assignments, cluster_means)
