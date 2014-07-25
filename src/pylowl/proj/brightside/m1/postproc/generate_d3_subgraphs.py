@@ -5,7 +5,13 @@ import os
 import re
 import json
 import itertools as it
-from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index, load_options
+from datetime import datetime
+from pylowl.proj.brightside.corpus import load_concrete_docs
+from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index, load_options, nested_file_paths
+
+
+EPOCH = datetime(1970, 1, 1)
+DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
 
 def main():
@@ -23,11 +29,33 @@ def main():
     )
 
 
+def expectation(p, x):
+    if x:
+        return sum([p_i*x_i for (p_i, x_i) in zip(p, x)])
+    else:
+        return None
+
+
+def normalized(weights):
+    weights_sum = float(sum(weights))
+    return [w/weights_sum for w in weights]
+
+
+def parse_datetime(datetime_str):
+    return datetime.strptime(datetime_str, DATETIME_FORMAT)
+
+
+def datetime_to_float(d):
+    return (d - EPOCH).total_seconds()
+
+
 def generate_d3_subgraphs(result_dir, output_filename):
     options = load_options(os.path.join(result_dir, 'options'))
     trunc_csv = options['trunc']
+    test_data_dir = options['test_data_dir']
     subtree_filename = os.path.join(result_dir, 'final.subtree')
     lambda_ss_filename = os.path.join(result_dir, 'final.subtree_lambda_ss')
+    doc_lambda_ss_filename = os.path.join(result_dir, 'final.subtree_doc_lambda_ss')
     Elogpi_filename = os.path.join(result_dir, 'final.subtree_Elogpi')
     logEpi_filename = os.path.join(result_dir, 'final.subtree_logEpi')
 
@@ -36,6 +64,7 @@ def generate_d3_subgraphs(result_dir, output_filename):
     b = tree_index_b(trunc)
 
     subtree_dicts_per_user = {}
+    node_maps_per_user = {}
 
     with open(subtree_filename) as subtree_f, \
          open(Elogpi_filename) as Elogpi_f, \
@@ -71,6 +100,45 @@ def generate_d3_subgraphs(result_dir, output_filename):
                         subtree_dicts[idx][stat_name] = weights[node_map[idx]]
 
             subtree_dicts_per_user[user] = subtree_dicts
+            node_maps_per_user[user] = node_map
+
+    doc_id_path_map = dict()
+    test_data_paths = nested_file_paths(test_data_dir)
+    for doc in load_concrete_docs(test_data_paths):
+        doc_id_path_map[doc.id] = doc.path
+
+    weighted_datetimes_per_user = dict(
+        (
+            user,
+            [[] for idx in range(len(subtree_dicts))]
+        )
+        for user in subtree_dicts_per_user
+    )
+    with open(doc_lambda_ss_filename) as doc_lambda_ss_f:
+        for line in doc_lambda_ss_f:
+            pieces = line.strip().split()
+            user = pieces[0]
+            doc_identifier = pieces[1]
+            doc = list(load_concrete_docs(doc_id_path_map[doc_identifier]))[0]
+            if 'datetime' in doc.attrs and doc.attrs['datetime'] is not None:
+                datetime_float = datetime_to_float(parse_datetime(doc.attrs['datetime']))
+                weights = [float(w) for w in pieces[2:]]
+                node_map = node_maps_per_user[user]
+                for (idx, i) in node_map.items():
+                    weighted_datetimes_per_user[user][idx].append((weights[i], datetime_float))
+
+    for (user, subtree_dicts) in subtree_dicts_per_user.items():
+        node_map = node_maps_per_user[user]
+        for node in tree_iter(trunc):
+            idx = tree_index(node, m, b)
+            if idx in node_map:
+                weighted_datetime_floats = weighted_datetimes_per_user[user][idx]
+                weights = [wdf[0] for wdf in weighted_datetime_floats]
+                datetime_floats = [wdf[1] for wdf in weighted_datetime_floats]
+                if weights:
+                    probabilities = normalized(weights)
+                    Edatetime = expectation(probabilities, datetime_floats)
+                    subtree_dicts[idx]['expected_time'] = Edatetime
 
     json_data = []
 

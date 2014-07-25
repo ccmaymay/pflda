@@ -97,7 +97,7 @@ update_graphs = function() {
     }
 
     var stringColor =
-    d3.scale.linear().domain([0,-1*minELogPi]).range(["red","blue"]);
+    d3.scale.linear().domain([minEtime, maxEtime]).range(["red","blue"]);
 
     for (var c = $window_start; c < $window_end; ++c) {
         var cluster = d3.layout.cluster()
@@ -144,9 +144,9 @@ update_graphs = function() {
         node.append("circle")
 		.attr("r", function(d){return node_size(d);})
         .style("fill", function(d) {return d.active ?
-               stringColor(d.Elogpi*-1) : "black"})
+               stringColor(d.expected_time) : "black"})
         .style("stroke", function(d) {return d.active ?
-               stringColor(d.Elogpi*-1) : "black"})
+               stringColor(d.expected_time) : "black"})
         .style("stroke-opacity", function(d) { return d.active ?
                (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.1"; })
         .style("fill-opacity", function(d) { return d.active ?
@@ -185,6 +185,50 @@ var diagonal = d3.svg.diagonal()
         return t;
     });
 
+minimum_param_rootParent = function(root, paramName){
+    var min_var_param = null;
+    for(indiv = 0; indiv < $num_graphs; indiv++){
+        minSubStat = minimum_param_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
+        if(min_var_param === null || minSubStat < min_var_param){
+            min_var_param = minSubStat;
+        }
+    }
+    return min_var_param;
+}
+
+minimum_param_subtreeChildren = function(min_var_param, node, paramName){
+    if((min_var_param === null || min_var_param > node[paramName]) && paramName in node){
+        min_var_param = node[paramName];
+    }
+    for (var c in node.children) {
+        child = node.children[c];
+        min_var_param = minimum_param_subtreeChildren(min_var_param, child, paramName);
+    }
+    return min_var_param;
+}
+
+maximum_param_rootParent = function(root, paramName){
+    var max_var_param = null;
+    for(indiv = 0; indiv < $num_graphs; indiv++){
+        maxSubStat = maximum_param_subtreeChildren(max_var_param, root[indiv]["subtree"], paramName);
+        if(max_var_param === null || maxSubStat > max_var_param){
+            max_var_param = maxSubStat;
+        }
+    }
+    return max_var_param;
+}
+
+maximum_param_subtreeChildren = function(max_var_param, node, paramName){
+    if((max_var_param === null || max_var_param > node[paramName]) && paramName in node){
+        max_var_param = node[paramName];
+    }
+    for (var c in node.children) {
+        child = node.children[c];
+        max_var_param = maximum_param_subtreeChildren(max_var_param, child, paramName);
+    }
+    return max_var_param;
+}
+
 d3.json("graph.json", function(error, graph_root) {
     $graph_root = graph_root;
     d3.json("subgraphs.json", function(error, root) {
@@ -193,8 +237,9 @@ d3.json("graph.json", function(error, graph_root) {
         node_placement_rootParent();
         maxNodeSize = 0;
         maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
-        minELogPi = 0;
-        minELogPi = minimum_ELogPi_rootParent(minELogPi, $root, "Elogpi");
+        maxEtime = maximum_param_rootParent($root, "expected_time");
+        minEtime = minimum_param_rootParent($root, "expected_time");
+        minELogPi = minimum_param_rootParent($root, "Elogpi");
         
 		$width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"]) + 1) + maxNodeSize;
         sizes = tree_size_per_level(root[0]["subtree"]);

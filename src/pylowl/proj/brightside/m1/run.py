@@ -26,6 +26,7 @@ OUTPUT_EXTS = [
         'subtree_Elogpi',
         'subtree_logEpi',
         'subtree_lambda_ss',
+        'subtree_doc_lambda_ss',
     )
 ]
 
@@ -288,7 +289,11 @@ def run(**kwargs):
         init_docs = take(c_train.docs, options['init_samples'])
         m.initialize(init_docs, options['init_noise_weight'], options['eff_init_samples'])
 
-    save(m, 'initial', result_directory, options['save_model'])
+    batchsize = options['batchsize']
+
+    save_and_test(m, 'initial', result_directory, options['save_model'],
+                  options['test_data_dir'], c_test_train, c_test_test,
+                  batchsize, options['var_converge'], options['test_samples'])
 
     iteration = 0
     total_doc_count = 0
@@ -300,7 +305,6 @@ def run(**kwargs):
         logging.info("Iteration %d" % iteration)
 
         # Sample the documents.
-        batchsize = options['batchsize']
         if options['streaming']:
             docs = take(c_train.docs, batchsize)
         else:
@@ -315,17 +319,15 @@ def run(**kwargs):
         logging.info('Cumulative doc count: %d' % total_doc_count)
         logging.info('Log-likelihood: %f (%f per token) (%d tokens)' % (score, score/count, count))
 
-        # Evaluate on the test data: fixed and folds
         if total_doc_count % options['save_lag'] == 0:
             if not options['fixed_lag']:
                 options['save_lag'] = options['save_lag'] * 2
 
-            # Save the model.
-            save(m, 'doc_count-%d' % total_doc_count, result_directory,
-                        options['save_model'])
-
-            if options['test_data_dir'] is not None:
-                test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
+            save_and_test(m, 'doc_count-%d' % total_doc_count,
+                          result_directory, options['save_model'],
+                          options['test_data_dir'], c_test_train, c_test_test,
+                          batchsize, options['var_converge'],
+                          options['test_samples'])
 
         if options['max_iter'] is not None and iteration > options['max_iter']:
             break
@@ -335,31 +337,35 @@ def run(**kwargs):
         if options['max_time'] is not None and delta_time > options['max_time']:
             break
 
-    # Save the model.
-    save(m, 'final', result_directory, options['save_model'])
-
-    # Making final predictions.
-    if options['test_data_dir'] is not None:
-        test_nhdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
+    save_and_test(m, 'final', result_directory, options['save_model'],
+                  options['test_data_dir'], c_test_train, c_test_test,
+                  batchsize, options['var_converge'], options['test_samples'])
 
 
-def save(m, basename_stem, result_directory, save_model):
+def save_and_test(m, basename_stem, result_directory, save_model,
+                  test_data_dir, c_test_train, c_test_test, batchsize,
+                  var_converge, test_samples):
     if save_model:
         logging.info('Saving model with stem %s' % basename_stem)
-    output_files = make_output_files(basename_stem, result_directory,
-                                     save_model)
-    m.save(output_files)
-    close_output_files(output_files)
-
-
-def make_output_files(basename_stem, result_directory, save_model):
-    if save_model:
-        return dict(
-            (s, wrap_open(os.path.join(result_directory, basename_stem + ext), mode))
-            for (s, ext, mode) in OUTPUT_EXTS
-        )
+        output_files = make_output_files(basename_stem, result_directory)
     else:
-        return dict()
+        output_files = dict()
+
+    if test_data_dir is not None:
+        test_nhdp_predictive(m, c_test_train, c_test_test, batchsize,
+                             var_converge, test_samples, output_files)
+
+    if save_model:
+        m.save(output_files)
+        close_output_files(output_files)
+
+
+def make_output_files(basename_stem, result_directory):
+    return dict(
+        (s, wrap_open(os.path.join(result_directory, basename_stem + ext),
+                      mode))
+        for (s, ext, mode) in OUTPUT_EXTS
+    )
 
 
 def close_output_files(output_files):
@@ -393,7 +399,7 @@ def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
         logging.warn('Cannot test: no data')
 
 
-def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_samples=None):
+def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_samples=None, output_files=None):
     total_score = 0.0
     total_count = 0
 
@@ -411,7 +417,8 @@ def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         test_batch = take(test_docs_generator, batchsize)
 
         (score, count, doc_count) = m.process_documents(
-            train_batch, var_converge, update=False, predict_docs=test_batch)
+            train_batch, var_converge, update=False, predict_docs=test_batch,
+            output_files=output_files)
         total_score += score
         total_count += count
 
