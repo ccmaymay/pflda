@@ -130,6 +130,49 @@ var update_graphs = function() {
 
     var selected_user = user_select.value;
 
+    var user_doc_indices = [];
+    for (var m = 0; m < D; ++m) {
+        var user = $root[m]["user"];
+        if (selected_user == user) {
+            user_doc_indices.push(m);
+        }
+    }
+
+    var summary_svg_width = user_doc_indices.length * node_size;
+    var summary_svg_height = K * node_size;
+
+    var graph_container = document.createElement("div");
+    graph_container.className = "graph_container";
+    graphs_container.appendChild(graph_container);
+
+    var summary_container = document.createElement("div");
+    graph_container.appendChild(summary_container);
+    var summary_text = document.createTextNode("topic summary over time");
+    summary_container.appendChild(summary_text);
+
+    var inner_graph_container = document.createElement("div");
+    graph_container.appendChild(inner_graph_container);
+
+    var svg = d3.select(inner_graph_container).append("svg")
+            .attr("width", summary_svg_width)
+            .attr("height", summary_svg_height)
+        .append("g")
+            .attr("transform", "translate(0,0)");
+
+    var summary_rect = svg.selectAll(".summary_node")
+            .data(d3.range(0, K*user_doc_indices.length))
+        .enter().append("rect")
+            .attr("class", "summary_node")
+            .attr("width", node_size)
+            .attr("height", node_size)
+            .attr("x", function(x) { return (x % user_doc_indices.length) * node_size; })
+            .attr("y", function(x) { return Math.floor(x / user_doc_indices.length) * node_size; });
+
+    summary_rect.style("stroke", "#cac")
+        .style("fill", function(x) {
+            return blue_ramp($root[user_doc_indices[x % user_doc_indices.length]]["Ephi"][Math.floor(x / user_doc_indices.length)]);
+        });
+
     for (var m = 0; m < D; ++m) {
         var doc_id = $root[m]["doc_id"];
         var user = $root[m]["user"];
