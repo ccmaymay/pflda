@@ -82,11 +82,15 @@ d3.json("graph.json", function(error, graph_root) {
             graph_container.className = "graph_container";
             graphs_container.appendChild(graph_container);
 
-            var doc_id = root[m]["doc_id"];
             var doc_id_container = document.createElement("div");
             graph_container.appendChild(doc_id_container);
+            var doc_id = root[m]["doc_id"];
             var doc_id_text = document.createTextNode(doc_id);
             doc_id_container.appendChild(doc_id_text);
+            var user = root[m]["user"];
+            var date_str = root[m]["date_str"];
+            var metadata_text = document.createTextNode(" (" + user + ", " + date_str + ")");
+            doc_id_container.appendChild(metadata_text);
 
             var inner_graph_container = document.createElement("div");
             graph_container.appendChild(inner_graph_container);
