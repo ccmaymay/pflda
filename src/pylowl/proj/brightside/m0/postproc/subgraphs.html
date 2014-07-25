@@ -88,6 +88,19 @@ $num_windows = 0;
 $num_graphs = 0;
 node_sort_array = [];
 
+var diagonal = d3.svg.diagonal()
+    .projection(function(d) { return [d.y, d.x]; })
+    .source(function (d) {
+        var s = Object.create(d.source);
+        s.y += node_size(s);
+        return s;
+    })
+    .target(function (d) {
+        var t = Object.create(d.target);
+        t.y -= node_size(t);
+        return t;
+    });
+
 update_graphs = function() {
     update_nav_text();
 
@@ -172,29 +185,14 @@ update_graphs = function() {
     }
 }
 
-var diagonal = d3.svg.diagonal()
-    .projection(function(d) { return [d.y, d.x]; })
-    .source(function (d) {
-        var s = Object.create(d.source);
-        s.y += node_size(s);
-        return s;
-    })
-    .target(function (d) {
-        var t = Object.create(d.target);
-        t.y -= node_size(t);
-        return t;
-    });
-
 d3.json("graph.json", function(error, graph_root) {
     $graph_root = graph_root;
     d3.json("subgraphs.json", function(error, root) {
         $num_graphs = root.length;
         $root = root;
         node_placement_rootParent();
-        maxNodeSize = 0;
-        maxNodeSize = maximum_Node_Size_rootParent(maxNodeSize, $root);
-        minELogPi = 0;
-        minELogPi = minimum_ELogPi_rootParent(minELogPi, $root, "Elogpi");
+        maxNodeSize = maximum_Node_Size_rootParent($root);
+        minELogPi = minimum_param_rootParent($root, "Elogpi");
 
         $width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"]) + 1) + maxNodeSize;
         sizes = tree_size_per_level(root[0]["subtree"]);

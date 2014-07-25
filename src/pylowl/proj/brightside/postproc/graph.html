@@ -189,32 +189,10 @@ tree_size_per_level = function(node) {
 d3.json("graph.json", function(error, root) {
     $root = root;
 
-    minimum_ELogPi_subtreeChildren = function(min_var_param, node, paramName){
-        if(min_var_param > node[paramName]){
-            min_var_param = node[paramName];
-        }
-        for (var c in node.children) {
-            child = node.children[c];
-        	min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child, paramName);
-        }
-        return min_var_param;
-    }
-
-	maximum_node_size_subtreeChildren = function(max_var_param, node){
-        if(max_var_param < node_size(node)){
-            max_var_param = node_size(node);
-        }
-        for (var c in node.children) {
-            child = node.children[c];
-        	max_var_param = maximum_node_size_subtreeChildren(max_var_param, child);
-        }
-        return max_var_param;
-    }
-
 	maxNodeSize = 0;
-	maxNodeSize = maximum_node_size_subtreeChildren(maxNodeSize, $root)
-	minELogPi = 0;
-    minELogPi = minimum_ELogPi_subtreeChildren(minELogPi, $root, "Elogpi");
+	maxNodeSize = maximum_Node_Size_subtreeChildren(maxNodeSize, $root)
+    minELogPi = 0;
+    minELogPi = minimum_param_subtreeChildren(minELogPi, $root, "Elogpi");
 
     $width = 300 * tree_depth(root) + 300;
     $height = 140 * Math.max.apply(null, tree_size_per_level(root));

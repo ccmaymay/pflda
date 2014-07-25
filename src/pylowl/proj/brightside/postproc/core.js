@@ -156,29 +156,7 @@ filter_node_first = function(node){
     update_graphs();
 }
 
-minimum_ELogPi_rootParent = function(min_var_param, root, paramName){
-min_var_param = 0;
-for(indiv = 0; indiv < $num_graphs; indiv++){
-    minSubStat = minimum_ELogPi_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
-    if(minSubStat<min_var_param){
-        min_var_param = minSubStat;
-    }
-}
-return min_var_param;
-}
-
-minimum_ELogPi_subtreeChildren = function(min_var_param, node, paramName){
-    if(min_var_param > node[paramName]){
-        min_var_param = node[paramName];
-    }
-    for (var c in node.children) {
-        child = node.children[c];
-        min_var_param = minimum_ELogPi_subtreeChildren(min_var_param, child, paramName);
-    }
-    return min_var_param;
-}
-
-maximum_Node_Size_rootParent = function(min_var_param, root){
+maximum_Node_Size_rootParent = function(root){
     min_var_param = 0;
     for(indiv = 0; indiv < $num_graphs; indiv++){
         minSubStat = maximum_Node_Size_subtreeChildren(min_var_param, root[indiv]["subtree"]);
@@ -281,4 +259,48 @@ lookup_node_helper = function(node, placement) {
     } else {
         return lookup_node_helper(node.children[placement[0]], placement.slice(1));
     }
+}
+
+minimum_param_rootParent = function(root, paramName){
+    var min_var_param = null;
+    for(indiv = 0; indiv < $num_graphs; indiv++){
+        minSubStat = minimum_param_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
+        if(min_var_param === null || minSubStat < min_var_param){
+            min_var_param = minSubStat;
+        }
+    }
+    return min_var_param;
+}
+
+minimum_param_subtreeChildren = function(min_var_param, node, paramName){
+    if((min_var_param === null || min_var_param > node[paramName]) && paramName in node){
+        min_var_param = node[paramName];
+    }
+    for (var c in node.children) {
+        child = node.children[c];
+        min_var_param = minimum_param_subtreeChildren(min_var_param, child, paramName);
+    }
+    return min_var_param;
+}
+
+maximum_param_rootParent = function(root, paramName){
+    var max_var_param = null;
+    for(indiv = 0; indiv < $num_graphs; indiv++){
+        maxSubStat = maximum_param_subtreeChildren(max_var_param, root[indiv]["subtree"], paramName);
+        if(max_var_param === null || maxSubStat > max_var_param){
+            max_var_param = maxSubStat;
+        }
+    }
+    return max_var_param;
+}
+
+maximum_param_subtreeChildren = function(max_var_param, node, paramName){
+    if((max_var_param === null || max_var_param > node[paramName]) && paramName in node){
+        max_var_param = node[paramName];
+    }
+    for (var c in node.children) {
+        child = node.children[c];
+        max_var_param = maximum_param_subtreeChildren(max_var_param, child, paramName);
+    }
+    return max_var_param;
 }
