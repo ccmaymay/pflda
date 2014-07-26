@@ -4,8 +4,8 @@
 import os
 import re
 from pylowl.proj.brightside.preproc.utils import load_word_set, write_vocab
-from pylowl.proj.brightside.utils import nested_file_paths
-from pylowl.proj.brightside.corpus import load_concrete_docs, write_concrete_docs, Document
+from pylowl.proj.brightside.utils import nested_input_output_file_paths, path_is_concrete
+from pylowl.proj.brightside.corpus import load_concrete_docs, load_concrete_doc, write_concrete_doc, Document
 
 
 DEFAULT_SPLIT_PATTERN = r'\s+'
@@ -96,12 +96,16 @@ def transform_token(token, lowercase, *char_filter_res):
     return token
 
 
-def iter_docs(input_paths, tt, vocab, tokenize):
-    for doc in load_concrete_docs(input_paths):
+def write_docs(input_output_paths, tt, vocab, tokenize):
+    for (input_path, output_path) in input_output_paths:
+        doc = load_concrete_doc(input_path)
         tokens = [tt(token) for token in tokenize(doc)]
         tokens = [token for token in tokens if token in vocab]
         if tokens:
-            yield Document(tokens, id=doc.id, text=doc.text, **doc.attrs)
+            write_concrete_doc(
+                Document(tokens, id=doc.id, text=doc.text, **doc.attrs),
+                output_path
+            )
 
 
 def tokenize_and_filter(train_input_dir, test_input_dir,
@@ -142,8 +146,13 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
     tokenize = lambda doc: doc.tokens if tokenized else split_re.split(doc.text)
     tt = lambda token: transform_token(token, lowercase, *char_filter_res)
 
-    train_input_paths = nested_file_paths(train_input_dir)
-    test_input_paths = nested_file_paths(test_input_dir)
+    train_input_output_paths = nested_input_output_file_paths(train_input_dir,
+                                                              train_output_dir,
+                                                              path_is_concrete)
+    train_input_paths = [p[0] for p in train_input_output_paths]
+    test_input_output_paths = nested_input_output_file_paths(test_input_dir,
+                                                             test_output_dir,
+                                                             path_is_concrete)
 
     df = dict()
     for doc in load_concrete_docs(train_input_paths):
@@ -199,10 +208,8 @@ def tokenize_and_filter(train_input_dir, test_input_dir,
                 if transformed_token not in vocab:
                     vocab[transformed_token] = len(vocab)
 
-    write_concrete_docs(iter_docs(train_input_paths, tt, vocab, tokenize),
-                        train_output_dir)
-    write_concrete_docs(iter_docs(test_input_paths, tt, vocab, tokenize),
-                        test_output_dir)
+    write_docs(train_input_output_paths, tt, vocab, tokenize)
+    write_docs(test_input_output_paths, tt, vocab, tokenize)
     write_vocab(vocab_output_path, vocab)
 
 
