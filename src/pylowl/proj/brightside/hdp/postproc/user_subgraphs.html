@@ -35,7 +35,7 @@ body {
 <div>
 	<div id="inputWindowParameters">
     <div><a href="graph.html">graph</a></div>
-    <div><a href="user_subgraphs.html">user subgraphs</a></div>
+    <div><a href="subgraphs.html">subgraphs</a></div>
     <div>
         <label for="user_select">user:</label>
         <select id="user_select" onChange="update_graphs();"></select>
@@ -82,7 +82,7 @@ var selected_user = null;
 
 d3.json("graph.json", function(error, graph_root) {
     $graph_root = graph_root;
-    d3.json("subgraphs.json", function(error, root) {
+    d3.json("user_subgraphs.json", function(error, root) {
         $root = root;
 
         var user_select = document.getElementById("user_select");
