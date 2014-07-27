@@ -113,6 +113,7 @@ def main():
         cmdclass={'build_ext': build_ext, 'build': selective_build, 'install': selective_install, 'clean': selective_clean, 'sdist': selective_sdist, 'bdist': selective_bdist},
         package_dir={'': 'src'},
         packages=packages,
+        package_data=package_data,
         ext_modules=ext_modules,
         scripts=scripts,
     )
