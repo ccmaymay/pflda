@@ -15,6 +15,8 @@ from distutils.command.bdist import bdist
 
 packages=['pylowl', 'pylowl.proj']
 
+package_data = {}
+
 ext_modules = [
     Extension('pylowl.core', ['src/pylowl/core.pyx']
             + [p for p in glob('src/lowl/*.c') if not p.endswith('/tests.c')],
@@ -64,7 +66,7 @@ def make_run(superclass):
             attr_name = 'with_proj_' + p[0]
             selected = o.with_all_proj or getattr(o, attr_name)
             if selected and p[0] not in selected_proj:
-                p[1](packages, ext_modules, scripts)
+                p[1](packages, package_data, ext_modules, scripts)
                 selected_proj.add(p[0])
         superclass.run(o)
     return run

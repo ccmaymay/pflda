@@ -1,7 +1,7 @@
 from distutils.extension import Extension
 import numpy
 
-def select(packages, ext_modules, scripts):
+def select(packages, package_data, ext_modules, scripts):
     packages.append('pylowl.proj.pflda')
     ext_modules.append(
         Extension('pylowl.proj.pflda.core',
