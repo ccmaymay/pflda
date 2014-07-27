@@ -2,17 +2,10 @@
 
 
 import os
-import math
 import re
 import json
 import itertools as it
-from datetime import datetime
-from pylowl.proj.brightside.corpus import load_concrete_docs, load_concrete_doc
-from pylowl.proj.brightside.utils import load_options, nested_file_paths
-
-
-EPOCH = datetime(1970, 1, 1)
-DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
+from pylowl.proj.brightside.utils import load_options
 
 
 def main():
@@ -30,17 +23,8 @@ def main():
     )
 
 
-def parse_datetime(datetime_str):
-    return datetime.strptime(datetime_str, DATETIME_FORMAT)
-
-
-def datetime_to_float(d):
-    return (d - EPOCH).total_seconds()
-
-
 def generate_d3_subgraphs(result_dir, output_filename):
     options = load_options(os.path.join(result_dir, 'options'))
-    test_data_dir = options['test_data_dir']
     K = int(options['K'])
     L = int(options['L'])
     sublist_filename = os.path.join(result_dir, 'sublist')
@@ -80,57 +64,21 @@ def generate_d3_subgraphs(result_dir, output_filename):
 
             sublist_dicts_per_doc[doc_id] = sublist_dicts
 
-    doc_id_attrs_map = dict()
-    user_doc_ids_map = dict()
-    test_data_paths = nested_file_paths(test_data_dir)
-    for doc in load_concrete_docs(test_data_paths):
-        doc_id_attrs_map[doc.id] = doc.attrs
-        if 'user' in doc.attrs:
-            user = doc.attrs['user']
-            if user in user_doc_ids_map:
-                user_doc_ids_map[user].append(doc.id)
-            else:
-                user_doc_ids_map[user] = [doc.id]
-
     json_data = []
 
-    for (user, doc_ids) in user_doc_ids_map.items():
-        user_json_data = []
-        for doc_id in doc_ids:
-            if doc_id in sublist_dicts_per_doc:
-                doc_attrs = doc_id_attrs_map[doc_id]
-                if 'datetime' in doc_attrs and doc_attrs['datetime'] is not None:
-                    dt = parse_datetime(doc_attrs['datetime'])
-                    datetime_float = datetime_to_float(dt)
-                    date_str = dt.strftime('%Y-%m-%d')
-                else:
-                    datetime_float = None
-                    date_str = None
-                sublist_dicts = sublist_dicts_per_doc[doc_id]
-                lambda_ss_sum = 0
-                for j in xrange(L):
-                    if j > 0:
-                        sublist_dicts[j-1]['children'].append(sublist_dicts[j])
-                    lambda_ss_sum += sublist_dicts[j]['lambda_ss']
-                Ephi = [0.] * K
-                for j in xrange(L):
-                    sublist_dict = sublist_dicts[j]
-                    phi = sublist_dict['phi']
-                    for k in xrange(K):
-                        Ephi[k] += math.exp(sublist_dict['logEpi']) * phi[k]
-                user_json_data.append({
-                    'doc_id': doc_id,
-                    'user': user,
-                    'datetime': datetime_float,
-                    'date_str': date_str,
-                    'sublist': sublist_dicts[0],
-                    'lambda_ss_sum': lambda_ss_sum,
-                    'Ephi': Ephi,
-                })
-        user_json_data.sort(key=lambda s: s['datetime'])
-        json_data.extend(user_json_data)
+    for (doc_id, sublist_dicts) in sublist_dicts_per_doc.items():
+        lambda_ss_sum = 0
+        for j in xrange(L):
+            if j > 0:
+                sublist_dicts[j-1]['children'].append(sublist_dicts[j])
+            lambda_ss_sum += sublist_dicts[j]['lambda_ss']
+        json_data.append({
+            'doc_id': doc_id,
+            'sublist': sublist_dicts[0],
+            'lambda_ss_sum': lambda_ss_sum
+        })
 
-    #json_data.sort(key=lambda s: s['lambda_ss_sum'], reverse=True)
+    json_data.sort(key=lambda s: s['lambda_ss_sum'], reverse=True)
 
     with open(output_filename, 'w') as f:
         json.dump(json_data, f, indent=2)

@@ -36,9 +36,6 @@ body {
 	<div id="inputWindowParameters">
     <div><a href="graph.html">graph</a></div>
     <div><a href="user_subgraphs.html">user subgraphs</a></div>
-    <div>
-        <label for="user_select">user:</label>
-        <select id="user_select" onChange="update_graphs();"></select>
 	</div>
 </div>
 
@@ -66,133 +63,31 @@ var lookup_node = function(node, n) {
     return nested_node
 }
 
-var format_words = function(n) {
-    var graph_node = lookup_node($graph_root, n);
-    s = "";
-    for (w in graph_node.words) {
-        if (w > 0) {
-            s += " ";
-        }
-        s += graph_node.words[w]['word'];
-    }
-    return s;
-}
-
-var selected_user = null;
 
 d3.json("graph.json", function(error, graph_root) {
-    $graph_root = graph_root;
     d3.json("subgraphs.json", function(error, root) {
-        $root = root;
+        var purple_ramp = d3.scale.linear().domain([0,1]).range(["#fff","#c0c"]);
+        var red_ramp = d3.scale.linear().domain([0,1]).range(["#fff","#c03"]);
+        var blue_ramp = d3.scale.linear().domain([0,1]).range(["#fff","#30c"]);
 
-        var user_select = document.getElementById("user_select");
+        var node_size = 10;
+        var D = root.length;
+        var K = graph_length(graph_root) + 1;
+        var L = graph_length(root[0]["sublist"]) + 1;
 
-        var users = {};
-
-        var D = $root.length;
+        var svg_width = (L + 2) * node_size;
+        var svg_height = (K + 2) * node_size;
 
         for (var m = 0; m < D; ++m) {
-            var user = $root[m]["user"];
-
-            if (! (user in users)) {
-                users[user] = true;
-
-                var user_option = document.createElement("option");
-                user_select.appendChild(user_option);
-                user_option.setAttribute("value", user);
-                var user_option_text = document.createTextNode(user);
-                user_option.appendChild(user_option_text);
-            }
-        }
-
-        update_graphs();
-    });
-});
-
-var update_graphs = function() {
-    graphs_container = document.getElementById("graphs_container");
-    while (graphs_container.hasChildNodes()) {
-        graphs_container.removeChild(graphs_container.firstChild);
-    }
-
-    var purple_ramp = d3.scale.linear().domain([0,1]).range(["#fff","#c0c"]);
-    var red_ramp = d3.scale.linear().domain([0,1]).range(["#fff","#c03"]);
-    var blue_ramp = d3.scale.linear().domain([0,1]).range(["#fff","#30c"]);
-
-    var node_size = 10;
-    var D = $root.length;
-    var K = graph_length($graph_root) + 1;
-    var L = graph_length($root[0]["sublist"]) + 1;
-
-    var svg_width = (L + 4) * node_size;
-    var svg_height = (K + 2) * node_size;
-
-    var user_select = document.getElementById("user_select");
-
-    var selected_user = user_select.value;
-
-    var user_doc_indices = [];
-    for (var m = 0; m < D; ++m) {
-        var user = $root[m]["user"];
-        if (selected_user == user) {
-            user_doc_indices.push(m);
-        }
-    }
-
-    var summary_svg_width = user_doc_indices.length * node_size;
-    var summary_svg_height = K * node_size;
-
-    var graph_container = document.createElement("div");
-    graph_container.className = "graph_container";
-    graphs_container.appendChild(graph_container);
-
-    var summary_container = document.createElement("div");
-    graph_container.appendChild(summary_container);
-    var summary_text = document.createTextNode("topic summary over time");
-    summary_container.appendChild(summary_text);
-
-    var inner_graph_container = document.createElement("div");
-    graph_container.appendChild(inner_graph_container);
-
-    var svg = d3.select(inner_graph_container).append("svg")
-            .attr("width", summary_svg_width)
-            .attr("height", summary_svg_height)
-        .append("g")
-            .attr("transform", "translate(0,0)");
-
-    var summary_rect = svg.selectAll(".summary_node")
-            .data(d3.range(0, K*user_doc_indices.length))
-        .enter().append("rect")
-            .attr("class", "summary_node")
-            .attr("width", node_size)
-            .attr("height", node_size)
-            .attr("x", function(x) { return (x % user_doc_indices.length) * node_size; })
-            .attr("y", function(x) { return Math.floor(x / user_doc_indices.length) * node_size; });
-
-    summary_rect.style("stroke", "#cac")
-        .style("fill", function(x) {
-            return blue_ramp($root[user_doc_indices[x % user_doc_indices.length]]["Ephi"][Math.floor(x / user_doc_indices.length)]);
-        });
-
-    for (var m = 0; m < D; ++m) {
-        var doc_id = $root[m]["doc_id"];
-        var user = $root[m]["user"];
-        var date_str = $root[m]["date_str"];
-
-        if (selected_user == user) {
             var graph_container = document.createElement("div");
             graph_container.className = "graph_container";
             graphs_container.appendChild(graph_container);
 
+            var doc_id = root[m]["doc_id"];
             var doc_id_container = document.createElement("div");
             graph_container.appendChild(doc_id_container);
             var doc_id_text = document.createTextNode(doc_id);
             doc_id_container.appendChild(doc_id_text);
-
-            var date_container = document.createElement("div");
-            graph_container.appendChild(date_container);
-            var date_text = document.createTextNode(date_str);
-            date_container.appendChild(date_text);
 
             var inner_graph_container = document.createElement("div");
             graph_container.appendChild(inner_graph_container);
@@ -203,32 +98,18 @@ var update_graphs = function() {
                 .append("g")
                     .attr("transform", "translate(0,0)");
 
-            var global_left_header_rect = svg.selectAll(".global_left_header_node")
-                    .data(d3.range(0, K))
-                .enter().append("rect")
-                    .attr("class", "global_left_header_node")
-                    .attr("width", node_size)
-                    .attr("height", node_size)
-                    .attr("y", function(k) { return (k + 2) * node_size; });
-
-            global_left_header_rect.style("stroke", "#cac")
-                .style("fill", function(k) {
-                    node = lookup_node($graph_root, k);
-                    return red_ramp(Math.exp(node.Elogpi));
-                });
-
             var left_header_rect = svg.selectAll(".left_header_node")
                     .data(d3.range(0, K))
                 .enter().append("rect")
                     .attr("class", "left_header_node")
                     .attr("width", node_size)
                     .attr("height", node_size)
-                    .attr("x", function(k) { return 2 * node_size; })
                     .attr("y", function(k) { return (k + 2) * node_size; });
 
             left_header_rect.style("stroke", "#cac")
                 .style("fill", function(k) {
-                    return blue_ramp($root[m]["Ephi"][k]);
+                    node = lookup_node(graph_root, k);
+                    return red_ramp(Math.exp(node.Elogpi));
                 });
 
             var top_header_rect = svg.selectAll(".top_header_node")
@@ -237,11 +118,11 @@ var update_graphs = function() {
                     .attr("class", "top_header_node")
                     .attr("width", node_size)
                     .attr("height", node_size)
-                    .attr("x", function(j) { return (j + 4) * node_size; });
+                    .attr("x", function(j) { return (j + 2) * node_size; });
 
             top_header_rect.style("stroke", "#cac")
                 .style("fill", function(j) {
-                    node = lookup_node($root[m]["sublist"], j);
+                    node = lookup_node(root[m]["sublist"], j);
                     return blue_ramp(Math.exp(node.Elogpi));
                 });
 
@@ -251,25 +132,19 @@ var update_graphs = function() {
                     .attr("class", "node")
                     .attr("width", node_size)
                     .attr("height", node_size)
-                    .attr("x", function(d) { return (4 + (d % L)) * node_size; })
+                    .attr("x", function(d) { return (2 + (d % L)) * node_size; })
                     .attr("y", function(d) { return (2 + Math.floor(d / L)) * node_size; });
 
             rect.style("stroke", "#cac")
                 .style("fill", function(d) {
                     var j = (d % L);
                     var k = Math.floor(d / L);
-                    node = lookup_node($root[m]["sublist"], j);
+                    node = lookup_node(root[m]["sublist"], j);
                     return purple_ramp(node.phi[k]);
-                })
-                .append("title")
-                .text(function(d) {
-                    var j = (d % L);
-                    var k = Math.floor(d / L);
-                    return k + ": " + format_words(k);
                 });
         }
-    }
-}
+    });
+});
 
 </script>
 
