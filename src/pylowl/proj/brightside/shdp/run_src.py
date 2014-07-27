@@ -20,10 +20,12 @@ from pylowl.proj.brightside.shdp.postproc.generate_d3_subgraphs import generate_
 from pylowl.proj.brightside.preproc.extract_concrete_vocab import extract_concrete_vocab
 
 
-# TODO:
-# export PYTHONPATH=build/lib...
-# export PYTHONOPTIMIZE=1
+PKG_DIR = os.path.dirname(__file__)
+POSTPROC_PKG_DIR = os.path.join(PKG_DIR, 'postproc')
+BRIGHTSIDE_PKG_DIR = os.path.dirname(PKG_DIR)
+BRIGHTSIDE_POSTPROC_PKG_DIR = os.path.join(BRIGHTSIDE_PKG_DIR, 'postproc')
 
+SRC_DIR = 'src'
 
 SPLIT_RE = re.compile(r'\W+')
 SRC_EXTENSIONS = ('.py', '.sh', '.c', '.h', '.pxd', '.pyx')
@@ -33,13 +35,11 @@ OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/shdp'
 I = 5
 J = 10
 K = 20
-POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
-MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/shdp/postproc'
 
 
-if not os.path.isdir(POSTPROC_DIR):
-    sys.stderr.write('%s does not exist.\n' % POSTPROC_DIR)
-    sys.stderr.write('Postprocessing will fail.\n')
+if not os.path.isdir(SRC_DIR):
+    sys.stderr.write('%s does not exist.\n' % SRC_DIR)
+    sys.stderr.write('Data generation will fail.\n')
     sys.stderr.write('Note that this script should be run from the littleowl repository root.\n')
 
 
@@ -135,10 +135,10 @@ if __name__ == '__main__':
 
     print 'Linking visualization code to output directory...'
     for basename in ('subgraphs.html',):
-        os.symlink(os.path.abspath(os.path.join(MY_POSTPROC_DIR, basename)),
+        os.symlink(os.path.abspath(os.path.join(POSTPROC_PKG_DIR, basename)),
             os.path.join(output_dir, basename))
     for basename in ('d3.v3.js', 'core.js', 'graph.html'):
-        os.symlink(os.path.abspath(os.path.join(POSTPROC_DIR, basename)),
+        os.symlink(os.path.abspath(os.path.join(BRIGHTSIDE_POSTPROC_PKG_DIR, basename)),
             os.path.join(output_dir, basename))
 
     shutil.rmtree(data_dir)
