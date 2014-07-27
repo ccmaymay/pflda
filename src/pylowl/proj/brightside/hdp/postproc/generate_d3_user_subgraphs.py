@@ -24,7 +24,7 @@ def main():
                         help='output file path')
 
     args = parser.parse_args()
-    generate_d3_subgraphs(
+    generate_d3_user_subgraphs(
         args.result_dir,
         args.output_path,
     )
@@ -38,7 +38,7 @@ def datetime_to_float(d):
     return (d - EPOCH).total_seconds()
 
 
-def generate_d3_subgraphs(result_dir, output_filename):
+def generate_d3_user_subgraphs(result_dir, output_filename):
     options = load_options(os.path.join(result_dir, 'options'))
     test_data_dir = options['test_data_dir']
     K = int(options['K'])
