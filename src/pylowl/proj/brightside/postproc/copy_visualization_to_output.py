@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 
 
+import shutil
 import os
 from glob import glob
 
 
-def symlink_to_dir_force(dest_dir, *sources):
+def copy_to_dir_force(dest_dir, *sources):
     for source in sources:
         basename = os.path.basename(source)
         dest = os.path.join(dest_dir, basename)
         if os.path.isfile(dest) or os.path.islink(dest):
             os.remove(dest)
-        os.symlink(source, dest)
+        shutil.copy(source, dest)
 
 
 def js_and_html_paths(parent_dir):
@@ -20,8 +21,8 @@ def js_and_html_paths(parent_dir):
         + glob(os.path.join(parent_dir, '*.html'))
     )
 
-def symlink_model_visualization_to_output(littleowl_dir, model_output_dir,
-                                          model_name, *global_sources):
+def copy_model_visualization_to_output(littleowl_dir, model_output_dir,
+                                       model_name, *global_sources):
     postproc_dir = os.path.join(
         littleowl_dir,
         'src/pylowl/proj/brightside',
@@ -37,19 +38,19 @@ def symlink_model_visualization_to_output(littleowl_dir, model_output_dir,
             model_output_subdir_name
         )
         if os.path.isdir(model_output_subdir):
-            symlink_to_dir_force(model_output_subdir, *sources)
+            copy_to_dir_force(model_output_subdir, *sources)
 
 
-def symlink_visualization_to_output(pylowl_dir, brightside_output_dir):
+def copy_visualization_to_output(pylowl_dir, brightside_output_dir):
     postproc_dir = os.path.join(pylowl_dir, 'proj/brightside/postproc')
     global_sources = tuple(js_and_html_paths(postproc_dir))
     for model_name in os.listdir(brightside_output_dir):
         model_output_dir = os.path.join(brightside_output_dir, model_name)
         if os.path.isdir(model_output_dir):
-            symlink_model_visualization_to_output(pylowl_dir, model_output_dir,
-                                                  model_name, *global_sources)
+            copy_model_visualization_to_output(pylowl_dir, model_output_dir,
+                                               model_name, *global_sources)
 
 
 if __name__ == '__main__':
     import sys
-    symlink_visualization_to_output(*sys.argv[1:])
+    copy_visualization_to_output(*sys.argv[1:])
