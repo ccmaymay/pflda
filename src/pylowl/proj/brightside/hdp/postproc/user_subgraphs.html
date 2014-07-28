@@ -32,22 +32,40 @@ body {
 </head>
 <body>
 
-<div>
-	<div id="inputWindowParameters">
+<div id="inputWindowParameters">
     <div><a href="graph.html">graph</a></div>
     <div><a href="subgraphs.html">subgraphs</a></div>
     <div>
         <label for="user_select">user:</label>
-        <select id="user_select" onChange="update_graphs();"></select>
+        <select id="user_select" onChange="$update_graphs();"></select>
 	</div>
+    <div>
+        navigate:
+        <input type="button" onclick="shift_window(-1)"
+        value="<" />
+        <input type="button" onclick="shift_window(1)"
+        value=">" />
+        window size: <input id="window_size" maxlength="3"
+        size="3" type="text" onchange="update_window_size()" />
+    </div>
+    <div id="status">
+        showing subgraphs <span id="window_start_text"></span> to
+        <span id="window_end_text"></span> of <span
+            id="num_graphs_text"></span>
+    </div>
 </div>
 
-<div id="graphs_container">
-</div>
+<div id="graphs_container"> </div>
 
 <script src="d3.v3.js"></script>
 
+<script src="core.js"></script>
+
 <script>
+$window_size = 10;
+$window_start = 0;
+$num_windows = 0;
+$num_graphs = 0;
 
 
 var graph_length = function(node) {
@@ -68,8 +86,8 @@ var lookup_node = function(node, n) {
 
 var format_words = function(n) {
     var graph_node = lookup_node($graph_root, n);
-    s = "";
-    for (w in graph_node.words) {
+    var s = "";
+    for (var w in graph_node.words) {
         if (w > 0) {
             s += " ";
         }
@@ -78,39 +96,8 @@ var format_words = function(n) {
     return s;
 }
 
-var selected_user = null;
-
-d3.json("graph.json", function(error, graph_root) {
-    $graph_root = graph_root;
-    d3.json("user_subgraphs.json", function(error, root) {
-        $root = root;
-
-        var user_select = document.getElementById("user_select");
-
-        var users = {};
-
-        var D = $root.length;
-
-        for (var m = 0; m < D; ++m) {
-            var user = $root[m]["user"];
-
-            if (! (user in users)) {
-                users[user] = true;
-
-                var user_option = document.createElement("option");
-                user_select.appendChild(user_option);
-                user_option.setAttribute("value", user);
-                var user_option_text = document.createTextNode(user);
-                user_option.appendChild(user_option_text);
-            }
-        }
-
-        update_graphs();
-    });
-});
-
-var update_graphs = function() {
-    graphs_container = document.getElementById("graphs_container");
+$update_graphs = function() {
+    var graphs_container = document.getElementById("graphs_container");
     while (graphs_container.hasChildNodes()) {
         graphs_container.removeChild(graphs_container.firstChild);
     }
@@ -120,7 +107,6 @@ var update_graphs = function() {
     var blue_ramp = d3.scale.linear().domain([0,1]).range(["#fff","#30c"]);
 
     var node_size = 10;
-    var D = $root.length;
     var K = graph_length($graph_root) + 1;
     var L = graph_length($root[0]["sublist"]) + 1;
 
@@ -132,7 +118,7 @@ var update_graphs = function() {
     var selected_user = user_select.value;
 
     var user_doc_indices = [];
-    for (var m = 0; m < D; ++m) {
+    for (var m = 0; m < $num_graphs; ++m) {
         var user = $root[m]["user"];
         if (selected_user == user) {
             user_doc_indices.push(m);
@@ -174,7 +160,7 @@ var update_graphs = function() {
             return blue_ramp($root[user_doc_indices[x % user_doc_indices.length]]["Ephi"][Math.floor(x / user_doc_indices.length)]);
         });
 
-    for (var m = 0; m < D; ++m) {
+    for (var m = $window_start; m < $window_end; ++m) {
         var doc_id = $root[m]["doc_id"];
         var user = $root[m]["user"];
         var date_str = $root[m]["date_str"];
@@ -213,7 +199,7 @@ var update_graphs = function() {
 
             global_left_header_rect.style("stroke", "#cac")
                 .style("fill", function(k) {
-                    node = lookup_node($graph_root, k);
+                    var node = lookup_node($graph_root, k);
                     return red_ramp(Math.exp(node.Elogpi));
                 });
 
@@ -241,7 +227,7 @@ var update_graphs = function() {
 
             top_header_rect.style("stroke", "#cac")
                 .style("fill", function(j) {
-                    node = lookup_node($root[m]["sublist"], j);
+                    var node = lookup_node($root[m]["sublist"], j);
                     return blue_ramp(Math.exp(node.Elogpi));
                 });
 
@@ -258,7 +244,7 @@ var update_graphs = function() {
                 .style("fill", function(d) {
                     var j = (d % L);
                     var k = Math.floor(d / L);
-                    node = lookup_node($root[m]["sublist"], j);
+                    var node = lookup_node($root[m]["sublist"], j);
                     return purple_ramp(node.phi[k]);
                 })
                 .append("title")
@@ -270,6 +256,35 @@ var update_graphs = function() {
         }
     }
 }
+
+d3.json("graph.json", function(error, graph_root) {
+    $graph_root = graph_root;
+    d3.json("user_subgraphs.json", function(error, root) {
+        $root = root;
+        $num_graphs = root.length;
+
+        var user_select = document.getElementById("user_select");
+
+        var users = {};
+
+        for (var m = 0; m < $num_graphs; ++m) {
+            var user = $root[m]["user"];
+
+            if (! (user in users)) {
+                users[user] = true;
+
+                var user_option = document.createElement("option");
+                user_select.appendChild(user_option);
+                user_option.setAttribute("value", user);
+                var user_option_text = document.createTextNode(user);
+                user_option.appendChild(user_option_text);
+            }
+        }
+
+        document.getElementById("window_size").value = $window_size;
+        update_window_size();
+    });
+});
 
 </script>
 
