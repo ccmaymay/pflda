@@ -2,6 +2,7 @@
 
 
 import os
+from glob import glob
 
 
 def symlink_to_dir_force(dest_dir, *sources):
@@ -13,15 +14,23 @@ def symlink_to_dir_force(dest_dir, *sources):
         os.symlink(source, dest)
 
 
+def js_and_html_paths(parent_dir):
+    return (
+        glob(os.path.join(parent_dir, '*.js'))
+        + glob(os.path.join(parent_dir, '*.html'))
+    )
+
 def symlink_model_visualization_to_output(littleowl_dir, output_dir, model_name, *global_sources):
     model_output_dir = os.path.join(output_dir, model_name)
-    subgraphs_html_path = os.path.join(
+    postproc_dir = os.path.join(
         littleowl_dir,
         'src/pylowl/proj/brightside',
         model_name,
-        'postproc/subgraphs.html'
+        'postproc'
     )
-    sources = global_sources + (subgraphs_html_path,)
+    local_sources = tuple(js_and_html_paths(postproc_dir))
+    sources = global_sources + local_sources
+
     for model_output_subdir_name in os.listdir(model_output_dir):
         model_output_subdir = os.path.join(
             model_output_dir,
@@ -32,13 +41,11 @@ def symlink_model_visualization_to_output(littleowl_dir, output_dir, model_name,
 
 
 def symlink_visualization_to_output(littleowl_dir, output_dir):
-    graph_html_path = os.path.join(littleowl_dir,
-        'src/pylowl/proj/brightside/postproc/graph.html')
-    core_js_path = os.path.join(littleowl_dir,
-        'src/pylowl/proj/brightside/postproc/core.js')
-    d3_js_path = os.path.join(littleowl_dir,
-        'src/pylowl/proj/brightside/postproc/d3.v3.js')
-    global_sources = (graph_html_path, core_js_path, d3_js_path)
+    postproc_dir = os.path.join(
+        littleowl_dir,
+        'src/pylowl/proj/brightside/postproc'
+    )
+    global_sources = tuple(js_and_html_paths(postproc_dir))
 
     symlink_model_visualization_to_output(littleowl_dir, output_dir, 'm0',
                                           *global_sources)
