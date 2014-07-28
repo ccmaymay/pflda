@@ -132,10 +132,10 @@ if __name__ == '__main__':
 
     print 'Linking visualization code to output directory...'
     for basename in ('subgraphs.html',):
-        shutil.copy(pkg_resources.resource_filename(POSTPROC_PKG_DIR, basename),
+        shutil.copy(pkg_resources.resource_filename(POSTPROC_PKG, basename),
             os.path.join(output_dir, basename))
     for basename in ('d3.v3.js', 'core.js', 'graph.html'):
-        shutil.copy(pkg_resources.resource_filename(BRIGHTSIDE_POSTPROC_PKG_DIR, basename),
+        shutil.copy(pkg_resources.resource_filename(BRIGHTSIDE_POSTPROC_PKG, basename),
             os.path.join(output_dir, basename))
 
     shutil.rmtree(data_dir)
