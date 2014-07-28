@@ -64,10 +64,10 @@ var diagonal = d3.svg.diagonal()
 
 make_format_words = function(min_font, font_exp_scale) {
     return function(d) {
-        s = "<div>";
-        for (j = 0; j < 10; j++) {
-            word = d.words[j].word;
-            weight = d.words[j].lambda_ss;
+        var s = "<div>";
+        for (var j = 0; j < 10; j++) {
+            var word = d.words[j].word;
+            var weight = d.words[j].lambda_ss;
             if (j > 0) { s += " "; }
             s += "<span style=\"font-size: " + Math.max(min_font,
                                                         font_exp_scale*Math.log(weight)/Math.log(2)) + "px\">" + word +
@@ -97,9 +97,9 @@ add_lambda_ss_text = function(font_size){
 
 update_graph = function() {
 	var stringColor =
-    d3.scale.linear().domain([0,-1*minELogPi]).range(["red","blue"]);
+    d3.scale.linear().domain([0,-1*$minELogPi]).range(["red","blue"]);
 	
-    graphs_container = document.getElementById("graphs_container");
+    var graphs_container = document.getElementById("graphs_container");
     while (graphs_container.hasChildNodes()) {
         graphs_container.removeChild(graphs_container.firstChild);
     }
@@ -139,8 +139,8 @@ update_graph = function() {
 		.attr("r", function(d){return node_size(d);})
 		.style("fill", function(d) {return stringColor(d.Elogpi*-1);})
         .style("stroke", function(d) {return stringColor(d.Elogpi*-1);})
-        .style("stroke-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1);})
-        .style("fill-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1);});
+        .style("stroke-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-$minELogPi)/($minELogPi*-1);})
+        .style("fill-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-$minELogPi)/($minELogPi*-1);});
 
     if(document.getElementById("showValues").checked == true){
 		node.append("foreignObject")
@@ -155,7 +155,7 @@ update_graph = function() {
 tree_depth = function(node) {
     var depth = 0;
     for (var c in node.children) {
-        child = node.children[c];
+        var child = node.children[c];
         depth = Math.max(depth, 1 + tree_depth(child));
     }
     return depth;
@@ -165,7 +165,7 @@ tree_depth = function(node) {
 tree_size = function(node) {
     var size = 1;
     for (var c in node.children) {
-        child = node.children[c];
+        var child = node.children[c];
         size += tree_size(child);
     }
     return size;
@@ -174,7 +174,7 @@ tree_size = function(node) {
 tree_size_per_level = function(node) {
     var sizes = [1];
     for (var c in node.children) {
-        child = node.children[c];
+        var child = node.children[c];
         var c_sizes = tree_size_per_level(child);
         for (var j = 0; j < sizes.length - 1 && j < c_sizes.length; ++j) {
             sizes[j+1] += c_sizes[j];
@@ -189,10 +189,10 @@ tree_size_per_level = function(node) {
 d3.json("graph.json", function(error, root) {
     $root = root;
 
-	maxNodeSize = 0;
-	maxNodeSize = maximum_Node_Size_subtreeChildren(maxNodeSize, $root)
-    minELogPi = 0;
-    minELogPi = minimum_param_subtreeChildren(minELogPi, $root, "Elogpi");
+	$maxNodeSize = 0;
+	$maxNodeSize = maximum_Node_Size_subtreeChildren($maxNodeSize, $root)
+    $minELogPi = 0;
+    $minELogPi = minimum_param_subtreeChildren($minELogPi, $root, "Elogpi");
 
     $width = 300 * tree_depth(root) + 300;
     $height = 140 * Math.max.apply(null, tree_size_per_level(root));
