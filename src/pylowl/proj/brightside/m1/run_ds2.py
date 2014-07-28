@@ -51,7 +51,7 @@ if __name__ == '__main__':
         save_model=True,
         output_dir=output_dir,
         vocab_path='data/txt/ds2/vocab',
-        log_level='DEBUG')
+        log_level='INFO')
 
     print 'Postprocessing...'
     postprocess(output_dir)

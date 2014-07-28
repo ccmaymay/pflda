@@ -48,7 +48,7 @@ if __name__ == '__main__':
         vocab_path='data/txt/tng/vocab',
         user_doc_reservoir_capacity=200,
         user_subtree_selection_interval=50,
-        log_level='DEBUG')
+        log_level='INFO')
 
     print 'Postprocessing...'
     postprocess(output_dir)
