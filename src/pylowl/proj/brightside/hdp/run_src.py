@@ -25,8 +25,6 @@ POSTPROC_PKG_DIR = os.path.join(PKG_DIR, 'postproc')
 BRIGHTSIDE_PKG_DIR = os.path.dirname(PKG_DIR)
 BRIGHTSIDE_POSTPROC_PKG_DIR = os.path.join(BRIGHTSIDE_PKG_DIR, 'postproc')
 
-SRC_DIR = 'src'
-
 SPLIT_RE = re.compile(r'\W+')
 SRC_EXTENSIONS = ('.py', '.sh', '.c', '.h', '.pxd', '.pyx')
 
@@ -34,12 +32,6 @@ SRC_EXTENSIONS = ('.py', '.sh', '.c', '.h', '.pxd', '.pyx')
 OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/hdp'
 K = 20
 L = 10
-
-
-if not os.path.isdir(SRC_DIR):
-    sys.stderr.write('%s does not exist.\n' % SRC_DIR)
-    sys.stderr.write('Data generation will fail.\n')
-    sys.stderr.write('Note that this script should be run from the littleowl repository root.\n')
 
 
 def src_path_filter(path):
@@ -75,7 +67,17 @@ def make_data(input_dir, output_dir):
 
 
 if __name__ == '__main__':
-    profile = ('--profile' in sys.argv[1:])
+    from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.set_defaults(src_dir='src')
+    parser.add_argument('--src_dir', type=str, required=False,
+                        help='path to littleowl source tree')
+    parser.add_argument('--profile', action='store_true',
+                        help='turn on profiling, write stats to "profile" in output dir')
+    args = parser.parse_args()
+
+    src_dir = args.src_dir
+    profile = args.profile
 
     print 'sys.path:'
     for path in sys.path:
@@ -91,7 +93,7 @@ if __name__ == '__main__':
     umask = os.umask(0o022) # whatever, python
     os.umask(umask) # set umask back
     os.chmod(data_dir, 0o0755 & ~umask)
-    make_data('src', data_dir)
+    make_data(src_dir, data_dir)
     train_data_dir = data_dir
     # TODO would be nice if we didn't test on training data...
     test_data_dir = data_dir
