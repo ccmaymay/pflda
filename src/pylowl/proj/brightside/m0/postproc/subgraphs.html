@@ -86,7 +86,7 @@ $window_size = 5;
 $window_start = 0;
 $num_windows = 0;
 $num_graphs = 0;
-node_sort_array = [];
+$node_sort_array = [];
 
 var diagonal = d3.svg.diagonal()
     .projection(function(d) { return [d.y, d.x]; })
@@ -104,18 +104,17 @@ var diagonal = d3.svg.diagonal()
 update_graphs = function() {
     update_nav_text();
 
-    graphs_container = document.getElementById("graphs_container");
+    var graphs_container = document.getElementById("graphs_container");
     while (graphs_container.hasChildNodes()) {
         graphs_container.removeChild(graphs_container.firstChild);
     }
 
     var stringColor =
-    d3.scale.linear().domain([0,-1*minELogPi]).range(["red","blue"]);
+    d3.scale.linear().domain([0,-1*$minELogPi]).range(["red","blue"]);
 
     for (var c = $window_start; c < $window_end; ++c) {
         var cluster = d3.layout.cluster()
-
-        .size([$height , $width - 14*maxNodeSize]);
+        .size([$height , $width - 14*$maxNodeSize]);
 
         var graph_container = document.createElement("div");
         graph_container.className = "graph_container";
@@ -134,7 +133,7 @@ update_graphs = function() {
         .attr("width", $width)
         .attr("height", $height)
         .append("g")
-        .attr("transform", "translate("+ 2.5*(maxNodeSize+1) +",0)");
+        .attr("transform", "translate("+ 2.5*($maxNodeSize+1) +",0)");
 
         var nodes = cluster.nodes($root[c]["subtree"]);
         var links = cluster.links(nodes);
@@ -161,12 +160,12 @@ update_graphs = function() {
         .style("stroke", function(d) {return d.active ?
                stringColor(d.Elogpi*-1) : "black"})
         .style("stroke-opacity", function(d) { return d.active ?
-               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.1"; })
+               (0.1 + 0.9*(d.Elogpi-$minELogPi)/($minELogPi*-1)) : "0.1"; })
         .style("fill-opacity", function(d) { return d.active ?
-               (0.1 + 0.9*(d.Elogpi-minELogPi)/(minELogPi*-1)) : "0.1"; });
+               (0.1 + 0.9*(d.Elogpi-$minELogPi)/($minELogPi*-1)) : "0.1"; });
 
         node.append("circle")
-        .attr("r", maxNodeSize + 1)
+        .attr("r", $maxNodeSize + 1)
         .style("fill", "black")
         .style("stroke", "black")
         .style("stroke-opacity", function(d){return d.active ? (d.circled? "1":"0"): (d.circled? ".15":"0")})
@@ -191,13 +190,13 @@ d3.json("graph.json", function(error, graph_root) {
         $num_graphs = root.length;
         $root = root;
         node_placement_rootParent();
-        maxNodeSize = maximum_Node_Size_rootParent($root);
-        minELogPi = minimum_param_rootParent($root, "Elogpi");
+        $maxNodeSize = maximum_Node_Size_rootParent($root);
+        $minELogPi = minimum_param_rootParent($root, "Elogpi");
 
-        $width = maxNodeSize * 16 * (tree_depth(root[0]["subtree"]) + 1) + maxNodeSize;
+        $width = $maxNodeSize * 16 * (tree_depth(root[0]["subtree"]) + 1) + $maxNodeSize;
         sizes = tree_size_per_level(root[0]["subtree"]);
         var eff_size = sizes[sizes.length - 1] + (sizes.length > 1 ? sizes[sizes.length - 2] : 0);
-        $height = maxNodeSize * 2.5 * eff_size + maxNodeSize;
+        $height = $maxNodeSize * 2.5 * eff_size + $maxNodeSize;
 
         document.getElementById("window_size").value = $window_size;
         update_window_size();
