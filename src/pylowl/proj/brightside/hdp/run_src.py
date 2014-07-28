@@ -7,76 +7,9 @@
 #$ -l num_proc=1,mem_free=1G,h_rt=1:00:00
 
 
-import sys
-import os
-import shutil
-import pkg_resources
-import re
-import tempfile
-from pylowl.proj.brightside.corpus import write_concrete_doc, Document
-from pylowl.proj.brightside.utils import nested_file_paths
-from pylowl.proj.brightside.hdp.run import run
-from pylowl.proj.brightside.hdp.postproc.generate_d3_graph import generate_d3_graph
-from pylowl.proj.brightside.hdp.postproc.generate_d3_subgraphs import generate_d3_subgraphs
-from pylowl.proj.brightside.preproc.extract_concrete_vocab import extract_concrete_vocab
-
-
-POSTPROC_PKG = 'pylowl.proj.brightside.hdp.postproc'
-BRIGHTSIDE_POSTPROC_PKG = 'pylowl.proj.brightside.postproc'
-
-SPLIT_RE = re.compile(r'\W+')
-SRC_EXTENSIONS = ('.py', '.sh', '.c', '.h', '.pxd', '.pyx')
-
-# paths are relative to littleowl repo root
-OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/hdp'
-K = 20
-L = 10
-
-
-def src_path_filter(path):
-    ext = path[path.rfind('.'):]
-    return (ext in SRC_EXTENSIONS
-            and not (ext == '.c' and 'src/pylowl/' in path))
-
-
-def is_num(s):
-    try:
-        float(s)
-    except ValueError:
-        return False
-    else:
-        return True
-
-
-def make_data(input_dir, output_dir):
-    i = 0
-    for (dirpath, dirnames, filenames) in os.walk(input_dir):
-        for filename in filenames:
-            path = os.path.join(dirpath, filename)
-            if src_path_filter(path):
-                tokens = []
-                with open(path) as f:
-                    for line in f:
-                        tokens.extend(token for token in SPLIT_RE.split(line)
-                                      if token and not is_num(token))
-                if tokens:
-                    output_path = os.path.join(output_dir, '%d.concrete' % i)
-                    write_concrete_doc(Document(tokens, id=path), output_path)
-                    i += 1
-
-
 if __name__ == '__main__':
-    from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.set_defaults(src_dir='src')
-    parser.add_argument('--src_dir', type=str, required=False,
-                        help='path to littleowl source tree')
-    parser.add_argument('--profile', action='store_true',
-                        help='turn on profiling, write stats to "profile" in output dir')
-    args = parser.parse_args()
-
-    src_dir = args.src_dir
-    profile = args.profile
+    import sys
+    import os
 
     print 'sys.path:'
     for path in sys.path:
@@ -88,57 +21,53 @@ if __name__ == '__main__':
         print '    %s: %s' % (k, v)
     print
 
-    data_dir = tempfile.mkdtemp()
-    umask = os.umask(0o022) # whatever, python
-    os.umask(umask) # set umask back
-    os.chmod(data_dir, 0o0755 & ~umask)
-    make_data(src_dir, data_dir)
-    train_data_dir = data_dir
-    # TODO would be nice if we didn't test on training data...
-    test_data_dir = data_dir
 
-    (fd, vocab_path) = tempfile.mkstemp()
-    os.close(fd)
-    extract_concrete_vocab(nested_file_paths(train_data_dir), 0, 0, 0, vocab_path)
+    from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.set_defaults(src_dir='src')
+    parser.add_argument('--src_dir', type=str, required=False,
+                        help='path to littleowl source tree')
+    args = parser.parse_args()
+
+    import shutil
+    from pylowl.proj.brightside.utils import make_output_dir
+    from pylowl.proj.brightside.preproc.src_to_concrete import src_to_concrete
+    from pylowl.proj.brightside.hdp.run import run
+    from pylowl.proj.brightside.hdp.postproc.utils import postprocess
+
+    print 'Creating data from source tree...'
+    (train_data_dir, test_data_dir, vocab_path) = src_to_concrete(args.src_dir)
 
     print 'Creating output directory...'
-    if not os.path.isdir(OUTPUT_DIR_BASE):
-        os.makedirs(OUTPUT_DIR_BASE)
-    output_dir = tempfile.mkdtemp(dir=OUTPUT_DIR_BASE, prefix='')
-    os.chmod(output_dir, 0o0755 & ~umask)
+    output_dir = make_output_dir('output/pylowl/proj/brightside/hdp')
 
     print 'Running stochastic variational inference...'
-    code = '''run(K=K, L=L,
+    run(K=20, L=10,
         data_dir=train_data_dir,
         test_data_dir=test_data_dir,
         test_samples=50,
         init_samples=50,
         batchsize=20,
+        alpha=1,
+        beta=1,
+        iota=64,
+        kappa=0.6,
+        lambda0=0.01,
         max_time=90,
         save_model=True,
         output_dir=output_dir,
         vocab_path=vocab_path,
-        log_level='DEBUG')'''.replace('\n', ' ')
-    if profile:
-        print 'Profiling...'
-        import cProfile
-        cProfile.run(code, os.path.join(output_dir, 'profile'))
-    else:
-        exec code
+        log_level='DEBUG')
 
-    print 'Generating D3 inputs...'
-    generate_d3_graph(output_dir, os.path.join(output_dir, 'graph.json'))
-    generate_d3_subgraphs(output_dir, os.path.join(output_dir, 'subgraphs.json'))
+    print 'Postprocessing...'
+    postprocess(output_dir)
 
-    print 'Linking visualization code to output directory...'
-    for basename in ('subgraphs.html',):
-        shutil.copy(pkg_resources.resource_filename(POSTPROC_PKG, basename),
-            os.path.join(output_dir, basename))
-    for basename in ('d3.v3.js', 'core.js', 'graph.html'):
-        shutil.copy(pkg_resources.resource_filename(BRIGHTSIDE_POSTPROC_PKG, basename),
-            os.path.join(output_dir, basename))
-
-    shutil.rmtree(data_dir)
+    shutil.rmtree(train_data_dir, ignore_errors=True)
+    shutil.rmtree(test_data_dir, ignore_errors=True)
+    try:
+        os.remove(vocab_path)
+    except IOError:
+        pass
 
     print 'Done:'
     print output_dir
