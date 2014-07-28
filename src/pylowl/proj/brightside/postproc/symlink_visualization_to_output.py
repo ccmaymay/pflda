@@ -20,8 +20,8 @@ def js_and_html_paths(parent_dir):
         + glob(os.path.join(parent_dir, '*.html'))
     )
 
-def symlink_model_visualization_to_output(littleowl_dir, output_dir, model_name, *global_sources):
-    model_output_dir = os.path.join(output_dir, model_name)
+def symlink_model_visualization_to_output(littleowl_dir, model_output_dir,
+                                          model_name, *global_sources):
     postproc_dir = os.path.join(
         littleowl_dir,
         'src/pylowl/proj/brightside',
@@ -40,17 +40,14 @@ def symlink_model_visualization_to_output(littleowl_dir, output_dir, model_name,
             symlink_to_dir_force(model_output_subdir, *sources)
 
 
-def symlink_visualization_to_output(littleowl_dir, output_dir):
-    postproc_dir = os.path.join(
-        littleowl_dir,
-        'src/pylowl/proj/brightside/postproc'
-    )
+def symlink_visualization_to_output(pylowl_dir, brightside_output_dir):
+    postproc_dir = os.path.join(pylowl_dir, 'proj/brightside/postproc')
     global_sources = tuple(js_and_html_paths(postproc_dir))
-
-    symlink_model_visualization_to_output(littleowl_dir, output_dir, 'm0',
-                                          *global_sources)
-    symlink_model_visualization_to_output(littleowl_dir, output_dir, 'm1',
-                                          *global_sources)
+    for model_name in os.listdir(brightside_output_dir):
+        model_output_dir = os.path.join(brightside_output_dir, model_name)
+        if os.path.isdir(model_output_dir):
+            symlink_model_visualization_to_output(pylowl_dir, model_output_dir,
+                                                  model_name, *global_sources)
 
 
 if __name__ == '__main__':
