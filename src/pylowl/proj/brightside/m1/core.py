@@ -218,30 +218,50 @@ class model(object):
         vocab_to_batch_word_map = dict()
         # list of unique word types, in order of first appearance
         batch_to_vocab_word_map = []
-        for doc in docs:
-            if doc.attrs['user'] in self.m_r_users:
+
+        if update:
+            for doc in docs:
+                if doc.attrs['user'] in self.m_r_users:
+                    doc.user_idx = self.m_r_users[doc.attrs['user']]
+                    docs_new_user.append(False)
+                else:
+                    user_idx = len(self.m_r_users)
+                    self.m_users[user_idx] = doc.attrs['user']
+                    self.m_r_users[doc.attrs['user']] = user_idx
+                    doc.user_idx = user_idx
+                    docs_new_user.append(True)
+
+                utils.reservoir_insert(self.m_user_docs[doc.user_idx], self.m_user_docs_counts[doc.user_idx], doc)
+                self.m_user_docs_counts[doc.user_idx] += 1
+
+                if doc.user_idx not in users_to_batch_map:
+                    batch_to_users_map.append(doc.user_idx)
+                    users_to_batch_map[doc.user_idx] = len(users_to_batch_map)
+                    DperUt.append(0)
+                DperUt[users_to_batch_map[doc.user_idx]] += 1
+
+                for w in doc.words:
+                    if w not in vocab_to_batch_word_map:
+                        vocab_to_batch_word_map[w] = len(vocab_to_batch_word_map)
+                        batch_to_vocab_word_map.append(w)
+        else:
+            for doc in docs:
+                if doc.attrs['user'] not in self.m_r_users:
+                    raise ValueError('cannot predict on unseen user')
+
                 doc.user_idx = self.m_r_users[doc.attrs['user']]
                 docs_new_user.append(False)
-            else:
-                user_idx = len(self.m_r_users)
-                self.m_users[user_idx] = doc.attrs['user']
-                self.m_r_users[doc.attrs['user']] = user_idx
-                doc.user_idx = user_idx
-                docs_new_user.append(True)
 
-            utils.reservoir_insert(self.m_user_docs[doc.user_idx], self.m_user_docs_counts[doc.user_idx], doc)
-            self.m_user_docs_counts[doc.user_idx] += 1
+                if doc.user_idx not in users_to_batch_map:
+                    batch_to_users_map.append(doc.user_idx)
+                    users_to_batch_map[doc.user_idx] = len(users_to_batch_map)
+                    DperUt.append(0)
+                DperUt[users_to_batch_map[doc.user_idx]] += 1
 
-            if doc.user_idx not in users_to_batch_map:
-                batch_to_users_map.append(doc.user_idx)
-                users_to_batch_map[doc.user_idx] = len(users_to_batch_map)
-                DperUt.append(0)
-            DperUt[users_to_batch_map[doc.user_idx]] += 1
-
-            for w in doc.words:
-                if w not in vocab_to_batch_word_map:
-                    vocab_to_batch_word_map[w] = len(vocab_to_batch_word_map)
-                    batch_to_vocab_word_map.append(w)
+                for w in doc.words:
+                    if w not in vocab_to_batch_word_map:
+                        vocab_to_batch_word_map[w] = len(vocab_to_batch_word_map)
+                        batch_to_vocab_word_map.append(w)
 
         Ut = len(batch_to_users_map)
 
@@ -262,6 +282,13 @@ class model(object):
         score = 0.0
         count = 0
         for (doc, predict_doc, new_user) in it.izip(docs, predict_docs, docs_new_user):
+            if update:
+                if new_user or self.m_user_subtree_selection_counters[doc.user_idx] % self.m_user_subtree_selection_interval == 0:
+                    (subtree, l2g_idx, g2l_idx) = self.select_subtree(doc.user_idx, ElogV)
+                    self.m_user_subtrees[doc.user_idx] = subtree
+                    self.m_user_l2g_ids[doc.user_idx] = l2g_idx
+                    self.m_user_g2l_ids[doc.user_idx] = g2l_idx
+                self.m_user_subtree_selection_counters[doc.user_idx] += 1
             doc_score = self.doc_e_step(doc, ss, ElogV, vocab_to_batch_word_map,
                 batch_to_vocab_word_map, users_to_batch_map, batch_to_users_map,
                 var_converge, predict_doc=predict_doc, new_user=new_user,
@@ -511,16 +538,9 @@ class model(object):
         batch_ids = [vocab_to_batch_word_map[w] for w in doc.words]
         token_batch_ids = np.repeat(batch_ids, doc.counts)
 
-        if new_user or self.m_user_subtree_selection_counters[user_idx] % self.m_user_subtree_selection_interval == 0:
-            (subtree, l2g_idx, g2l_idx) = self.select_subtree(user_idx, ElogV)
-            self.m_user_subtrees[user_idx] = subtree
-            self.m_user_l2g_ids[user_idx] = l2g_idx
-            self.m_user_g2l_ids[user_idx] = g2l_idx
-        else:
-            subtree = self.m_user_subtrees[user_idx]
-            l2g_idx = self.m_user_l2g_ids[user_idx]
-            g2l_idx = self.m_user_g2l_ids[user_idx]
-        self.m_user_subtree_selection_counters[user_idx] += 1
+        subtree = self.m_user_subtrees[user_idx]
+        l2g_idx = self.m_user_l2g_ids[user_idx]
+        g2l_idx = self.m_user_g2l_ids[user_idx]
 
         ids = [self.tree_index(node) for node in self.tree_iter(subtree)]
 

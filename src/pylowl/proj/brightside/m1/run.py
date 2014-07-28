@@ -387,6 +387,8 @@ def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
     while doc_count == batchsize:
         batch = take(docs_generator, batchsize)
 
+        batch = [doc for doc in batch if doc.attrs['user'] in m.m_r_users]
+
         (score, count, doc_count) = m.process_documents(
             batch, var_converge, update=False)
         total_score += score
@@ -415,6 +417,9 @@ def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
     while doc_count == batchsize:
         train_batch = take(train_docs_generator, batchsize)
         test_batch = take(test_docs_generator, batchsize)
+
+        train_batch = [doc for doc in train_batch if doc.attrs['user'] in m.m_r_users]
+        test_batch = [doc for doc in test_batch if doc.attrs['user'] in m.m_r_users]
 
         (score, count, doc_count) = m.process_documents(
             train_batch, var_converge, update=False, predict_docs=test_batch,
