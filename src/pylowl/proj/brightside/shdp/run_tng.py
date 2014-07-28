@@ -9,6 +9,7 @@
 import sys
 import os
 import re
+import shutil
 import tempfile
 from pylowl.proj.brightside.shdp.run import run
 from pylowl.proj.brightside.shdp.postproc.generate_d3_graph import generate_d3_graph
@@ -80,10 +81,10 @@ generate_d3_subgraphs(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'subgraphs.json'))
 
 print 'Linking visualization code to output directory...'
 for basename in ('subgraphs.html',):
-    os.symlink(os.path.abspath(os.path.join(POSTPROC_PKG_DIR, basename)),
+    shutil.copy(os.path.join(POSTPROC_PKG_DIR, basename),
         os.path.join(OUTPUT_DIR, basename))
 for basename in ('d3.v3.js', 'core.js', 'graph.html'):
-    os.symlink(os.path.abspath(os.path.join(BRIGHTSIDE_POSTPROC_PKG_DIR, basename)),
+    shutil.copy(os.path.join(BRIGHTSIDE_POSTPROC_PKG_DIR, basename),
         os.path.join(OUTPUT_DIR, basename))
 
 print 'Done:'
