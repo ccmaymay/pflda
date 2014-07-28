@@ -10,16 +10,15 @@ import sys
 import os
 import re
 import shutil
+import pkg_resources
 import tempfile
 from pylowl.proj.brightside.shdp.run import run
 from pylowl.proj.brightside.shdp.postproc.generate_d3_graph import generate_d3_graph
 from pylowl.proj.brightside.shdp.postproc.generate_d3_subgraphs import generate_d3_subgraphs
 
 
-PKG_DIR = os.path.dirname(__file__)
-POSTPROC_PKG_DIR = os.path.join(PKG_DIR, 'postproc')
-BRIGHTSIDE_PKG_DIR = os.path.dirname(PKG_DIR)
-BRIGHTSIDE_POSTPROC_PKG_DIR = os.path.join(BRIGHTSIDE_PKG_DIR, 'postproc')
+POSTPROC_PKG = 'pylowl.proj.brightside.shdp.postproc'
+BRIGHTSIDE_POSTPROC_PKG = 'pylowl.proj.brightside.postproc'
 
 profile = ('--profile' in sys.argv[1:])
 
@@ -81,10 +80,10 @@ generate_d3_subgraphs(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'subgraphs.json'))
 
 print 'Linking visualization code to output directory...'
 for basename in ('subgraphs.html',):
-    shutil.copy(os.path.join(POSTPROC_PKG_DIR, basename),
+    shutil.copy(pkg_resources.resource_filename(POSTPROC_PKG_DIR, basename),
         os.path.join(OUTPUT_DIR, basename))
 for basename in ('d3.v3.js', 'core.js', 'graph.html'):
-    shutil.copy(os.path.join(BRIGHTSIDE_POSTPROC_PKG_DIR, basename),
+    shutil.copy(pkg_resources.resource_filename(BRIGHTSIDE_POSTPROC_PKG_DIR, basename),
         os.path.join(OUTPUT_DIR, basename))
 
 print 'Done:'

@@ -10,6 +10,7 @@
 import sys
 import os
 import shutil
+import pkg_resources
 import re
 import tempfile
 from pylowl.proj.brightside.corpus import write_concrete_doc, Document
@@ -20,10 +21,8 @@ from pylowl.proj.brightside.hdp.postproc.generate_d3_subgraphs import generate_d
 from pylowl.proj.brightside.preproc.extract_concrete_vocab import extract_concrete_vocab
 
 
-PKG_DIR = os.path.dirname(__file__)
-POSTPROC_PKG_DIR = os.path.join(PKG_DIR, 'postproc')
-BRIGHTSIDE_PKG_DIR = os.path.dirname(PKG_DIR)
-BRIGHTSIDE_POSTPROC_PKG_DIR = os.path.join(BRIGHTSIDE_PKG_DIR, 'postproc')
+POSTPROC_PKG = 'pylowl.proj.brightside.hdp.postproc'
+BRIGHTSIDE_POSTPROC_PKG = 'pylowl.proj.brightside.postproc'
 
 SPLIT_RE = re.compile(r'\W+')
 SRC_EXTENSIONS = ('.py', '.sh', '.c', '.h', '.pxd', '.pyx')
@@ -133,10 +132,10 @@ if __name__ == '__main__':
 
     print 'Linking visualization code to output directory...'
     for basename in ('subgraphs.html',):
-        shutil.copy(os.path.join(POSTPROC_PKG_DIR, basename),
+        shutil.copy(pkg_resources.resource_filename(POSTPROC_PKG_DIR, basename),
             os.path.join(output_dir, basename))
     for basename in ('d3.v3.js', 'core.js', 'graph.html'):
-        shutil.copy(os.path.join(BRIGHTSIDE_POSTPROC_PKG_DIR, basename),
+        shutil.copy(pkg_resources.resource_filename(BRIGHTSIDE_POSTPROC_PKG_DIR, basename),
             os.path.join(output_dir, basename))
 
     shutil.rmtree(data_dir)
