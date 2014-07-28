@@ -13,6 +13,12 @@ from pylowl.proj.brightside.m1.run import run
 from pylowl.proj.brightside.m1.postproc.generate_d3_graph import generate_d3_graph
 from pylowl.proj.brightside.m1.postproc.generate_d3_subgraphs import generate_d3_subgraphs
 
+
+PKG_DIR = os.path.dirname(__file__)
+POSTPROC_PKG_DIR = os.path.join(PKG_DIR, 'postproc')
+BRIGHTSIDE_PKG_DIR = os.path.dirname(PKG_DIR)
+BRIGHTSIDE_POSTPROC_PKG_DIR = os.path.join(BRIGHTSIDE_PKG_DIR, 'postproc')
+
 print 'sys.path:'
 for path in sys.path:
     print '    %s' % path
@@ -25,16 +31,9 @@ print
 
 TRUNC = '1,5,4'
 DATA_DIR = 'data/txt/ds2'
-POSTPROC_DIR = 'src/pylowl/proj/brightside/postproc'
-MY_POSTPROC_DIR = 'src/pylowl/proj/brightside/m1/postproc'
 VOCAB_PATH = os.path.join(DATA_DIR, 'vocab')
 TRAIN_DATA_DIR = os.path.join(DATA_DIR, 'train')
 TEST_DATA_DIR = os.path.join(DATA_DIR, 'test')
-
-if not os.path.isdir(POSTPROC_DIR):
-    sys.stderr.write('%s does not exist.\n' % POSTPROC_DIR)
-    sys.stderr.write('Postprocessing will fail.\n')
-    sys.stderr.write('Note that this script should be run from the littleowl repository root.\n')
 
 print 'Creating output directory...'
 OUTPUT_DIR_BASE = 'output/pylowl/proj/brightside/m1'
@@ -68,10 +67,10 @@ generate_d3_subgraphs(OUTPUT_DIR, os.path.join(OUTPUT_DIR, 'subgraphs.json'))
 
 print 'Linking visualization code to output directory...'
 for basename in ('subgraphs.html',):
-    os.symlink(os.path.abspath(os.path.join(MY_POSTPROC_DIR, basename)),
+    os.symlink(os.path.abspath(os.path.join(POSTPROC_PKG_DIR, basename)),
         os.path.join(OUTPUT_DIR, basename))
 for basename in ('d3.v3.js', 'core.js', 'graph.html'):
-    os.symlink(os.path.abspath(os.path.join(POSTPROC_DIR, basename)),
+    os.symlink(os.path.abspath(os.path.join(BRIGHTSIDE_POSTPROC_PKG_DIR, basename)),
         os.path.join(OUTPUT_DIR, basename))
 
 print 'Done:'
