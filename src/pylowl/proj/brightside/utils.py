@@ -5,9 +5,27 @@ import numpy.linalg as la
 import scipy.special as sp
 import itertools as it
 import os
+import tempfile
 
 
 OPTIONS_KV_DELIM = ': '
+
+
+def parent_package_name(package_name):
+    if '.' in package_name:
+        return package_name[:package_name.rfind('.')]
+    else:
+        return None
+
+
+def make_output_dir(parent_dir):
+    if not os.path.isdir(parent_dir):
+        os.makedirs(parent_dir)
+    output_dir = tempfile.mkdtemp(prefix='', suffix='', dir=parent_dir)
+    umask = os.umask(0o022) # whatever, python
+    os.umask(umask) # set umask back
+    os.chmod(output_dir, 0o0755 & ~umask)
+    return output_dir
 
 
 def reservoir_insert(reservoir, n, item):
