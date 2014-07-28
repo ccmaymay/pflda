@@ -3,7 +3,7 @@ node_size = function(d) {
 }
 
 set_node_text = function(node, text) {
-    new_child = document.createTextNode(text);
+    var new_child = document.createTextNode(text);
     while (node.hasChildNodes()) {
         node.removeChild(node.firstChild);
     }
@@ -20,8 +20,8 @@ add_lambda_ss_text = function(font_size){
 
 format_words = function(d) {
     var graph_node = lookup_node($graph_root, d.node_placement);
-    s = "";
-    for (w in graph_node.words) {
+    var s = "";
+    for (var w in graph_node.words) {
         if (w > 0) {
             s += " ";
         }
@@ -40,7 +40,7 @@ compare_int_arrays = function(array1, array2){
     var equal = true;
     if(array1 != null && array2 != null){
         if(array1.length == array2.length){
-            for(index = 0; index < array1.length; index++){
+            for(var index = 0; index < array1.length; index++){
                 if(array1[index] != array2[index]){
                     equal = false;
                 }
@@ -56,7 +56,7 @@ compare_int_arrays = function(array1, array2){
 
 index_in_array = function(innerArray, outerArray){
     var index_in_array = -1;
-    for(arrayx = 0; arrayx < outerArray.length; arrayx++){
+    for(var arrayx = 0; arrayx < outerArray.length; arrayx++){
         if(compare_int_arrays(innerArray, outerArray[arrayx]) == true){
             index_in_array = arrayx;
             break;
@@ -96,7 +96,7 @@ filter_node_first = function(node){
             filter_node_first(null);
         }
     }
-    for(CirNode = 0; CirNode < node_sort_array.length; CirNode++){
+    for(var CirNode = 0; CirNode < node_sort_array.length; CirNode++){
         for(var graphNum = 0; graphNum < end_sort; graphNum++){
             if(lookup_node($root[graphNum]["subtree"], node_sort_array[CirNode]).active == true){
                 var temp = $root[graphNum];
@@ -157,9 +157,9 @@ filter_node_first = function(node){
 }
 
 maximum_Node_Size_rootParent = function(root){
-    min_var_param = 0;
-    for(indiv = 0; indiv < $num_graphs; indiv++){
-        minSubStat = maximum_Node_Size_subtreeChildren(min_var_param, root[indiv]["subtree"]);
+    var min_var_param = 0;
+    for(var indiv = 0; indiv < $num_graphs; indiv++){
+        var minSubStat = maximum_Node_Size_subtreeChildren(min_var_param, root[indiv]["subtree"]);
         if(minSubStat>min_var_param){
             min_var_param = minSubStat;
         }
@@ -172,7 +172,7 @@ maximum_Node_Size_subtreeChildren = function(min_var_param, node){
         min_var_param = node_size(node);
     }
     for (var c in node.children) {
-        child = node.children[c];
+        var child = node.children[c];
         min_var_param = maximum_Node_Size_subtreeChildren(min_var_param, child);
     }
     return min_var_param;
@@ -186,14 +186,14 @@ node_placement_rootParent = function(){
 
 node_placement_subtreeChildren = function(node, placementInList, currentArray){
     var myArray = [];
-    for(k = 0; k < currentArray.length; k++){
+    for(var k = 0; k < currentArray.length; k++){
         myArray[k] = currentArray[k];
     }
     myArray[myArray.length] = placementInList;
     node.node_placement = myArray;
 
     for(var c in node.children){
-        child = node.children[c];
+        var child = node.children[c];
         node_placement_subtreeChildren(child, c, myArray);
     }
 }
@@ -219,7 +219,7 @@ shift_window = function(delta) {
 tree_depth = function(node) {
     var depth = 0;
     for (var c in node.children) {
-        child = node.children[c];
+        var child = node.children[c];
         depth = Math.max(depth, 1 + tree_depth(child));
     }
     return depth;
@@ -228,7 +228,7 @@ tree_depth = function(node) {
 tree_size = function(node) {
     var size = 1;
     for (var c in node.children) {
-        child = node.children[c];
+        var child = node.children[c];
         size += tree_size(child);
     }
     return size;
@@ -237,7 +237,7 @@ tree_size = function(node) {
 tree_size_per_level = function(node) {
     var sizes = [1];
     for (var c in node.children) {
-        child = node.children[c];
+        var child = node.children[c];
         var c_sizes = tree_size_per_level(child);
         for (var j = 0; j < sizes.length - 1 && j < c_sizes.length; ++j) {
             sizes[j+1] += c_sizes[j];
@@ -263,8 +263,8 @@ lookup_node_helper = function(node, placement) {
 
 minimum_param_rootParent = function(root, paramName){
     var min_var_param = null;
-    for(indiv = 0; indiv < $num_graphs; indiv++){
-        minSubStat = minimum_param_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
+    for(var indiv = 0; indiv < $num_graphs; indiv++){
+        var minSubStat = minimum_param_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
         if(min_var_param === null || minSubStat < min_var_param){
             min_var_param = minSubStat;
         }
@@ -277,7 +277,7 @@ minimum_param_subtreeChildren = function(min_var_param, node, paramName){
         min_var_param = node[paramName];
     }
     for (var c in node.children) {
-        child = node.children[c];
+        var child = node.children[c];
         min_var_param = minimum_param_subtreeChildren(min_var_param, child, paramName);
     }
     return min_var_param;
@@ -285,8 +285,8 @@ minimum_param_subtreeChildren = function(min_var_param, node, paramName){
 
 maximum_param_rootParent = function(root, paramName){
     var max_var_param = null;
-    for(indiv = 0; indiv < $num_graphs; indiv++){
-        maxSubStat = maximum_param_subtreeChildren(max_var_param, root[indiv]["subtree"], paramName);
+    for(var indiv = 0; indiv < $num_graphs; indiv++){
+        var maxSubStat = maximum_param_subtreeChildren(max_var_param, root[indiv]["subtree"], paramName);
         if(max_var_param === null || maxSubStat > max_var_param){
             max_var_param = maxSubStat;
         }
@@ -299,7 +299,7 @@ maximum_param_subtreeChildren = function(max_var_param, node, paramName){
         max_var_param = node[paramName];
     }
     for (var c in node.children) {
-        child = node.children[c];
+        var child = node.children[c];
         max_var_param = maximum_param_subtreeChildren(max_var_param, child, paramName);
     }
     return max_var_param;
