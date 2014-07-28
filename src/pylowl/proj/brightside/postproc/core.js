@@ -153,7 +153,7 @@ filter_node_first = function(node){
         $root[graphNum] = firstArr[graphNum];
     }
 
-    update_graphs();
+    $update_graphs();
 }
 
 maximum_Node_Size_rootParent = function(root){
@@ -202,7 +202,7 @@ update_window_size = function() {
     $window_size = parseInt(document.getElementById("window_size").value, 10);
     $num_windows = Math.ceil($num_graphs / $window_size);
     $window_end = Math.min($window_start + $window_size, $num_graphs);
-    update_graphs();
+    $update_graphs();
 }
 
 shift_window = function(delta) {
@@ -213,7 +213,7 @@ shift_window = function(delta) {
         $window_start = ($num_windows - 1) * $window_size;
     }
     $window_end = Math.min($window_start + $window_size, $num_graphs);
-    update_graphs();
+    $update_graphs();
 }
 
 tree_depth = function(node) {

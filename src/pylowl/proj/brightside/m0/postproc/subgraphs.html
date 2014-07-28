@@ -50,8 +50,7 @@ body {
 </head>
 <body>
 
-<div>
-	<div id="inputWindowParameters">
+<div id="inputWindowParameters">
     <div><a href="graph.html">graph</a></div>
     <div>
         navigate:
@@ -69,20 +68,18 @@ body {
     </div>
     <div id="showCounts">
         <label for="showValues">show counts: </label><input type="checkbox"
-        onchange="update_graphs();" id="showValues"/>
+        onchange="$update_graphs();" id="showValues"/>
     </div>
-	</div>
 </div>
 
-<div id="graphs_container">
-</div>
+<div id="graphs_container"></div>
 
 <script src="d3.v3.js"></script>
 
 <script src="core.js"></script>
 
 <script>
-$window_size = 5;
+$window_size = 10;
 $window_start = 0;
 $num_windows = 0;
 $num_graphs = 0;
@@ -101,7 +98,7 @@ var diagonal = d3.svg.diagonal()
         return t;
     });
 
-update_graphs = function() {
+$update_graphs = function() {
     update_nav_text();
 
     var graphs_container = document.getElementById("graphs_container");
@@ -194,7 +191,7 @@ d3.json("graph.json", function(error, graph_root) {
         $minELogPi = minimum_param_rootParent($root, "Elogpi");
 
         $width = $maxNodeSize * 16 * (tree_depth(root[0]["subtree"]) + 1) + $maxNodeSize;
-        sizes = tree_size_per_level(root[0]["subtree"]);
+        var sizes = tree_size_per_level(root[0]["subtree"]);
         var eff_size = sizes[sizes.length - 1] + (sizes.length > 1 ? sizes[sizes.length - 2] : 0);
         $height = $maxNodeSize * 2.5 * eff_size + $maxNodeSize;
 
