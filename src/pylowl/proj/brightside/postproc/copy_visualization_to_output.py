@@ -21,11 +21,11 @@ def js_and_html_paths(parent_dir):
         + glob(os.path.join(parent_dir, '*.html'))
     )
 
-def copy_model_visualization_to_output(littleowl_dir, model_output_dir,
+def copy_model_visualization_to_output(pylowl_dir, model_output_dir,
                                        model_name, *global_sources):
     postproc_dir = os.path.join(
-        littleowl_dir,
-        'src/pylowl/proj/brightside',
+        pylowl_dir,
+        'proj/brightside',
         model_name,
         'postproc'
     )
