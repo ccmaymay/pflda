@@ -50,6 +50,7 @@ if __name__ == '__main__':
         batchsize=20,
         alpha=1,
         beta=1,
+        gamma=1,
         iota=64,
         kappa=0.6,
         lambda0=0.01,
