@@ -176,6 +176,8 @@ class model(object):
         for doc in docs:
             if doc.attrs['class'] in self.m_r_classes:
                 doc.class_idx = self.m_r_classes[doc.attrs['class']]
+            elif not update:
+                raise ValueError('cannot predict on unseen class')
             else:
                 class_idx = len(self.m_r_classes)
                 self.m_classes[class_idx] = doc.attrs['class']

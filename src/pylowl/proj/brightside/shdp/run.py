@@ -383,6 +383,8 @@ def test_shdp(m, c, batchsize, var_converge, test_samples=None):
     while doc_count == batchsize:
         batch = take(docs_generator, batchsize)
 
+        batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
+
         (score, count, doc_count, confusion) = m.process_documents(
             batch, var_converge, update=False)
         total_score += score
@@ -412,6 +414,9 @@ def test_shdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         train_batch = take(train_docs_generator, batchsize)
         test_batch = take(test_docs_generator, batchsize)
 
+        train_batch = [doc for doc in train_batch if doc.attrs['class'] in m.m_r_classes]
+        test_batch = [doc for doc in test_batch if doc.attrs['class'] in m.m_r_classes]
+
         (score, count, doc_count, confusion) = m.process_documents(
             train_batch, var_converge, update=False, predict_docs=test_batch)
         total_score += score
@@ -439,6 +444,8 @@ def test_shdp_predict_classes(m, num_classes, c, batchsize, var_converge, test_s
     doc_count = batchsize
     while doc_count == batchsize:
         batch = take(docs_generator, batchsize)
+
+        batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
 
         (score, count, doc_count, confusion) = m.process_documents(
             batch, var_converge, update=False, predict_classes=True)
