@@ -210,6 +210,8 @@ def run(**kwargs):
 
     if options['data_dir'] is None:
         raise ValueError('data_dir must be specified')
+    if options['vocab_path'] is None:
+        raise ValueError('vocab_path must be specified')
 
     if options['streaming']:
         if options['D'] is None:
