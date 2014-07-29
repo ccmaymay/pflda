@@ -1,11 +1,21 @@
+#!/usr/bin/env python
+#$ -cwd
+#$ -j y
+#$ -V
+#$ -N "m0"
+#$ -q text.q
+#$ -l num_proc=1,mem_free=2G,h_rt=4:00:00
+
+
 import codecs
 import logging
 import time
 import os
 import sys
 from pylowl.proj.brightside.corpus import Corpus, load_vocab
-from pylowl.proj.brightside.utils import take, nested_file_paths
+from pylowl.proj.brightside.utils import take, nested_file_paths, make_output_dir
 from pylowl.proj.brightside.m0.core import *
+from pylowl.proj.brightside.m0.postproc.utils import postprocess
 import random
 
 
@@ -34,36 +44,37 @@ SUBTREE_OUTPUT_BASENAMES = [
     )
 ]
 
+DEFAULT_OUTPUT_PARENT_DIR = 'output/pylowl/proj/brightside/m0'
+
 DEFAULT_OPTIONS = dict(
     log_level='INFO',
-    trunc='1,20,10,5',
+    trunc='1,7,5',
     D=None,
     lambda0=0.01,
     beta=1.0,
     alpha=1.0,
     gamma1=1.0,
     gamma2=1.0,
-    kappa=0.5,
-    iota=1.0,
+    kappa=0.6,
+    iota=64.0,
     delta=1e-3,
     eff_init_samples=None,
     init_noise_weight=0.5,
     batchsize=100,
     max_iter=None,
-    max_time=None,
+    max_time=3600,
     var_converge=0.0001,
     random_seed=None,
     data_dir=None,
     test_data_dir=None,
-    output_dir='output',
+    output_dir=None,
     test_samples=None,
     test_train_frac=0.9,
     save_lag=500,
-    pass_ratio=0.5,
     scale=1.0,
     streaming=False,
     fixed_lag=False,
-    save_model=False,
+    save_model=True,
     init_samples=None,
     vocab_path=None,
     concrete_section_segmentation=0,
@@ -109,7 +120,7 @@ def make_arg_parser():
     parser.add_argument("--max_iter", type=int,
                       help="max iterations for training (None: no max)")
     parser.add_argument("--max_time", type=int,
-                      help="max time in seconds for training (None: no max)")
+                      help="max time in seconds for training")
     parser.add_argument("--var_converge", type=float,
                       help="relative change on doc lower bound")
     parser.add_argument("--random_seed", type=int,
@@ -121,7 +132,7 @@ def make_arg_parser():
     parser.add_argument("--test_train_frac", type=float,
                       help="fraction of testing docs on which to infer local distributions")
     parser.add_argument("--output_dir", type=str,
-                      help="output directory")
+                      help="output directory (None: auto, subdir of '%s')" % DEFAULT_OUTPUT_PARENT_DIR)
     parser.add_argument("--save_lag", type=int,
                       help="the minimal saving lag, increasing as save_lag * 2^i, with max i as 10; default 500.")
     parser.add_argument("--init_samples", type=int,
@@ -147,11 +158,10 @@ def make_arg_parser():
 
     return parser
 
-ARG_PARSER = make_arg_parser()
-
 
 def main():
-    run(**vars(ARG_PARSER.parse_args()))
+    parser = make_arg_parser()
+    run(**vars(parser.parse_args()))
 
 
 def run(**kwargs):
@@ -159,12 +169,15 @@ def run(**kwargs):
     options.update(kwargs)
     
     # Make output dir
-    result_directory = options['output_dir']
-    if not os.path.isdir(result_directory):
-        os.makedirs(result_directory)
+    if options['output_dir'] is None:
+        output_dir = make_output_dir(DEFAULT_OUTPUT_PARENT_DIR)
+    else:
+        output_dir = options['output_dir']
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
 
     # Initialize logger
-    log_path = os.path.join(result_directory, LOG_BASENAME)
+    log_path = os.path.join(output_dir, LOG_BASENAME)
     logger = logging.getLogger()
     logger.setLevel(options['log_level'])
     log_file_handler = logging.FileHandler(log_path)
@@ -179,7 +192,7 @@ def run(**kwargs):
     logger.addHandler(log_out_handler)
 
     # Write options to log, file
-    options_filename = os.path.join(result_directory, OPTIONS_BASENAME)
+    options_filename = os.path.join(output_dir, OPTIONS_BASENAME)
     with wrap_open(options_filename, 'w') as options_f:
         for (k, v) in options.items():
             line = '%s: %s' % (k, v)
@@ -189,6 +202,9 @@ def run(**kwargs):
     # Set the random seed.
     if options['random_seed'] is not None:
         set_random_seed(options['random_seed'])
+
+    if options['data_dir'] is None:
+        raise ValueError('data_dir must be specified')
 
     if options['streaming']:
         if options['D'] is None:
@@ -255,7 +271,7 @@ def run(**kwargs):
 
     if options['save_model']:
         subtree_output_files = dict(
-            (s, wrap_open(os.path.join(result_directory, bn), mode))
+            (s, wrap_open(os.path.join(output_dir, bn), mode))
             for (s, bn, mode) in SUBTREE_OUTPUT_BASENAMES
         )
     else:
@@ -279,7 +295,7 @@ def run(**kwargs):
         init_docs = take(c_train.docs, options['init_samples'])
         m.initialize(init_docs, options['init_noise_weight'], options['eff_init_samples'])
 
-    save_global(m, 'initial', result_directory, options['save_model'])
+    save_global(m, 'initial', output_dir, options['save_model'])
 
     iteration = 0
     total_doc_count = 0
@@ -312,7 +328,7 @@ def run(**kwargs):
                 options['save_lag'] = options['save_lag'] * 2
 
             # Save the model.
-            save_global(m, 'doc_count-%d' % total_doc_count, result_directory,
+            save_global(m, 'doc_count-%d' % total_doc_count, output_dir,
                         options['save_model'])
 
             if options['test_data_dir'] is not None:
@@ -327,7 +343,7 @@ def run(**kwargs):
             break
 
     # Save the model.
-    save_global(m, 'final', result_directory, options['save_model'])
+    save_global(m, 'final', output_dir, options['save_model'])
 
     # Making final predictions.
     if options['test_data_dir'] is not None:
@@ -337,20 +353,25 @@ def run(**kwargs):
         if f is not None:
             f.close()
 
+    logging.info('Postprocessing output: %s' % output_dir)
+    postprocess(output_dir)
 
-def save_global(m, basename_stem, result_directory, save_model):
+    logging.info('Done.')
+
+
+def save_global(m, basename_stem, output_dir, save_model):
     if save_model:
         logging.info('Saving global model with stem %s' % basename_stem)
-    output_files = make_output_files(basename_stem, result_directory,
+    output_files = make_output_files(basename_stem, output_dir,
                                      save_model)
     m.save_global(output_files)
     close_output_files(output_files)
 
 
-def make_output_files(basename_stem, result_directory, save_model):
+def make_output_files(basename_stem, output_dir, save_model):
     if save_model:
         return dict(
-            (s, wrap_open(os.path.join(result_directory, basename_stem + ext), mode))
+            (s, wrap_open(os.path.join(output_dir, basename_stem + ext), mode))
             for (s, ext, mode) in OUTPUT_EXTS
         )
     else:
