@@ -30,7 +30,7 @@ format_words = function(d) {
     return s;
 }
 
-update_nav_text = function() {
+$update_nav_text = function() {
     set_node_text(document.getElementById("window_start_text"), $window_start);
     set_node_text(document.getElementById("window_end_text"), $window_end);
     set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
@@ -78,27 +78,27 @@ qsort = function(a) {
     return qsort(left).concat(a[0], qsort(right));
 }
 
-filter_node_first = function(node){
+$filter_node_first = function(node){
     var end_sort = $root.length;
     var root_index = 0;
     if(node != null){
-        if(index_in_array(node.node_placement, node_sort_array) == -1){
-            node_sort_array[node_sort_array.length] = node.node_placement;
+        if(index_in_array(node.node_placement, $node_sort_array) == -1){
+            $node_sort_array[$node_sort_array.length] = node.node_placement;
             for(var graphNum = 0; graphNum < $root.length; graphNum++){
                 lookup_node($root[graphNum]["subtree"], node.node_placement).circled = true;
             }
         }else{
-            var indexOfNode = index_in_array(node.node_placement, node_sort_array);
-            node_sort_array.splice(indexOfNode,1);
+            var indexOfNode = index_in_array(node.node_placement, $node_sort_array);
+            $node_sort_array.splice(indexOfNode,1);
             for(var graphNum = 0; graphNum < $root.length; graphNum++){
                 lookup_node($root[graphNum]["subtree"], node.node_placement).circled = false;
             }
-            filter_node_first(null);
+            $filter_node_first(null);
         }
     }
-    for(var CirNode = 0; CirNode < node_sort_array.length; CirNode++){
+    for(var CirNode = 0; CirNode < $node_sort_array.length; CirNode++){
         for(var graphNum = 0; graphNum < end_sort; graphNum++){
-            if(lookup_node($root[graphNum]["subtree"], node_sort_array[CirNode]).active == true){
+            if(lookup_node($root[graphNum]["subtree"], $node_sort_array[CirNode]).active == true){
                 var temp = $root[graphNum];
                 $root[graphNum] = $root[root_index];
                 $root[root_index] = temp;
@@ -111,9 +111,9 @@ filter_node_first = function(node){
 
     for(var graphNum = 0; graphNum < $root.length; graphNum++){
         var graphLambda = 0;
-        for(var nodeInd = 0; nodeInd < node_sort_array.length; nodeInd++){
-            if(lookup_node($root[graphNum]["subtree"], node_sort_array[nodeInd]).active == true){
-                graphLambda += lookup_node($root[graphNum]["subtree"], node_sort_array[nodeInd]).lambda_ss;
+        for(var nodeInd = 0; nodeInd < $node_sort_array.length; nodeInd++){
+            if(lookup_node($root[graphNum]["subtree"], $node_sort_array[nodeInd]).active == true){
+                graphLambda += lookup_node($root[graphNum]["subtree"], $node_sort_array[nodeInd]).lambda_ss;
             }
         }
         $root[graphNum].total_lambda_ss = graphLambda;
@@ -122,8 +122,8 @@ filter_node_first = function(node){
     var end_first_part_qsort = 0;
     for(var graphNum = 0; graphNum < $root.length; graphNum++){
         var addOne = 1;
-        for(var nodeInd = 0; nodeInd < node_sort_array.length; nodeInd++){
-            if(lookup_node($root[graphNum]["subtree"], node_sort_array[nodeInd]).active == false){
+        for(var nodeInd = 0; nodeInd < $node_sort_array.length; nodeInd++){
+            if(lookup_node($root[graphNum]["subtree"], $node_sort_array[nodeInd]).active == false){
                 addOne = 0;
             }
         }
@@ -152,8 +152,6 @@ filter_node_first = function(node){
     for(var graphNum = 0; graphNum < firstArr.length; graphNum++){
         $root[graphNum] = firstArr[graphNum];
     }
-
-    $update_graphs();
 }
 
 maximum_Node_Size_rootParent = function(root){
@@ -198,14 +196,13 @@ node_placement_subtreeChildren = function(node, placementInList, currentArray){
     }
 }
 
-update_window_size = function() {
+$update_window_size = function() {
     $window_size = parseInt(document.getElementById("window_size").value, 10);
     $num_windows = Math.ceil($num_graphs / $window_size);
-    $window_end = Math.min($window_start + $window_size, $num_graphs);
-    $update_graphs();
+    $shift_window(0);
 }
 
-shift_window = function(delta) {
+$shift_window = function(delta) {
     $window_start += delta * $window_size;
     if ($window_start < 0) {
         $window_start = 0;
@@ -213,7 +210,6 @@ shift_window = function(delta) {
         $window_start = ($num_windows - 1) * $window_size;
     }
     $window_end = Math.min($window_start + $window_size, $num_graphs);
-    $update_graphs();
 }
 
 tree_depth = function(node) {
