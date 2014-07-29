@@ -71,7 +71,7 @@ DEFAULT_OPTIONS = dict(
 )
 
 
-def main(argv=None):
+def make_arg_parser():
     from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     parser.set_defaults(**DEFAULT_OPTIONS)
@@ -150,11 +150,13 @@ def main(argv=None):
     parser.add_argument("--user_doc_reservoir_capacity", type=int,
                       help="capacity of each per-user document reservoir")
 
-    if argv is None:
-        args = parser.parse_args(sys.argv[1:])
-    else:
-        args = parser.parse_args(argv)
-    run(**vars(args))
+    return parser
+
+ARG_PARSER = make_arg_parser()
+
+
+def main():
+    run(**vars(ARG_PARSER.parse_args()))
 
 
 def run(**kwargs):
