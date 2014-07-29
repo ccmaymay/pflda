@@ -1,4 +1,5 @@
 import random
+import argparse
 import numpy as np
 import numpy.random as nprand
 import numpy.linalg as la
@@ -6,9 +7,45 @@ import scipy.special as sp
 import itertools as it
 import os
 import tempfile
+import subprocess
 
 
 OPTIONS_KV_DELIM = ': '
+
+
+def run_grid_commands(command, **var_levels):
+    var_names = var_levels.keys()
+    var_levels_list = [kwargs[var_name] for var_name in var_names]
+    for var_level_combination in it.product(*var_levels_list):
+        arg_pairs = (('--%s' % var_name, var_level)
+                     for (var_name, var_level)
+                     in zip(var_names, var_level_combination))
+        subprocess.call(command + reduce(lambda x, y: x + y, arg_pairs))
+
+
+def parse_grid_args(var_name_type_pairs, default_var_values):
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    default_args = dict(
+        (var_name, default_var_values[var_name])
+        for (var_name, var_type)
+        in var_name_type_pairs
+    )
+    parser.set_defaults(**default_args)
+    for (var_name, var_type) in var_name_type_pairs:
+        parser.add_argument(
+            '--%s' % var_name,
+            metavar='%s_level' % var_name,
+            type=var_type,
+            nargs='*'
+        )
+    return vars(parser.parse_args())
+
+
+def seconds_to_hms(total_seconds):
+    seconds = total_seconds % 60
+    minutes = (total_seconds // 60) % 60
+    hours = (total_seconds // 3600)
+    return (hours, minutes, seconds)
 
 
 def parent_package_name(package_name):
