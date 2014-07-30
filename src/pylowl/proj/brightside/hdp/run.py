@@ -81,6 +81,17 @@ DEFAULT_OPTIONS = dict(
     optimal_order=False,
 )
 
+GRID_VAR_NAME_TYPE_PAIRS = (
+    ('K', int),
+    ('L', int),
+    ('alpha', float),
+    ('beta', float),
+    ('lambda0', float),
+    ('kappa', float),
+    ('iota', float),
+    ('batchsize', int),
+)
+
 
 def make_arg_parser():
     from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter

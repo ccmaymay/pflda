@@ -81,6 +81,18 @@ DEFAULT_OPTIONS = dict(
     user_doc_reservoir_capacity=10,
 )
 
+GRID_VAR_NAME_TYPE_PAIRS = (
+    ('trunc', str),
+    ('alpha', float),
+    ('beta', float),
+    ('gamma1', float),
+    ('gamma2', float),
+    ('lambda0', float),
+    ('kappa', float),
+    ('iota', float),
+    ('batchsize', int),
+)
+
 
 def make_arg_parser():
     from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
