@@ -245,10 +245,9 @@ var agg_subtree_param = function(node, get_param, agg) {
     var curried = function(n) {
         return agg_subtree_param(n, get_param, agg);
     }
-    return agg(
-        get_param(node),
-        agg.apply(null, node.children.map(curried))
-    );
+    return (("children" in node)
+        ? agg(get_param(node), agg.apply(null, node.children.map(curried)))
+        : get_param(node));
 }
 
 $max_subtrees_param = function(root, get_param) {
