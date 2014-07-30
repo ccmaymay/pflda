@@ -98,6 +98,10 @@ var diagonal = d3.svg.diagonal()
         return t;
     });
 
+var get_node_expected_time = function(node, default_val) {
+    return ("expected_time" in node) ? node.expected_time : default_val;
+}
+
 var update_graphs = function() {
     $update_nav_text();
 
@@ -107,8 +111,8 @@ var update_graphs = function() {
     }
 
     for (var c = $window_start; c < $window_end; ++c) {
-        var minEtime = $min_subtree_param($root[c]["subtree"], function(node) {return node.expected_time;});
-        var maxEtime = $max_subtree_param($root[c]["subtree"], function(node) {return node.expected_time;});
+        var minEtime = $min_subtree_param($root[c]["subtree"], function(node) {return get_node_expected_time(node, Infinity);});
+        var maxEtime = $max_subtree_param($root[c]["subtree"], function(node) {return get_node_expected_time(node, -Infinity);});
         var ramp = d3.scale.linear().domain([minEtime, maxEtime]).range(["blue","red"]);
 
         var cluster = d3.layout.cluster()
