@@ -96,7 +96,19 @@ var format_words = function(n) {
     return s;
 }
 
-update_graphs = function() {
+update_num_graphs = function() {
+    var user_select = document.getElementById("user_select");
+    var selected_user = user_select.value;
+    $num_graphs = 0;
+    for (var m = 0; m < $total_num_graphs; ++m) {
+        var user = $root[m]["user"];
+        if (selected_user == user) {
+            ++$num_graphs;
+        }
+    }
+}
+
+var update_graphs = function() {
     var user_select = document.getElementById("user_select");
     var selected_user = user_select.value;
     var user_doc_indices = [];
@@ -260,18 +272,6 @@ update_graphs = function() {
             }
 
             ++user_m;
-        }
-    }
-}
-
-update_num_graphs = function() {
-    var user_select = document.getElementById("user_select");
-    var selected_user = user_select.value;
-    $num_graphs = 0;
-    for (var m = 0; m < $total_num_graphs; ++m) {
-        var user = $root[m]["user"];
-        if (selected_user == user) {
-            ++$num_graphs;
         }
     }
 }

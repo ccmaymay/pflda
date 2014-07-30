@@ -72,40 +72,39 @@ var diagonal = d3.svg.diagonal()
         return t;
     });
 
-make_format_words = function(min_font, font_exp_scale) {
+var make_format_words = function(min_font, font_exp_scale) {
     return function(d) {
         var s = "<div>";
         for (var j = 0; j < 10; j++) {
             var word = d.words[j].word;
             var weight = d.words[j].lambda_ss;
             if (j > 0) { s += " "; }
-            s += "<span style=\"font-size: " + Math.max(min_font,
-                                                        font_exp_scale*Math.log(weight)/Math.log(2)) + "px\">" + word +
-        "</span>";
+            s += "<span style=\"font-size: " + Math.max(min_font, font_exp_scale*Math.log(weight)/Math.log(2)) + "px\">" + word + "</span>";
         }
         s += "</div>";
         return s;
     }
 }
 
-lambda_ss_sum = function(node){
+var lambda_ss_sum = function(node){
 	var s = 0;
-	for(word = 0; word < node.words.length; word++){
+	for(var word = 0; word < node.words.length; word++){
 		s += node.words[word].lambda_ss;
 	}
 	return s;
 }
 
-node_size = function(node){
+var node_size = function(node){
     return Math.max(Math.min(Math.log(lambda_ss_sum(node)),40),0)+2;
 }
 
-add_lambda_ss_text = function(font_size){
-	return function(d){ return "<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">" + Math.round(1000*lambda_ss_sum(d))/1000 + "</div>";
+var add_lambda_ss_text = function(font_size){
+	return function(d){
+        return "<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">" + Math.round(1000*lambda_ss_sum(d))/1000 + "</div>";
 	}
 }
 
-update_graph = function() {
+var update_graph = function() {
 	var ramp =
     d3.scale.linear().domain([$minELogPi,$maxELogPi]).range(["blue","red"]);
 	
@@ -136,8 +135,7 @@ update_graph = function() {
     .data(nodes)
     .enter().append("g")
     .attr("class", "node")
-    .attr("transform", function(d) { return "translate(" + d.y +
-          "," + d.x + ")"; })
+    .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
 
     node.append("foreignObject")
     .attr("width", 200)
@@ -146,7 +144,7 @@ update_graph = function() {
     .html(make_format_words(6, 2));
 
 	node.append("circle")
-		.attr("r", function(d){return node_size(d);})
+		.attr("r", node_size)
 		.style("fill", function(d) {return ramp(d.Elogpi);})
         .style("stroke", function(d) {return ramp(d.Elogpi);})
         .style("stroke-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-$minELogPi)/($maxELogPi-$minELogPi);})
@@ -162,52 +160,15 @@ update_graph = function() {
     }
 }
 
-tree_depth = function(node) {
-    var depth = 0;
-    for (var c in node.children) {
-        var child = node.children[c];
-        depth = Math.max(depth, 1 + tree_depth(child));
-    }
-    return depth;
-}
-
-
-tree_size = function(node) {
-    var size = 1;
-    for (var c in node.children) {
-        var child = node.children[c];
-        size += tree_size(child);
-    }
-    return size;
-}
-
-tree_size_per_level = function(node) {
-    var sizes = [1];
-    for (var c in node.children) {
-        var child = node.children[c];
-        var c_sizes = tree_size_per_level(child);
-        for (var j = 0; j < sizes.length - 1 && j < c_sizes.length; ++j) {
-            sizes[j+1] += c_sizes[j];
-        }
-        for (var j = sizes.length - 1; j < c_sizes.length; ++j) {
-            sizes.push(c_sizes[j]);
-        }
-    }
-    return sizes;
-}
-
 d3.json("graph.json", function(error, root) {
     $root = root;
 
-	$maxNodeSize = null;
-	$maxNodeSize = maximum_Node_Size_subtreeChildren($maxNodeSize, $root)
-    $minELogPi = null;
-    $minELogPi = minimum_param_subtreeChildren($minELogPi, $root, "Elogpi");
-    $maxELogPi = null;
-    $maxELogPi = maximum_param_subtreeChildren($maxELogPi, $root, "Elogpi");
+	$maxNodeSize = $max_subtree_param($root, node_size);
+    $minELogPi = $min_subtree_param($root, function(node) {return node.Elogpi;});
+    $maxELogPi = $max_subtree_param($root, function(node) {return node.Elogpi;});
 
-    $width = 300 * tree_depth(root) + 300;
-    $height = 140 * Math.max.apply(null, tree_size_per_level(root));
+    $width = 300 * $tree_depth(root) + 300;
+    $height = 140 * Math.max.apply(null, $tree_size_per_level(root));
 
     update_graph();
 

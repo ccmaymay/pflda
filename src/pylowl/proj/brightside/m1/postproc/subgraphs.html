@@ -89,16 +89,16 @@ var diagonal = d3.svg.diagonal()
     .projection(function(d) { return [d.y, d.x]; })
     .source(function (d) {
         var s = Object.create(d.source);
-        s.y += node_size(s);
+        s.y += $node_size(s);
         return s;
     })
     .target(function (d) {
         var t = Object.create(d.target);
-        t.y -= node_size(t);
+        t.y -= $node_size(t);
         return t;
     });
 
-update_graphs = function() {
+var update_graphs = function() {
     $update_nav_text();
 
     var graphs_container = document.getElementById("graphs_container");
@@ -107,8 +107,8 @@ update_graphs = function() {
     }
 
     for (var c = $window_start; c < $window_end; ++c) {
-        var maxEtime = maximum_param_subtreeChildren(null, $root[c]["subtree"], "expected_time");
-        var minEtime = minimum_param_subtreeChildren(null, $root[c]["subtree"], "expected_time");
+        var minEtime = $min_subtree_param($root[c]["subtree"], function(node) {return node.expected_time;});
+        var maxEtime = $max_subtree_param($root[c]["subtree"], function(node) {return node.expected_time;});
         var ramp = d3.scale.linear().domain([minEtime, maxEtime]).range(["blue","red"]);
 
         var cluster = d3.layout.cluster()
@@ -152,7 +152,7 @@ update_graphs = function() {
               d.y + "," + d.x + ")"; });
 
         node.append("circle")
-		.attr("r", function(d){return node_size(d);})
+		.attr("r", $node_size)
         .style("fill", function(d) {return d.active ?
                ramp(d.expected_time) : "black"})
         .style("stroke", function(d) {return d.active ?
@@ -170,14 +170,14 @@ update_graphs = function() {
         .style("fill-opacity", "0")
 		.on("click", function(d){$filter_node_first(d); update_graphs();})
         .append("title")
-        .text(format_words);
+        .text($format_words);
 
         if(document.getElementById("showValues").checked == true){
 			node.append("foreignObject")
 				.attr("width", 200)
 				.attr("height", 30)
 				.append("xhtml:body")
-				.html(add_lambda_ss_text(10));
+				.html($add_lambda_ss_text(10));
         }
     }
 }
@@ -187,13 +187,13 @@ d3.json("graph.json", function(error, graph_root) {
     d3.json("subgraphs.json", function(error, root) {
         $num_graphs = root.length;
         $root = root;
-        node_placement_rootParent();
-        $maxNodeSize = maximum_Node_Size_rootParent($root);
-        $minELogPi = minimum_param_rootParent($root, "Elogpi");
-        $maxELogPi = maximum_param_rootParent($root, "Elogpi");
+        $set_subtrees_node_placement();
+        $maxNodeSize = $max_subtrees_param($root, $node_size);
+        $minELogPi = $min_subtrees_param($root, function(node) {return node.Elogpi;});
+        $maxELogPi = $max_subtrees_param($root, function(node) {return node.Elogpi;});
         
-		$width = $maxNodeSize * 16 * (tree_depth(root[0]["subtree"]) + 1) + $maxNodeSize;
-        var sizes = tree_size_per_level(root[0]["subtree"]);
+		$width = $maxNodeSize * 16 * ($tree_depth(root[0]["subtree"]) + 1) + $maxNodeSize;
+        var sizes = $tree_size_per_level(root[0]["subtree"]);
         var eff_size = sizes[sizes.length - 1] + (sizes.length > 1 ? sizes[sizes.length - 2] : 0);
         $height = $maxNodeSize * 2.5 * eff_size + $maxNodeSize;
 

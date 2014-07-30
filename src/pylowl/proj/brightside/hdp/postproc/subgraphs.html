@@ -63,7 +63,6 @@ $window_start = 0;
 $num_windows = 0;
 $num_graphs = 0;
 
-
 var graph_length = function(node) {
     var nested_node = node;
     for (var n = 0; nested_node.children.length > 0; ++n) {
@@ -80,7 +79,7 @@ var lookup_node = function(node, n) {
     return nested_node
 }
 
-update_graphs = function() {
+var update_graphs = function() {
     $update_nav_text();
 
     var graphs_container = document.getElementById("graphs_container");

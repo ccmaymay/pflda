@@ -1,8 +1,8 @@
-node_size = function(d) {
+$node_size = function(d) {
     return d.active ? (Math.max(Math.min(Math.log(d.lambda_ss),10),0)+2) : 2;
 }
 
-set_node_text = function(node, text) {
+var set_node_text = function(node, text) {
     var new_child = document.createTextNode(text);
     while (node.hasChildNodes()) {
         node.removeChild(node.firstChild);
@@ -10,15 +10,15 @@ set_node_text = function(node, text) {
     node.appendChild(new_child);
 }
 
-add_lambda_ss_text = function(font_size){
-    return function(d){ return d.active ?
-        "<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">"
-            + Math.round(1000*d.lambda_ss)/1000 + "</div>"
-        : "" ;
+$add_lambda_ss_text = function(font_size){
+    return function(d){
+        return d.active ?
+            ("<div id=\"lambda_text\" style=\"font-size: " + font_size +"px\">" + Math.round(1000*d.lambda_ss)/1000 + "</div>")
+            : "" ;
     }
 }
 
-format_words = function(d) {
+$format_words = function(d) {
     var graph_node = lookup_node($graph_root, d.node_placement);
     var s = "";
     for (var w in graph_node.words) {
@@ -31,12 +31,12 @@ format_words = function(d) {
 }
 
 $update_nav_text = function() {
-    set_node_text(document.getElementById("window_start_text"), $window_start);
-    set_node_text(document.getElementById("window_end_text"), $window_end);
-    set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
+    var set_node_text(document.getElementById("window_start_text"), $window_start);
+    var set_node_text(document.getElementById("window_end_text"), $window_end);
+    var set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
 }
 
-compare_int_arrays = function(array1, array2){
+var compare_int_arrays = function(array1, array2){
     var equal = true;
     if(array1 != null && array2 != null){
         if(array1.length == array2.length){
@@ -54,19 +54,18 @@ compare_int_arrays = function(array1, array2){
     return equal;
 }
 
-index_in_array = function(innerArray, outerArray){
-    var index_in_array = -1;
+var index_in_array = function(innerArray, outerArray){
+    var idx = -1;
     for(var arrayx = 0; arrayx < outerArray.length; arrayx++){
         if(compare_int_arrays(innerArray, outerArray[arrayx]) == true){
-            index_in_array = arrayx;
+            idx = arrayx;
             break;
         }
     }
-    return index_in_array;
+    return idx;
 }
 
-
-qsort = function(a) {
+var qsort = function(a) {
     if (a.length == 0) return [];
  
     var left = [], right = [], pivot = a[0].total_lambda_ss;
@@ -83,7 +82,7 @@ $filter_node_first = function(node){
     var root_index = 0;
     if(node != null){
         if(index_in_array(node.node_placement, $node_sort_array) == -1){
-            $node_sort_array[$node_sort_array.length] = node.node_placement;
+            $node_sort_array.push(node.node_placement);
             for(var graphNum = 0; graphNum < $root.length; graphNum++){
                 lookup_node($root[graphNum]["subtree"], node.node_placement).circled = true;
             }
@@ -146,7 +145,7 @@ $filter_node_first = function(node){
     secondArr = qsort(secondArr);
     
     for(var index = 0; index < secondArr.length; index++){
-        firstArr[firstArr.length] = secondArr[index];
+        firstArr.push(secondArr[index]);
     }
     
     for(var graphNum = 0; graphNum < firstArr.length; graphNum++){
@@ -154,45 +153,23 @@ $filter_node_first = function(node){
     }
 }
 
-maximum_Node_Size_rootParent = function(root){
-    var min_var_param = 0;
-    for(var indiv = 0; indiv < $num_graphs; indiv++){
-        var minSubStat = maximum_Node_Size_subtreeChildren(min_var_param, root[indiv]["subtree"]);
-        if(minSubStat>min_var_param){
-            min_var_param = minSubStat;
-        }
-    }
-    return min_var_param;
-}
-
-maximum_Node_Size_subtreeChildren = function(min_var_param, node){
-    if(min_var_param < node_size(node)){
-        min_var_param = node_size(node);
-    }
-    for (var c in node.children) {
-        var child = node.children[c];
-        min_var_param = maximum_Node_Size_subtreeChildren(min_var_param, child);
-    }
-    return min_var_param;
-}
-
-node_placement_rootParent = function(){
+$set_subtrees_node_placement = function(){
 	for(var graphNum = 0; graphNum < $root.length; graphNum++){
-		node_placement_subtreeChildren($root[graphNum].subtree, 0, []);
+		set_subtree_node_placement($root[graphNum].subtree, 0, []);
 	}
 }
 
-node_placement_subtreeChildren = function(node, placementInList, currentArray){
+var set_subtree_node_placement = function(node, placementInList, currentArray){
     var myArray = [];
     for(var k = 0; k < currentArray.length; k++){
         myArray[k] = currentArray[k];
     }
-    myArray[myArray.length] = placementInList;
+    myArray.push(placementInList);
     node.node_placement = myArray;
 
     for(var c in node.children){
         var child = node.children[c];
-        node_placement_subtreeChildren(child, c, myArray);
+        set_subtree_node_placement(child, c, myArray);
     }
 }
 
@@ -212,29 +189,29 @@ $shift_window = function(delta) {
     $window_end = Math.min($window_start + $window_size, $num_graphs);
 }
 
-tree_depth = function(node) {
+$tree_depth = function(node) {
     var depth = 0;
     for (var c in node.children) {
         var child = node.children[c];
-        depth = Math.max(depth, 1 + tree_depth(child));
+        depth = Math.max(depth, 1 + $tree_depth(child));
     }
     return depth;
 }
 
-tree_size = function(node) {
+$tree_size = function(node) {
     var size = 1;
     for (var c in node.children) {
         var child = node.children[c];
-        size += tree_size(child);
+        size += $tree_size(child);
     }
     return size;
 }
 
-tree_size_per_level = function(node) {
+$tree_size_per_level = function(node) {
     var sizes = [1];
     for (var c in node.children) {
         var child = node.children[c];
-        var c_sizes = tree_size_per_level(child);
+        var c_sizes = $tree_size_per_level(child);
         for (var j = 0; j < sizes.length - 1 && j < c_sizes.length; ++j) {
             sizes[j+1] += c_sizes[j];
         }
@@ -245,11 +222,11 @@ tree_size_per_level = function(node) {
     return sizes;
 }
 
-lookup_node = function(subtree, placement) {
+$lookup_node = function(subtree, placement) {
     return lookup_node_helper(subtree, placement.slice(1));
 }
 
-lookup_node_helper = function(node, placement) {
+var lookup_node_helper = function(node, placement) {
     if (placement.length == 0) {
         return node;
     } else {
@@ -257,46 +234,35 @@ lookup_node_helper = function(node, placement) {
     }
 }
 
-minimum_param_rootParent = function(root, paramName){
-    var min_var_param = null;
-    for(var indiv = 0; indiv < $num_graphs; indiv++){
-        var minSubStat = minimum_param_subtreeChildren(min_var_param, root[indiv]["subtree"], paramName);
-        if(min_var_param === null || minSubStat < min_var_param){
-            min_var_param = minSubStat;
-        }
+var agg_subtrees_param = function(root, get_param, agg) {
+    var curried = function(subtree_container) {
+        return agg_subtree_param(subtree_container["subtree"], get_param, agg);
     }
-    return min_var_param;
+    return agg.apply(null, root);
 }
 
-minimum_param_subtreeChildren = function(min_var_param, node, paramName){
-    if(paramName in node && (min_var_param === null || node[paramName] < min_var_param)){
-        min_var_param = node[paramName];
+var agg_subtree_param = function(node, get_param, agg) {
+    var curried = function(n) {
+        return agg_subtree_param(n, get_param, agg);
     }
-    for (var c in node.children) {
-        var child = node.children[c];
-        min_var_param = minimum_param_subtreeChildren(min_var_param, child, paramName);
-    }
-    return min_var_param;
+    return agg(
+        get_param(node),
+        agg.apply(null, node.children.map(curried))
+    );
 }
 
-maximum_param_rootParent = function(root, paramName){
-    var max_var_param = null;
-    for(var indiv = 0; indiv < $num_graphs; indiv++){
-        var maxSubStat = maximum_param_subtreeChildren(max_var_param, root[indiv]["subtree"], paramName);
-        if(max_var_param === null || maxSubStat > max_var_param){
-            max_var_param = maxSubStat;
-        }
-    }
-    return max_var_param;
+$max_subtrees_param = function(root, get_param) {
+    return agg_subtrees_param(root, get_param, Math.max);
 }
 
-maximum_param_subtreeChildren = function(max_var_param, node, paramName){
-    if(paramName in node && (max_var_param === null || node[paramName] > max_var_param)){
-        max_var_param = node[paramName];
-    }
-    for (var c in node.children) {
-        var child = node.children[c];
-        max_var_param = maximum_param_subtreeChildren(max_var_param, child, paramName);
-    }
-    return max_var_param;
+$max_subtree_param = function(node, get_param) {
+    return agg_subtree_param(node, get_param, Math.max);
+}
+
+$min_subtrees_param = function(root, get_param) {
+    return agg_subtrees_param(root, get_param, Math.min);
+}
+
+$min_subtree_param = function(node, get_param) {
+    return agg_subtree_param(node, get_param, Math.min);
 }
