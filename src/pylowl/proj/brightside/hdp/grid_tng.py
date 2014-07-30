@@ -2,7 +2,7 @@
 
 
 from pylowl.proj.brightside.utils import seconds_to_hms, parse_grid_args, run_grid_commands
-from pylowl.proj.brightside.hdp.run import DEFAULT_OPTIONS
+from pylowl.proj.brightside.hdp.run import DEFAULT_OPTIONS, GRID_VAR_NAME_TYPE_PAIRS
 
 
 DATA_DIR = 'data/txt/tng/train'
@@ -25,16 +25,6 @@ COMMAND = (
 )
 
 
-VAR_NAME_TYPE_PAIRS = (
-    ('K', int),
-    ('L', int),
-    ('alpha', float),
-    ('beta', float),
-    ('lambda0', float),
-    ('kappa', float),
-)
-
-
 if __name__ == '__main__':
-    args = parse_grid_args(VAR_NAME_TYPE_PAIRS, DEFAULT_OPTIONS)
+    args = parse_grid_args(GRID_VAR_NAME_TYPE_PAIRS, DEFAULT_OPTIONS)
     run_grid_commands(COMMAND, **args)
