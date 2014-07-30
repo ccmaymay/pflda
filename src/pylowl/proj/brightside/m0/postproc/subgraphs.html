@@ -107,7 +107,7 @@ update_graphs = function() {
     }
 
     var ramp =
-    d3.scale.linear().domain([0,-1*$minELogPi]).range(["red","blue"]);
+    d3.scale.linear().domain([$minELogPi,$maxELogPi]).range(["blue","red"]);
 
     for (var c = $window_start; c < $window_end; ++c) {
         var cluster = d3.layout.cluster()
@@ -153,13 +153,13 @@ update_graphs = function() {
         node.append("circle")
 		.attr("r", function(d){return node_size(d);})
         .style("fill", function(d) {return d.active ?
-               ramp(d.Elogpi*-1) : "black"})
+               ramp(d.Elogpi) : "black"})
         .style("stroke", function(d) {return d.active ?
-               ramp(d.Elogpi*-1) : "black"})
+               ramp(d.Elogpi) : "black"})
         .style("stroke-opacity", function(d) { return d.active ?
-               (0.1 + 0.9*(d.Elogpi-$minELogPi)/($minELogPi*-1)) : "0.1"; })
+               (0.1 + 0.9*(d.Elogpi-$minELogPi)/($maxELogPi-$minELogPi)) : "0.1"; })
         .style("fill-opacity", function(d) { return d.active ?
-               (0.1 + 0.9*(d.Elogpi-$minELogPi)/($minELogPi*-1)) : "0.1"; });
+               (0.1 + 0.9*(d.Elogpi-$minELogPi)/($maxELogPi-$minELogPi)) : "0.1"; });
 
         node.append("circle")
         .attr("r", $maxNodeSize + 1)
@@ -189,6 +189,7 @@ d3.json("graph.json", function(error, graph_root) {
         node_placement_rootParent();
         $maxNodeSize = maximum_Node_Size_rootParent($root);
         $minELogPi = minimum_param_rootParent($root, "Elogpi");
+        $maxELogPi = maximum_param_rootParent($root, "Elogpi");
 
         $width = $maxNodeSize * 16 * (tree_depth(root[0]["subtree"]) + 1) + $maxNodeSize;
         var sizes = tree_size_per_level(root[0]["subtree"]);

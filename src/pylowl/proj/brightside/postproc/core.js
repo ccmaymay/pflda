@@ -269,7 +269,7 @@ minimum_param_rootParent = function(root, paramName){
 }
 
 minimum_param_subtreeChildren = function(min_var_param, node, paramName){
-    if((min_var_param === null || min_var_param < node[paramName]) && paramName in node){
+    if(paramName in node && (min_var_param === null || node[paramName] < min_var_param)){
         min_var_param = node[paramName];
     }
     for (var c in node.children) {
@@ -291,7 +291,7 @@ maximum_param_rootParent = function(root, paramName){
 }
 
 maximum_param_subtreeChildren = function(max_var_param, node, paramName){
-    if((max_var_param === null || max_var_param > node[paramName]) && paramName in node){
+    if(paramName in node && (max_var_param === null || node[paramName] > max_var_param)){
         max_var_param = node[paramName];
     }
     for (var c in node.children) {

@@ -60,7 +60,17 @@ body {
 
 <script>
 var diagonal = d3.svg.diagonal()
-    .projection(function(d) { return [d.y, d.x]; });
+    .projection(function(d) { return [d.y, d.x]; })
+    .source(function (d) {
+        var s = Object.create(d.source);
+        s.y += node_size(s);
+        return s;
+    })
+    .target(function (d) {
+        var t = Object.create(d.target);
+        t.y -= node_size(t);
+        return t;
+    });
 
 make_format_words = function(min_font, font_exp_scale) {
     return function(d) {
@@ -97,7 +107,7 @@ add_lambda_ss_text = function(font_size){
 
 update_graph = function() {
 	var ramp =
-    d3.scale.linear().domain([0,-1*$minELogPi]).range(["red","blue"]);
+    d3.scale.linear().domain([$minELogPi,$maxELogPi]).range(["blue","red"]);
 	
     var graphs_container = document.getElementById("graphs_container");
     while (graphs_container.hasChildNodes()) {
@@ -137,10 +147,10 @@ update_graph = function() {
 
 	node.append("circle")
 		.attr("r", function(d){return node_size(d);})
-		.style("fill", function(d) {return ramp(d.Elogpi*-1);})
-        .style("stroke", function(d) {return ramp(d.Elogpi*-1);})
-        .style("stroke-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-$minELogPi)/($minELogPi*-1);})
-        .style("fill-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-$minELogPi)/($minELogPi*-1);});
+		.style("fill", function(d) {return ramp(d.Elogpi);})
+        .style("stroke", function(d) {return ramp(d.Elogpi);})
+        .style("stroke-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-$minELogPi)/($maxELogPi-$minELogPi);})
+        .style("fill-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-$minELogPi)/($maxELogPi-$minELogPi);});
 
     if(document.getElementById("showValues").checked == true){
 		node.append("foreignObject")
@@ -189,10 +199,12 @@ tree_size_per_level = function(node) {
 d3.json("graph.json", function(error, root) {
     $root = root;
 
-	$maxNodeSize = 0;
+	$maxNodeSize = null;
 	$maxNodeSize = maximum_Node_Size_subtreeChildren($maxNodeSize, $root)
-    $minELogPi = 0;
+    $minELogPi = null;
     $minELogPi = minimum_param_subtreeChildren($minELogPi, $root, "Elogpi");
+    $maxELogPi = null;
+    $maxELogPi = maximum_param_subtreeChildren($maxELogPi, $root, "Elogpi");
 
     $width = 300 * tree_depth(root) + 300;
     $height = 140 * Math.max.apply(null, tree_size_per_level(root));
