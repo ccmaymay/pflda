@@ -16,9 +16,9 @@ OPTIONS_KV_DELIM = ': '
 def run_grid_commands(command, **var_levels):
     str_command = tuple(str(arg) for arg in command)
     var_names = var_levels.keys()
-    var_levels_list = [kwargs[var_name] for var_name in var_names]
+    var_levels_list = [var_levels[var_name] for var_name in var_names]
     for var_level_combination in it.product(*var_levels_list):
-        arg_pairs = (('--%s' % var_name, var_level)
+        arg_pairs = (('--%s' % var_name, str(var_level))
                      for (var_name, var_level)
                      in zip(var_names, var_level_combination))
         subprocess.call(str_command + reduce(lambda x, y: x + y, arg_pairs))
@@ -27,7 +27,7 @@ def run_grid_commands(command, **var_levels):
 def parse_grid_args(var_name_type_pairs, default_var_values):
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     default_args = dict(
-        (var_name, default_var_values[var_name])
+        (var_name, [default_var_values[var_name]])
         for (var_name, var_type)
         in var_name_type_pairs
     )

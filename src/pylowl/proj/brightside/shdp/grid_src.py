@@ -12,11 +12,12 @@ INIT_SAMPLES = 50
 MAX_TIME = 90
 
 COMMAND = (
-    'qsub', 'src/pylowl/proj/brightside/shdp/run.py',
+    'qsub',
     '-l', 'num_proc=1,mem_free=2G,h_rt=%d:%02d:%02d' % seconds_to_hms(3600 + 2 * MAX_TIME),
-    '--',
+    'src/pylowl/proj/brightside/shdp/run.py',
     '--data_dir', DATA_DIR,
     '--test_data_dir', TEST_DATA_DIR,
+    '--vocab_path', VOCAB_PATH,
     '--test_samples', TEST_SAMPLES,
     '--init_samples', INIT_SAMPLES,
     '--batchsize', 20,
@@ -24,7 +25,7 @@ COMMAND = (
 )
 
 
-VARS = (
+VAR_NAME_TYPE_PAIRS = (
     ('K', int),
     ('J', int),
     ('I', int),
