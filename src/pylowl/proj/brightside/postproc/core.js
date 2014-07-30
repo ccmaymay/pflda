@@ -269,7 +269,7 @@ minimum_param_rootParent = function(root, paramName){
 }
 
 minimum_param_subtreeChildren = function(min_var_param, node, paramName){
-    if((min_var_param === null || min_var_param > node[paramName]) && paramName in node){
+    if((min_var_param === null || min_var_param < node[paramName]) && paramName in node){
         min_var_param = node[paramName];
     }
     for (var c in node.children) {
