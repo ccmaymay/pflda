@@ -96,7 +96,7 @@ add_lambda_ss_text = function(font_size){
 }
 
 update_graph = function() {
-	var stringColor =
+	var ramp =
     d3.scale.linear().domain([0,-1*$minELogPi]).range(["red","blue"]);
 	
     var graphs_container = document.getElementById("graphs_container");
@@ -137,8 +137,8 @@ update_graph = function() {
 
 	node.append("circle")
 		.attr("r", function(d){return node_size(d);})
-		.style("fill", function(d) {return stringColor(d.Elogpi*-1);})
-        .style("stroke", function(d) {return stringColor(d.Elogpi*-1);})
+		.style("fill", function(d) {return ramp(d.Elogpi*-1);})
+        .style("stroke", function(d) {return ramp(d.Elogpi*-1);})
         .style("stroke-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-$minELogPi)/($minELogPi*-1);})
         .style("fill-opacity", function(d) { return 0.1 + 0.9*(d.Elogpi-$minELogPi)/($minELogPi*-1);});
 

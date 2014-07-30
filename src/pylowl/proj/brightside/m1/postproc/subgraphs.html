@@ -106,12 +106,12 @@ update_graphs = function() {
         graphs_container.removeChild(graphs_container.firstChild);
     }
 
-    var stringColor =
-    d3.scale.linear().domain([$minEtime, $maxEtime]).range(["red","blue"]);
-
     for (var c = $window_start; c < $window_end; ++c) {
-        var cluster = d3.layout.cluster()
+        var maxEtime = maximum_param_subtreeChildren(null, $root[c]["subtree"], "expected_time");
+        var minEtime = minimum_param_subtreeChildren(null, $root[c]["subtree"], "expected_time");
+        var ramp = d3.scale.linear().domain([minEtime, maxEtime]).range(["red","blue"]);
 
+        var cluster = d3.layout.cluster()
         .size([$height , $width - 14*$maxNodeSize]);
 
         var graph_container = document.createElement("div");
@@ -154,9 +154,9 @@ update_graphs = function() {
         node.append("circle")
 		.attr("r", function(d){return node_size(d);})
         .style("fill", function(d) {return d.active ?
-               stringColor(d.expected_time) : "black"})
+               ramp(d.expected_time) : "black"})
         .style("stroke", function(d) {return d.active ?
-               stringColor(d.expected_time) : "black"})
+               ramp(d.expected_time) : "black"})
         .style("stroke-opacity", function(d) { return d.active ?
                (0.1 + 0.9*(d.Elogpi-$minELogPi)/($minELogPi*-1)) : "0.1"; })
         .style("fill-opacity", function(d) { return d.active ?
@@ -189,8 +189,6 @@ d3.json("graph.json", function(error, graph_root) {
         $root = root;
         node_placement_rootParent();
         $maxNodeSize = maximum_Node_Size_rootParent($root);
-        $maxEtime = maximum_param_rootParent($root, "expected_time");
-        $minEtime = minimum_param_rootParent($root, "expected_time");
         $minELogPi = minimum_param_rootParent($root, "Elogpi");
         
 		$width = $maxNodeSize * 16 * (tree_depth(root[0]["subtree"]) + 1) + $maxNodeSize;
