@@ -160,12 +160,16 @@ var update_graph = function() {
     }
 }
 
+var get_node_Elogpi = function(node, default_val) {
+    return ("Elogpi" in node) ? node.Elogpi : default_val;
+}
+
 d3.json("graph.json", function(error, root) {
     $root = root;
 
 	$maxNodeSize = $max_subtree_param($root, node_size);
-    $minELogPi = $min_subtree_param($root, function(node) {return node.Elogpi;});
-    $maxELogPi = $max_subtree_param($root, function(node) {return node.Elogpi;});
+    $minELogPi = $min_subtree_param($root, function(d) { return get_node_Elogpi(d, Infinity); });
+    $maxELogPi = $max_subtree_param($root, function(d) { return get_node_Elogpi(d, -Infinity); });
 
     $width = 300 * $tree_depth(root) + 300;
     $height = 140 * Math.max.apply(null, $tree_size_per_level(root));

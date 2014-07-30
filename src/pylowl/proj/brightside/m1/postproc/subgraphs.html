@@ -182,6 +182,10 @@ var update_graphs = function() {
     }
 }
 
+var get_node_Elogpi = function(node, default_val) {
+    return ("Elogpi" in node) ? node.Elogpi : default_val;
+}
+
 d3.json("graph.json", function(error, graph_root) {
     $graph_root = graph_root;
     d3.json("subgraphs.json", function(error, root) {
@@ -189,8 +193,8 @@ d3.json("graph.json", function(error, graph_root) {
         $root = root;
         $set_subtrees_node_placement();
         $maxNodeSize = $max_subtrees_param($root, $node_size);
-        $minELogPi = $min_subtrees_param($root, function(node) {return node.Elogpi;});
-        $maxELogPi = $max_subtrees_param($root, function(node) {return node.Elogpi;});
+        $minELogPi = $min_subtrees_param($root, function(d) { return get_node_Elogpi(d, Infinity); });
+        $maxELogPi = $max_subtrees_param($root, function(d) { return get_node_Elogpi(d, -Infinity); });
         
 		$width = $maxNodeSize * 16 * ($tree_depth(root[0]["subtree"]) + 1) + $maxNodeSize;
         var sizes = $tree_size_per_level(root[0]["subtree"]);

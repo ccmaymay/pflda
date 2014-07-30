@@ -31,9 +31,9 @@ $format_words = function(d) {
 }
 
 $update_nav_text = function() {
-    var set_node_text(document.getElementById("window_start_text"), $window_start);
-    var set_node_text(document.getElementById("window_end_text"), $window_end);
-    var set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
+    set_node_text(document.getElementById("window_start_text"), $window_start);
+    set_node_text(document.getElementById("window_end_text"), $window_end);
+    set_node_text(document.getElementById("num_graphs_text"), $num_graphs);
 }
 
 var compare_int_arrays = function(array1, array2){
@@ -222,7 +222,7 @@ $tree_size_per_level = function(node) {
     return sizes;
 }
 
-$lookup_node = function(subtree, placement) {
+var lookup_node = function(subtree, placement) {
     return lookup_node_helper(subtree, placement.slice(1));
 }
 
@@ -238,7 +238,7 @@ var agg_subtrees_param = function(root, get_param, agg) {
     var curried = function(subtree_container) {
         return agg_subtree_param(subtree_container["subtree"], get_param, agg);
     }
-    return agg.apply(null, root);
+    return agg.apply(null, root.map(curried));
 }
 
 var agg_subtree_param = function(node, get_param, agg) {
