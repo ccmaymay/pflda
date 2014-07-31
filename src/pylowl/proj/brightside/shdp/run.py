@@ -482,7 +482,7 @@ def test_shdp_predict_classes(m, num_classes, c, batchsize, var_converge, test_s
 
     orig_doc_count = batchsize
     while orig_doc_count == batchsize:
-        batch = take(docs_generator, batchsize)
+        batch = list(take(docs_generator, batchsize))
         orig_doc_count = len(batch)
 
         batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
@@ -518,7 +518,7 @@ def test_shdp_rank(m, num_classes, c, batchsize, var_converge, test_samples=None
     all_doc_scores = dict((c, []) for c in m.m_r_classes)
     orig_doc_count = batchsize
     while orig_doc_count == batchsize:
-        batch = take(docs_generator, batchsize)
+        batch = list(take(docs_generator, batchsize))
         orig_doc_count = len(batch)
         batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
 
