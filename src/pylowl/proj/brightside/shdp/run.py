@@ -479,9 +479,10 @@ def test_shdp_predict_classes(m, num_classes, c, batchsize, var_converge, test_s
     if test_samples is not None:
         docs_generator = take(docs_generator, test_samples)
 
-    doc_count = batchsize
-    while doc_count == batchsize:
+    orig_doc_count = batchsize
+    while orig_doc_count == batchsize:
         batch = take(docs_generator, batchsize)
+        orig_doc_count = len(batch)
 
         batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
 
