@@ -358,8 +358,9 @@ def run(**kwargs):
                  options['save_model'])
 
             if options['test_data_dir'] is not None:
-                test_shdp_predict_classes(m, num_classes, c_test, batchsize, options['var_converge'], options['test_samples'])
-                test_shdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
+                test_shdp_rank(m, num_classes, c_test, batchsize, options['var_converge'], options['test_samples'])
+                #test_shdp_predict_classes(m, num_classes, c_test, batchsize, options['var_converge'], options['test_samples'])
+                #test_shdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
         if options['max_iter'] is not None and iteration > options['max_iter']:
             break
@@ -374,8 +375,9 @@ def run(**kwargs):
 
     # Making final predictions.
     if options['test_data_dir'] is not None:
-        test_shdp_predict_classes(m, num_classes, c_test, batchsize, options['var_converge'], options['test_samples'])
-        test_shdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
+        test_shdp_rank(m, num_classes, c_test, batchsize, options['var_converge'], options['test_samples'])
+        #test_shdp_predict_classes(m, num_classes, c_test, batchsize, options['var_converge'], options['test_samples'])
+        #test_shdp_predictive(m, c_test_train, c_test_test, batchsize, options['var_converge'], options['test_samples'])
 
     logging.info('Postprocessing output: %s' % output_dir)
     postprocess(output_dir)
@@ -473,7 +475,6 @@ def test_shdp_predict_classes(m, num_classes, c, batchsize, var_converge, test_s
     total_confusion = np.zeros((num_classes, num_classes), dtype=np.uint)
 
     # need a generator or we will start over at beginning each batch
-    # TODO: do not want split...
     docs_generator = (d for d in c.docs)
 
     if test_samples is not None:
@@ -497,6 +498,69 @@ def test_shdp_predict_classes(m, num_classes, c, batchsize, var_converge, test_s
             % (total_score, total_score/total_count, total_count))
         logging.info('Test confusion matrix for classes %s:\n%s'
             % (str(m.m_classes), str(total_confusion)))
+    else:
+        logging.warn('Cannot test: no data')
+
+
+def test_shdp_rank(m, num_classes, c, batchsize, var_converge, test_samples=None):
+    rank = 10
+
+    total_score = 0.0
+    total_count = 0
+
+    # need a generator or we will start over at beginning each batch
+    docs_generator = (d for d in c.docs)
+
+    if test_samples is not None:
+        docs_generator = take(docs_generator, test_samples)
+
+    all_doc_classes = []
+    all_doc_scores = dict((c, []) for c in m.m_r_classes)
+    orig_doc_count = batchsize
+    while orig_doc_count == batchsize:
+        batch = take(docs_generator, batchsize)
+        orig_doc_count = len(batch)
+        batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
+
+        orig_classes = [doc.attrs['class'] for doc in batch]
+        all_doc_classes.extend(orig_classes)
+
+        for cur_class in m.m_r_classes:
+            for doc in batch:
+                doc.attrs['class'] = cur_class
+
+            (score, count, doc_count, doc_scores) = m.process_documents(
+                batch, var_converge, update=False, score_docs_per_class=True)
+            all_doc_scores[cur_class].extend(doc_scores)
+
+            total_count += count
+
+        for (doc, orig_class) in zip(batch, orig_classes):
+            doc.attrs['class'] = orig_class
+
+    if total_count > 0:
+        for cur_class in m.m_r_classes:
+            true_pos = 0
+            false_pos = 0
+            cur_class_doc_scores = all_doc_scores[cur_class]
+            doc_idx_score_pairs = sorted(
+                enumerate(cur_class_doc_scores),
+                key=lambda p: p[1],
+                reverse=True
+            )
+            for (doc_idx, doc_score) in doc_idx_score_pairs[:rank]:
+                if all_doc_classes[doc_idx] == cur_class:
+                    true_pos += 1
+                else:
+                    false_pos += 1
+            total_pos = true_pos + false_pos
+            if total_pos == 0:
+                logging.info(u'Test precision at rank %d for %s: undefined'
+                             % (rank, cur_class))
+            else:
+                precision = true_pos / float(total_pos)
+                logging.info(u'Test precision at rank %d for %s: %f'
+                             % (rank, cur_class, precision))
     else:
         logging.warn('Cannot test: no data')
 
