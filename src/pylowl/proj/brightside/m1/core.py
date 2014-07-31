@@ -202,6 +202,7 @@ class model(object):
 
         docs = list(docs)
         doc_count = len(docs)
+        doc_scores = []
 
         if predict_docs is None:
             predict_docs = [None] * doc_count
@@ -295,6 +296,7 @@ class model(object):
                 output_files=output_files)
 
             score += doc_score
+            doc_scores.append(doc_score)
             if predict_doc is None:
                 count += doc.total
             else:
@@ -316,7 +318,7 @@ class model(object):
             self.update_uv()
             self.m_t += 1
 
-        return (score, count, doc_count)
+        return (score, count, doc_count, doc_scores)
 
     def update_lambda(self):
         self.m_Elogprobw = (

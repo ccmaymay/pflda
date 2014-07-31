@@ -252,12 +252,13 @@ def run(**kwargs):
         if options['test_data_dir'] is not None:
             test_filenames = nested_file_paths(options['test_data_dir'])
             test_filenames.sort()
-            (c_test_train, c_test_test) = Corpus.from_concrete(
+            c_test = Corpus.from_concrete(
                 test_filenames, r_vocab,
                 options['concrete_section_segmentation'],
                 options['concrete_sentence_segmentation'],
                 options['concrete_tokenization_list'],
-            ).split_within_docs(options['test_train_frac'])
+            )
+            (c_test_train, c_test_test) = c_test.split_within_docs(options['test_train_frac'])
 
     else:
         train_filenames = nested_file_paths(options['data_dir'])
@@ -290,12 +291,13 @@ def run(**kwargs):
         if options['test_data_dir'] is not None:
             test_filenames = nested_file_paths(options['test_data_dir'])
             test_filenames.sort()
-            (c_test_train, c_test_test) = Corpus.from_concrete(
+            c_test = Corpus.from_concrete(
                 test_filenames, r_vocab,
                 options['concrete_section_segmentation'],
                 options['concrete_sentence_segmentation'],
                 options['concrete_tokenization_list'],
-            ).split_within_docs(options['test_train_frac'])
+            )
+            (c_test_train, c_test_test) = c_test.split_within_docs(options['test_train_frac'])
 
     logging.info('No. docs: %d' % num_docs)
     logging.info('No. types: %d' % num_types)
@@ -324,7 +326,7 @@ def run(**kwargs):
     batchsize = options['batchsize']
 
     save_and_test(m, 'initial', output_dir, options['save_model'],
-                  options['test_data_dir'], c_test_train, c_test_test,
+                  options['test_data_dir'], c_test, c_test_train, c_test_test,
                   batchsize, options['var_converge'], options['test_samples'])
 
     iteration = 0
@@ -346,7 +348,7 @@ def run(**kwargs):
         total_doc_count += batchsize
 
         # Do online inference and evaluate on the fly dataset
-        (score, count, doc_count) = m.process_documents(docs,
+        (score, count, doc_count, doc_scores) = m.process_documents(docs,
             options['var_converge'])
         logging.info('Cumulative doc count: %d' % total_doc_count)
         logging.info('Log-likelihood: %f (%f per token) (%d tokens)' % (score, score/count, count))
@@ -357,7 +359,7 @@ def run(**kwargs):
 
             save_and_test(m, 'doc_count-%d' % total_doc_count,
                           output_dir, options['save_model'],
-                          options['test_data_dir'], c_test_train, c_test_test,
+                          options['test_data_dir'], c_test, c_test_train, c_test_test,
                           batchsize, options['var_converge'],
                           options['test_samples'])
 
@@ -370,7 +372,7 @@ def run(**kwargs):
             break
 
     save_and_test(m, 'final', output_dir, options['save_model'],
-                  options['test_data_dir'], c_test_train, c_test_test,
+                  options['test_data_dir'], c_test, c_test_train, c_test_test,
                   batchsize, options['var_converge'], options['test_samples'])
 
     logging.info('Postprocessing output: %s' % output_dir)
@@ -380,7 +382,7 @@ def run(**kwargs):
 
 
 def save_and_test(m, basename_stem, output_dir, save_model,
-                  test_data_dir, c_test_train, c_test_test, batchsize,
+                  test_data_dir, c_test, c_test_train, c_test_test, batchsize,
                   var_converge, test_samples):
     if save_model:
         logging.info('Saving model with stem %s' % basename_stem)
@@ -389,8 +391,10 @@ def save_and_test(m, basename_stem, output_dir, save_model,
         output_files = dict()
 
     if test_data_dir is not None:
-        test_nhdp_predictive(m, c_test_train, c_test_test, batchsize,
-                             var_converge, test_samples, output_files)
+        test_nhdp_rank(m, c_test, batchsize, var_converge,
+                       test_samples)
+        #test_nhdp_predictive(m, c_test_train, c_test_test, batchsize,
+        #                     var_converge, test_samples, output_files)
 
     if save_model:
         m.save(output_files)
@@ -426,7 +430,7 @@ def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
 
         batch = [doc for doc in batch if doc.attrs['user'] in m.m_r_users]
 
-        (score, count, doc_count) = m.process_documents(
+        (score, count, doc_count, doc_scores) = m.process_documents(
             batch, var_converge, update=False)
         total_score += score
         total_count += count
@@ -458,7 +462,7 @@ def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         train_batch = [doc for doc in train_batch if doc.attrs['user'] in m.m_r_users]
         test_batch = [doc for doc in test_batch if doc.attrs['user'] in m.m_r_users]
 
-        (score, count, doc_count) = m.process_documents(
+        (score, count, doc_count, doc_scores) = m.process_documents(
             train_batch, var_converge, update=False, predict_docs=test_batch,
             output_files=output_files)
         total_score += score
@@ -467,6 +471,69 @@ def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
     if total_count > 0:
         logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
             % (total_score, total_score/total_count, total_count))
+    else:
+        logging.warn('Cannot test: no data')
+
+
+def test_nhdp_rank(m, c, batchsize, var_converge, test_samples=None):
+    rank = 10
+
+    total_score = 0.0
+    total_count = 0
+
+    # need a generator or we will start over at beginning each batch
+    docs_generator = (d for d in c.docs)
+
+    if test_samples is not None:
+        docs_generator = take(docs_generator, test_samples)
+
+    all_doc_users = []
+    all_doc_scores = dict((c, []) for c in m.m_r_users)
+    orig_doc_count = batchsize
+    while orig_doc_count == batchsize:
+        batch = list(take(docs_generator, batchsize))
+        orig_doc_count = len(batch)
+        batch = [doc for doc in batch if doc.attrs['user'] in m.m_r_users]
+
+        orig_users = [doc.attrs['user'] for doc in batch]
+        all_doc_users.extend(orig_users)
+
+        for cur_user in m.m_r_users:
+            for doc in batch:
+                doc.attrs['user'] = cur_user
+
+            (score, count, doc_count, doc_scores) = m.process_documents(
+                batch, var_converge, update=False)
+            all_doc_scores[cur_user].extend(doc_scores)
+
+            total_count += count
+
+        for (doc, orig_user) in zip(batch, orig_users):
+            doc.attrs['user'] = orig_user
+
+    if total_count > 0:
+        for cur_user in m.m_r_users:
+            true_pos = 0
+            false_pos = 0
+            cur_user_doc_scores = all_doc_scores[cur_user]
+            doc_idx_score_pairs = sorted(
+                enumerate(cur_user_doc_scores),
+                key=lambda p: p[1],
+                reverse=True
+            )
+            for (doc_idx, doc_score) in doc_idx_score_pairs[:rank]:
+                if all_doc_users[doc_idx] == cur_user:
+                    true_pos += 1
+                else:
+                    false_pos += 1
+            total_pos = true_pos + false_pos
+            if total_pos == 0:
+                logging.info(u'Test precision at rank %d for %s: undefined'
+                             % (rank, cur_user))
+            else:
+                precision = true_pos / float(total_pos)
+                logging.info(u'Test precision at rank %d for %s: %f'
+                             % (rank, cur_user, precision))
     else:
         logging.warn('Cannot test: no data')
 
