@@ -343,7 +343,7 @@ def run(**kwargs):
         total_doc_count += batchsize
 
         # Do online inference and evaluate on the fly dataset
-        (score, count, doc_count, confusion) = m.process_documents(docs,
+        (score, count, doc_count, doc_scores) = m.process_documents(docs,
             options['var_converge'])
         logging.info('Cumulative doc count: %d' % total_doc_count)
         logging.info('Log-likelihood: %f (%f per token) (%d tokens)' % (score, score/count, count))
@@ -425,7 +425,7 @@ def test_shdp(m, c, batchsize, var_converge, test_samples=None):
 
         batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
 
-        (score, count, doc_count, confusion) = m.process_documents(
+        (score, count, doc_count, doc_scores) = m.process_documents(
             batch, var_converge, update=False)
         total_score += score
         total_count += count
@@ -457,7 +457,7 @@ def test_shdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         train_batch = [doc for doc in train_batch if doc.attrs['class'] in m.m_r_classes]
         test_batch = [doc for doc in test_batch if doc.attrs['class'] in m.m_r_classes]
 
-        (score, count, doc_count, confusion) = m.process_documents(
+        (score, count, doc_count, doc_scores) = m.process_documents(
             train_batch, var_converge, update=False, predict_docs=test_batch)
         total_score += score
         total_count += count
@@ -487,7 +487,7 @@ def test_shdp_predict_classes(m, num_classes, c, batchsize, var_converge, test_s
 
         batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
 
-        (score, count, doc_count, confusion) = m.process_documents(
+        (score, count, doc_count, doc_scores, confusion) = m.process_documents(
             batch, var_converge, update=False, predict_classes=True)
         total_score += score
         total_count += count
@@ -530,7 +530,7 @@ def test_shdp_rank(m, num_classes, c, batchsize, var_converge, test_samples=None
                 doc.attrs['class'] = cur_class
 
             (score, count, doc_count, doc_scores) = m.process_documents(
-                batch, var_converge, update=False, score_docs_per_class=True)
+                batch, var_converge, update=False)
             all_doc_scores[cur_class].extend(doc_scores)
 
             total_count += count

@@ -158,6 +158,7 @@ class model(object):
                           predict_docs=None, predict_classes=False):
         docs = list(docs)
         doc_count = len(docs)
+        doc_scores = []
 
         if predict_docs is None:
             predict_docs = [None] * doc_count
@@ -236,6 +237,7 @@ class model(object):
                     batch_to_vocab_word_map, classes_to_batch_map,
                     batch_to_classes_map, var_converge, predict_doc=predict_doc)
 
+                doc_scores.append(doc_score)
                 score += doc_score
                 if predict_doc is None:
                     count += doc.total
@@ -263,9 +265,9 @@ class model(object):
             self.m_t += 1
 
         if predict_classes:
-            return (score, count, doc_count, confusion)
+            return (score, count, doc_count, doc_scores, confusion)
         else:
-            return (score, count, doc_count, None)
+            return (score, count, doc_count, doc_scores)
 
     def update_lambda(self):
         self.m_Elogprobw = (
