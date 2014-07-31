@@ -111,9 +111,9 @@ var update_graphs = function() {
     }
 
     for (var c = $window_start; c < $window_end; ++c) {
-        var minEtime = $min_subtree_param($root[c]["subtree"], function(node) {return get_node_expected_time(node, Infinity);});
-        var maxEtime = $max_subtree_param($root[c]["subtree"], function(node) {return get_node_expected_time(node, -Infinity);});
-        var ramp = d3.scale.linear().domain([minEtime, maxEtime]).range(["blue","red"]);
+        var min_time = $root[c].subtree.min_time;
+        var max_time = $root[c].subtree.max_time;
+        var ramp = d3.scale.linear().domain([min_time, max_time]).range(["blue","red"]);
 
         var cluster = d3.layout.cluster()
         .size([$height , $width - 14*$maxNodeSize]);

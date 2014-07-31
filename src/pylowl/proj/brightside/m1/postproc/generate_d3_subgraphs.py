@@ -139,6 +139,8 @@ def generate_d3_subgraphs(result_dir, output_filename):
                     probabilities = normalized(weights)
                     Edatetime = expectation(probabilities, datetime_floats)
                     subtree_dicts[idx]['expected_time'] = Edatetime
+                    subtree_dicts[idx]['min_time'] = min(datetime_floats)
+                    subtree_dicts[idx]['max_time'] = max(datetime_floats)
 
     json_data = []
 
