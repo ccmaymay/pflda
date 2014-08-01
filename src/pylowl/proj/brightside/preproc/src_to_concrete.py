@@ -46,14 +46,14 @@ def make_data(input_dir, output_dir):
                 i += 1
 
 
-def src_to_concrete(src_dir, parent_dir=None):
-    data_dir = tempfile.mkdtemp(dir=parent_dir)
+def src_to_concrete(src_dir, data_parent_dir=None):
+    data_dir = tempfile.mkdtemp(dir=data_parent_dir)
     make_data(src_dir, data_dir)
     train_data_dir = data_dir
     # TODO would be nice if we didn't test on training data...
     test_data_dir = data_dir
 
-    (fd, vocab_path) = tempfile.mkstemp(dir=parent_dir)
+    (fd, vocab_path) = tempfile.mkstemp(dir=data_parent_dir)
     os.close(fd)
     extract_concrete_vocab(nested_file_paths(train_data_dir), 0, 0, 0, vocab_path)
 
@@ -66,8 +66,11 @@ if __name__ == '__main__':
     parser.set_defaults(src_dir='src')
     parser.add_argument('--src_dir', type=str, required=False,
                         help='path to littleowl source tree')
+    parser.add_argument('--data_parent_dir', type=str, required=False,
+                        help='path to parent dir of generated data (None: (temp))')
     args = parser.parse_args()
 
-    (train_data_dir, test_data_dir, vocab_path) = src_to_concrete(args.src_dir)
+    (train_data_dir, test_data_dir, vocab_path) = src_to_concrete(
+        args.src_dir, data_parent_dir=args.data_parent_dir)
 
     print ' '.join((train_data_dir, test_data_dir, vocab_path))
