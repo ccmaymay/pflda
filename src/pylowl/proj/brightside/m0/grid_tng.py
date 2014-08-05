@@ -8,13 +8,13 @@ from pylowl.proj.brightside.m0.run import DEFAULT_OPTIONS, GRID_VAR_NAME_TYPE_PA
 DATA_DIR = 'data/txt/tng/train'
 TEST_DATA_DIR = 'data/txt/tng/test'
 VOCAB_PATH = 'data/txt/tng/vocab'
-TEST_SAMPLES = 400
+TEST_SAMPLES = 7477
 INIT_SAMPLES = 400
-MAX_TIME = 360
+MAX_TIME = 4 * 3600
 
 COMMAND = (
     'qsub',
-    '-l', 'num_proc=1,mem_free=2G,h_rt=%d:%02d:%02d' % seconds_to_hms(3600 + 2 * MAX_TIME),
+    '-l', 'num_proc=1,mem_free=2G,h_rt=%d:%02d:%02d' % seconds_to_hms(4 * 3600 + 2 * MAX_TIME),
     'src/pylowl/proj/brightside/m0/run.py',
     '--data_dir', DATA_DIR,
     '--test_data_dir', TEST_DATA_DIR,
