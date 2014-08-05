@@ -7,7 +7,6 @@ from pylowl.proj.brightside.preproc.src_to_concrete import src_to_concrete
 
 
 (DATA_DIR, TEST_DATA_DIR, VOCAB_PATH) = src_to_concrete('src', 'data/txt')
-TEST_SAMPLES = 50
 INIT_SAMPLES = 50
 MAX_TIME = 90
 
@@ -18,7 +17,6 @@ COMMAND = (
     '--data_dir', DATA_DIR,
     '--test_data_dir', TEST_DATA_DIR,
     '--vocab_path', VOCAB_PATH,
-    '--test_samples', TEST_SAMPLES,
     '--init_samples', INIT_SAMPLES,
     '--batchsize', 20,
     '--max_time', MAX_TIME

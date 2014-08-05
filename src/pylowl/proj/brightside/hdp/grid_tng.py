@@ -8,7 +8,6 @@ from pylowl.proj.brightside.hdp.run import DEFAULT_OPTIONS, GRID_VAR_NAME_TYPE_P
 DATA_DIR = 'data/txt/tng/train'
 TEST_DATA_DIR = 'data/txt/tng/test'
 VOCAB_PATH = 'data/txt/tng/vocab'
-TEST_SAMPLES = 7477
 INIT_SAMPLES = 400
 MAX_TIME = 4 * 3600
 
@@ -19,7 +18,6 @@ COMMAND = (
     '--data_dir', DATA_DIR,
     '--test_data_dir', TEST_DATA_DIR,
     '--vocab_path', VOCAB_PATH,
-    '--test_samples', TEST_SAMPLES,
     '--init_samples', INIT_SAMPLES,
     '--max_time', MAX_TIME
 )
