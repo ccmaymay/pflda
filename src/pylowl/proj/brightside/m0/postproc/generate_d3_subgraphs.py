@@ -4,7 +4,8 @@
 import os
 import json
 import itertools as it
-from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index, load_options
+from pylowl.proj.brightside.utils import tree_index_m, tree_index_b, tree_iter, tree_index, load_options, nested_file_paths
+from pylowl.proj.brightside.corpus import load_concrete_docs, load_concrete_doc
 
 
 def main():
@@ -24,6 +25,7 @@ def main():
 
 def generate_d3_subgraphs(result_dir, output_filename):
     options = load_options(os.path.join(result_dir, 'options'))
+    test_data_dir = options['test_data_dir']
     trunc_csv = options['trunc']
     subtree_filename = os.path.join(result_dir, 'subtree')
     lambda_ss_filename = os.path.join(result_dir, 'subtree_lambda_ss')
@@ -35,6 +37,11 @@ def generate_d3_subgraphs(result_dir, output_filename):
     b = tree_index_b(trunc)
 
     subtree_dicts_per_id = {}
+
+    doc_id_class_map = dict()
+    test_data_paths = nested_file_paths(test_data_dir)
+    for doc in load_concrete_docs(test_data_paths):
+        doc_id_class_map[doc.id] = doc.attrs.get('class', None)
 
     with open(subtree_filename) as subtree_f, \
          open(Elogpi_filename) as Elogpi_f, \
@@ -85,6 +92,7 @@ def generate_d3_subgraphs(result_dir, output_filename):
         json_data.append({
             'doc_id': doc_id,
             'subtree': subtree_dicts[0],
+            'class': doc_id_class_map[doc_id],
             'num_active': num_active
         })
 

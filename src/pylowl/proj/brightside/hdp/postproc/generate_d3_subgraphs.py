@@ -5,7 +5,8 @@ import os
 import re
 import json
 import itertools as it
-from pylowl.proj.brightside.utils import load_options
+from pylowl.proj.brightside.utils import load_options, nested_file_paths
+from pylowl.proj.brightside.corpus import load_concrete_docs, load_concrete_doc
 
 
 def main():
@@ -25,6 +26,7 @@ def main():
 
 def generate_d3_subgraphs(result_dir, output_filename):
     options = load_options(os.path.join(result_dir, 'options'))
+    test_data_dir = options['test_data_dir']
     K = int(options['K'])
     L = int(options['L'])
     sublist_filename = os.path.join(result_dir, 'sublist')
@@ -33,6 +35,11 @@ def generate_d3_subgraphs(result_dir, output_filename):
     logEpi_filename = os.path.join(result_dir, 'sublist_logEpi')
 
     sublist_dicts_per_doc = {}
+
+    doc_id_class_map = dict()
+    test_data_paths = nested_file_paths(test_data_dir)
+    for doc in load_concrete_docs(test_data_paths):
+        doc_id_class_map[doc.id] = doc.attrs.get('class', None)
 
     with open(sublist_filename) as sublist_f, \
          open(Elogpi_filename) as Elogpi_f, \
@@ -75,6 +82,7 @@ def generate_d3_subgraphs(result_dir, output_filename):
         json_data.append({
             'doc_id': doc_id,
             'sublist': sublist_dicts[0],
+            'class': doc_id_class_map[doc_id],
             'lambda_ss_sum': lambda_ss_sum
         })
 
