@@ -1,5 +1,6 @@
 #include "lowl_sample.h"
 #include "lowl_math.h"
+#include <string.h>
 #include <stdlib.h>
 
 /*********************************************************
