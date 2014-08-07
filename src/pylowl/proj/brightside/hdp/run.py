@@ -323,10 +323,10 @@ def run(**kwargs):
         total_doc_count += batchsize
 
         # Do online inference and evaluate on the fly dataset
-        (score, count, doc_count) = m.process_documents(docs,
+        (likelihood, count, doc_count) = m.process_documents(docs,
             options['var_converge'])
         logging.info('Cumulative doc count: %d' % total_doc_count)
-        logging.info('Score: %f (%f per token) (%d tokens)' % (score, score/count, count))
+        logging.info('Score: %f (%f per token) (%d tokens)' % (likelihood, likelihood/count, count))
 
         # Evaluate on the test data: fixed and folds
         if total_doc_count % options['save_lag'] == 0:
@@ -391,7 +391,7 @@ def close_output_files(output_files):
 
 
 def test_hdp(m, c, batchsize, var_converge, test_samples=None):
-    total_score = 0.0
+    total_likelihood = 0.0
     total_count = 0
 
     docs_generator = (d for d in c.docs)
@@ -403,15 +403,15 @@ def test_hdp(m, c, batchsize, var_converge, test_samples=None):
     while doc_count == batchsize:
         batch = take(docs_generator, batchsize)
 
-        (score, count, doc_count) = m.process_documents(
+        (likelihood, count, doc_count) = m.process_documents(
             batch, var_converge, update=False,
             save_model=True)
-        total_score += score
+        total_likelihood += likelihood
         total_count += count
 
     if total_count > 0:
-        logging.info('Test score: %f (%f per token) (%d tokens)'
-            % (total_score, total_score/total_count, total_count))
+        logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
+            % (total_likelihood, total_likelihood/total_count, total_count))
     else:
         logging.warn('Cannot test: no data')
 
@@ -424,7 +424,7 @@ def wrap_open(path, mode):
 
 
 def test_hdp_predictive(m, c_train, c_test, batchsize, var_converge, test_samples=None):
-    total_score = 0.0
+    total_likelihood = 0.0
     total_count = 0
 
     # need a generator or we will start over at beginning each batch
@@ -440,15 +440,15 @@ def test_hdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sample
         train_batch = take(train_docs_generator, batchsize)
         test_batch = take(test_docs_generator, batchsize)
 
-        (score, count, doc_count) = m.process_documents(
+        (likelihood, count, doc_count) = m.process_documents(
             train_batch, var_converge, update=False, predict_docs=test_batch,
             save_model=True)
-        total_score += score
+        total_likelihood += likelihood
         total_count += count
 
     if total_count > 0:
         logging.info('Test predictive log-likelihood: %f (%f per token) (%d tokens)'
-            % (total_score, total_score/total_count, total_count))
+            % (total_likelihood, total_likelihood/total_count, total_count))
     else:
         logging.warn('Cannot test: no data')
 

@@ -343,10 +343,10 @@ def run(**kwargs):
         total_doc_count += batchsize
 
         # Do online inference and evaluate on the fly dataset
-        (score, count, doc_count, doc_scores) = m.process_documents(docs,
+        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(docs,
             options['var_converge'])
         logging.info('Cumulative doc count: %d' % total_doc_count)
-        logging.info('Score: %f (%f per token) (%d tokens)' % (score, score/count, count))
+        logging.info('Score: %f (%f per token) (%d tokens)' % (likelihood, likelihood/count, count))
 
         # Evaluate on the test data: fixed and folds
         if total_doc_count % options['save_lag'] == 0:
@@ -411,7 +411,7 @@ def close_output_files(output_files):
 
 
 def test_shdp(m, c, batchsize, var_converge, test_samples=None):
-    total_score = 0.0
+    total_likelihood = 0.0
     total_count = 0
 
     docs_generator = (d for d in c.docs)
@@ -425,20 +425,20 @@ def test_shdp(m, c, batchsize, var_converge, test_samples=None):
 
         batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
 
-        (score, count, doc_count, doc_scores) = m.process_documents(
+        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
             batch, var_converge, update=False)
-        total_score += score
+        total_likelihood += likelihood
         total_count += count
 
     if total_count > 0:
-        logging.info('Test score: %f (%f per token) (%d tokens)'
-            % (total_score, total_score/total_count, total_count))
+        logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
+            % (total_likelihood, total_likelihood/total_count, total_count))
     else:
         logging.warn('Cannot test: no data')
 
 
 def test_shdp_predictive(m, c_train, c_test, batchsize, var_converge, test_samples=None):
-    total_score = 0.0
+    total_likelihood = 0.0
     total_count = 0
 
     # need a generator or we will start over at beginning each batch
@@ -457,20 +457,20 @@ def test_shdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         train_batch = [doc for doc in train_batch if doc.attrs['class'] in m.m_r_classes]
         test_batch = [doc for doc in test_batch if doc.attrs['class'] in m.m_r_classes]
 
-        (score, count, doc_count, doc_scores) = m.process_documents(
+        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
             train_batch, var_converge, update=False, predict_docs=test_batch)
-        total_score += score
+        total_likelihood += likelihood
         total_count += count
 
     if total_count > 0:
         logging.info('Test predictive log-likelihood: %f (%f per token) (%d tokens)'
-            % (total_score, total_score/total_count, total_count))
+            % (total_likelihood, total_likelihood/total_count, total_count))
     else:
         logging.warn('Cannot test: no data')
 
 
 def test_shdp_predict_classes(m, num_classes, c, batchsize, var_converge, test_samples=None):
-    total_score = 0.0
+    total_likelihood = 0.0
     total_count = 0
     total_confusion = np.zeros((num_classes, num_classes), dtype=np.uint)
 
@@ -487,15 +487,15 @@ def test_shdp_predict_classes(m, num_classes, c, batchsize, var_converge, test_s
 
         batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
 
-        (score, count, doc_count, doc_scores, confusion) = m.process_documents(
+        (likelihood, count, doc_count, doc_likelihoods, confusion) = m.process_documents(
             batch, var_converge, update=False, predict_classes=True)
-        total_score += score
+        total_likelihood += likelihood
         total_count += count
         total_confusion += confusion
 
     if total_count > 0:
         logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
-            % (total_score, total_score/total_count, total_count))
+            % (total_likelihood, total_likelihood/total_count, total_count))
         logging.info('Test confusion matrix for classes %s:\n%s'
             % (str(m.m_classes), str(total_confusion)))
     else:
@@ -505,7 +505,7 @@ def test_shdp_predict_classes(m, num_classes, c, batchsize, var_converge, test_s
 def test_shdp_rank(m, num_classes, c, batchsize, var_converge, test_samples=None):
     rank = 10
 
-    total_score = 0.0
+    total_likelihood = 0.0
     total_count = 0
 
     # need a generator or we will start over at beginning each batch
@@ -515,7 +515,7 @@ def test_shdp_rank(m, num_classes, c, batchsize, var_converge, test_samples=None
         docs_generator = take(docs_generator, test_samples)
 
     all_doc_classes = []
-    all_doc_scores = dict((c, []) for c in m.m_r_classes)
+    all_doc_likelihoods = dict((c, []) for c in m.m_r_classes)
     orig_doc_count = batchsize
     while orig_doc_count == batchsize:
         batch = list(take(docs_generator, batchsize))
@@ -529,9 +529,9 @@ def test_shdp_rank(m, num_classes, c, batchsize, var_converge, test_samples=None
             for doc in batch:
                 doc.attrs['class'] = cur_class
 
-            (score, count, doc_count, doc_scores) = m.process_documents(
+            (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
                 batch, var_converge, update=False)
-            all_doc_scores[cur_class].extend(doc_scores)
+            all_doc_likelihoods[cur_class].extend(doc_likelihoods)
 
             total_count += count
 
@@ -542,13 +542,13 @@ def test_shdp_rank(m, num_classes, c, batchsize, var_converge, test_samples=None
         for cur_class in m.m_r_classes:
             true_pos = 0
             false_pos = 0
-            cur_class_doc_scores = all_doc_scores[cur_class]
-            doc_idx_score_pairs = sorted(
-                enumerate(cur_class_doc_scores),
+            cur_class_doc_likelihoods = all_doc_likelihoods[cur_class]
+            doc_idx_likelihood_pairs = sorted(
+                enumerate(cur_class_doc_likelihoods),
                 key=lambda p: p[1],
                 reverse=True
             )
-            for (doc_idx, doc_score) in doc_idx_score_pairs[:rank]:
+            for (doc_idx, doc_likelihood) in doc_idx_likelihood_pairs[:rank]:
                 if all_doc_classes[doc_idx] == cur_class:
                     true_pos += 1
                 else:

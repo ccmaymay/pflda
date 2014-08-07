@@ -375,6 +375,7 @@ class model(object):
         log_nu = np.log(nu)
 
         converge = None
+        likelihood = None
         score = None
         old_score = None
 
@@ -416,6 +417,7 @@ class model(object):
 
             # E[log p(W | c, z, y, theta)]
             w_ll = self.w_score(zeta_doc, doc, nu, phi, Elogprobw_doc)
+            likelihood = w_ll
             score += w_ll
             logging.debug('Score after W component: %f (+ %f)' % (score, w_ll))
 
@@ -439,7 +441,7 @@ class model(object):
         ss.m_class_lambda_ss_sums_m[classes_to_batch_map[doc.class_idx]] += np.dot(np.sum(nu, 0), phi)
 
         if predict_doc is not None:
-            score = 0.
+            likelihood = 0.
             logEpi_d = utils.logE_sbc_stop(uv)
             # TODO abstract this?
             logEtheta = (
@@ -457,9 +459,9 @@ class model(object):
                                 + log_zeta_doc[j,k]
                                 + logEtheta[k,w]
                             )
-                score += np.log(expected_word_prob) * w_count
+                likelihood += np.log(expected_word_prob) * w_count
 
-        return score
+        return likelihood
 
     def update_ss_stochastic(self, ss, batch_to_vocab_word_map,
                              batch_to_classes_map):

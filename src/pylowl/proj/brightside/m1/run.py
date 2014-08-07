@@ -348,10 +348,10 @@ def run(**kwargs):
         total_doc_count += batchsize
 
         # Do online inference and evaluate on the fly dataset
-        (score, count, doc_count, doc_scores) = m.process_documents(docs,
+        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(docs,
             options['var_converge'])
         logging.info('Cumulative doc count: %d' % total_doc_count)
-        logging.info('Score: %f (%f per token) (%d tokens)' % (score, score/count, count))
+        logging.info('Score: %f (%f per token) (%d tokens)' % (likelihood, likelihood/count, count))
 
         if total_doc_count % options['save_lag'] == 0:
             if not options['fixed_lag']:
@@ -416,7 +416,7 @@ def close_output_files(output_files):
 
 
 def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
-    total_score = 0.0
+    total_likelihood = 0.0
     total_count = 0
 
     docs_generator = (d for d in c.docs)
@@ -430,20 +430,20 @@ def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
 
         batch = [doc for doc in batch if doc.attrs['user'] in m.m_r_users]
 
-        (score, count, doc_count, doc_scores) = m.process_documents(
+        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
             batch, var_converge, update=False)
-        total_score += score
+        total_likelihood += likelihood
         total_count += count
 
     if total_count > 0:
-        logging.info('Test score: %f (%f per token) (%d tokens)'
-            % (total_score, total_score/total_count, total_count))
+        logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
+            % (total_likelihood, total_likelihood/total_count, total_count))
     else:
         logging.warn('Cannot test: no data')
 
 
 def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_samples=None, output_files=None):
-    total_score = 0.0
+    total_likelihood = 0.0
     total_count = 0
 
     # need a generator or we will start over at beginning each batch
@@ -462,15 +462,15 @@ def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         train_batch = [doc for doc in train_batch if doc.attrs['user'] in m.m_r_users]
         test_batch = [doc for doc in test_batch if doc.attrs['user'] in m.m_r_users]
 
-        (score, count, doc_count, doc_scores) = m.process_documents(
+        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
             train_batch, var_converge, update=False, predict_docs=test_batch,
             output_files=output_files)
-        total_score += score
+        total_likelihood += likelihood
         total_count += count
 
     if total_count > 0:
         logging.info('Test predictive log-likelihood: %f (%f per token) (%d tokens)'
-            % (total_score, total_score/total_count, total_count))
+            % (total_likelihood, total_likelihood/total_count, total_count))
     else:
         logging.warn('Cannot test: no data')
 
@@ -478,7 +478,7 @@ def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
 def test_nhdp_rank(m, c, batchsize, var_converge, test_samples=None):
     rank = 10
 
-    total_score = 0.0
+    total_likelihood = 0.0
     total_count = 0
 
     # need a generator or we will start over at beginning each batch
@@ -488,7 +488,7 @@ def test_nhdp_rank(m, c, batchsize, var_converge, test_samples=None):
         docs_generator = take(docs_generator, test_samples)
 
     all_doc_users = []
-    all_doc_scores = dict((c, []) for c in m.m_r_users)
+    all_doc_likelihoods = dict((c, []) for c in m.m_r_users)
     orig_doc_count = batchsize
     while orig_doc_count == batchsize:
         batch = list(take(docs_generator, batchsize))
@@ -502,9 +502,9 @@ def test_nhdp_rank(m, c, batchsize, var_converge, test_samples=None):
             for doc in batch:
                 doc.attrs['user'] = cur_user
 
-            (score, count, doc_count, doc_scores) = m.process_documents(
+            (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
                 batch, var_converge, update=False)
-            all_doc_scores[cur_user].extend(doc_scores)
+            all_doc_likelihoods[cur_user].extend(doc_likelihoods)
 
             total_count += count
 
@@ -515,13 +515,13 @@ def test_nhdp_rank(m, c, batchsize, var_converge, test_samples=None):
         for cur_user in m.m_r_users:
             true_pos = 0
             false_pos = 0
-            cur_user_doc_scores = all_doc_scores[cur_user]
-            doc_idx_score_pairs = sorted(
-                enumerate(cur_user_doc_scores),
+            cur_user_doc_likelihoods = all_doc_likelihoods[cur_user]
+            doc_idx_likelihood_pairs = sorted(
+                enumerate(cur_user_doc_likelihoods),
                 key=lambda p: p[1],
                 reverse=True
             )
-            for (doc_idx, doc_score) in doc_idx_score_pairs[:rank]:
+            for (doc_idx, doc_likelihood) in doc_idx_likelihood_pairs[:rank]:
                 if all_doc_users[doc_idx] == cur_user:
                     true_pos += 1
                 else:

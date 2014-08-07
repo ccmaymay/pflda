@@ -262,6 +262,7 @@ class model(object):
         log_nu = np.log(nu)
 
         converge = None
+        likelihood = None
         score = None
         old_score = None
 
@@ -298,6 +299,7 @@ class model(object):
 
             # E[log p(W | theta, c, z)]
             w_ll = self.w_score(doc, nu, phi, Elogprobw_doc)
+            likelihood = w_ll
             score += w_ll
             logging.debug('Score after W component: %f (+ %f)' % (score, w_ll))
 
@@ -331,7 +333,7 @@ class model(object):
                 doc, nu)
 
         if predict_doc is not None:
-            score = 0.
+            likelihood = 0.
             logEVd = utils.logE_sbc_stop(uv)
             # TODO abstract this?
             logEtheta = (
@@ -347,9 +349,9 @@ class model(object):
                             + log_phi[i,j]
                             + logEtheta[j,w]
                         )
-                score += np.log(expected_word_prob) * w_count
+                likelihood += np.log(expected_word_prob) * w_count
 
-        return score
+        return likelihood
 
     def update_ss_stochastic(self, ss, batch_to_vocab_word_map):
         # rho will be between 0 and 1, and says how much to weight

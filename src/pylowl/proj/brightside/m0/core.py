@@ -479,6 +479,7 @@ class model(object):
         nu_sums = np.sum(nu, 0)
 
         converge = None
+        likelihood = None
         score = None
         old_score = None
 
@@ -520,6 +521,7 @@ class model(object):
 
             # E[log p(W | theta, c, z)]
             w_ll = self.w_score(doc, nu, Elogprobw_doc, ids)
+            likelihood = w_ll
             score += w_ll
             logging.debug('Score after W component: %f (+ %f)' % (score, w_ll))
 
@@ -561,9 +563,9 @@ class model(object):
                 np.log(self.m_lambda0 + self.m_lambda_ss)
                 - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
             )
-            score = np.sum(np.log(np.sum(np.exp(logEpi[ids][:,np.newaxis] + logEtheta[l2g_idx[ids],:][:,predict_doc.words]), 0)) * predict_doc.counts)
+            likelihood = np.sum(np.log(np.sum(np.exp(logEpi[ids][:,np.newaxis] + logEtheta[l2g_idx[ids],:][:,predict_doc.words]), 0)) * predict_doc.counts)
 
-        return score
+        return likelihood
 
     def node_ancestors(self, node):
         return utils.node_ancestors(node)

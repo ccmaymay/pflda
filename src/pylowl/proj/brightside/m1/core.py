@@ -585,6 +585,7 @@ class model(object):
         nu_sums = np.sum(nu, 1)
 
         converge = None
+        likelihood = None
         score = None
         old_score = None
 
@@ -632,6 +633,7 @@ class model(object):
 
             # E[log p(W | theta, c, zeta, z)]
             w_ll = self.w_score(doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves)
+            likelihood = w_ll
             score += w_ll
             logging.debug('Score after W component: %f (+ %f)' % (score, w_ll))
 
@@ -678,7 +680,7 @@ class model(object):
                     p_idx = self.tree_index(p)
                     p_level = self.node_level(p)
                     logEpichi[p_idx] = logEchi[idx,p_level] + logEpi[idx]
-            score = np.sum(
+            likelihood = np.sum(
                 np.log(np.sum(
                     np.exp(
                         logEpichi[ids][:,np.newaxis]
@@ -689,7 +691,7 @@ class model(object):
                 * predict_doc.counts
             )
 
-        return score
+        return likelihood
 
     def node_level(self, node):
         return len(node) - 1
