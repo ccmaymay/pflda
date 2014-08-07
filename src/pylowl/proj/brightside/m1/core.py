@@ -92,7 +92,7 @@ class model(object):
         # count somewhat evenly (i.i.d. Gamma(1,1) distributed) between
         # each word type and topic.  *Then* subtract lambda0 so that the
         # posterior is composed of these pseudo-counts only (maximum
-        # likelihood / no prior).  (why?!  TODO)
+        # score / no prior).  (why?!  TODO)
         self.m_lambda_ss = np.random.gamma(
             1.0, 1.0, (self.m_K, W)) * D * 100 / (self.m_K * W) - lambda0
         self.m_lambda0 = lambda0
@@ -394,41 +394,41 @@ class model(object):
                     s_idx = self.tree_index(s)
                     self.m_uv[1, user_idx, s_idx] += self.m_uv_ss[user_idx, idx]
 
-    def z_likelihood(self, subtree, ElogV):
-        likelihood = 0.0
+    def z_score(self, subtree, ElogV):
+        score = 0.0
         for node in self.tree_iter(subtree):
             global_node = subtree[node]
             global_idx = self.tree_index(global_node)
-            likelihood += ElogV[0,global_idx]
+            score += ElogV[0,global_idx]
             for global_s in self.node_left_siblings(global_node):
                 global_s_idx = self.tree_index(global_s)
-                likelihood += ElogV[1,global_s_idx]
-        return likelihood
+                score += ElogV[1,global_s_idx]
+        return score
 
-    def zeta_likelihood(self, subtree_leaves, ids_leaves, ids, doc, xi, log_xi, l2g_idx):
+    def zeta_score(self, subtree_leaves, ids_leaves, ids, doc, xi, log_xi, l2g_idx):
         Elogpi = self.compute_subtree_Elogpi(subtree_leaves, ids, doc.user_idx, l2g_idx)
         return np.sum(xi[ids_leaves] * (Elogpi[ids_leaves] - log_xi[ids_leaves]))
 
-    def c_likelihood(self, subtree, subtree_leaves, ab, nu, log_nu, ids):
-        likelihood = 0.0
+    def c_score(self, subtree, subtree_leaves, ab, nu, log_nu, ids):
+        score = 0.0
         Elogchi = self.compute_subtree_Elogchi(subtree_leaves, ab)
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                likelihood += np.sum(nu[idx,:,p_level] * (Elogchi[idx,p_level] - log_nu[idx,:,p_level]))
-        return likelihood
+                score += np.sum(nu[idx,:,p_level] * (Elogchi[idx,p_level] - log_nu[idx,:,p_level]))
+        return score
 
-    def w_likelihood(self, doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves):
-        likelihood = 0.0
+    def w_score(self, doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves):
+        score = 0.0
         for node in self.tree_iter(subtree_leaves):
             idx = self.tree_index(node)
             for p in it.chain((node,), self.node_ancestors(node)):
                 p_idx = self.tree_index(p)
                 p_level = self.node_level(p)
-                likelihood += xi[idx] * np.sum(nu[idx,:,p_level] * np.repeat(Elogprobw_doc[p_idx,:], doc.counts))
-        return likelihood
+                score += xi[idx] * np.sum(nu[idx,:,p_level] * np.repeat(Elogprobw_doc[p_idx,:], doc.counts))
+        return score
 
     def compute_Elogpi(self):
         ids = [self.tree_index(node) for node in self.tree_iter()]
@@ -585,8 +585,8 @@ class model(object):
         nu_sums = np.sum(nu, 1)
 
         converge = None
-        likelihood = None
-        old_likelihood = None
+        score = None
+        old_score = None
 
         iteration = 0
         # not yet support second level optimization yet, to be done in the
@@ -600,48 +600,48 @@ class model(object):
             nu_sums = np.sum(nu, 1)
             self.update_ab(subtree_leaves, nu_sums, ab)
 
-            # compute likelihood
+            # compute score
 
-            likelihood = 0.0
+            score = 0.0
 
             # E[log p(U | gamma_1, gamma_2)] + H(q(U))
-            u_ll = utils.log_sticks_likelihood(ab[:,ab_leaf_ids,ab_level_ids], self.m_gamma1, self.m_gamma2)
-            likelihood += u_ll
-            logging.debug('Log-likelihood after U components: %f (+ %f)' % (likelihood, u_ll))
+            u_ll = utils.log_sticks_score(ab[:,ab_leaf_ids,ab_level_ids], self.m_gamma1, self.m_gamma2)
+            score += u_ll
+            logging.debug('Score after U components: %f (+ %f)' % (score, u_ll))
 
             # E[log p(V | beta)] + H(q(V))
-            v_ll = utils.log_sticks_likelihood(self.m_uv[:,user_idx,uv_ids], 1.0, self.m_beta)
-            likelihood += v_ll
-            logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
+            v_ll = utils.log_sticks_score(self.m_uv[:,user_idx,uv_ids], 1.0, self.m_beta)
+            score += v_ll
+            logging.debug('Score after V components: %f (+ %f)' % (score, v_ll))
 
             # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
-            z_ll = self.z_likelihood(subtree, ElogV)
-            likelihood += z_ll
-            logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
+            z_ll = self.z_score(subtree, ElogV)
+            score += z_ll
+            logging.debug('Score after z components: %f (+ %f)' % (score, z_ll))
 
             # E[log p(c | U, zeta)] + H(q(c))
-            c_ll = self.c_likelihood(subtree, subtree_leaves, ab, nu, log_nu, ids)
-            likelihood += c_ll
-            logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
+            c_ll = self.c_score(subtree, subtree_leaves, ab, nu, log_nu, ids)
+            score += c_ll
+            logging.debug('Score after c components: %f (+ %f)' % (score, c_ll))
 
             # E[log p(zeta | V)] + H(q(zeta))
-            zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, ids, doc, xi, log_xi, l2g_idx)
-            likelihood += zeta_ll
-            logging.debug('Log-likelihood after zeta components: %f (+ %f)'
-                % (likelihood, zeta_ll))
+            zeta_ll = self.zeta_score(subtree_leaves, ids_leaves, ids, doc, xi, log_xi, l2g_idx)
+            score += zeta_ll
+            logging.debug('Score after zeta components: %f (+ %f)'
+                % (score, zeta_ll))
 
             # E[log p(W | theta, c, zeta, z)]
-            w_ll = self.w_likelihood(doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves)
-            likelihood += w_ll
-            logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
+            w_ll = self.w_score(doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves)
+            score += w_ll
+            logging.debug('Score after W component: %f (+ %f)' % (score, w_ll))
 
-            logging.debug('Log-likelihood: %f' % likelihood)
+            logging.debug('Score: %f' % score)
 
-            if old_likelihood is not None:
-                converge = (likelihood - old_likelihood) / abs(old_likelihood)
+            if old_score is not None:
+                converge = (score - old_score) / abs(old_score)
                 if converge < 0:
-                    logging.warning('Log-likelihood is decreasing')
-            old_likelihood = likelihood
+                    logging.warning('Score is decreasing')
+            old_score = score
 
             iteration += 1
 
@@ -678,7 +678,7 @@ class model(object):
                     p_idx = self.tree_index(p)
                     p_level = self.node_level(p)
                     logEpichi[p_idx] = logEchi[idx,p_level] + logEpi[idx]
-            likelihood = np.sum(
+            score = np.sum(
                 np.log(np.sum(
                     np.exp(
                         logEpichi[ids][:,np.newaxis]
@@ -689,7 +689,7 @@ class model(object):
                 * predict_doc.counts
             )
 
-        return likelihood
+        return score
 
     def node_level(self, node):
         return len(node) - 1
@@ -739,7 +739,7 @@ class model(object):
         prior_ab = np.zeros((2, self.m_K, self.m_depth))
         prior_ab[0] = 1.0
 
-        old_likelihood = 0.0
+        old_score = 0.0
 
         ids = [self.tree_index(n) for n in self.tree_iter(subtree)]
         ids_leaves = [self.tree_index(n)
@@ -749,10 +749,10 @@ class model(object):
             % ' '.join(str(l2g_idx[i]) for i in ids))
 
         # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
-        z_ll = self.z_likelihood(subtree, ElogV)
-        old_likelihood += z_ll
-        logging.debug('Log-likelihood after z components: %f (+ %f)'
-            % (old_likelihood, z_ll))
+        z_ll = self.z_score(subtree, ElogV)
+        old_score += z_ll
+        logging.debug('Score after z components: %f (+ %f)'
+            % (old_score, z_ll))
 
         for (doc_idx, doc) in enumerate(docs):
             Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
@@ -768,27 +768,27 @@ class model(object):
                 subtree, subtree_leaves, prior_ab, Elogprobw_doc, doc, xi, nu, log_nu)
 
             # E[log p(c | U, zeta)] + H(q(c))
-            c_ll = self.c_likelihood(subtree, subtree_leaves, prior_ab, nu, log_nu, ids)
-            old_likelihood += c_ll
-            logging.debug('Log-likelihood after c components: %f (+ %f)'
-                % (old_likelihood, c_ll))
+            c_ll = self.c_score(subtree, subtree_leaves, prior_ab, nu, log_nu, ids)
+            old_score += c_ll
+            logging.debug('Score after c components: %f (+ %f)'
+                % (old_score, c_ll))
 
             # E[log p(zeta | V)] + H(q(zeta))
-            zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, ids, doc, xi, log_xi, l2g_idx)
-            old_likelihood += zeta_ll
-            logging.debug('Log-likelihood after zeta components: %f (+ %f)'
-                % (old_likelihood, zeta_ll))
+            zeta_ll = self.zeta_score(subtree_leaves, ids_leaves, ids, doc, xi, log_xi, l2g_idx)
+            old_score += zeta_ll
+            logging.debug('Score after zeta components: %f (+ %f)'
+                % (old_score, zeta_ll))
 
             # E[log p(W | theta, c, zeta, z)]
-            w_ll = self.w_likelihood(doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves)
-            old_likelihood += w_ll
-            logging.debug('Log-likelihood after W component: %f (+ %f)'
-                % (old_likelihood, w_ll))
+            w_ll = self.w_score(doc, nu, xi, Elogprobw_doc, subtree_leaves, ids_leaves)
+            old_score += w_ll
+            logging.debug('Score after W component: %f (+ %f)'
+                % (old_score, w_ll))
 
         while True:
             best_node = None
             best_global_node = None
-            best_likelihood = None
+            best_score = None
 
             for (node, global_node) in self.subtree_node_candidates(subtree):
                 logging.debug('Candidate: global node %s for local node %s'
@@ -816,13 +816,13 @@ class model(object):
                 logging.debug('Subtree global ids: %s'
                     % ' '.join(str(l2g_idx[i]) for i in ids))
 
-                candidate_likelihood = 0.0
+                candidate_score = 0.0
 
                 # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
-                z_ll = self.z_likelihood(subtree, ElogV)
-                candidate_likelihood += z_ll
-                logging.debug('Log-likelihood after z components: %f (+ %f)'
-                    % (candidate_likelihood, z_ll))
+                z_ll = self.z_score(subtree, ElogV)
+                candidate_score += z_ll
+                logging.debug('Score after z components: %f (+ %f)'
+                    % (candidate_score, z_ll))
 
                 for (doc_idx, doc) in enumerate(docs):
                     Elogprobw_doc = self.m_Elogprobw[l2g_idx, :][:, doc.words]
@@ -843,27 +843,27 @@ class model(object):
                         candidate_xi, candidate_nu, candidate_log_nu)
 
                     # E[log p(c | U, zeta)] + H(q(c))
-                    c_ll = self.c_likelihood(subtree, subtree_leaves, prior_ab, candidate_nu, candidate_log_nu, ids)
-                    candidate_likelihood += c_ll
-                    logging.debug('Log-likelihood after c components: %f (+ %f)'
-                        % (candidate_likelihood, c_ll))
+                    c_ll = self.c_score(subtree, subtree_leaves, prior_ab, candidate_nu, candidate_log_nu, ids)
+                    candidate_score += c_ll
+                    logging.debug('Score after c components: %f (+ %f)'
+                        % (candidate_score, c_ll))
 
                     # E[log p(zeta | V)] + H(q(zeta))
-                    zeta_ll = self.zeta_likelihood(subtree_leaves, ids_leaves, ids, doc, candidate_xi, candidate_log_xi, l2g_idx)
-                    candidate_likelihood += zeta_ll
-                    logging.debug('Log-likelihood after zeta components: %f (+ %f)'
-                        % (candidate_likelihood, zeta_ll))
+                    zeta_ll = self.zeta_score(subtree_leaves, ids_leaves, ids, doc, candidate_xi, candidate_log_xi, l2g_idx)
+                    candidate_score += zeta_ll
+                    logging.debug('Score after zeta components: %f (+ %f)'
+                        % (candidate_score, zeta_ll))
 
                     # E[log p(W | theta, c, zeta, z)]
-                    w_ll = self.w_likelihood(doc, candidate_nu, candidate_xi, Elogprobw_doc, subtree_leaves, ids_leaves)
-                    candidate_likelihood += w_ll
-                    logging.debug('Log-likelihood after W component: %f (+ %f)'
-                        % (candidate_likelihood, w_ll))
+                    w_ll = self.w_score(doc, candidate_nu, candidate_xi, Elogprobw_doc, subtree_leaves, ids_leaves)
+                    candidate_score += w_ll
+                    logging.debug('Score after W component: %f (+ %f)'
+                        % (candidate_score, w_ll))
 
-                if best_likelihood is None or candidate_likelihood > best_likelihood:
+                if best_score is None or candidate_score > best_score:
                     best_node = node
                     best_global_node = global_node
-                    best_likelihood = candidate_likelihood
+                    best_score = candidate_score
 
                 p = node[:-1]
                 if node[-1] == 0 and p in subtree:
@@ -876,20 +876,20 @@ class model(object):
                 del subtree[node]
                 del subtree_leaves[node]
 
-            if best_likelihood is None: # no candidates
+            if best_score is None: # no candidates
                 break
 
-            converge = (best_likelihood - old_likelihood) / abs(old_likelihood)
+            converge = (best_score - old_score) / abs(old_score)
             if converge < self.m_delta:
                 break
 
             node = best_node
             global_node = best_global_node
-            likelihood = best_likelihood
+            score = best_score
 
             logging.debug('Selecting global node %s for local node %s'
                 % (str(global_node), str(node)))
-            logging.debug('Log-likelihood: %f' % likelihood)
+            logging.debug('Score: %f' % score)
 
             idx = self.tree_index(node)
             global_idx = self.tree_index(global_node)
@@ -912,10 +912,10 @@ class model(object):
             logging.debug('Subtree global ids: %s'
                 % ' '.join(str(l2g_idx[i]) for i in ids))
 
-            old_likelihood = likelihood
+            old_score = score
 
         logging.debug('Selecting subtree:')
-        logging.debug('Log-likelihood: %f' % old_likelihood)
+        logging.debug('Score: %f' % old_score)
 
         ids = [self.tree_index(n) for n in self.tree_iter(subtree)]
         logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))

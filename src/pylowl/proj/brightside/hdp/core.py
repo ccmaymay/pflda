@@ -55,7 +55,7 @@ class model(object):
         # count somewhat evenly (i.i.d. Gamma(1,1) distributed) between
         # each word type and topic.  *Then* subtract lambda0 so that the
         # posterior is composed of these pseudo-counts only (maximum
-        # likelihood / no prior).  (why?!  TODO)
+        # score / no prior).  (why?!  TODO)
         self.m_lambda_ss = np.random.gamma(
             1.0, 1.0, (self.m_K, W)) * D * 100 / (self.m_K * W) - lambda0
         self.m_lambda0 = lambda0
@@ -220,13 +220,13 @@ class model(object):
             (log_phi[i,:], log_norm) = utils.log_normalize(log_phi[i,:])
         phi[:,:] = np.exp(log_phi)
 
-    def z_likelihood(self, ElogV, phi, log_phi):
+    def z_score(self, ElogV, phi, log_phi):
         return np.sum(phi * (ElogV - log_phi))
 
-    def c_likelihood(self, Elogpi, nu, log_nu):
+    def c_score(self, Elogpi, nu, log_nu):
         return np.sum(nu * (Elogpi - log_nu))
 
-    def w_likelihood(self, doc, nu, phi, Elogprobw_doc):
+    def w_score(self, doc, nu, phi, Elogprobw_doc):
         return np.sum(nu.T * np.dot(phi, np.repeat(Elogprobw_doc, doc.counts, axis=1)))
 
     def doc_e_step(self, doc, ss, ElogV, vocab_to_batch_word_map,
@@ -262,8 +262,8 @@ class model(object):
         log_nu = np.log(nu)
 
         converge = None
-        likelihood = None
-        old_likelihood = None
+        score = None
+        old_score = None
 
         iteration = 0
         # not yet support second level optimization yet, to be done in the
@@ -277,37 +277,37 @@ class model(object):
             self.update_uv(nu, uv)
             Elogpi = utils.Elog_sbc_stop(uv)
 
-            # compute likelihood
+            # compute score
 
-            likelihood = 0.0
+            score = 0.0
 
             # E[log p(V | beta)] + H(q(V))
-            v_ll = utils.log_sticks_likelihood(uv[:,:self.m_L-1], 1.0, self.m_beta)
-            likelihood += v_ll
-            logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
+            v_ll = utils.log_sticks_score(uv[:,:self.m_L-1], 1.0, self.m_beta)
+            score += v_ll
+            logging.debug('Score after V components: %f (+ %f)' % (score, v_ll))
 
             # E[log p(z | V)] + H(q(z))
-            z_ll = self.z_likelihood(ElogV, phi, log_phi)
-            likelihood += z_ll
-            logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
+            z_ll = self.z_score(ElogV, phi, log_phi)
+            score += z_ll
+            logging.debug('Score after z components: %f (+ %f)' % (score, z_ll))
 
             # E[log p(c | U, V)] + H(q(c))
-            c_ll = self.c_likelihood(Elogpi, nu, log_nu)
-            likelihood += c_ll
-            logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
+            c_ll = self.c_score(Elogpi, nu, log_nu)
+            score += c_ll
+            logging.debug('Score after c components: %f (+ %f)' % (score, c_ll))
 
             # E[log p(W | theta, c, z)]
-            w_ll = self.w_likelihood(doc, nu, phi, Elogprobw_doc)
-            likelihood += w_ll
-            logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
+            w_ll = self.w_score(doc, nu, phi, Elogprobw_doc)
+            score += w_ll
+            logging.debug('Score after W component: %f (+ %f)' % (score, w_ll))
 
-            logging.debug('Log-likelihood: %f' % likelihood)
+            logging.debug('Score: %f' % score)
 
-            if old_likelihood is not None:
-                converge = (likelihood - old_likelihood) / abs(old_likelihood)
+            if old_score is not None:
+                converge = (score - old_score) / abs(old_score)
                 if converge < 0:
-                    logging.warning('Log-likelihood is decreasing')
-            old_likelihood = likelihood
+                    logging.warning('Score is decreasing')
+            old_score = score
 
             iteration += 1
 
@@ -331,7 +331,7 @@ class model(object):
                 doc, nu)
 
         if predict_doc is not None:
-            likelihood = 0.
+            score = 0.
             logEVd = utils.logE_sbc_stop(uv)
             # TODO abstract this?
             logEtheta = (
@@ -347,9 +347,9 @@ class model(object):
                             + log_phi[i,j]
                             + logEtheta[j,w]
                         )
-                likelihood += np.log(expected_word_prob) * w_count
+                score += np.log(expected_word_prob) * w_count
 
-        return likelihood
+        return score
 
     def update_ss_stochastic(self, ss, batch_to_vocab_word_map):
         # rho will be between 0 and 1, and says how much to weight

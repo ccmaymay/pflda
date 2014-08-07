@@ -72,7 +72,7 @@ class model(object):
         # count somewhat evenly (i.i.d. Gamma(1,1) distributed) between
         # each word type and topic.  *Then* subtract lambda0 so that the
         # posterior is composed of these pseudo-counts only (maximum
-        # likelihood / no prior).  (why?!  TODO)
+        # score / no prior).  (why?!  TODO)
         self.m_lambda_ss = np.random.gamma(
             1.0, 1.0, (self.m_K, W)) * D * 100 / (self.m_K * W) - lambda0
         self.m_lambda0 = lambda0
@@ -294,18 +294,18 @@ class model(object):
                 global_s_idx = self.tree_index(global_s)
                 self.m_tau[1,global_s_idx] += self.m_tau_ss[global_node_idx]
 
-    def z_likelihood(self, subtree, ElogV):
-        likelihood = 0.0
+    def z_score(self, subtree, ElogV):
+        score = 0.0
         for node in self.tree_iter(subtree):
             global_node = subtree[node]
             global_idx = self.tree_index(global_node)
-            likelihood += ElogV[0,global_idx]
+            score += ElogV[0,global_idx]
             for global_s in self.node_left_siblings(global_node):
                 global_s_idx = self.tree_index(global_s)
-                likelihood += ElogV[1,global_s_idx]
-        return likelihood
+                score += ElogV[1,global_s_idx]
+        return score
 
-    def c_likelihood(self, subtree, ab, uv, nu, log_nu, ids):
+    def c_score(self, subtree, ab, uv, nu, log_nu, ids):
         log_prob_c = np.zeros(self.m_K)
         for node in self.tree_iter(subtree):
             idx = self.tree_index(node)
@@ -334,7 +334,7 @@ class model(object):
 
         return np.sum(nu[:,ids] * (log_prob_c[ids][np.newaxis,:] - log_nu[:,ids]))
 
-    def w_likelihood(self, doc, nu, Elogprobw_doc, ids):
+    def w_score(self, doc, nu, Elogprobw_doc, ids):
         return np.sum(nu[:,ids].T * np.repeat(Elogprobw_doc[ids,:], doc.counts, axis=1))
 
     def compute_Elogpi(self):
@@ -479,8 +479,8 @@ class model(object):
         nu_sums = np.sum(nu, 0)
 
         converge = None
-        likelihood = None
-        old_likelihood = None
+        score = None
+        old_score = None
 
         iteration = 0
         # not yet support second level optimization yet, to be done in the
@@ -494,42 +494,42 @@ class model(object):
             self.update_uv(subtree, nu_sums, uv)
             self.update_ab(subtree, nu_sums, ab)
 
-            # compute likelihood
+            # compute score
 
-            likelihood = 0.0
+            score = 0.0
 
             # E[log p(U | gamma_1, gamma_2)] + H(q(U))
-            u_ll = utils.log_sticks_likelihood(ab[:,ab_ids], self.m_gamma1, self.m_gamma2)
-            likelihood += u_ll
-            logging.debug('Log-likelihood after U components: %f (+ %f)' % (likelihood, u_ll))
+            u_ll = utils.log_sticks_score(ab[:,ab_ids], self.m_gamma1, self.m_gamma2)
+            score += u_ll
+            logging.debug('Score after U components: %f (+ %f)' % (score, u_ll))
 
             # E[log p(V | beta)] + H(q(V))
-            v_ll = utils.log_sticks_likelihood(uv[:,uv_ids], 1.0, self.m_beta)
-            likelihood += v_ll
-            logging.debug('Log-likelihood after V components: %f (+ %f)' % (likelihood, v_ll))
+            v_ll = utils.log_sticks_score(uv[:,uv_ids], 1.0, self.m_beta)
+            score += v_ll
+            logging.debug('Score after V components: %f (+ %f)' % (score, v_ll))
 
             # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
-            z_ll = self.z_likelihood(subtree, ElogV)
-            likelihood += z_ll
-            logging.debug('Log-likelihood after z components: %f (+ %f)' % (likelihood, z_ll))
+            z_ll = self.z_score(subtree, ElogV)
+            score += z_ll
+            logging.debug('Score after z components: %f (+ %f)' % (score, z_ll))
 
             # E[log p(c | U, V)] + H(q(c))
-            c_ll = self.c_likelihood(subtree, ab, uv, nu, log_nu, ids)
-            likelihood += c_ll
-            logging.debug('Log-likelihood after c components: %f (+ %f)' % (likelihood, c_ll))
+            c_ll = self.c_score(subtree, ab, uv, nu, log_nu, ids)
+            score += c_ll
+            logging.debug('Score after c components: %f (+ %f)' % (score, c_ll))
 
             # E[log p(W | theta, c, z)]
-            w_ll = self.w_likelihood(doc, nu, Elogprobw_doc, ids)
-            likelihood += w_ll
-            logging.debug('Log-likelihood after W component: %f (+ %f)' % (likelihood, w_ll))
+            w_ll = self.w_score(doc, nu, Elogprobw_doc, ids)
+            score += w_ll
+            logging.debug('Score after W component: %f (+ %f)' % (score, w_ll))
 
-            logging.debug('Log-likelihood: %f' % likelihood)
+            logging.debug('Score: %f' % score)
 
-            if old_likelihood is not None:
-                converge = (likelihood - old_likelihood) / abs(old_likelihood)
+            if old_score is not None:
+                converge = (score - old_score) / abs(old_score)
                 if converge < 0:
-                    logging.warning('Log-likelihood is decreasing')
-            old_likelihood = likelihood
+                    logging.warning('Score is decreasing')
+            old_score = score
 
             iteration += 1
 
@@ -561,9 +561,9 @@ class model(object):
                 np.log(self.m_lambda0 + self.m_lambda_ss)
                 - np.log(self.m_W*self.m_lambda0 + self.m_lambda_ss_sum[:,np.newaxis])
             )
-            likelihood = np.sum(np.log(np.sum(np.exp(logEpi[ids][:,np.newaxis] + logEtheta[l2g_idx[ids],:][:,predict_doc.words]), 0)) * predict_doc.counts)
+            score = np.sum(np.log(np.sum(np.exp(logEpi[ids][:,np.newaxis] + logEtheta[l2g_idx[ids],:][:,predict_doc.words]), 0)) * predict_doc.counts)
 
-        return likelihood
+        return score
 
     def node_ancestors(self, node):
         return utils.node_ancestors(node)
@@ -605,7 +605,7 @@ class model(object):
         prior_ab = np.zeros((2, self.m_K))
         prior_ab[0] = 1.0
 
-        old_likelihood = 0.0
+        old_score = 0.0
 
         ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
         logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
@@ -619,25 +619,25 @@ class model(object):
             subtree, prior_ab, prior_uv, Elogprobw_doc, doc, nu, log_nu)
 
         # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
-        z_ll = self.z_likelihood(subtree, ElogV)
-        old_likelihood += z_ll
-        logging.debug('Log-likelihood after z components: %f (+ %f)'
-            % (old_likelihood, z_ll))
+        z_ll = self.z_score(subtree, ElogV)
+        old_score += z_ll
+        logging.debug('Score after z components: %f (+ %f)'
+            % (old_score, z_ll))
 
         # E[log p(c | U, V)] + H(q(c))
         # TODO is it a bug that the equivalent computation in
         # oHDP does not account for types appearing more than
         # once?  (Uses . rather than ._all .)
-        c_ll = self.c_likelihood(subtree, prior_ab, prior_uv, nu, log_nu, ids)
-        old_likelihood += c_ll
-        logging.debug('Log-likelihood after c components: %f (+ %f)'
-            % (old_likelihood, c_ll))
+        c_ll = self.c_score(subtree, prior_ab, prior_uv, nu, log_nu, ids)
+        old_score += c_ll
+        logging.debug('Score after c components: %f (+ %f)'
+            % (old_score, c_ll))
 
         # E[log p(W | theta, c, z)]
-        w_ll = self.w_likelihood(doc, nu, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
-        old_likelihood += w_ll
-        logging.debug('Log-likelihood after W component: %f (+ %f)'
-            % (old_likelihood, w_ll))
+        w_ll = self.w_score(doc, nu, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
+        old_score += w_ll
+        logging.debug('Score after W component: %f (+ %f)'
+            % (old_score, w_ll))
 
         candidate_nu = nu
         candidate_log_nu = log_nu
@@ -645,7 +645,7 @@ class model(object):
         while True:
             best_node = None
             best_global_node = None
-            best_likelihood = None
+            best_score = None
 
             for (node, global_node) in self.subtree_node_candidates(subtree):
                 logging.debug('Candidate: global node %s for local node %s'
@@ -673,33 +673,33 @@ class model(object):
                 self.update_nu(subtree, prior_ab, prior_uv, Elogprobw_doc, doc,
                     candidate_nu, candidate_log_nu)
 
-                candidate_likelihood = 0.0
+                candidate_score = 0.0
 
                 # E[log p(z | V)] + H(q(z))  (note H(q(z)) = 0)
-                z_ll = self.z_likelihood(subtree, ElogV)
-                candidate_likelihood += z_ll
-                logging.debug('Log-likelihood after z components: %f (+ %f)'
-                    % (candidate_likelihood, z_ll))
+                z_ll = self.z_score(subtree, ElogV)
+                candidate_score += z_ll
+                logging.debug('Score after z components: %f (+ %f)'
+                    % (candidate_score, z_ll))
 
                 # E[log p(c | U, V)] + H(q(c))
                 # TODO is it a bug that the equivalent computation in
                 # oHDP does not account for types appearing more than
                 # once?  (Uses . rather than ._all .)
-                c_ll = self.c_likelihood(subtree, prior_ab, prior_uv, candidate_nu, candidate_log_nu, ids)
-                candidate_likelihood += c_ll
-                logging.debug('Log-likelihood after c components: %f (+ %f)'
-                    % (candidate_likelihood, c_ll))
+                c_ll = self.c_score(subtree, prior_ab, prior_uv, candidate_nu, candidate_log_nu, ids)
+                candidate_score += c_ll
+                logging.debug('Score after c components: %f (+ %f)'
+                    % (candidate_score, c_ll))
 
                 # E[log p(W | theta, c, z)]
-                w_ll = self.w_likelihood(doc, candidate_nu, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
-                candidate_likelihood += w_ll
-                logging.debug('Log-likelihood after W component: %f (+ %f)'
-                    % (candidate_likelihood, w_ll))
+                w_ll = self.w_score(doc, candidate_nu, self.m_Elogprobw[l2g_idx, :][:, doc.words], ids)
+                candidate_score += w_ll
+                logging.debug('Score after W component: %f (+ %f)'
+                    % (candidate_score, w_ll))
 
-                if best_likelihood is None or candidate_likelihood > best_likelihood:
+                if best_score is None or candidate_score > best_score:
                     best_node = node
                     best_global_node = global_node
-                    best_likelihood = candidate_likelihood
+                    best_score = candidate_score
 
                 del subtree[node]
                 l2g_idx[idx] = 0
@@ -710,16 +710,16 @@ class model(object):
                     left_s_idx = self.tree_index(left_s)
                     prior_uv[:,left_s_idx] = [1.0, 0.0]
 
-            if best_likelihood is None: # no candidates
+            if best_score is None: # no candidates
                 break
 
-            converge = (best_likelihood - old_likelihood) / abs(old_likelihood)
+            converge = (best_score - old_score) / abs(old_score)
             if converge < self.m_delta:
                 break
 
             logging.debug('Selecting global node %s for local node %s'
                 % (str(best_global_node), str(best_node)))
-            logging.debug('Log-likelihood: %f' % best_likelihood)
+            logging.debug('Score: %f' % best_score)
 
             subtree[best_node] = best_global_node
             idx = self.tree_index(best_node)
@@ -734,16 +734,16 @@ class model(object):
             if left_s in subtree:
                 left_s_idx = self.tree_index(left_s)
                 prior_uv[:,left_s_idx] = [1.0, self.m_beta]
-            likelihood = best_likelihood
+            score = best_score
 
             ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
             logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))
             logging.debug('Subtree global ids: %s'
                 % ' '.join(str(l2g_idx[i]) for i in ids))
 
-            old_likelihood = likelihood
+            old_score = score
 
-        logging.debug('Log-likelihood: %f' % old_likelihood)
+        logging.debug('Score: %f' % old_score)
 
         ids = [self.tree_index(nod) for nod in self.tree_iter(subtree)]
         logging.debug('Subtree ids: %s' % ' '.join(str(i) for i in ids))

@@ -346,7 +346,7 @@ def run(**kwargs):
         (score, count, doc_count, doc_scores) = m.process_documents(docs,
             options['var_converge'])
         logging.info('Cumulative doc count: %d' % total_doc_count)
-        logging.info('Log-likelihood: %f (%f per token) (%d tokens)' % (score, score/count, count))
+        logging.info('Score: %f (%f per token) (%d tokens)' % (score, score/count, count))
 
         # Evaluate on the test data: fixed and folds
         if total_doc_count % options['save_lag'] == 0:
@@ -431,7 +431,7 @@ def test_shdp(m, c, batchsize, var_converge, test_samples=None):
         total_count += count
 
     if total_count > 0:
-        logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
+        logging.info('Test score: %f (%f per token) (%d tokens)'
             % (total_score, total_score/total_count, total_count))
     else:
         logging.warn('Cannot test: no data')
@@ -463,7 +463,7 @@ def test_shdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         total_count += count
 
     if total_count > 0:
-        logging.info('Test log-likelihood: %f (%f per token) (%d tokens)'
+        logging.info('Test predictive log-likelihood: %f (%f per token) (%d tokens)'
             % (total_score, total_score/total_count, total_count))
     else:
         logging.warn('Cannot test: no data')
