@@ -68,29 +68,29 @@ def vector_norm_3d_0_ord_2_test():
     m = np.ones((4,3,5))
     assert_almost_equal(vector_norm(m, axis=0, ord=2), 2*np.ones((3,5)))
 
-def log_sticks_likelihood_1_test():
-    actual = log_sticks_likelihood(
+def log_sticks_score_1_test():
+    actual = log_sticks_score(
         np.array([[1.], [1.]]),
         1., 1.
     )
     assert_almost_equal(actual, 0.0)
 
-def log_sticks_likelihood_2_test():
-    actual = log_sticks_likelihood(
+def log_sticks_score_2_test():
+    actual = log_sticks_score(
         np.array([[42.], [7.]]),
         42., 7.
     )
     assert_almost_equal(actual, 0.0)
 
-def log_sticks_likelihood_3_test():
-    actual = log_sticks_likelihood(
+def log_sticks_score_3_test():
+    actual = log_sticks_score(
         np.array([[42., 42., 42., 42.], [7., 7., 7., 7.]]),
         42., 7.
     )
     assert_almost_equal(actual, 0.0)
 
-def log_sticks_likelihood_4_test():
-    actual = log_sticks_likelihood(
+def log_sticks_score_4_test():
+    actual = log_sticks_score(
         np.array([[42., 47., 42., 42.], [7., 7., 7., 8.]]),
         42., 7.
     )

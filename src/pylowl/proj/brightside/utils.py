@@ -193,7 +193,7 @@ def vector_norm(m, axis=0, ord=None):
     return norm
 
     
-def log_sticks_likelihood(ab, a_prior, b_prior):
+def log_sticks_score(ab, a_prior, b_prior):
     '''
     Return E[log p(X | a_prior, b_prior)] + H(q(X))
     where X is a random vector whose components are Beta-distributed
