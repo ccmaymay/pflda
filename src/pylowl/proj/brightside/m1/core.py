@@ -203,6 +203,7 @@ class model(object):
         docs = list(docs)
         num_docs = len(docs)
         doc_scores = []
+        doc_counts = []
 
         if predict_docs is None:
             predict_docs = [None] * num_docs
