@@ -21,7 +21,9 @@ def run_grid_commands(command, **var_levels):
         arg_pairs = (('--%s' % var_name, str(var_level))
                      for (var_name, var_level)
                      in zip(var_names, var_level_combination))
-        subprocess.call(str_command + reduce(lambda x, y: x + y, arg_pairs))
+        full_command = str_command + reduce(lambda x, y: x + y, arg_pairs)
+        print ' '.join(('$',) + full_command)
+        subprocess.call(full_command)
 
 
 def parse_grid_args(var_name_type_pairs, default_var_values):
