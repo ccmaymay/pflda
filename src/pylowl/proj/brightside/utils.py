@@ -26,7 +26,7 @@ def run_grid_commands(command, **var_levels):
         subprocess.call(full_command)
 
 
-def parse_grid_args(var_name_type_pairs, default_var_values):
+def parse_grid_args(var_name_type_pairs, default_var_values, args):
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     default_args = dict(
         (var_name, [default_var_values[var_name]])
@@ -41,7 +41,7 @@ def parse_grid_args(var_name_type_pairs, default_var_values):
             type=var_type,
             nargs='*'
         )
-    return vars(parser.parse_args())
+    return vars(parser.parse_args(args))
 
 
 def seconds_to_hms(total_seconds):
