@@ -6,7 +6,7 @@ from pylowl.proj.brightside.hdp.run import DEFAULT_OPTIONS, GRID_VAR_NAME_TYPE_P
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 
-arg_parser = argparse.ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+arg_parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 arg_parser.set_defaults(data_dir='data/txt/tng/train',
                         test_data_dir='data/txt/tng/test',
                         vocab_path='data/txt/tng/vocab',

@@ -7,7 +7,7 @@ from pylowl.proj.brightside.preproc.src_to_concrete import src_to_concrete
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 
-arg_parser = argparse.ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+arg_parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 arg_parser.set_defaults(src_dir='src', data_parent_dir='data/txt',
                         batchsize=20, init_samples=50, max_time=90)
 arg_parser.add_argument('--src_dir', type=str)
