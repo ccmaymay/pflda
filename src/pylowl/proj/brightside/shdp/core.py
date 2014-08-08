@@ -157,14 +157,14 @@ class model(object):
     def process_documents(self, docs, var_converge, update=True,
                           predict_docs=None, predict_classes=False):
         docs = list(docs)
-        doc_count = len(docs)
+        num_docs = len(docs)
         doc_scores = []
 
         if predict_docs is None:
-            predict_docs = [None] * doc_count
+            predict_docs = [None] * num_docs
 
         # Find the unique words in this mini-batch of documents...
-        self.m_num_docs_processed += doc_count
+        self.m_num_docs_processed += num_docs
 
         classes_to_batch_map = dict()
         batch_to_classes_map = []
@@ -205,9 +205,9 @@ class model(object):
         Wt = len(batch_to_vocab_word_map)
 
         logging.info('Processing %d docs spanning %d tokens, %d types'
-            % (doc_count, num_tokens, Wt))
+            % (num_docs, num_tokens, Wt))
 
-        ss = suff_stats(self.m_K, self.m_J, Wt, doc_count, Mt)
+        ss = suff_stats(self.m_K, self.m_J, Wt, num_docs, Mt)
 
         # run variational inference on some new docs
         score = 0.0
@@ -241,8 +241,10 @@ class model(object):
                 score += doc_score
                 if predict_doc is None:
                     count += doc.total
+                    doc_counts.append(doc.total)
                 else:
                     count += predict_doc.total
+                    doc_counts.append(predict_doc.total)
 
         if update:
             self.update_ss_stochastic(ss, batch_to_vocab_word_map,
@@ -265,9 +267,9 @@ class model(object):
             self.m_t += 1
 
         if predict_classes:
-            return (score, count, doc_count, doc_scores, confusion)
+            return (score, count, num_docs, doc_scores, doc_counts, confusion)
         else:
-            return (score, count, doc_count, doc_scores)
+            return (score, count, num_docs, doc_scores, doc_counts)
 
     def update_lambda(self):
         self.m_Elogprobw = (

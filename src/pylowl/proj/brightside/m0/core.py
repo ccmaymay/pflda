@@ -183,13 +183,13 @@ class model(object):
     def process_documents(self, docs, var_converge, update=True,
                           predict_docs=None, save_model=False):
         docs = list(docs)
-        doc_count = len(docs)
+        num_docs = len(docs)
 
         if predict_docs is None:
-            predict_docs = [None] * doc_count
+            predict_docs = [None] * num_docs
 
         # Find the unique words in this mini-batch of documents...
-        self.m_num_docs_processed += doc_count
+        self.m_num_docs_processed += num_docs
 
         # mapping from word types in this mini-batch to unique
         # consecutive integers
@@ -207,9 +207,9 @@ class model(object):
         Wt = len(batch_to_vocab_word_map)
 
         logging.info('Processing %d docs spanning %d tokens, %d types'
-            % (doc_count, num_tokens, Wt))
+            % (num_docs, num_tokens, Wt))
 
-        ss = suff_stats(self.m_K, Wt, doc_count)
+        ss = suff_stats(self.m_K, Wt, num_docs)
 
         # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
         ids = [self.tree_index(node) for node in self.tree_iter()]
@@ -235,7 +235,7 @@ class model(object):
             self.update_tau()
             self.m_t += 1
 
-        return (score, count, doc_count)
+        return (score, count, num_docs)
 
     def update_lambda(self):
         self.m_Elogprobw = (

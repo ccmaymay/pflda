@@ -330,7 +330,7 @@ def run(**kwargs):
                   batchsize, options['var_converge'], options['test_samples'])
 
     iteration = 0
-    total_doc_count = 0
+    total_num_docs = 0
 
     start_time = time.time()
     logging.info("Starting online variational inference")
@@ -345,19 +345,19 @@ def run(**kwargs):
             ids = random.sample(range(c_train.num_docs), batchsize)
             docs = [c_train.docs[idx] for idx in ids]
 
-        total_doc_count += batchsize
+        total_num_docs += batchsize
 
         # Do online inference and evaluate on the fly dataset
-        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(docs,
+        (likelihood, count, num_docs, doc_likelihoods, doc_counts) = m.process_documents(docs,
             options['var_converge'])
-        logging.info('Cumulative doc count: %d' % total_doc_count)
+        logging.info('Cumulative doc count: %d' % total_num_docs)
         logging.info('Score: %f (%f per token) (%d tokens)' % (likelihood, likelihood/count, count))
 
-        if total_doc_count % options['save_lag'] == 0:
+        if total_num_docs % options['save_lag'] == 0:
             if not options['fixed_lag']:
                 options['save_lag'] = options['save_lag'] * 2
 
-            save_and_test(m, 'doc_count-%d' % total_doc_count,
+            save_and_test(m, 'num_docs-%d' % total_num_docs,
                           output_dir, options['save_model'],
                           options['test_data_dir'], c_test, c_test_train, c_test_test,
                           batchsize, options['var_converge'],
@@ -424,13 +424,13 @@ def test_nhdp(m, c, batchsize, var_converge, test_samples=None):
     if test_samples is not None:
         docs_generator = take(docs_generator, test_samples)
 
-    doc_count = batchsize
-    while doc_count == batchsize:
+    num_docs = batchsize
+    while num_docs == batchsize:
         batch = take(docs_generator, batchsize)
 
         batch = [doc for doc in batch if doc.attrs['user'] in m.m_r_users]
 
-        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
+        (likelihood, count, num_docs, doc_likelihoods, doc_counts) = m.process_documents(
             batch, var_converge, update=False)
         total_likelihood += likelihood
         total_count += count
@@ -454,15 +454,15 @@ def test_nhdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         train_docs_generator = take(train_docs_generator, test_samples)
         test_docs_generator = take(test_docs_generator, test_samples)
 
-    doc_count = batchsize
-    while doc_count == batchsize:
+    num_docs = batchsize
+    while num_docs == batchsize:
         train_batch = take(train_docs_generator, batchsize)
         test_batch = take(test_docs_generator, batchsize)
 
         train_batch = [doc for doc in train_batch if doc.attrs['user'] in m.m_r_users]
         test_batch = [doc for doc in test_batch if doc.attrs['user'] in m.m_r_users]
 
-        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
+        (likelihood, count, num_docs, doc_likelihoods, doc_counts) = m.process_documents(
             train_batch, var_converge, update=False, predict_docs=test_batch,
             output_files=output_files)
         total_likelihood += likelihood
@@ -489,10 +489,10 @@ def test_nhdp_rank(m, c, batchsize, var_converge, test_samples=None):
 
     all_doc_users = []
     all_doc_likelihoods = dict((c, []) for c in m.m_r_users)
-    orig_doc_count = batchsize
-    while orig_doc_count == batchsize:
+    orig_num_docs = batchsize
+    while orig_num_docs == batchsize:
         batch = list(take(docs_generator, batchsize))
-        orig_doc_count = len(batch)
+        orig_num_docs = len(batch)
         batch = [doc for doc in batch if doc.attrs['user'] in m.m_r_users]
 
         orig_users = [doc.attrs['user'] for doc in batch]
@@ -502,10 +502,14 @@ def test_nhdp_rank(m, c, batchsize, var_converge, test_samples=None):
             for doc in batch:
                 doc.attrs['user'] = cur_user
 
-            (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
+            (likelihood, count, num_docs, doc_likelihoods, doc_counts) = m.process_documents(
                 batch, var_converge, update=False)
-            all_doc_likelihoods[cur_user].extend(doc_likelihoods)
-
+            doc_likelihoods_per_word = [
+                ((doc_count > 0) and (doc_likelihood/float(doc_count)) or 0.)
+                for (doc_likelihood, doc_count)
+                in zip(doc_likelihoods, doc_counts)
+            ]
+            all_doc_likelihoods[cur_user].extend(doc_likelihoods_per_word)
             total_count += count
 
         for (doc, orig_user) in zip(batch, orig_users):

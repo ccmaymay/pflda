@@ -324,7 +324,7 @@ def run(**kwargs):
     save(m, 'init', output_dir, options['save_model'])
 
     iteration = 0
-    total_doc_count = 0
+    total_num_docs = 0
 
     start_time = time.time()
     logging.info("Starting online variational inference")
@@ -340,21 +340,21 @@ def run(**kwargs):
             ids = random.sample(range(c_train.num_docs), batchsize)
             docs = [c_train.docs[idx] for idx in ids]
 
-        total_doc_count += batchsize
+        total_num_docs += batchsize
 
         # Do online inference and evaluate on the fly dataset
-        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(docs,
+        (likelihood, count, num_docs, doc_likelihoods, doc_counts) = m.process_documents(docs,
             options['var_converge'])
-        logging.info('Cumulative doc count: %d' % total_doc_count)
+        logging.info('Cumulative doc count: %d' % total_num_docs)
         logging.info('Score: %f (%f per token) (%d tokens)' % (likelihood, likelihood/count, count))
 
         # Evaluate on the test data: fixed and folds
-        if total_doc_count % options['save_lag'] == 0:
+        if total_num_docs % options['save_lag'] == 0:
             if not options['fixed_lag']:
                 options['save_lag'] = options['save_lag'] * 2
 
             # Save the model.
-            save(m, 'doc_count-%d' % total_doc_count, output_dir,
+            save(m, 'num_docs-%d' % total_num_docs, output_dir,
                  options['save_model'])
 
             if options['test_data_dir'] is not None:
@@ -419,13 +419,13 @@ def test_shdp(m, c, batchsize, var_converge, test_samples=None):
     if test_samples is not None:
         docs_generator = take(docs_generator, test_samples)
 
-    doc_count = batchsize
-    while doc_count == batchsize:
+    num_docs = batchsize
+    while num_docs == batchsize:
         batch = take(docs_generator, batchsize)
 
         batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
 
-        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
+        (likelihood, count, num_docs, doc_likelihoods, doc_counts) = m.process_documents(
             batch, var_converge, update=False)
         total_likelihood += likelihood
         total_count += count
@@ -449,15 +449,15 @@ def test_shdp_predictive(m, c_train, c_test, batchsize, var_converge, test_sampl
         train_docs_generator = take(train_docs_generator, test_samples)
         test_docs_generator = take(test_docs_generator, test_samples)
 
-    doc_count = batchsize
-    while doc_count == batchsize:
+    num_docs = batchsize
+    while num_docs == batchsize:
         train_batch = take(train_docs_generator, batchsize)
         test_batch = take(test_docs_generator, batchsize)
 
         train_batch = [doc for doc in train_batch if doc.attrs['class'] in m.m_r_classes]
         test_batch = [doc for doc in test_batch if doc.attrs['class'] in m.m_r_classes]
 
-        (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
+        (likelihood, count, num_docs, doc_likelihoods, doc_counts) = m.process_documents(
             train_batch, var_converge, update=False, predict_docs=test_batch)
         total_likelihood += likelihood
         total_count += count
@@ -480,14 +480,14 @@ def test_shdp_predict_classes(m, num_classes, c, batchsize, var_converge, test_s
     if test_samples is not None:
         docs_generator = take(docs_generator, test_samples)
 
-    orig_doc_count = batchsize
-    while orig_doc_count == batchsize:
+    orig_num_docs = batchsize
+    while orig_num_docs == batchsize:
         batch = list(take(docs_generator, batchsize))
-        orig_doc_count = len(batch)
+        orig_num_docs = len(batch)
 
         batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
 
-        (likelihood, count, doc_count, doc_likelihoods, confusion) = m.process_documents(
+        (likelihood, count, num_docs, doc_likelihoods, doc_counts, confusion) = m.process_documents(
             batch, var_converge, update=False, predict_classes=True)
         total_likelihood += likelihood
         total_count += count
@@ -516,10 +516,10 @@ def test_shdp_rank(m, num_classes, c, batchsize, var_converge, test_samples=None
 
     all_doc_classes = []
     all_doc_likelihoods = dict((c, []) for c in m.m_r_classes)
-    orig_doc_count = batchsize
-    while orig_doc_count == batchsize:
+    orig_num_docs = batchsize
+    while orig_num_docs == batchsize:
         batch = list(take(docs_generator, batchsize))
-        orig_doc_count = len(batch)
+        orig_num_docs = len(batch)
         batch = [doc for doc in batch if doc.attrs['class'] in m.m_r_classes]
 
         orig_classes = [doc.attrs['class'] for doc in batch]
@@ -529,10 +529,14 @@ def test_shdp_rank(m, num_classes, c, batchsize, var_converge, test_samples=None
             for doc in batch:
                 doc.attrs['class'] = cur_class
 
-            (likelihood, count, doc_count, doc_likelihoods) = m.process_documents(
+            (likelihood, count, num_docs, doc_likelihoods, doc_counts) = m.process_documents(
                 batch, var_converge, update=False)
-            all_doc_likelihoods[cur_class].extend(doc_likelihoods)
-
+            doc_likelihoods_per_word = [
+                ((doc_count > 0) and (doc_likelihood/float(doc_count)) or 0.)
+                for (doc_likelihood, doc_count)
+                in zip(doc_likelihoods, doc_counts)
+            ]
+            all_doc_likelihoods[cur_class].extend(doc_likelihoods_per_word)
             total_count += count
 
         for (doc, orig_class) in zip(batch, orig_classes):

@@ -201,14 +201,14 @@ class model(object):
             output_files = dict()
 
         docs = list(docs)
-        doc_count = len(docs)
+        num_docs = len(docs)
         doc_scores = []
 
         if predict_docs is None:
-            predict_docs = [None] * doc_count
+            predict_docs = [None] * num_docs
 
         # Find the unique words in this mini-batch of documents...
-        self.m_num_docs_processed += doc_count
+        self.m_num_docs_processed += num_docs
 
         users_to_batch_map = dict()
         batch_to_users_map = []
@@ -271,9 +271,9 @@ class model(object):
         Wt = len(batch_to_vocab_word_map)
 
         logging.info('Processing %d docs spanning %d tokens, %d types'
-            % (doc_count, num_tokens, Wt))
+            % (num_docs, num_tokens, Wt))
 
-        ss = suff_stats(self.m_K, Wt, doc_count, Ut, DperUt)
+        ss = suff_stats(self.m_K, Wt, num_docs, Ut, DperUt)
 
         # First row of ElogV is E[log(V)], second row is E[log(1 - V)]
         ids = [self.tree_index(node) for node in self.tree_iter()]
@@ -299,8 +299,10 @@ class model(object):
             doc_scores.append(doc_score)
             if predict_doc is None:
                 count += doc.total
+                doc_counts.append(doc.total)
             else:
                 count += predict_doc.total
+                doc_counts.append(predict_doc.total)
 
         # update tau ss
         for user_batch_idx in xrange(ss.m_batch_U):
@@ -318,7 +320,7 @@ class model(object):
             self.update_uv()
             self.m_t += 1
 
-        return (score, count, doc_count, doc_scores)
+        return (score, count, num_docs, doc_scores, doc_counts)
 
     def update_lambda(self):
         self.m_Elogprobw = (
